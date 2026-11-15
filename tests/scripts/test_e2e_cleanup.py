@@ -93,6 +93,55 @@ class Rules(unittest.TestCase):
         self.assertEqual(files(self.leftovers([], display=314)), ['.X314-lock', 'X314'])
 
 
+class Records(unittest.TestCase):
+    """A lane lock's record, read by a process that does not hold the lock."""
+
+    class Torn:
+        """A file that reads empty, then cut short, then whole: a record being rewritten."""
+
+        def __init__(self, *texts):
+            self.texts, self.reads = list(texts), 0
+
+        def seek(self, offset):
+            pass
+
+        def read(self):
+            self.reads += 1
+            return self.texts.pop(0) if len(self.texts) > 1 else self.texts[0]
+
+    def test_a_reader_without_the_lock_looks_again_at_a_record_being_rewritten(self):
+        torn = self.Torn('', '{"pid": 7, "sta', '{"pid": 7, "state": "ended"}')
+        self.assertEqual(e2e.read_record(torn, retries=5), {'pid': 7, 'state': 'ended'})
+        self.assertEqual(torn.reads, 3)
+
+    def test_the_locks_holder_reads_once(self):
+        torn = self.Torn('', '{"pid": 7}')
+        self.assertEqual(e2e.read_record(torn), {})
+        self.assertEqual(torn.reads, 1)
+
+    def test_a_record_that_stays_empty_is_no_record(self):
+        torn = self.Torn('')
+        self.assertEqual(e2e.read_record(torn, retries=2), {})
+        self.assertEqual(torn.reads, 3)
+
+    def test_lane_status_reads_a_held_lanes_record_again(self):
+        with tempfile.TemporaryDirectory() as locks:
+            lane = e2e.try_lane(917, locks, busy=lambda p: False, display_busy=lambda d: False, reserved=(set(), set()))
+            read, looks = e2e.read_record, []
+
+            def torn_first(f, retries=0):
+                looks.append(retries)
+                return read(f, retries)
+
+            e2e.read_record = torn_first
+            try:
+                self.assertEqual([s['pid'] for s in e2e.lane_status(locks)], [os.getpid()])
+            finally:
+                e2e.read_record = read
+                lane.release()
+            self.assertEqual(looks, [5])
+
+
 def start_time_of_a_dead_process():
     """A PID:START tag of a process that has ended."""
     p = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(0.3)'])
@@ -315,8 +364,9 @@ time.sleep(120)
         self.assertIsNone(e2e.process_start(player))
         deadline = time.time() + 10
         while time.time() < deadline:
+            # The watcher rewrites the record meanwhile: read as e2e.py's own readers do.
             with open(os.path.join(self.locks, 'lane-916.lock')) as f:
-                record = json.load(f)
+                record = e2e.read_record(f, retries=5)
             if record.get('state') == 'ended':
                 break
             time.sleep(0.2)

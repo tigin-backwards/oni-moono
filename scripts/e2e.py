@@ -919,11 +919,7 @@ def lane_status(lock_dir=None):
                 continue  # nobody holds it
             except OSError:
                 pass
-            f.seek(0)
-            try:
-                record = json.loads(f.read() or '{}')
-            except ValueError:
-                record = {}
+            record = read_record(f, retries=5)  # its holder may be rewriting it
         held.append({'pid': None, 'root': '?', 'since': '?', **record, 'lane': int(match.group(1))})
     return sorted(held, key=lambda s: s['lane'])
 
@@ -1271,12 +1267,19 @@ def teardown_owner(tag, grace=2, log=None):
                     os.unlink(path)
 
 
-def read_record(f):
-    f.seek(0)
-    try:
-        return json.loads(f.read() or '{}')
-    except ValueError:
-        return {}
+def read_record(f, retries=0):
+    """A lane lock's record. write_record empties the file and then writes it, so a reader
+    without the lock can find it empty or cut short: RETRIES more looks, 10 ms apart, are for
+    that reader (the holder of the lock needs none)."""
+    for attempt in range(retries + 1):
+        f.seek(0)
+        try:
+            record = json.loads(f.read() or '{}')
+        except ValueError:
+            record = {}
+        if record or attempt == retries:
+            return record
+        time.sleep(0.01)
 
 
 def write_record(f, record):
