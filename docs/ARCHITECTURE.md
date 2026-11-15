@@ -2460,11 +2460,17 @@ One swap chain a window (#56):
   SwapBuffers for an OpenGL one, skips its DXGI presents (its `IgnoreDXGIInterop` default) and
   hooks only the Direct3D runtimes loaded when it injects, as windows are made. Measured with
   RTSS 7.3.7 through its shared memory: before, it attached to OpenGL on a 120x1 hidden window
-  and showed no overlay; after, to our swap chain at the window's size. A player's RTSS then
-  counted our presents and still drew nothing (#86): what its hook goes by is not known. The
-  log's `present: DXGI picture N presented on thread` lines (pictures 1 and 1000) say what a
-  hook can see: the presenting thread, whether an OpenGL context is current on it, that the swap
-  chain's D3D11 device is the one opened for OpenGL, and the graphics and hook modules loaded.
+  and showed no overlay; after, to our swap chain at the window's size. RTSS then
+  counted our presents and still drew nothing (#86). The cause, measured with RTSS 7.3.5 on an
+  RTX 3090 (driver 610.88): once `wglDXOpenDeviceNV` has opened our D3D11 device, the device
+  answers `QueryInterface` for `ID3D10Device` too (`E_NOINTERFACE` before the call, `S_OK`
+  after). RTSS asks for Direct3D 10 first, takes the swap chain for a Direct3D 10 one (its
+  shared memory's API flag 6, not 7) and draws nothing. `IgnoreDXGIInterop` 0 and 2 changed
+  nothing; `D3D1xDevicePriority=1` under `[Hooking]` in RTSS's profile for `OniMoono.exe`
+  made it draw (flag 7). The log's `present: DXGI picture N presented on thread` lines
+  (pictures 1 and 1000) say what a hook can see: the presenting thread, whether an OpenGL
+  context is current on it, that the swap chain's D3D11 device is the one opened for OpenGL,
+  whether it answers as a Direct3D 10 device, and the graphics and hook modules loaded.
 - **When the window gets a context.** The window gets a pixel format, double-buffered, and a
   context of its own sharing the presenter's, only once DXGI is given up: it could not start,
   or no restart is left. (With the hidden window's pixel format and the presenter's context
