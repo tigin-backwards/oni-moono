@@ -1,0 +1,19 @@
+# Quit to Desktop from the pause menu, with Save and Quit.
+#
+# The game saves, then calls Application.Quit (PauseScreen.OnDesktopQuitConfirm): the player ends
+# by itself with exit code 0, and the save is on disk whole. Ours hides its window once
+# OnApplicationQuit has run and the save is written, runs every OnDisable and OnDestroy as the
+# original does, and ends without releasing GPU objects one by one (ARCHITECTURE §3.3). A save
+# still being written by background-save is finished first.
+from: early-base
+steps:
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {text: "Quit to Desktop", under: "**/PauseScreen/LayoutContent"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
+  - ui_dump: {name: quit, root: "**/ConfirmDialog"}
+  # SAVE AND QUIT
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton", quits: true}
+  - expect_exit: {seconds: 120}
+  - expect_state:
+      "file:save_files/e2e/early-base.sav": exists
