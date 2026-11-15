@@ -2382,17 +2382,11 @@ class Driver:
         """EXPR's items, each a list of its MEMBERS' values (state.each), in one request."""
         return self.request('state.each', timeout=max(self.timeout, 600), expr=expr, members=members)['items']
 
-    def camera_get(self):
-        return self.request('camera.get')
-
     def camera_set(self, **args):
         return self.request('camera.set', **args)
 
     def canvas(self, hide):
         return self.request('canvas.hide' if hide else 'canvas.show')
-
-    def setup_call(self, **args):
-        return self.request('setup.call', **args)
 
     def seed(self, n):
         return self.request('seed', n=n)
