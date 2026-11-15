@@ -54,6 +54,9 @@ DEFAULTS = {
         'windows': {'needs': {'windows': 1}, 'timeout': 60},
         'win-perf': {'needs': {'windows': 1, 'perf': 1, 'quiet': True}, 'timeout': 45, 'boost': True},
         'linux-perf': {'needs': {'perf': 1, 'quiet': True, 'mem': 15, 'cpu': 4, 'players': 1}, 'timeout': 60},
+        # A measurement that starts no player (a benchmark, a profile of a build): the perf slot and
+        # a quiet machine, with no player counted and no player's memory.
+        'perf': {'needs': {'perf': 1, 'quiet': True, 'mem': 4, 'cpu': 4}, 'timeout': 60},
         # qa.sh: it starts as qa-unit and moves through its stages with `runq phase --kind qa-STAGE`.
         'qa': {'needs': {'cpu': 8, 'mem': 8}, 'timeout': 180},
         'qa-unit': {'needs': {'cpu': 8, 'mem': 8}, 'timeout': 180},

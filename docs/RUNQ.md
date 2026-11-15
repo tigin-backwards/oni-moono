@@ -90,6 +90,7 @@ How the queue orders jobs:
 | `windows` | the Windows slot | 60 min |
 | `win-perf` | the Windows slot, the perf slot, a quiet machine; High priority for the game | 45 min |
 | `linux-perf` | the perf slot, a quiet machine, mem=15, cpu=4, a player | 60 min |
+| `perf` | the perf slot, a quiet machine, mem=4, cpu=4, no player (a benchmark or profile that starts none) | 60 min |
 | `qa` | `qa.sh`'s stages, one `runq phase --kind qa-STAGE` each | 3 h |
 
 The machine: lanes 1-19 (less reserved and busy ones), 40 GB and 4 players, 14 cores, one
@@ -270,7 +271,8 @@ code, and `runq status` and `runq doctor` say so in a WARNING line.
 >   work, `release` for release QA, `user` for the user's requests, `study` for A/B or
 >   measurement series (the default), `burndown` for burndowns.
 > - KIND: `check`, `e2e`, `linux-player`, `windows`, `win-perf` (frame rates; also
->   `RUNQ_KIND=win-perf scripts/run-windows.sh`), `linux-perf`, `build`, `light`, `generic`.
+>   `RUNQ_KIND=win-perf scripts/run-windows.sh`), `linux-perf`, `perf` (a measurement without
+>   a player), `build`, `light`, `generic`.
 >   More than 4 h of the Windows or perf slot needs the user's OK (`--budget-ok`).
 > - Long runs: start them with the Bash tool's run_in_background and do other work or end your
 >   turn; you are woken when they exit. `runq run` prints the job id and `~/oni-runs/ID/out`
