@@ -27,8 +27,9 @@ steps:
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - shot: {name: end}
   # The gameplay-changing section's last row sits just above the Bug fixes section, which can
-  # fill the list's end: two notches back up bring it out from under the search box.
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 2}
+  # fill the list's end: five notches back up bring it out from under the search box (the
+  # Chinese rows are one line high, so more of them fit below it than in English).
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 5}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: 0}
   - shot: {name: gameplay-tip, pointer: stay}
