@@ -74,10 +74,20 @@ It only shows what it finds. It never turns a tweak on or off. The grades:
   `RemovePickupable`, `Pickupable.OnStore` and what it calls for a rail item, the egg's and the
   world inventory's store handlers; see [Conveyor bridge moves](#conveyor-bridge-moves)),
   `fast-anim-events` (the animation event loop and what it reads; see
-  [Animation events](#animation-events)), `fast-pipe-rebuilds` (the pipes' rebuild handlers and
-  `Conduit.RefreshInvalidNetworkStatusItem`; see [Pipe network rebuilds](#pipe-network-rebuilds)),
-  and the two rewrites for a transpiler they did not
-  review. The icon is the grey disabled sign.
+  [Animation events](#animation-events)), `fast-pipe-rebuilds` (the pipes' rebuild handlers,
+  `Conduit.RefreshInvalidNetworkStatusItem` and the network managers' rebuild; see
+  [Pipe network rebuilds](#pipe-network-rebuilds)),
+  `sim-step-pace` (`Game.SimEveryTick` and `UnsafeSim200ms`),
+  `instant-reachability` (the reachability monitor, the Duplicants' reach table, work cells and
+  offsets), `fetch-by-cell` (the fetch groups' update and lists, what makes an item pickable and
+  the fetch order; for path costs and probes only its skip of unreachable worlds),
+  `fast-table-rows` (the tables' widget lookups and Consumables' scroller refresh),
+  `lazy-table-refresh` (the tables' update, sort and row refresh and the columns' dirty marks),
+  `fix-table-scroll` (the tables' scroller placing and the layout groups' child placing),
+  `fast-serialization` (for the report history only: the serializer's writers),
+  `background-save` (for the colony summary only: `RetireColonyUtility.SaveColonySummaryData`),
+  and the two rewrites for a transpiler they did not review. The icon is the grey disabled sign.
+  A tweak that steps aside stays off until the game restarts.
 
 Where overlaps show:
 

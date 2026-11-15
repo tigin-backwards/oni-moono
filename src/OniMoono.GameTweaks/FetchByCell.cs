@@ -239,6 +239,15 @@ namespace OniMoono.GameTweaks
 
         // ---- Stand-down ----
 
+        /// The methods another owner's patch makes this tweak stand down (ModOverlaps), whole
+        /// or, for GuardedSkip's, its skip of unreachable worlds.
+        internal static IEnumerable<MethodBase> Guarded()
+        {
+            foreach (var m in GuardedBoth()) yield return m;
+            foreach (var m in GuardedCell()) yield return m;
+            foreach (var m in GuardedSkip()) yield return m;
+        }
+
         static IEnumerable<MethodBase> GuardedBoth()
         {
             var g = typeof(Group);
