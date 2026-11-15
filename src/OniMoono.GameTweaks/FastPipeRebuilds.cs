@@ -39,9 +39,11 @@ namespace OniMoono.GameTweaks
     /// object's from another's handler.
     ///
     /// Left to the game's own subscriptions: a Conduit or visualizer whose handler is another
-    /// method (a subclass's override). While another Harmony owner patches a handler or
-    /// RefreshInvalidNetworkStatusItem (checked at each colony's first trigger), every registered
-    /// handler is called on every trigger, as the game's subscriptions would. A trigger whose data
+    /// method (a subclass's override). Once another Harmony owner patches a handler,
+    /// RefreshInvalidNetworkStatusItem, ConduitFlow.OnUtilityNetworksRebuilt or the network
+    /// managers' Update or RemoveFromNetworks (checked at each colony's first trigger, then every
+    /// 64), every registered handler is called on every trigger for the rest of the session, as
+    /// the game's subscriptions would. A trigger whose data
     /// is not a gas or liquid ConduitType (a mod's) refreshes every conduit and calls every
     /// visualizer's handler.
     ///
@@ -77,7 +79,7 @@ namespace OniMoono.GameTweaks
 
         /// Test infrastructure (ONI_FRAME_STATS_AB): true calls every registered handler on every
         /// trigger, the game's work through one subscription.
-        public static bool Bypass = Environment.GetEnvironmentVariable("ONI_PIPE_REBUILDS_BYPASS") == "1";
+        public static bool Bypass;
 
         static MethodInfo conduitHandler, visualizerHandler, conduitRefresh;
 
@@ -105,7 +107,10 @@ namespace OniMoono.GameTweaks
         static readonly List<Entry> visualizers = new List<Entry>();
         /// Conduits not refreshed since they registered.
         static readonly List<Entry> fresh = new List<Entry>();
-        static bool checkedPatches, foreignConduit, foreignVisualizer;
+        /// What each kind's skip relies on; a mod's patch there turns that skip off for the session.
+        static MethodBase[] conduitGuarded, visualizerGuarded;
+        static bool foreignConduit, foreignVisualizer;
+        static int checks;
 
         static long lastSummary;
         public static long Triggers, Refreshed, WouldRefresh, Updated, WouldCall, Wrong;
@@ -115,6 +120,10 @@ namespace OniMoono.GameTweaks
             conduitHandler = AccessTools.Method(typeof(Conduit), "OnConduitFlowRebuilt");
             conduitRefresh = AccessTools.Method(typeof(Conduit), "RefreshInvalidNetworkStatusItem");
             visualizerHandler = AccessTools.Method(typeof(ConduitFlowKAnimVisualizer), "OnConduitFlowRebuilt");
+            var rebuilt = AccessTools.Method(typeof(ConduitFlow), "OnUtilityNetworksRebuilt");
+            var manager = typeof(UtilityNetworkManager<FlowUtilityNetwork, Vent>);
+            conduitGuarded = new MethodBase[] { conduitHandler, conduitRefresh, rebuilt, AccessTools.Method(manager, "Update"), AccessTools.Method(manager, "RemoveFromNetworks") };
+            visualizerGuarded = new MethodBase[] { visualizerHandler, rebuilt };
             var transpiler = new HarmonyMethod(typeof(FastPipeRebuilds), nameof(Transpiler));
             harmony.Patch(AccessTools.Method(typeof(Conduit), "OnSpawn"), transpiler: transpiler);
             harmony.Patch(AccessTools.Method(typeof(ConduitFlowKAnimVisualizer), "OnSpawn"), transpiler: transpiler);
@@ -124,11 +133,16 @@ namespace OniMoono.GameTweaks
         }
 
         /// The methods whose patching by another owner makes the tweak call every handler (ModOverlaps).
+        /// The handlers, the refresh, and what decides which pipes a rebuild leaves unchanged: the
+        /// flow's trigger and the network managers' Update and RemoveFromNetworks.
         internal static IEnumerable<MethodBase> Guarded() => new MethodBase[]
         {
             AccessTools.Method(typeof(Conduit), "OnConduitFlowRebuilt"),
             AccessTools.Method(typeof(Conduit), "RefreshInvalidNetworkStatusItem"),
             AccessTools.Method(typeof(ConduitFlowKAnimVisualizer), "OnConduitFlowRebuilt"),
+            AccessTools.Method(typeof(ConduitFlow), "OnUtilityNetworksRebuilt"),
+            AccessTools.Method(typeof(UtilityNetworkManager<FlowUtilityNetwork, Vent>), "Update"),
+            AccessTools.Method(typeof(UtilityNetworkManager<FlowUtilityNetwork, Vent>), "RemoveFromNetworks"),
         };
 
         /// OnSpawn's `Game.Instance.Subscribe(2038377759, handler)` becomes Subscribe(game, hash, handler).
@@ -139,7 +153,13 @@ namespace OniMoono.GameTweaks
             int hash = list.FindIndex(i => i.LoadsConstant(Rebuilt));
             int at = hash < 0 ? -1 : list.FindIndex(hash, i => i.Calls(subscribe));
             if (at < 0 || list.FindIndex(at + 1, i => i.LoadsConstant(Rebuilt)) >= 0)
-                throw new InvalidOperationException($"{Name}: {original.DeclaringType?.Name}.OnSpawn is not as expected");
+            {
+                // Not as expected: the game's subscription stays. Never thrown: Harmony runs this
+                // again inside a mod's later Patch of the method, where an exception would fail
+                // the mod. The count turns the tweak off at install (TweakInstall).
+                TranspilerCounts.Report(Name, original, 0);
+                return list;
+            }
             list[at].opcode = OpCodes.Call;
             list[at].operand = AccessTools.Method(typeof(FastPipeRebuilds), nameof(Subscribe));
             TranspilerCounts.Report(Name, original, 1);
@@ -185,7 +205,7 @@ namespace OniMoono.GameTweaks
             conduits[1].Clear();
             visualizers.Clear();
             fresh.Clear();
-            checkedPatches = false;
+            checks = 0;
             game = g;
             g.Subscribe(Rebuilt, OnRebuilt);
         }
@@ -203,9 +223,9 @@ namespace OniMoono.GameTweaks
             list.RemoveAt(list.Count - 1);
         }
 
-        static bool Foreign(MethodBase method)
+        static bool Foreign(MethodBase[] methods)
         {
-            if (ForeignPatches.Find(method) is not { } why) return false;
+            if (ForeignPatches.Find(methods) is not { } why) return false;
             global::Debug.Log($"{Name}: {why}: every pipe's handler runs on each rebuild");
             return true;
         }
@@ -213,11 +233,11 @@ namespace OniMoono.GameTweaks
         [MirrorsGame("System.Void ConduitFlow::OnUtilityNetworksRebuilt(System.Collections.Generic.IList`1<UtilityNetwork>,System.Collections.Generic.ICollection`1<System.Int32>)")]
         static void OnRebuilt(object data)
         {
-            if (!checkedPatches)
+            // At each colony's first trigger, then every 64 (a trigger is a network rebuild).
+            if ((checks++ & 0x3F) == 0)
             {
-                checkedPatches = true;
-                foreignConduit = Foreign(conduitHandler) | Foreign(conduitRefresh);
-                foreignVisualizer = Foreign(visualizerHandler);
+                if (!foreignConduit) foreignConduit = Foreign(conduitGuarded);
+                if (!foreignVisualizer) foreignVisualizer = Foreign(visualizerGuarded);
             }
             Triggers++;
             int rebuilt = -1;

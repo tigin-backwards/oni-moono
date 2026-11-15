@@ -485,7 +485,8 @@ Flow overlay is open, as their own handler does. A pipe of the other kind it ski
 of the check unchanged: its networks change only in their own rebuild, after which every pipe of
 that kind is checked, or through a removal that marks them for one. A mod's handler on the same
 event still gets it. A pipe whose handler is a mod's override keeps its own subscription, and
-while a mod patches either handler or the check, every pipe's handler runs on every rebuild.
+once a mod patches either handler, the check, the flow's rebuild trigger or the network
+managers' update or removal, every pipe's handler runs on every rebuild until the game restarts.
 
 With `ONI_VERIFY_PIPE_NETWORK_STATUS=1` (or `ONI_TWEAK_VERIFY=1`), after every rebuild each
 pipe's status items are checked against the game's check run as a shadow (would it add or remove
