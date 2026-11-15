@@ -89,6 +89,13 @@ FH_EXPORT int moono_fmod_heap_events(moono_fmod_heap_event *out, int most);
  * it before trying again; the tests too. */
 FH_EXPORT void moono_fmod_heap_flush(void);
 
+/* The process is about to end (the player quits): from here on a freed block is only marked free
+ * in its side table. It is not filled, quarantined, checked, reused or unmapped: a late write
+ * still lands in memory that stays FMOD's, and a free touches none of the block's pages. FMOD
+ * frees all it holds when its system is released at the quit; filling and checking that brings
+ * every page of it into memory, from the page file when the system had paged them out. */
+FH_EXPORT void moono_fmod_heap_leave(void);
+
 #ifdef __cplusplus
 }
 #endif

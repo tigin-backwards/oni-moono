@@ -115,6 +115,7 @@ namespace OniMoono.Host
                     .Select(b => $"{b.File}\t{b.PathId}\t{b.ClassId}\t{b.Type}\t{b.Name}"));
             var quitClock = Stopwatch.StartNew();
             QuitStats.Start();
+            GameTweaks.GameTweaks.Quitting();
             PlayerLoop.SendApplicationQuit();
             QuitStats.Mark("OnApplicationQuit");
             // The window answers the system while a save is written (PumpEvents).

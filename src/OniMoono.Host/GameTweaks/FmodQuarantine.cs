@@ -72,6 +72,7 @@ namespace OniMoono.Host.GameTweaks
         static delegate* unmanaged<ulong, int> init;
         static delegate* unmanaged<Counters*, void> stats;
         static delegate* unmanaged<HeapEvent*, int, int> takeEvents;
+        static delegate* unmanaged<void> leave;
         static Counters window;
         static bool initializing;
         // Kept with the allocator: FMOD holds their native pointers for the rest of the run.
@@ -116,6 +117,7 @@ namespace OniMoono.Host.GameTweaks
             init = (delegate* unmanaged<ulong, int>)Export(library, "moono_fmod_heap_init");
             stats = (delegate* unmanaged<Counters*, void>)Export(library, "moono_fmod_heap_stats");
             takeEvents = (delegate* unmanaged<HeapEvent*, int, int>)Export(library, "moono_fmod_heap_events");
+            leave = (delegate* unmanaged<void>)Export(library, "moono_fmod_heap_leave");
             allocAt = Export(library, "moono_fmod_alloc");
             reallocAt = Export(library, "moono_fmod_realloc");
             freeAt = Export(library, "moono_fmod_free");
@@ -214,6 +216,20 @@ namespace OniMoono.Host.GameTweaks
         }
 
         static string Mb(ulong bytes) => (bytes / 1e6).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+
+        /// The quit begins (GameTweaks.Quitting): from here on a block FMOD frees is left as it
+        /// is, neither filled nor checked (moono_fmod_heap_leave). FMOD frees all it holds when
+        /// the game releases its system (RuntimeManager.OnDestroy), a few hundred MB of sample
+        /// data; filling and checking it touched every page, which a system short of memory
+        /// reads back from its page file first. A late write still lands in memory that stays
+        /// FMOD's: no block is reused or unmapped after this. ONI_FMOD_QUARANTINE_AT_QUIT=1
+        /// keeps the quarantine and its checks to the end.
+        public static void Leaving()
+        {
+            if (!Active || Environment.GetEnvironmentVariable("ONI_FMOD_QUARANTINE_AT_QUIT") == "1") return;
+            Drain();
+            leave();
+        }
 
         /// The end of the run (GameTweaks.Shutdown): the problems not yet logged, and the totals.
         public static void Shutdown()
