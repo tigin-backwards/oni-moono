@@ -296,19 +296,24 @@ An earlier local branch did this by checking every critter each 2 game seconds, 
 and backstops on top; the check alone cost 1.7–3.3 ms a real second, and capping critter turns
 saves nothing worth having (the section above), so only the reordering was kept.
 
-## `brain-rate` caps Duplicants only (2026-11-15, issue #85)
+## `brain-rate`'s critter cap, kept with needs first (2026-11-15, issue #85)
 
-- `brain-rate` no longer touches the critter group: critters get the game's 5 turns a frame.
-- The critter cap caused #85: 150 turns a second gave 2,400 critters a turn every 48 game
-  seconds at any frame rate, and gas-eaters stopped excreting.
-- At 40 fps it saved almost nothing: critter turns are about 2% of the main thread with or
-  without it (the cost section above), and most of the tweak's gain is the Duplicant cap.
-- At higher frame rates the uncapped turns cost more, as the game gives 5 a frame: 740 a second
-  at 148 fps against the cap's 214. One Windows pair on the late-game colony at speed 3
-  (unfocused, 20,000 frames each): 148 fps with the cap (600-frame windows 127–158), 135 without
-  it (86–142). The same capped build measured 132 in an earlier launch, so one pair shows a
-  direction at most.
-- The Duplicant cap is unchanged: 30 a second, with its 15-second and game-rate floors.
-- `critter-needs-first` stays off by default, for colonies where the game's own count is too
-  few.
-
+- `brain-rate` caps critters at 150 turns a second with the 15-second and game-rate floors, and
+  installs `critter-needs-first`'s hooks (once, shared): within the capped turns, a critter
+  ready to inhale its food or to excrete goes first.
+- For one day (22313975) it capped Duplicants only. The cap alone had caused #85: 2,400 critters
+  got a turn every 48 game seconds at any frame rate, and gas-eaters stopped excreting. With
+  needs first, capped critters cannot starve that way.
+- `critter-needs-first` stays a tweak of its own, off by default, for play without
+  `brain-rate` at low frame rates.
+- The cap's gain in frames a second was not measurable. Six alternating Windows launches on
+  the late-game colony at speed 3 (unfocused, 20,000 frames each; the median of the 600-frame
+  windows after the first three): 99, 118 and 132 fps with the cap, 106, 121 and 112 without.
+  The ranges overlap, and the same build varied by a third between launches. An earlier single
+  pair (148 against 135) was within that spread.
+- What to expect from the turn counts: on that colony (1,070 critters) the cap runs 214 turns a
+  second against 530–600 uncapped at those frame rates. At about 0.1 ms a turn that is at most
+  4% of the main thread, less in practice, as fewer turns cost more each (the cost section
+  above). The 2% measured on Linux was at 40–50 fps.
+- The floor stops the cap binding from `25 × fps` critters at speed 3: 3,000 at 120 fps. A
+  critter-heavy colony gains nothing from the cap; its critters still get needs first.

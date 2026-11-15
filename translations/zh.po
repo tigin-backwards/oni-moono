@@ -603,16 +603,16 @@ msgid "A bug in the game: they hang just below the world, stepped as falling eve
 msgstr "这是游戏的错误：它们会悬在世界正下方，每个 tick 都按下落步进。开启后让它们停在悬挂处。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.TITLE"
-msgid "Dupe brain updates capped at 30 updates a second"
-msgstr "复制人脑更新上限为每秒 30 次"
+msgid "Critter and dupe brain updates capped at 30 updates a second"
+msgstr "小动物和复制人脑更新上限为每秒 30 次"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.EFFECT"
-msgid "Dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps."
-msgstr "复制人原本每帧都会更新。此项在 30 fps 以上削减这部分簿记开销。"
+msgid "Critters and dupes would otherwise update on every frame. This trims that bookkeeping above 30 fps."
+msgstr "小动物和复制人原本每帧都会更新。此项在 30 fps 以上削减这部分簿记开销。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
-msgid "The game updates 1 Duplicant brain every rendered frame; this caps them at 30 a second, spread over frames. One that just finished an errand still gets the next update. With hundreds of Duplicants the cap rises with the game speed, so each still gets an update within 15 seconds of game time. Critters update as in the game. Saves time only above 30 fps."
-msgstr "游戏每渲染帧更新 1 个复制人的脑；此项将其限制为每秒 30 次，并分摊到各帧。刚完成任务的复制人仍会立即获得下一次更新。复制人有数百个时，上限会随游戏速度提高，使每个复制人仍能在 15 秒游戏时间内获得一次更新。小动物仍按游戏本身的方式更新。仅在 30 fps 以上节省时间。"
+msgid "The game updates 1 Duplicant and 5 critter brains every rendered frame; this caps them at 30 and 150 a second, spread over frames. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale its food or to excrete goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with the game speed, so each still gets an update within 15 seconds of game time. Saves time only above 30 fps."
+msgstr "游戏每渲染帧更新 1 个复制人和 5 个小动物的脑；此项将其限制为每秒 30 和 150 次，并分摊到各帧。刚完成任务或受到威胁的个体仍会立即获得下一次更新，准备吸入食物或准备排泄的小动物会排到其他小动物前面，因此小动物行动的时刻会与不开启时不同。小动物或复制人很多时，上限会随游戏速度提高，使每个个体仍能在 15 秒游戏时间内获得一次更新。仅在 30 fps 以上节省时间。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.RENDERER.TITLE"
 msgid "Renderer"
