@@ -6,7 +6,7 @@ How Moono starts and where it is installed. Three ways exist side by side:
 |---|---|---|---|
 | Launch options | Steam: `"…\OniMoono.exe" -- %command%` | where setup installed it (`%LOCALAPPDATA%\oni-moono\player`, or `player/` of a release on Linux) | run a newer release's setup |
 | Standalone | `OniMoono.exe` itself (Explorer, a shortcut, a terminal; Linux: the launcher `oni-moono.desktop`) | the same, or a versioned install | as the folder it runs from |
-| Versioned install | its entry point, `…\oni-moono\versioned\OniMoono.exe` (a shortcut you make, a non-Steam game in Steam, Steam's launch options) | `versioned\player\<version>\` | from its source folder (a Workshop item) at each start |
+| Versioned install | its entry point, `…\oni-moono\versioned\OniMoono.exe` (a shortcut you make, a non-Steam game in Steam, Steam's launch options) | `versioned\player\<version>\` | from Steam's copy of the Workshop item at each start |
 
 The other two don't change the launch-options route. With `-- %command%`, Moono still takes the
 game folder from Steam's command.
@@ -92,7 +92,8 @@ The choice needs the game's build and the versions' `mod_info.yaml`, which the p
 
 1. The game's build: `KleiVersion.ChangeList` in its `Assembly-CSharp.dll`, read from the
    metadata without loading it (744825 for U59, 762230 for U60).
-2. From the source folder (`state\source`), the version the game itself would load
+2. From the source folders (`state\source` and Steam's copy of the item, see
+   [Where updates come from](#where-updates-come-from)), the version the game itself would load
    (`ArchiveChoice`, the game's `KMod.Mod.GetMostSuitableArchive`):
    - The candidates are the root and `archived_versions\*` with a `mod_info.yaml`.
    - Their DLC restrictions must allow it. The DLC isn't known before the game starts, so they
@@ -103,7 +104,8 @@ The choice needs the game's build and the versions' `mod_info.yaml`, which the p
    - A version for a newer game than the installed one is never installed
      ([A game older than the item](#a-game-older-than-the-item)).
 
-   When the version isn't installed yet, Moono copies its player into `player\.incoming-…`,
+   When the version isn't installed yet and is not older than the installed one for this
+   game, Moono copies its player into `player\.incoming-…`,
    hashes every file as it reads it, checks it against the version's `SHA256SUMS` manifest, then
    moves the copy to `player\<version>\`
    ([What the installer verifies](#what-the-installer-verifies)). A file missing or not
@@ -213,8 +215,9 @@ takes a Workshop item only as a zip, so it lists this folder item as failed to d
   3. The copy hands over to the entry point.
 
   The item's folder itself never runs, so Steam can always update it. Later starts install each
-  update from it. The bootstrap copy checks the files as every start does, so a download Steam
-  hasn't finished installs nothing even on the first start.
+  update from Steam's copy of it ([Where updates come from](#where-updates-come-from)). The
+  bootstrap copy checks the files as every start does, so a download Steam hasn't finished
+  installs nothing even on the first start.
 - **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a u60 release tag):
   - The release's assets are downloaded and verified against their provenance from u60.
   - `scripts/workshop-item.py` checks each archive against its manifest while laying them out.
@@ -230,6 +233,55 @@ takes a Workshop item only as a zip, so it lists this folder item as failed to d
 - **Uninstall:** clear Oxygen Not Included's launch options in Steam, then delete
   `%LOCALAPPDATA%\oni-moono` (Linux: `~/.local/share/oni-moono`, or the sandboxed Steam's folder
   above).
+
+### Where updates come from
+
+The item exists in two places:
+
+- **Steam's copy:** `steamapps\workshop\content\457140\<item id>` in a Steam library. Steam
+  downloads the item there and updates it.
+- **The game's copy:** the original U60 game copies every subscribed mod into its mods folder
+  and loads it from there: `Documents\Klei\OxygenNotIncluded\mods\Steam\<item id>` on Windows,
+  `~/.config/unity3d/Klei/Oxygen Not Included/mods/Steam/<item id>` on Linux. The loader mod
+  runs from this copy. Only the original game refreshes it, at its next start after it saw the
+  item change. Under Moono the mod manager skips the item, so a player who always starts
+  through Moono keeps an old copy there.
+
+An install updates from Steam's copy, wherever it was first started from (`SteamItem`,
+`VersionedStart`). At each start Moono:
+
+1. Finds Steam's copy. It looks in the library that holds the game (`<library>\steamapps\common\…`)
+   and in every library of every Steam install (as [Standalone launch](#standalone-launch) finds
+   them), for a folder of `workshop\content\457140` whose `moono.json` says
+   `"workshopItem": "oni-moono"`. The ID is not fixed.
+2. Leaves that copy alone while Steam still has an update of it to download: the library's
+   `steamapps\workshop\appworkshop_457140.acf` then names a `latest_manifest` for the item that
+   differs from the installed `manifest`. Player.log says so. Without the file or those
+   entries, the copy is read, and the file hashes decide.
+3. Looks at Steam's copy and at the recorded folder (`state\source`), and installs from the one
+   whose version for the game is newer. When that one fails its checks, the other is tried.
+4. Records Steam's copy in `state\source`. An install whose source was the game's copy heals
+   this way at its next start: Player.log says
+   `install: updates come from Steam's copy of the Workshop item, … (was …)`.
+
+Without a Steam copy (a source folder of another kind, or a Steam install Moono can't find),
+the recorded folder alone is used, as before.
+
+A version older than the installed one for the game is not installed, so nothing downgrades:
+neither a start from the game's old copy (its `OniMoono.exe`, or the loader's Copy button) nor
+an item rolled back at Steam. `--use-version` still pins any installed version.
+
+**Versions before this (up to 2026.11.15.02)** read only `state\source`. An install whose
+source is the game's copy stays on its version until one of these is done once:
+
+- Run `OniMoono.exe` (Linux: `sh OniMoono.sh`) in Steam's copy of the item, in
+  `steamapps\workshop\content\457140\<item id>`. It records that folder as the source.
+- Or start the original game twice with the item enabled (clear the launch options for that):
+  the first start sees the update and asks for a restart, the second refreshes the game's copy.
+
+**Tests:** `InstallTests.StaleSourceHealsFromSteamsCopy`, `SteamsCopyIsFoundInItsLibrary`,
+`SteamsCopyForANewerGameIsNotInstalled` and `LoaderTests.CopyFromAStaleCopyKeepsTheNewerVersion`,
+on made-up Steam folders (`ONI_MOONO_STEAM_ROOTS`).
 
 ### A game older than the item
 
@@ -286,8 +338,8 @@ Versions installed before Moono kept the manifest aren't checked.
 **No signature check.** The hashes guard against a download Steam hasn't finished or a corrupt
 file. They don't guard against a forged item, because the manifests come from the same item.
 Moono trusts the Workshop item as Steam delivers it, as the game trusts any mod. Whoever
-controls the Steam account that uploads it controls what Moono installs from it. Versions aren't
-compared either: an older item installs as any other.
+controls the Steam account that uploads it controls what Moono installs from it. Versions are
+compared only to leave out one older than the installed version, which would never play.
 
 **Checking by hand.** The item and every file in it have SLSA provenance from this repository's
 `workshop.yml` (`attestation/SHA256SUMS.sigstore.json` in the item, and GitHub's attestations),
@@ -324,9 +376,11 @@ list anyway.
   - It copies the version the game loaded the loader from into `versioned\player\<version>\`
     with the installer's code (`src/OniMoono.Host/Install/PlayerFiles.cs`, compiled into both),
     and checks every file against the version's manifest.
-  - It puts the entry point in place, and `state\source` names the item, so Moono updates from
-    it at each start as above.
-  - It leaves an installed version as it is.
+  - It puts the entry point in place, and `state\source` names the item's folder. That is the
+    game's copy; Moono's next start records Steam's copy in its place
+    ([Where updates come from](#where-updates-come-from)).
+  - It leaves an installed version as it is. When a newer version than the game's copy is
+    already the current one, it installs nothing, and that version and its source stay.
 
   Like the installer, the loader checks no signature: it is code from that same item, which the
   game runs as it runs any mod. The GitHub releases stay the root of trust, as for the first

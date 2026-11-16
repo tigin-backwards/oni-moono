@@ -124,19 +124,8 @@ namespace OniMoono.Host.Install
         public static bool IsVersionName(string name) =>
             name.Length is > 0 and <= 64 && name[0] != '.' && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '-');
 
-        /// Newer first: by the version's numbers (2026.11.08.01), then by name.
-        public static int CompareVersions(string a, string b)
-        {
-            static long[] Numbers(string v) => v.Split('-')[0].Split('.').Select(p => long.TryParse(p, out var n) ? n : 0).ToArray();
-            var x = Numbers(a);
-            var y = Numbers(b);
-            for (int i = 0; i < Math.Max(x.Length, y.Length); i++)
-            {
-                long p = i < x.Length ? x[i] : 0, q = i < y.Length ? y[i] : 0;
-                if (p != q) return p.CompareTo(q);
-            }
-            return string.CompareOrdinal(a, b);
-        }
+        /// Which version is newer, by the version's numbers (2026.11.08.01), then by name.
+        public static int CompareVersions(string a, string b) => PlayerFiles.CompareVersions(a, b);
 
         /// An installed version: its name, folder and mod_info.yaml.
         public sealed record Installed(string Name, string Dir, ModInfo Info);
@@ -169,11 +158,15 @@ namespace OniMoono.Host.Install
                 if (installed.FirstOrDefault(v => v.Name == pin) is { } pinned) return pinned;
                 log($"install: the pinned version {pin} isn't installed; choosing as usual");
             }
-            return installed
+            return Latest(gameBuild, subscribedDlc);
+        }
+
+        /// The installed version for the game's build when none is pinned.
+        public Installed? Latest(long gameBuild, IReadOnlySet<string> subscribedDlc) =>
+            InstalledVersions()
                 .Where(v => v.Info.DlcAllowed(subscribedDlc) && v.Info.ApiVersion is 2 or 0 && v.Info.MinimumSupportedBuild <= gameBuild)
                 .OrderByDescending(v => v.Info.MinimumSupportedBuild)
                 .FirstOrDefault(); // InstalledVersions is newest first, and the order is stable
-        }
 
         /// Where the builds for a game the Workshop item doesn't carry are (as GameVersionCheck's).
         public const string ReleasesUrl = "https://github.com/tigin-backwards/oni-moono/releases";
@@ -197,6 +190,30 @@ namespace OniMoono.Host.Install
                 return SourceResult.Refused;
             }
         }
+
+        /// A source folder's version for the game's build: its name and minimumSupportedBuild.
+        public sealed record SourceVersion(string Name, long MinimumSupportedBuild);
+
+        /// The version `source` holds for the game's build, without installing it: null when it
+        /// has none or can't be read.
+        public SourceVersion? VersionIn(string source, long gameBuild, IReadOnlySet<string> subscribedDlc)
+        {
+            try
+            {
+                if (!Directory.Exists(source)) return null;
+                var chosen = ArchiveChoice.MostSuitable(source, gameBuild, subscribedDlc);
+                if (chosen == null || chosen.Info.MinimumSupportedBuild > gameBuild) return null;
+                return ItemInfo.Read(chosen.Dir)?.Version is { } name ? new SourceVersion(name, chosen.Info.MinimumSupportedBuild) : null;
+            }
+            catch (Exception) { return null; }
+        }
+
+        /// Whether a source's version would play once installed: no installed version for the
+        /// build comes before it in Latest's order. One that wouldn't is not installed.
+        public bool WouldPlay(SourceVersion version, long gameBuild, IReadOnlySet<string> subscribedDlc) =>
+            Latest(gameBuild, subscribedDlc) is not { } latest
+            || version.MinimumSupportedBuild > latest.Info.MinimumSupportedBuild
+            || (version.MinimumSupportedBuild == latest.Info.MinimumSupportedBuild && CompareVersions(version.Name, latest.Name) >= 0);
 
         SourceResult InstallFromSource(string source, long gameBuild, IReadOnlySet<string> subscribedDlc, ref string? version)
         {

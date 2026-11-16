@@ -30,9 +30,9 @@ namespace OniMoono.Tests
 
         /// A version folder at `relative` in the source: mod_info.yaml, moono.json, and the
         /// player (the entry file, OniMoono.dll with `content`, a file in a folder) with its manifest.
-        string Version(string relative, string version, long minimumBuild, string content = "dll", int api = 2)
+        string Version(string relative, string version, long minimumBuild, string content = "dll", int api = 2, string? item = null)
         {
-            var v = Path.Combine(Source, relative);
+            var v = Path.Combine(item ?? Source, relative);
             var platform = Path.Combine(v, VersionedInstall.ThisPlatform);
             Directory.CreateDirectory(Path.Combine(platform, "player", "packages"));
             File.WriteAllText(Path.Combine(v, "mod_info.yaml"), $"minimumSupportedBuild: {minimumBuild}\nAPIVersion: {api}\nversion: \"{version}\"\n");
@@ -399,6 +399,207 @@ namespace OniMoono.Tests
                 "Install Moono for your game from a GitHub release instead: https://github.com/tigin-backwards/oni-moono/releases", true), Assert.Single(told));
             Assert.Empty(Versions());
             Assert.False(File.Exists(Entry.PathIn(Root)));
+        }
+
+        /// A made-up Steam install at dir/NAME whose library holds the Workshop item `id` in
+        /// `version` (and another mod's folder), as SteamItem.Find reads it.
+        string SteamCopy(string version, string name = "steam", string id = "3837112063", long build = U60)
+        {
+            var root = Path.Combine(dir, name);
+            var content = Path.Combine(root, "steamapps", "workshop", "content", "457140");
+            var item = Path.Combine(content, id);
+            if (Directory.Exists(item)) Directory.Delete(item, true);
+            Directory.CreateDirectory(Path.Combine(content, "1234567890"));
+            File.WriteAllText(Path.Combine(content, "1234567890", "mod_info.yaml"), "minimumSupportedBuild: 1\nAPIVersion: 2\n");
+            File.WriteAllText(Path.Combine(root, "steamapps", "libraryfolders.vdf"), "\"libraryfolders\"\n{\n}\n");
+            Version("", version, build, item: item);
+            return item;
+        }
+
+        /// Steam's appworkshop_457140.acf for the item: the manifest installed and the latest known.
+        void WorkshopState(string installed, string latest, string name = "steam", string id = "3837112063") =>
+            File.WriteAllText(Path.Combine(dir, name, "steamapps", "workshop", "appworkshop_457140.acf"),
+                "\"AppWorkshop\"\n{\n\t\"appid\"\t\t\"457140\"\n\t\"NeedsDownload\"\t\t\"0\"\n\t\"WorkshopItemsInstalled\"\n\t{\n"
+                + $"\t\t\"{id}\"\n\t\t{{\n\t\t\t\"size\"\t\t\"1\"\n\t\t\t\"timeupdated\"\t\t\"1794758977\"\n\t\t\t\"manifest\"\t\t\"{installed}\"\n\t\t}}\n\t}}\n"
+                + $"\t\"WorkshopItemDetails\"\n\t{{\n\t\t\"{id}\"\n\t\t{{\n\t\t\t\"manifest\"\t\t\"{installed}\"\n\t\t\t\"latest_manifest\"\t\t\"{latest}\"\n\t\t}}\n\t}}\n}}\n");
+
+        /// Steam's copies as a start finds them: in the made-up Steam installs (ONI_MOONO_STEAM_ROOTS) alone.
+        Func<IReadOnlyList<SteamItem.Copy>> SteamItems(string game, params string[] roots) => () => SteamItem.Find(new OniMoono.Host.Launch.SteamLibrary(new()
+        {
+            Home = Path.Combine(dir, "home"),
+            Env = name => name == OniMoono.Host.Launch.SteamLibrary.RootsVariable ? string.Join(Path.PathSeparator, roots.Select(r => Path.Combine(dir, r))) : null,
+            Registry = (_, _) => null,
+        }), game);
+
+        /// The game's copy of the item in its mods folder (where the loader mod runs from), in
+        /// `version`: the folder an install started from the loader has as its source.
+        string GamesCopy(string version)
+        {
+            var copy = Path.Combine(dir, "Documents", "Klei", "OxygenNotIncluded", "mods", "Steam", "3837112063");
+            if (Directory.Exists(copy)) Directory.Delete(copy, true);
+            Version("", version, U60, item: copy);
+            return copy;
+        }
+
+        /// An install whose source is the game's copy of the item, which Steam never updates:
+        /// it installs from Steam's copy once that is newer and records it as the source, with
+        /// nothing for the player to do. Without Steam's copy it keeps updating from the
+        /// recorded folder.
+        [Fact]
+        public void StaleSourceHealsFromSteamsCopy()
+        {
+            var game = Game((uint)U60);
+            const string a = "2026.11.13.01-u60", b = "2026.11.15.02-u60";
+            var copy = GamesCopy(a);
+            var told = new List<(string Message, bool Error)>();
+            var bootstrap = Path.Combine(Root, "player", VersionedInstall.BootstrapPrefix + "1");
+            Directory.CreateDirectory(bootstrap);
+            int? Start(string version, string? given = null, bool steam = true, string? use = null)
+            {
+                Environment.SetEnvironmentVariable(VersionedInstall.SourceVariable, given);
+                try
+                {
+                    return VersionedStart.Run(Install(), game, use, log, version.StartsWith('.') ? bootstrap : Path.Combine(Root, "player", version),
+                        (m, e) => told.Add((m, e)), steam ? SteamItems(game, "steam") : null);
+                }
+                finally { Environment.SetEnvironmentVariable(VersionedInstall.SourceVariable, null); }
+            }
+            string[] Versions() => Install().InstalledVersions().Select(v => v.Name).ToArray();
+
+            // The first start, from the game's copy; no Steam folder is found.
+            Assert.Equal(VersionedInstall.SwitchExitCode, Start(".bootstrap", given: copy, steam: false));
+            Assert.Equal(copy, Install().ReadState("source"));
+            Assert.Null(Start(a, steam: false));
+
+            // Steam's copy missing: the recorded folder still updates the install.
+            const string a2 = "2026.11.13.02-u60";
+            GamesCopy(a2);
+            Assert.Equal(VersionedInstall.SwitchExitCode, Start(a));
+            Assert.Equal(a2, Install().ReadState("current"));
+            Assert.Equal(copy, Install().ReadState("source"));
+
+            // Steam is still to download the update (its manifests differ): its copy isn't read.
+            var steams = SteamCopy(b);
+            WorkshopState(installed: "111", latest: "222");
+            log.Clear();
+            Assert.Null(Start(a2));
+            Assert.Equal([a2, a], Versions());
+            Assert.Equal(copy, Install().ReadState("source"));
+            Assert.Contains(log, l => l.Contains("isn't read this start: Steam has manifest 111 of it installed and 222 to download"));
+
+            // Steam's copy damaged (a file of a download not finished): the current version plays on.
+            WorkshopState(installed: "222", latest: "222");
+            File.WriteAllText(Path.Combine(steams, VersionedInstall.ThisPlatform, "player", "OniMoono.dll"), "half");
+            Assert.Null(Start(a2));
+            Assert.Equal([a2, a], Versions());
+            Assert.Equal(a2, Install().ReadState("current"));
+            Assert.Contains(log, l => l.Contains("doesn't match the manifest"));
+            Assert.Empty(Directory.GetDirectories(Path.Combine(Root, "player"), ".incoming-*"));
+
+            // Steam's copy complete and newer: installed and switched to, and it is the source now.
+            Install().WriteState("source", copy);
+            SteamCopy(b);
+            log.Clear();
+            Assert.Equal(VersionedInstall.SwitchExitCode, Start(a2));
+            Assert.Equal(b, Install().ReadState("current"));
+            Assert.Equal(steams, Install().ReadState("source"));
+            Assert.Contains(log, l => l.Contains($"updates come from Steam's copy of the Workshop item, {steams} (was {copy})"));
+            Assert.Null(Start(b));
+            Assert.Equal([b, a2, a], Versions());
+            Assert.Empty(told);
+
+            // A start from the stale copy again (its OniMoono.exe, or the loader's state): the
+            // newest installed version plays, the old one isn't installed again, Steam's copy stays the source.
+            Directory.Delete(Path.Combine(Root, "player", a), true);
+            GamesCopy(a);
+            Assert.Equal(VersionedInstall.SwitchExitCode, Start(".bootstrap", given: copy));
+            Assert.Equal(b, Install().ReadState("current"));
+            Assert.Equal([b, a2], Versions());
+            Assert.Equal(steams, Install().ReadState("source"));
+
+            // A pinned version plays on while Steam's newer one is installed beside it.
+            const string c = "2026.11.16.01-u60";
+            SteamCopy(c);
+            Assert.Null(Start(b, use: b));
+            Assert.Equal([c, b, a2], Versions());
+            Assert.Equal(b, Install().ReadState("current"));
+            Assert.Equal(VersionedInstall.SwitchExitCode, Start(b, use: "latest"));
+            Assert.Equal(c, Install().ReadState("current"));
+
+            // An older copy at Steam (the item rolled back) is not installed.
+            SteamCopy(a);
+            Assert.Null(Start(c));
+            Assert.Equal(c, Install().ReadState("current"));
+            Assert.Equal([c, b, a2], Versions());
+            Assert.Empty(told);
+        }
+
+        /// A Steam copy for a newer game than the installed one installs nothing.
+        [Fact]
+        public void SteamsCopyForANewerGameIsNotInstalled()
+        {
+            var game = Game((uint)U59);
+            Workshop();
+            var install = Install();
+            Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U59, NoDlc, out var u59));
+            install.WriteState("source", Source);
+            SteamCopy("2026.11.15.02-u60");
+            var told = new List<(string Message, bool Error)>();
+            Assert.Null(VersionedStart.Run(Install(), game, null, log, Path.Combine(Root, "player", u59!), (m, e) => told.Add((m, e)), SteamItems(game, "steam")));
+            Assert.Equal([u59], Install().InstalledVersions().Select(v => v.Name).ToArray());
+            Assert.Empty(told);
+            // Steam's copy alone as the source: still nothing, and the player is told where U59's updates are.
+            Install().WriteState("source", null);
+            Assert.Null(VersionedStart.Run(Install(), game, null, log, Path.Combine(Root, "player", u59!), (m, e) => told.Add((m, e)), SteamItems(game, "steam")));
+            Assert.Equal([u59], Install().InstalledVersions().Select(v => v.Name).ToArray());
+            Assert.Contains(log, l => l.Contains("has no version for game build 744825: it is for build 762230 and later"));
+            Assert.Contains("plays on, without updates from the Workshop", Assert.Single(told).Message);
+        }
+
+        /// Steam's copy is found by its moono.json in every library of every Steam install and
+        /// in the library holding the game, on Linux paths too, whatever its ID; another mod's
+        /// folder is not it.
+        [Fact]
+        public void SteamsCopyIsFoundInItsLibrary()
+        {
+            Assert.Equal(Path.Combine(dir, "lib"), SteamItem.LibraryOf(Path.Combine(dir, "lib", "steamapps", "common", "OxygenNotIncluded")));
+            Assert.Equal(Path.Combine(dir, "lib"), SteamItem.LibraryOf(Path.Combine(dir, "lib", "steamapps", "common", "OxygenNotIncluded") + Path.DirectorySeparatorChar));
+            Assert.Null(SteamItem.LibraryOf(Path.Combine(dir, "oni-linux-763023")));
+            Assert.Null(SteamItem.LibraryOf(""));
+            if (!OperatingSystem.IsWindows())
+                Assert.Equal("/home/a/.var/app/com.valvesoftware.Steam/.local/share/Steam",
+                    SteamItem.LibraryOf("/home/a/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/OxygenNotIncluded"));
+
+            // ~/.local/share/Steam with a second library that holds the game and the item.
+            var home = Path.Combine(dir, "home");
+            var root = Path.Combine(home, ".local", "share", "Steam");
+            var library = Path.Combine(dir, "mnt", "games", "SteamLibrary");
+            Directory.CreateDirectory(Path.Combine(root, "steamapps"));
+            File.WriteAllText(Path.Combine(root, "steamapps", "libraryfolders.vdf"),
+                $"\"libraryfolders\"\n{{\n\t\"0\"\n\t{{\n\t\t\"path\"\t\t\"{root.Replace("\\", "\\\\")}\"\n\t}}\n\t\"1\"\n\t{{\n\t\t\"path\"\t\t\"{library.Replace("\\", "\\\\")}\"\n\t}}\n}}\n");
+            var item = SteamCopy("2026.11.15.02-u60", name: Path.Combine("mnt", "games", "SteamLibrary"), id: "42");
+            var machine = new OniMoono.Host.Launch.SteamLibrary.Machine { Windows = false, Home = home, Env = _ => null, Registry = (_, _) => null };
+            var found = Assert.Single(SteamItem.Find(new OniMoono.Host.Launch.SteamLibrary(machine), null));
+            Assert.Equal((item, "42", null), (found.Dir, found.Id, found.Pending));
+
+            // No Steam install known: the library the game is in.
+            var none = new OniMoono.Host.Launch.SteamLibrary.Machine { Windows = false, Home = Path.Combine(dir, "nobody"), Env = _ => null, Registry = (_, _) => null };
+            Assert.Empty(SteamItem.Find(new OniMoono.Host.Launch.SteamLibrary(none), Path.Combine(dir, "elsewhere")));
+            Assert.Equal(item, Assert.Single(SteamItem.Find(new OniMoono.Host.Launch.SteamLibrary(none), Path.Combine(library, "steamapps", "common", "OxygenNotIncluded"))).Dir);
+            // Found once when the game's library is also a listed one.
+            Assert.Single(SteamItem.Find(new OniMoono.Host.Launch.SteamLibrary(machine), Path.Combine(library, "steamapps", "common", "OxygenNotIncluded")));
+
+            // appworkshop_457140.acf: pending only when both manifests are there and differ.
+            var state = Path.Combine(library, "steamapps", "workshop", "appworkshop_457140.acf");
+            Assert.Null(SteamItem.Pending(state, "42"));
+            WorkshopState("5", "5", name: Path.Combine("mnt", "games", "SteamLibrary"), id: "42");
+            Assert.Null(SteamItem.Pending(state, "42"));
+            Assert.Null(SteamItem.Pending(state, "43"));
+            WorkshopState("5", "6", name: Path.Combine("mnt", "games", "SteamLibrary"), id: "42");
+            Assert.NotNull(SteamItem.Pending(state, "42"));
+            Assert.NotNull(Assert.Single(SteamItem.Find(new OniMoono.Host.Launch.SteamLibrary(machine), null)).Pending);
+            File.WriteAllText(state, "not a vdf {{{");
+            Assert.Null(SteamItem.Pending(state, "42"));
         }
 
         /// The release manifest is kept in the installed version's folder, and each start checks

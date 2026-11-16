@@ -164,6 +164,37 @@ namespace OniMoono.Tests
             Assert.Equal($"Moono 2026.11.10.01-u60 is installed in {Root}", install.Install(4242, null));
         }
 
+        /// The game runs the loader from its copy of the item, which only the original game
+        /// refreshes: Copy from a copy older than the version Moono plays leaves that version
+        /// current, installs nothing older, and leaves the recorded source (Steam's copy) alone.
+        [Fact]
+        public void CopyFromAStaleCopyKeepsTheNewerVersion()
+        {
+            const string newer = "2026.11.15.02-u60";
+            FakeItem(newer);
+            var steams = Path.Combine(dir, "steams");
+            Directory.Move(Item, steams);
+            new ItemInstall(steams, Root, windows: false).Install(1, null);
+            Assert.Equal(steams + "\n", File.ReadAllText(Path.Combine(Root, "state", "source")));
+
+            FakeItem();
+            Assert.Equal($"Moono {newer} is installed in {Root}", new ItemInstall(Item, Root, windows: false).Install(2, null));
+            Assert.Equal(newer + "\n", File.ReadAllText(Path.Combine(Root, "state", "current")));
+            Assert.Equal(steams + "\n", File.ReadAllText(Path.Combine(Root, "state", "source")));
+            Assert.Equal([Path.Combine(Root, "player", newer)], Directory.GetDirectories(Path.Combine(Root, "player")));
+
+            // The recorded source gone, or older than this copy: this copy is the source.
+            Directory.Delete(steams, true);
+            new ItemInstall(Item, Root, windows: false).Install(3, null);
+            Assert.Equal(Item + "\n", File.ReadAllText(Path.Combine(Root, "state", "source")));
+            Assert.Equal(newer + "\n", File.ReadAllText(Path.Combine(Root, "state", "current")));
+            // A newer copy than the current version installs and becomes current, as before.
+            Directory.Delete(Item, true);
+            FakeItem("2026.11.16.01-u60");
+            Assert.Equal($"Moono 2026.11.16.01-u60 installed in {Root}", new ItemInstall(Item, Root, windows: false).Install(4, null));
+            Assert.Equal("2026.11.16.01-u60\n", File.ReadAllText(Path.Combine(Root, "state", "current")));
+        }
+
         [Fact]
         public void TamperedPlayerIsNotInstalled()
         {

@@ -101,14 +101,27 @@ namespace MoonoLoader
             name.Length > 0 && name != "." && name != ".." && name.All(c => char.IsLetterOrDigit(c) || c == '.' || c == '-' || c == '_');
 
         /// Installs the version when it isn't yet, the entry point, and the state Moono reads.
-        /// Returns what was done, or throws Failure with why not.
+        /// Returns what was done, or throws Failure with why not. The game runs the loader
+        /// from its copy of the item, which can be older than Steam's (only the original game
+        /// refreshes it): a newer version already installed stays the current one, and a
+        /// recorded source that isn't older stays.
         public string Install(int processId, Action<string>? makeExecutable)
         {
             var info = ReadInfo(VersionDir, Platform, out var problem) ?? throw new Failure(problem!);
             var playerDir = Path.Combine(Root, "player");
+            var state = Path.Combine(Root, "state");
             var installed = Path.Combine(playerDir, info.Version);
+            var current = ReadState(Path.Combine(state, "current"));
+            bool newer = current != null && current[0] != '.' && current.All(c => char.IsLetterOrDigit(c) || c == '.' || c == '-')
+                && PlayerFiles.CompareVersions(current, info.Version) > 0
+                && File.Exists(Path.Combine(playerDir, current, Windows ? "OniMoono.exe" : "OniMoono"));
             string done;
-            if (Directory.Exists(installed)) done = $"Moono {info.Version} is installed in {Root}";
+            if (newer)
+            {
+                installed = Path.Combine(playerDir, current!);
+                done = $"Moono {current} is installed in {Root}";
+            }
+            else if (Directory.Exists(installed)) done = $"Moono {info.Version} is installed in {Root}";
             else
             {
                 byte[] manifest, marker, modInfo;
@@ -127,13 +140,34 @@ namespace MoonoLoader
             try
             {
                 InstallEntry(installed, makeExecutable);
-                var state = Path.Combine(Root, "state");
                 Directory.CreateDirectory(state);
-                File.WriteAllText(Path.Combine(state, "source"), ItemRoot + "\n");
-                File.WriteAllText(Path.Combine(state, "current"), info.Version + "\n");
+                if (!KeepsSource(ReadState(Path.Combine(state, "source")), info.Version)) File.WriteAllText(Path.Combine(state, "source"), ItemRoot + "\n");
+                if (!newer) File.WriteAllText(Path.Combine(state, "current"), info.Version + "\n");
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) { throw new Failure(e.Message); }
             return done;
+        }
+
+        /// A state file's line, or null.
+        static string? ReadState(string path)
+        {
+            try { return File.Exists(path) && File.ReadAllText(path).Trim() is { Length: > 0 } text && PlainLine(text) ? text : null; }
+            catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) { return null; }
+        }
+
+        static bool PlainLine(string text) => text.IndexOf('\n') < 0 && text.IndexOf('\0') < 0;
+
+        /// Whether the recorded source stays: another folder that still holds Moono's item,
+        /// in a version not older than this one (Steam's copy of the item, which Moono records).
+        bool KeepsSource(string? recorded, string version)
+        {
+            if (recorded == null) return false;
+            try
+            {
+                if (string.Equals(Path.GetFullPath(recorded).TrimEnd('/', '\\'), ItemRoot, Windows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)) return false;
+                return ReadInfo(recorded, Platform, out _) is { } other && PlayerFiles.CompareVersions(other.Version, version) >= 0;
+            }
+            catch (Exception e) when (e is ArgumentException || e is NotSupportedException || e is IOException) { return false; }
         }
 
         /// The entry point, as Entry.Install puts it: on Windows the version's OniMoono.exe (an
