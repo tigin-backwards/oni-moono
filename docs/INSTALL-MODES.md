@@ -118,7 +118,8 @@ The choice needs the game's build and the versions' `mod_info.yaml`, which the p
    77 (`state\switch` written): the entry point starts again on it. A game update from U59 to
    U60 switches this way, once.
 5. Otherwise it plays, holding `player\<version>\.in-use` open, and prunes: the current version,
-   the two newest others and a pinned one stay, and nothing held open is removed.
+   one previous (the newest other version for the game's build) and a pinned one stay, and
+   nothing held open is removed. Each version is about 100 MB.
 
 The entry point updates itself from the chosen version:
 
