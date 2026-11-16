@@ -48,6 +48,12 @@ namespace TMPro
         // The caret position and label the text was last scrolled for.
         int m_ScrolledForPosition = -1;
         string m_ScrolledForLabel;
+        // The IME composition the label shows at the caret (issue #30).
+        string m_LabelComposition = "";
+        // Input.compositionCursorPos is set from the next caret drawn (after a label without a
+        // composition), or when the caret moves to another line: as shipped.
+        bool m_PlaceIme = true;
+        int m_ImeLine = -1;
 
         protected Mesh mesh => m_Mesh ??= new Mesh();
 
@@ -734,8 +740,9 @@ namespace TMPro
                     break;
                 }
             }
-            // Every edit shows its text as it is made; this catches one that did not.
-            if (changed && !ReferenceEquals(m_Text, m_LabelText)) UpdateLabel();
+            // Every edit shows its text as it is made; this catches one that did not. The IME's
+            // composition changes without key events: the keys it takes never reach the field.
+            if ((changed && !ReferenceEquals(m_Text, m_LabelText)) || !string.Equals(Composition, m_LabelComposition, StringComparison.Ordinal)) UpdateLabel();
             eventData.Use();
         }
 
@@ -1224,19 +1231,42 @@ namespace TMPro
         // ----- Display -----
 
         // Shows the text (as asterisks for passwords; tags shown literally unless rich-text
-        // editing is allowed) with the end marker, and the placeholder when it is empty.
+        // editing is allowed) with the end marker, and the placeholder when it is empty. The
+        // IME's composition shows at the caret, underlined with rich text, after the selection
+        // it replaces is deleted (without an event), as shipped.
         protected void UpdateLabel() => UpdateLabel(true);
+
+        // The text the IME is composing for this field: none unless it is focused and editable.
+        string Composition
+        {
+            get
+            {
+                if (m_ReadOnly || !m_AllowInput) return "";
+                var module = EventSystem.current != null ? EventSystem.current.currentInputModule : null;
+                return (module != null && module.input != null ? module.input.compositionString : Input.compositionString) ?? "";
+            }
+        }
 
         // layout false leaves the laying out to the canvas rebuild.
         void UpdateLabel(bool layout)
         {
             if (m_TextComponent == null || m_TextComponent.font == null || m_PreventCallback || m_DeferLabel) return;
             m_PreventCallback = true;
+            string composing = Composition;
+            if (composing.Length > 0 && HasSelection) DeleteSelectionInternal();
             m_LabelText = m_Text;
+            m_LabelComposition = composing;
+            string full = m_Text;
+            if (composing.Length > 0)
+            {
+                int at = Mathf.Clamp(m_StringPosition, 0, m_Text.Length);
+                full = m_Text.Substring(0, at) + (m_RichText ? "<u>" + composing + "</u>" : composing) + m_Text.Substring(at);
+            }
+            else m_PlaceIme = true;
             string shown;
-            if (m_InputType == InputType.Password) shown = new string(m_AsteriskChar, m_Text.Length);
-            else shown = m_Text;
-            bool empty = string.IsNullOrEmpty(m_Text);
+            if (m_InputType == InputType.Password) shown = new string(m_AsteriskChar, full.Length);
+            else shown = full;
+            bool empty = string.IsNullOrEmpty(full);
             if (m_Placeholder != null) m_Placeholder.enabled = empty;
             m_LabelShown = shown + EndMarker;
             m_TextComponent.text = m_LabelShown;
@@ -1452,10 +1482,42 @@ namespace TMPro
 
         void GenerateCaret(VertexHelper vh)
         {
-            CaretGeometry(m_StringSelectPosition, out float x, out float top, out float bottom);
+            CaretGeometry(CaretLabelPosition, out float x, out float top, out float bottom);
             float width = Mathf.Max(1, m_CaretWidth);
             Color32 color = caretColor;
             AddQuad(vh, x, bottom, x + width, top, color);
+            PlaceIme(x, bottom);
+        }
+
+        // The caret's position in the label: after the composition while there is one.
+        int CaretLabelPosition => m_LabelComposition.Length == 0
+            ? m_StringSelectPosition
+            : Mathf.Clamp(m_StringPosition, 0, m_Text.Length) + (m_RichText ? 3 : 0) + m_LabelComposition.Length;
+
+        // Input.compositionCursorPos at the caret's bottom left, in screen pixels from the top
+        // (shipped: the caret's first vertex, through its renderer's transform and the canvas's
+        // camera, y flipped), where the IME places its windows; set through the input module's
+        // BaseInput when there is one, as shipped.
+        void PlaceIme(float x, float bottom)
+        {
+            var info = m_TextComponent.textInfo;
+            int line = info.characterCount > 0 ? info.characterInfo[Mathf.Clamp(CharacterIndexOf(CaretLabelPosition), 0, info.characterCount - 1)].lineNumber : 0;
+            if (!m_PlaceIme && line == m_ImeLine) return;
+            m_PlaceIme = false;
+            m_ImeLine = line;
+            var canvas = m_TextComponent.canvas;
+            if (canvas == null) return;
+            Camera camera = null;
+            if (canvas.renderMode != RenderMode.ScreenSpaceOverlay)
+            {
+                camera = canvas.worldCamera;
+                if (camera == null) camera = Camera.current;
+            }
+            Transform space = caretRectTrans != null ? caretRectTrans : m_TextComponent.rectTransform;
+            Vector2 at = RectTransformUtility.WorldToScreenPoint(camera, space.TransformPoint(new Vector3(x, bottom, 0f)));
+            at.y = Screen.height - at.y;
+            var module = EventSystem.current != null ? EventSystem.current.currentInputModule : null;
+            if (module != null && module.input != null) module.input.compositionCursorPos = at;
         }
 
         void GenerateSelection(VertexHelper vh)
@@ -1501,7 +1563,7 @@ namespace TMPro
             if (viewport == null || m_TextComponent == null) return false;
             var info = m_TextComponent.textInfo;
             if (info.characterCount == 0) return false;
-            CaretGeometry(m_StringSelectPosition, out float x, out float top, out float bottom);
+            CaretGeometry(CaretLabelPosition, out float x, out float top, out float bottom);
             var textRect = m_TextComponent.rectTransform;
             var view = viewport.rect;
             if (!multiLine)

@@ -41,18 +41,19 @@ namespace UnityEngine
         public static bool anyKey => State.AnyKey;
         public static bool anyKeyDown => State.AnyKeyDown;
 
-        // Desktop: no touch screen, no on-screen keyboard; IME composition text is delivered as
-        // committed characters, so there is never a composition string. The mode decides whether
-        // the window takes IME input at all (ImeInput).
+        // Desktop: no touch screen, no on-screen keyboard. The mode decides whether the window
+        // takes IME input at all; the text being composed is the window's IME composition, and
+        // the composed text arrives as typed characters (ImeInput, issue #30).
         public static bool touchSupported => false;
         public static int touchCount => 0;
         public static Touch GetTouch(int index) => throw new ArgumentException("Index out of bounds.");
         public static bool simulateMouseWithTouches { get; set; } = true;
-        public static string compositionString => "";
+        public static string compositionString => OniMoono.Engine.Platform.ImeInput.Composition;
         public static IMECompositionMode imeCompositionMode { get; set; } = IMECompositionMode.Auto;
         public static Vector2 compositionCursorPos { get; set; }
         /// False in the original Windows player in every state measured (issue #30): the US and
-        /// the Chinese layout, the mode Auto and On, and while composing.
+        /// the Chinese layout, the mode Auto and On, and while composing (again with Microsoft
+        /// Pinyin selected for the game's thread and a composition from ImmSetCompositionString).
         public static bool imeIsSelected => false;
     }
 

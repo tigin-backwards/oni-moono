@@ -119,6 +119,50 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void TheImeCompositionShowsAtTheCaretUntilItIsTyped()
+        {
+            var savedCursor = Input.compositionCursorPos;
+            try
+            {
+                var field = NewField();
+                field.text = "ab";
+                field.onFocusSelectAll = true;
+                field.ActivateInputField();
+                Frame();
+                Assert.True(field.isFocused);
+                // Focus selected all: the composition replaces the selection, without an event.
+                int changes = 0;
+                field.onValueChanged.AddListener(_ => changes++);
+                OniMoono.Engine.Platform.ImeInput.Composition = "ni";
+                Frame();
+                Assert.Equal("", field.text);
+                Assert.Equal("<u>ni</u>​", field.textComponent.text);
+                Assert.Equal(0, changes);
+                // The IME's windows go to the caret, after the composition.
+                Input.compositionCursorPos = new Vector2(-1f, -1f);
+                OniMoono.Engine.Platform.ImeInput.Composition = "ni hao";
+                Frame();
+                Assert.Equal("<u>ni hao</u>​", field.textComponent.text);
+                // Composed: the composition goes, and the result is typed.
+                OniMoono.Engine.Platform.ImeInput.Composition = "";
+                Type(Char('你'), Char('好'));
+                Assert.Equal("你好", field.text);
+                Assert.Equal("你好​", field.textComponent.text);
+                Assert.NotEqual(new Vector2(-1f, -1f), Input.compositionCursorPos);
+                // A field that is not focused shows no composition.
+                field.DeactivateInputField();
+                OniMoono.Engine.Platform.ImeInput.Composition = "x";
+                Frame();
+                Assert.Equal("你好​", field.textComponent.text);
+            }
+            finally
+            {
+                OniMoono.Engine.Platform.ImeInput.Composition = "";
+                Input.compositionCursorPos = savedCursor;
+            }
+        }
+
+        [Fact]
         public void ActivationStartsEditingInTheNextLateUpdate()
         {
             var field = NewField();
