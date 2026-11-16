@@ -2894,7 +2894,11 @@ as 0x0, but `Screen.width`/`height`, `Display.renderingWidth`/`Height` and the c
 sizes stay what they were, and frames go on rendering at that size until the window is restored
 (measured in the original, windowed and fullscreen; issue #29, where the game's
 `LightBufferCompositor` asked for a temporary of `Screen.width / 8` pixels). Minimized, a
-Windows window sits at -32000,-32000, on no monitor; it keeps the monitor it was on.
+Windows window sits at -32000,-32000, on no monitor; it keeps the monitor it was on. While no
+monitor is connected at all (Windows takes every display away while a graphics driver installs
+or restarts, and GLFW then lists none), the desktop mode and DPI are the last ones read and
+`SetResolution` does nothing: GLFW's monitor functions read a null monitor without checking, which
+crashed in `ntdll` (#87).
 
 A fullscreen window (`FullScreenWindow`, the game's Fullscreen option) at a resolution smaller
 than the monitor's renders at that resolution and stretches it over the window, as Unity's player

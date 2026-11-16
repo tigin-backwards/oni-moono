@@ -351,19 +351,29 @@ namespace OniMoono.Desktop
         /// physical one on X11, else the monitor's physical one.
         public float Dpi => dpi ??= ReadDpi();
 
+        /// The last DPI read, for while there is no monitor.
+        float lastDpi;
+
         float ReadDpi()
         {
-            if (OperatingSystem.IsWindows()) return ScreenDpi.ReadWindows(window, CurrentMonitor);
+            var monitor = CurrentMonitor;
+            if (monitor.IsNull()) return lastDpi;
+            return lastDpi = ReadDpi(monitor);
+        }
+
+        float ReadDpi(GlfwMonitor monitor)
+        {
+            if (OperatingSystem.IsWindows()) return ScreenDpi.ReadWindows(window, monitor);
             if (Glfw.GetPlatform() == Brutal.GlfwApi.GlfwPlatform.X11)
             {
                 try
                 {
-                    return ScreenDpi.ReadX11(CurrentMonitor);
+                    return ScreenDpi.ReadX11(monitor);
                 }
                 // A guard: GLFW's X11 backend loads libXrandr itself.
                 catch (Exception e) when (e is DllNotFoundException or EntryPointNotFoundException) { }
             }
-            return MonitorDpi(CurrentMonitor);
+            return MonitorDpi(monitor);
         }
 
         /// A hidden 1x1 OpenGL window sharing `share`'s objects, single-buffered (no swap from GLFW,
@@ -426,6 +436,10 @@ namespace OniMoono.Desktop
 
         static float MonitorDpi(GlfwMonitor m) => ScreenDpi.Physical(m.Size.X, m.PhysicalSize.X);
 
+        /// The window's monitor, or Null while there is none: GLFW lists no monitor while Windows
+        /// takes every display away, as when a graphics driver installs or restarts. GLFW's
+        /// monitor functions read the monitor they are given without checking it, so a Null one
+        /// must never reach them (glfwGetVideoMode's read of 0x108 in ntdll).
         GlfwMonitor CurrentMonitor
         {
             get
@@ -464,7 +478,22 @@ namespace OniMoono.Desktop
 
         static OniMoono.Engine.Platform.DisplayMode ModeOf(GlfwVidMode m) => new(m.Width, m.Height, (uint)m.RefreshRate, 1);
 
-        public OniMoono.Engine.Platform.DisplayMode DesktopMode => desktopMode ??= ModeOf(CurrentMonitor.VideoMode);
+        public OniMoono.Engine.Platform.DisplayMode DesktopMode => desktopMode ??= ReadDesktopMode();
+
+        /// The last desktop mode read, for while there is no monitor or its mode can't be read
+        /// (GLFW then gives 0x0, after "Win32: Failed to query display settings").
+        OniMoono.Engine.Platform.DisplayMode? lastDesktopMode;
+
+        OniMoono.Engine.Platform.DisplayMode ReadDesktopMode()
+        {
+            var monitor = CurrentMonitor;
+            var read = monitor.IsNull() ? default : monitor.VideoMode;
+            return DesktopModeOf(read.Width > 0 && read.Height > 0 ? ModeOf(read) : null, ref lastDesktopMode, RenderingSize);
+        }
+
+        /// The desktop mode: the one read, else the last one read, else the window's size at 60 Hz.
+        internal static OniMoono.Engine.Platform.DisplayMode DesktopModeOf(OniMoono.Engine.Platform.DisplayMode? read, ref OniMoono.Engine.Platform.DisplayMode? last, int2 window)
+            => read is { } mode ? (last = mode).Value : last ?? new(Math.Max(1, window.X), Math.Max(1, window.Y), 60, 1);
 
         public OniMoono.Engine.Platform.DisplayMode CurrentResolution
             => CurrentResolutionOf(DesktopMode, RenderingSize, mode, OperatingSystem.IsWindows());
@@ -483,11 +512,13 @@ namespace OniMoono.Desktop
             get
             {
                 var list = new List<OniMoono.Engine.Platform.DisplayMode>();
-                foreach (var m in CurrentMonitor.VideoModes)
-                {
-                    var mode = ModeOf(m);
-                    if (!list.Contains(mode)) list.Add(mode);
-                }
+                var monitor = CurrentMonitor;
+                if (!monitor.IsNull())
+                    foreach (var m in monitor.VideoModes)
+                    {
+                        var mode = ModeOf(m);
+                        if (!list.Contains(mode)) list.Add(mode);
+                    }
                 if (list.Count > 1)
                     return list.OrderBy(m => m.Width).ThenBy(m => m.Height).ThenBy(m => (double)m.RefreshNumerator / Math.Max(1u, m.RefreshDenominator)).ToArray();
                 // A display that reports only its current mode (virtual displays such as Xvfb or
@@ -559,6 +590,11 @@ namespace OniMoono.Desktop
             newMode = Supported(newMode);
             if (Gl.PresentTrace.Enabled) Trace($"SetResolution {width}x{height} {newMode} (was {mode}, framebuffer {framebufferSize.X}x{framebufferSize.Y}, rendering {FramebufferWidth}x{FramebufferHeight})");
             var monitor = CurrentMonitor;
+            if (monitor.IsNull())
+            {
+                OniMoono.Engine.EngineLog.Engine($"window: no monitor connected; {width}x{height} {newMode} not applied");
+                return;
+            }
             // The monitor's desktop mode: in exclusive fullscreen, the one from before it.
             var desktop = mode == FullScreenMode.ExclusiveFullScreen && desktopBeforeExclusive is { } before ? before : monitor.VideoMode;
             if (mode is FullScreenMode.Windowed or FullScreenMode.MaximizedWindow)
@@ -837,7 +873,7 @@ namespace OniMoono.Desktop
             try
             {
                 window.SetInputMode(GlfwInputMode.Cursor, (int)GlfwCursorMode.Normal);
-                if (mode == FullScreenMode.ExclusiveFullScreen) window.SetWindowed(CurrentMonitor.Position, window.Size);
+                if (mode == FullScreenMode.ExclusiveFullScreen && CurrentMonitor is var monitor && !monitor.IsNull()) window.SetWindowed(monitor.Position, window.Size);
                 window.Visible = false;
             }
             catch (Exception e)
