@@ -269,7 +269,7 @@ Without a Steam copy (a source folder of another kind, or a Steam install Moono 
 the recorded folder alone is used, as before.
 
 A version older than the installed one for the game is not installed, so nothing downgrades:
-neither a start from the game's old copy (its `OniMoono.exe`, or the loader's Copy button) nor
+neither a start from the game's old copy (its `OniMoono.exe`, or the loader's install button) nor
 an item rolled back at Steam. `--use-version` still pins any installed version.
 
 **Versions before this (up to 2026.11.15.02)** read only `state\source`. An install whose
@@ -365,15 +365,15 @@ list anyway.
 - **At the main menu,** once each start, it shows the game's info dialog "Play with Moono?"
   (`MoonoDialog`). The dialog has:
   - The text "Moono makes Oxygen Not Included run faster. To play with it:".
-  - Three numbered steps: click Copy launch option; in Steam, paste it into the game's launch
-    options; quit the game and press Play.
+  - Three numbered steps: click Install & copy launch option; in Steam, paste it into the
+    game's launch options; quit the game and press Play.
   - The launch-option line under step 1, in the box of the game's text field. It is one line,
     shortened in the middle when long: `"…\oni-moono\versioned\OniMoono.exe" -- %command%`.
   - A muted line: "To stop seeing this, disable the Moono mod."
 
   It stays open until **Not now** (or Escape), and the game carries on. Nothing is added to the
   main menu itself.
-- **Copy launch option** installs Moono for this game build, in the game's own process:
+- **Install & copy launch option** installs Moono for this game build, in the game's own process:
   - It copies the version the game loaded the loader from into `versioned\player\<version>\`
     with the installer's code (`src/OniMoono.Host/Install/PlayerFiles.cs`, compiled into both),
     and checks every file against the version's manifest.
@@ -382,6 +382,13 @@ list anyway.
     ([Where updates come from](#where-updates-come-from)).
   - It leaves an installed version as it is. When a newer version than the game's copy is
     already the current one, it installs nothing, and that version and its source stay.
+  - A first install copies on a thread of its own (`InstallRun`), so the game does not freeze
+    for the copy and its checks: the button says "Installing…" and takes no second click until
+    the copy ends. A later click finds the version installed and is done at once.
+  - Closing the dialog during the copy lets it finish, without touching the clipboard.
+    Quitting the game cuts it off. That leaves only the `player\.incoming-<version>-<pid>`
+    folder, which the copy renames into place as its last step and which Moono's next start
+    removes; the next click copies again.
 
   Like the installer, the loader checks no signature: it is code from that same item, which the
   game runs as it runs any mod. The GitHub releases stay the root of trust, as for the first

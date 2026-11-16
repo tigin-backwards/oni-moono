@@ -895,8 +895,8 @@ msgid "Moono makes Oxygen Not Included run faster. To play with it:"
 msgstr "Moono 让《缺氧》运行得更快。使用方法："
 
 msgctxt "STRINGS.MOONO.LOADER.STEP_COPY"
-msgid "Click Copy launch option. This installs Moono and copies:"
-msgstr "点击“复制启动选项”。这会安装 Moono 并复制："
+msgid "Click Install & copy launch option to install Moono and copy:"
+msgstr "点击“安装并复制启动选项”，安装 Moono 并复制："
 
 msgctxt "STRINGS.MOONO.LOADER.STEP_PASTE"
 msgid "In Steam, right-click Oxygen Not Included → Properties → Launch Options, and paste."
@@ -915,8 +915,12 @@ msgid "Not now"
 msgstr "以后再说"
 
 msgctxt "STRINGS.MOONO.LOADER.COPY"
-msgid "Copy launch option"
-msgstr "复制启动选项"
+msgid "Install & copy launch option"
+msgstr "安装并复制启动选项"
+
+msgctxt "STRINGS.MOONO.LOADER.INSTALLING"
+msgid "Installing…"
+msgstr "正在安装…"
 
 msgctxt "STRINGS.MOONO.LOADER.COPIED"
 msgid "Copied ✓"
