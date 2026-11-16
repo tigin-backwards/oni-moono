@@ -39,6 +39,21 @@ namespace OniMoono.Host.Install
             return lines;
         }
 
+        /// Which version is newer, by the version's numbers (2026.11.08.01), then by name:
+        /// above 0 when `a` is.
+        public static int CompareVersions(string a, string b)
+        {
+            long[] Numbers(string v) => v.Split('-')[0].Split('.').Select(p => long.TryParse(p, out var n) ? n : 0).ToArray();
+            var x = Numbers(a);
+            var y = Numbers(b);
+            for (int i = 0; i < Math.Max(x.Length, y.Length); i++)
+            {
+                long p = i < x.Length ? x[i] : 0, q = i < y.Length ? y[i] : 0;
+                if (p != q) return p.CompareTo(q);
+            }
+            return string.CompareOrdinal(a, b);
+        }
+
         /// A manifest path that stays inside its folder: relative, `/`-separated, no `.` or `..`.
         public static bool IsPlainRelative(string path) =>
             path.Length > 0 && path[0] != '/' && path.IndexOf('\\') < 0 && path.IndexOf(':') < 0

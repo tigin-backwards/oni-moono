@@ -123,7 +123,7 @@ namespace OniMoono.Host.Launch
             return Sandbox.None;
         }
 
-        static string Resolved(string dir)
+        internal static string Resolved(string dir)
         {
             try
             {
@@ -175,6 +175,17 @@ namespace OniMoono.Host.Launch
                     installs.Add(new GameInstall(dir, library, root, manifest));
                 }
             return installs;
+        }
+
+        /// Every library of every Steam install, each once.
+        public IReadOnlyList<string> AllLibraries()
+        {
+            var libraries = new List<string>();
+            var seen = new HashSet<string>(machine.Windows ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
+            foreach (var root in Roots())
+                foreach (var library in Libraries(root))
+                    if (seen.Add(Resolved(library))) libraries.Add(library);
+            return libraries;
         }
 
         /// Steam's running client, as it records itself: on Windows HKCU's
