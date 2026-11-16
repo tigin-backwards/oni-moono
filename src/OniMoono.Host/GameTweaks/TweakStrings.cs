@@ -70,7 +70,8 @@ namespace OniMoono.Host.GameTweaks
 
         /// Every string, in the screen's order: its labels, then each group, its rows (title,
         /// one-liner, details, choices) and the gains as their tooltips show them; then the
-        /// Workshop loader mod's (MoonoLoader.LoaderStrings).
+        /// Workshop loader mod's (MoonoLoader.LoaderStrings) and the messages before the game loads
+        /// (Launch.StartText).
         public static readonly TweakString[] All = Collect();
 
         static TweakString[] Collect()
@@ -94,6 +95,9 @@ namespace OniMoono.Host.GameTweaks
             // The Workshop item's loader mod, which reads the same .po files from the item.
             foreach (var (name, english, note) in MoonoLoader.LoaderStrings.All)
                 all.Add(new(MoonoLoader.LoaderStrings.Prefix + name, english, note));
+            // The player's messages before the game loads (Launch.StartText).
+            foreach (var (name, english, note) in Launch.StartText.All)
+                all.Add(new(Launch.StartText.Prefix + name, english, note));
             return all.ToArray();
         }
 
@@ -121,7 +125,7 @@ namespace OniMoono.Host.GameTweaks
         public static string Pot()
         {
             var pot = new StringBuilder();
-            pot.Append("# Moono's strings (the Moono Tweaks screen and the Workshop loader mod): the template for a translation.\n");
+            pot.Append("# Moono's strings (the Moono Tweaks screen, the Workshop loader mod and the messages before the game starts): the template for a translation.\n");
             pot.Append("# Generated from src/OniMoono.Host/GameTweaks/TweakStrings.cs; ONI_UPDATE_DOCS=1 with the unit tests rewrites it.\n");
             pot.Append("# Copy it to CODE.po (the game's language code: zh, ko, ru, ...) and fill in each msgstr (docs/TWEAKS.md).\n");
             pot.Append("msgid \"\"\nmsgstr \"\"\n\"Content-Type: text/plain; charset=UTF-8\\n\"\n");

@@ -1,4 +1,4 @@
-# Moono's strings in Simplified Chinese: the Moono Tweaks screen and the Workshop loader mod.
+# Moono's strings in Simplified Chinese: the Moono Tweaks screen, the Workshop loader mod and the messages before the game starts.
 # The Moono Tweaks screen's translation by hao7259 (https://github.com/hao7259), from PR #38.
 # msgctxt: the string's key; msgid: the English it was translated from (translations/moono.pot).
 msgid ""
@@ -953,3 +953,39 @@ msgstr "正常速度下超过 60 fps 时，游戏会在模拟每秒五次步进�
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PACE"
 msgid "112 → 220 fps at normal speed on a large modded colony"
 msgstr "大型模组殖民地在正常速度下 112 → 220 fps"
+
+msgctxt "STRINGS.MOONO.START.GAME_IS_NORMAL"
+msgid "Your game is the normal version of Oxygen Not Included, and this Moono build is for the U60 beta.\n\nTo use this build, switch the game to the U60 beta: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose public_testing.\n\nOr get Moono for the normal game:\n{0}\n\nTo play now without Moono, clear the game's launch options in Steam."
+msgstr "你的《缺氧》是正式版，而这个 Moono 版本是为 U60 测试版制作的。\n\n要使用这个版本，请把游戏切换到 U60 测试版：在 Steam 中右键点击《缺氧》→ 属性 → 测试版，选择 public_testing。\n\n或者下载适用于正式版游戏的 Moono：\n{0}\n\n如果想现在不用 Moono 直接玩，请在 Steam 中清空游戏的启动选项。"
+
+msgctxt "STRINGS.MOONO.START.GAME_IS_BETA"
+msgid "Your game is the U60 beta of Oxygen Not Included, and this Moono build is for the normal version.\n\nGet Moono for the U60 beta:\n{0}\n\nOr leave the beta: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose None.\n\nTo play now without Moono, clear the game's launch options in Steam."
+msgstr "你的《缺氧》是 U60 测试版，而这个 Moono 版本是为正式版制作的。\n\n请下载适用于 U60 测试版的 Moono：\n{0}\n\n或者退出测试版：在 Steam 中右键点击《缺氧》→ 属性 → 测试版，选择“无”。\n\n如果想现在不用 Moono 直接玩，请在 Steam 中清空游戏的启动选项。"
+
+msgctxt "STRINGS.MOONO.START.GAME_UNKNOWN"
+msgid "This Moono build doesn't support your version of Oxygen Not Included, and no Moono build supports it yet. New builds appear at:\n{0}\n\nTo play now without Moono, clear the game's launch options in Steam."
+msgstr "这个 Moono 版本不支持你的《缺氧》版本，目前也还没有支持它的 Moono 版本。新版本会发布在：\n{0}\n\n如果想现在不用 Moono 直接玩，请在 Steam 中清空游戏的启动选项。"
+
+msgctxt "STRINGS.MOONO.START.NOT_FOUND"
+msgid "Oxygen Not Included wasn't found in any Steam library. Install it in Steam, or start Moono from Steam's launch options."
+msgstr "在所有 Steam 库中都没有找到《缺氧》。请先在 Steam 中安装游戏，或通过 Steam 的启动选项启动 Moono。"
+
+msgctxt "STRINGS.MOONO.START.NONE_CHOSEN"
+msgid "Moono found several installs of Oxygen Not Included and none was chosen."
+msgstr "Moono 找到了多个《缺氧》安装，但没有选择其中任何一个。"
+
+msgctxt "STRINGS.MOONO.START.STEAM_BUSY"
+msgid "Steam has to finish installing or updating Oxygen Not Included first. Steam opens on the game's page; start Moono again once it is done."
+msgstr "Steam 需要先完成《缺氧》的安装或更新。Steam 将打开游戏页面；完成后请重新启动 Moono。"
+
+msgctxt "STRINGS.MOONO.START.NO_STEAM"
+msgid "Oxygen Not Included needs Steam, and Steam could not be started. Start Steam, then Moono again."
+msgstr "《缺氧》需要 Steam，但无法启动 Steam。请先启动 Steam，再启动 Moono。"
+
+msgctxt "STRINGS.MOONO.START.CHOOSE_BOX"
+msgid "Moono found {0} installs of Oxygen Not Included. Play the one at\n\n{1}\n\n(Yes: this one, kept for later starts. No: the next one.)"
+msgstr "Moono 找到了 {0} 个《缺氧》安装。要玩这个位置的吗？\n\n{1}\n\n（是：玩这个，以后启动也用它。否：看下一个。）"
+
+msgctxt "STRINGS.MOONO.START.CHOOSE_DIALOG"
+msgid "Moono found {0} installs of Oxygen Not Included. Which one should it play (kept for later starts)?"
+msgstr "Moono 找到了 {0} 个《缺氧》安装。要玩哪一个？（以后启动也会用它）"

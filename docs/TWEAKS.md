@@ -1257,7 +1257,22 @@ To add a language:
 The same files translate the Workshop loader mod's dialog (`STRINGS.MOONO.LOADER.*`,
 `src/MoonoLoader/LoaderStrings.cs`; docs/INSTALL-MODES.md), which reads them from the item.
 
-When the English changes in `src/OniMoono.Host/GameTweaks/GameTweakNames.cs`, `TweakStrings.cs`
-or `LoaderStrings.cs`,
+They also translate the messages the player shows before the game loads
+(`STRINGS.MOONO.START.*`, `src/OniMoono.Host/Launch/StartText.cs`): a Moono build for another
+game version, and the standalone launch's (no game found, Steam not running). The game's
+translations are not loaded then, so the player picks the language itself:
+
+1. The game's choice in `kplayerprefs.yaml` in its settings folder
+   (`Documents\Klei\OxygenNotIncluded` on Windows, `~/.config/unity3d/Klei/Oxygen Not Included`
+   on Linux): `SelectedLanguageType` `Preinstalled` with `SelectedLanguageCode` (`zh_klei` is
+   `zh`), `UGC` with the translation mod's `strings.po` header, or `None` for English.
+2. Without a choice there (no file, no key, a damaged file, a translation mod not found): the
+   system's UI language.
+
+The file is then found as above. Player.log's `start messages:` line says which language was
+chosen and why.
+
+When the English changes in `src/OniMoono.Host/GameTweaks/GameTweakNames.cs`, `TweakStrings.cs`,
+`LoaderStrings.cs` or `StartText.cs`,
 run the unit tests with `ONI_UPDATE_DOCS=1` to regenerate `moono.pot`; the tests then list each
 translation's stale strings.
