@@ -142,9 +142,9 @@ namespace OniMoono.Tests
                 Version("", $"2026.11.{i}.01-u60", U60);
                 install.InstallFrom(Source, U60, NoDlc, out _);
             }
-            install.Prune("2026.11.13.01-u60");
+            install.Prune("2026.11.13.01-u60", U60, NoDlc);
             var left = install.InstalledVersions().Select(v => v.Name).ToArray();
-            Assert.Equal(["2026.11.13.01-u60", "2026.11.12.01-u60", "2026.11.11.01-u60", first], left);
+            Assert.Equal(["2026.11.13.01-u60", "2026.11.12.01-u60", first], left);
             Assert.Equal(before, Hashes(running));
         }
 
@@ -204,7 +204,7 @@ namespace OniMoono.Tests
             Assert.Equal(latest, install.Choose(U60, NoDlc)!.Name);
             install.WriteState("pin", old);
             Assert.Equal(old, install.Choose(U60, NoDlc)!.Name);
-            install.Prune(old!);
+            install.Prune(old!, U60, NoDlc);
             Assert.Contains(latest, install.InstalledVersions().Select(v => v.Name));
             install.WriteState("pin", null);
             Assert.Equal(latest, install.Choose(U60, NoDlc)!.Name);
@@ -505,12 +505,11 @@ namespace OniMoono.Tests
             Assert.Equal(steams, Install().ReadState("source"));
             Assert.Contains(log, l => l.Contains($"updates come from Steam's copy of the Workshop item, {steams} (was {copy})"));
             Assert.Null(Start(b));
-            Assert.Equal([b, a2, a], Versions());
+            Assert.Equal([b, a2], Versions());
             Assert.Empty(told);
 
             // A start from the stale copy again (its OniMoono.exe, or the loader's state): the
             // newest installed version plays, the old one isn't installed again, Steam's copy stays the source.
-            Directory.Delete(Path.Combine(Root, "player", a), true);
             GamesCopy(a);
             Assert.Equal(VersionedInstall.SwitchExitCode, Start(".bootstrap", given: copy));
             Assert.Equal(b, Install().ReadState("current"));
@@ -521,7 +520,7 @@ namespace OniMoono.Tests
             const string c = "2026.11.16.01-u60";
             SteamCopy(c);
             Assert.Null(Start(b, use: b));
-            Assert.Equal([c, b, a2], Versions());
+            Assert.Equal([c, b], Versions());
             Assert.Equal(b, Install().ReadState("current"));
             Assert.Equal(VersionedInstall.SwitchExitCode, Start(b, use: "latest"));
             Assert.Equal(c, Install().ReadState("current"));
@@ -530,7 +529,7 @@ namespace OniMoono.Tests
             SteamCopy(a);
             Assert.Null(Start(c));
             Assert.Equal(c, Install().ReadState("current"));
-            Assert.Equal([c, b, a2], Versions());
+            Assert.Equal([c, b], Versions());
             Assert.Empty(told);
         }
 
@@ -649,8 +648,10 @@ namespace OniMoono.Tests
             Assert.Empty(told);
         }
 
+        /// Pruning keeps the current version, one previous (the newest other version for the
+        /// game's build) and a pinned one; a version in use stays; leftovers go.
         [Fact]
-        public void PruneKeepsTwoPreviousAndClearsLeftovers()
+        public void PruneKeepsOnePreviousAndClearsLeftovers()
         {
             Workshop();
             var install = Install();
@@ -660,14 +661,35 @@ namespace OniMoono.Tests
                 Version("", $"2026.11.0{i}.01-u60", U60);
                 install.InstallFrom(Source, U60, NoDlc, out _);
             }
+            string[] Versions() => install.InstalledVersions().Select(v => v.Name).ToArray();
             Directory.CreateDirectory(Path.Combine(Root, "player", ".incoming-x-1"));
             var bootstrap = Path.Combine(Root, "player", ".bootstrap-1");
             Directory.CreateDirectory(bootstrap);
             Directory.SetLastWriteTimeUtc(bootstrap, DateTime.UtcNow.AddHours(-1));
-            install.Prune("2026.11.05.01-u60");
-            Assert.Equal(["2026.11.05.01-u60", "2026.11.04.01-u60", "2026.11.03.01-u60"], install.InstalledVersions().Select(v => v.Name).ToArray());
+            // A pinned version stays, and one held open.
+            install.WriteState("pin", "2026.11.01.01-u60");
+            using (VersionedInstall.Hold(Path.Combine(Root, "player", "2026.11.02.01-u60")))
+            {
+                install.Prune("2026.11.05.01-u60", U60, NoDlc);
+                Assert.Equal(["2026.11.05.01-u60", "2026.11.04.01-u60", "2026.11.02.01-u60", "2026.11.01.01-u60"], Versions());
+            }
             Assert.False(Directory.Exists(bootstrap));
             Assert.Empty(Directory.GetDirectories(Path.Combine(Root, "player"), ".incoming-*"));
+            install.WriteState("pin", null);
+            install.Prune("2026.11.05.01-u60", U60, NoDlc);
+            Assert.Equal(["2026.11.05.01-u60", "2026.11.04.01-u60"], Versions());
+            // The current version older than the other (pinned by hand, then unpinned): both stay.
+            install.Prune("2026.11.04.01-u60", U60, NoDlc);
+            Assert.Equal(["2026.11.05.01-u60", "2026.11.04.01-u60"], Versions());
+
+            // The previous one is for the game's build: on a U59 game the U59 version stays
+            // rather than a newer U60 one, which could not play it.
+            Assert.Equal(VersionedInstall.SourceResult.Installed, install.InstallFrom(Source, U59, NoDlc, out var u59));
+            Assert.Equal("2026.11.04.01-u60", install.Previous("2026.11.05.01-u60", U60, NoDlc)!.Name);
+            Assert.Equal(u59, install.Previous("2026.11.05.01-u60", U60 - 1, NoDlc)!.Name);
+            install.Prune("2026.11.05.01-u60", U60, NoDlc);
+            Assert.Equal(["2026.11.05.01-u60", "2026.11.04.01-u60"], Versions());
+            Assert.Null(install.Previous("2026.11.05.01-u60", U59 - 1, NoDlc));
         }
 
         [Fact]

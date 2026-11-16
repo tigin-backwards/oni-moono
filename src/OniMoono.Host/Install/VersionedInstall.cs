@@ -32,8 +32,6 @@ namespace OniMoono.Host.Install
         public const int SwitchExitCode = 77;
         public const string BootstrapPrefix = ".bootstrap-", IncomingPrefix = PlayerFiles.IncomingPrefix;
         public const string LockFile = ".in-use";
-        /// Versions kept besides the current one.
-        public const int KeepPrevious = 2;
 
         public readonly string Root;
         readonly string platform;
@@ -330,12 +328,20 @@ namespace OniMoono.Host.Install
             catch (UnauthorizedAccessException) { return true; }
         }
 
-        /// Deletes the versions beyond the current one and the KeepPrevious newest others, and
-        /// leftover bootstrap and incoming folders; never one in use (its lock is held).
-        public void Prune(string current)
+        /// The version kept besides the current one: of the others, the one that would play
+        /// the game's build (Latest's order); null when no other suits it.
+        public Installed? Previous(string current, long gameBuild, IReadOnlySet<string> subscribedDlc) =>
+            InstalledVersions()
+                .Where(v => v.Name != current && v.Info.DlcAllowed(subscribedDlc) && v.Info.ApiVersion is 2 or 0 && v.Info.MinimumSupportedBuild <= gameBuild)
+                .OrderByDescending(v => v.Info.MinimumSupportedBuild)
+                .FirstOrDefault();
+
+        /// Deletes every version but the current one, one previous (Previous) and a pinned
+        /// one, and leftover bootstrap and incoming folders; never one in use (its lock is held).
+        public void Prune(string current, long gameBuild, IReadOnlySet<string> subscribedDlc)
         {
             var keep = new HashSet<string>(StringComparer.Ordinal) { current };
-            foreach (var v in InstalledVersions().Where(v => v.Name != current).Take(KeepPrevious)) keep.Add(v.Name);
+            if (Previous(current, gameBuild, subscribedDlc) is { } previous) keep.Add(previous.Name);
             if (ReadState("pin") is { Length: > 0 } pin) keep.Add(pin);
             if (!Directory.Exists(PlayerDir)) return;
             foreach (var dir in Directory.GetDirectories(PlayerDir))

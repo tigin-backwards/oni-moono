@@ -171,8 +171,9 @@ namespace OniMoono.Host.Install
                 log.Add($"install: game build {build}: switching to version {chosen.Name}");
                 return VersionedInstall.SwitchExitCode;
             }
+            held?.Dispose();
             held = VersionedInstall.Hold(chosen.Dir);
-            install.Prune(chosen.Name);
+            install.Prune(chosen.Name, build.Value, NoDlc);
             log.Add($"install: game build {build}: playing version {chosen.Name} (installed: {string.Join(", ", install.InstalledVersions().Select(v => v.Name))})");
             return null;
         }
