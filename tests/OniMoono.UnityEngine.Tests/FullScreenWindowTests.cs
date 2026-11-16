@@ -52,6 +52,22 @@ namespace OniMoono.Tests
             Assert.Equal(desktop, GlfwPlatform.CurrentResolutionOf(desktop, new int2(1280, 720), FullScreenMode.Windowed, windows: true));
         }
 
+        [Fact]
+        public void TheDesktopModeOutlivesItsMonitor()
+        {
+            // While no monitor is connected (a graphics driver installing) or its mode can't be
+            // read, the desktop mode is the last one read, else the window's size.
+            DisplayMode? last = null;
+            Assert.Equal(new DisplayMode(1280, 720, 60, 1), GlfwPlatform.DesktopModeOf(null, ref last, new int2(1280, 720)));
+            Assert.Null(last);
+            var desktop = new DisplayMode(2560, 1440, 144, 1);
+            Assert.Equal(desktop, GlfwPlatform.DesktopModeOf(desktop, ref last, new int2(1280, 720)));
+            Assert.Equal(desktop, GlfwPlatform.DesktopModeOf(null, ref last, new int2(0, 0)));
+            var other = new DisplayMode(1920, 1080, 60, 1);
+            Assert.Equal(other, GlfwPlatform.DesktopModeOf(other, ref last, new int2(1280, 720)));
+            Assert.Equal(other, last);
+        }
+
         /// The window's pixel (top left) as Input.mousePosition (bottom left), as GlfwPlatform maps it.
         static Vector2 Mouse(float x, float y, int2 rendering)
             => PointerPixels.Screen(GlfwPlatform.WindowToRendering(new Vector2(x, y), Window, rendering), rendering.Y);
