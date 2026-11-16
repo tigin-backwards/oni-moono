@@ -1120,9 +1120,9 @@ msgctxt "STRINGS.MOONO.LOADER.INTRO"
 msgid "Moono makes Oxygen Not Included run faster. To play with it:"
 msgstr ""
 
-#. Step 1, above the launch-option line; Copy launch option is the COPY button
+#. Step 1, above the launch-option line; Install & copy launch option is the COPY button
 msgctxt "STRINGS.MOONO.LOADER.STEP_COPY"
-msgid "Click Copy launch option. This installs Moono and copies:"
+msgid "Click Install & copy launch option to install Moono and copy:"
 msgstr ""
 
 #. Step 2
@@ -1145,9 +1145,14 @@ msgctxt "STRINGS.MOONO.LOADER.NOT_NOW"
 msgid "Not now"
 msgstr ""
 
-#. The dialog's main button
+#. The dialog's main button: it installs Moono and copies the launch-option line
 msgctxt "STRINGS.MOONO.LOADER.COPY"
-msgid "Copy launch option"
+msgid "Install & copy launch option"
+msgstr ""
+
+#. The main button's text while it installs Moono (a few seconds the first time)
+msgctxt "STRINGS.MOONO.LOADER.INSTALLING"
+msgid "Installing…"
 msgstr ""
 
 #. The main button's text once it has copied the line

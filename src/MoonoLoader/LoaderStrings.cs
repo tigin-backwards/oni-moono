@@ -15,7 +15,7 @@ namespace MoonoLoader
         public const string Prefix = "STRINGS.MOONO.LOADER.";
 
         public const string Title = "TITLE", Intro = "INTRO", StepCopy = "STEP_COPY", StepPaste = "STEP_PASTE", StepRestart = "STEP_RESTART",
-            DisableHint = "DISABLE_HINT", NotNow = "NOT_NOW", Copy = "COPY", Copied = "COPIED", Installed = "INSTALLED", Failed = "FAILED",
+            DisableHint = "DISABLE_HINT", NotNow = "NOT_NOW", Copy = "COPY", Installing = "INSTALLING", Copied = "COPIED", Installed = "INSTALLED", Failed = "FAILED",
             ModsButton = "MODS_BUTTON", ModsTip = "MODS_TIP";
 
         /// Each string's name (the key's last part), English and where it shows.
@@ -23,12 +23,13 @@ namespace MoonoLoader
         {
             (Title, "Play with Moono?", "The loader mod's dialog in the original game: its title"),
             (Intro, "Moono makes Oxygen Not Included run faster. To play with it:", "The dialog's first line, above three numbered steps"),
-            (StepCopy, "Click Copy launch option. This installs Moono and copies:", "Step 1, above the launch-option line; Copy launch option is the COPY button"),
+            (StepCopy, "Click Install & copy launch option to install Moono and copy:", "Step 1, above the launch-option line; Install & copy launch option is the COPY button"),
             (StepPaste, "In Steam, right-click Oxygen Not Included → Properties → Launch Options, and paste.", "Step 2"),
             (StepRestart, "Quit the game and press Play.", "Step 3"),
             (DisableHint, "To stop seeing this, disable the Moono mod.", "A small line under the steps"),
             (NotNow, "Not now", "The dialog's button that closes it"),
-            (Copy, "Copy launch option", "The dialog's main button"),
+            (Copy, "Install & copy launch option", "The dialog's main button: it installs Moono and copies the launch-option line"),
+            (Installing, "Installing…", "The main button's text while it installs Moono (a few seconds the first time)"),
             (Copied, "Copied ✓", "The main button's text once it has copied the line"),
             (Installed, "Moono installed. Launch option copied.", "Step 1's text once the button installed Moono and copied the line"),
             (Failed, "Moono could not be installed: {0}", "Step 1's text when the install fails; {0}: why (in English)"),

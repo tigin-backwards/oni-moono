@@ -111,10 +111,7 @@ namespace MoonoLoader
             var playerDir = Path.Combine(Root, "player");
             var state = Path.Combine(Root, "state");
             var installed = Path.Combine(playerDir, info.Version);
-            var current = ReadState(Path.Combine(state, "current"));
-            bool newer = current != null && current[0] != '.' && current.All(c => char.IsLetterOrDigit(c) || c == '.' || c == '-')
-                && PlayerFiles.CompareVersions(current, info.Version) > 0
-                && File.Exists(Path.Combine(playerDir, current, Windows ? "OniMoono.exe" : "OniMoono"));
+            bool newer = NewerIsCurrent(info.Version, out var current);
             string done;
             if (newer)
             {
@@ -146,6 +143,23 @@ namespace MoonoLoader
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException) { throw new Failure(e.Message); }
             return done;
+        }
+
+        /// Whether Install copies a version, the slow part (about 100 MB, every file hashed),
+        /// rather than only putting the entry point and the state in place: the item's version
+        /// isn't installed and no newer one is current. False when moono.json can't be read
+        /// (Install then fails at once).
+        public bool NeedsCopy() =>
+            ReadInfo(VersionDir, Platform, out _) is { } info && !NewerIsCurrent(info.Version, out _)
+            && !Directory.Exists(Path.Combine(Root, "player", info.Version));
+
+        /// Whether state\current names an installed version newer than `version`.
+        bool NewerIsCurrent(string version, out string? current)
+        {
+            current = ReadState(Path.Combine(Root, "state", "current"));
+            return current != null && current[0] != '.' && current.All(c => char.IsLetterOrDigit(c) || c == '.' || c == '-')
+                && PlayerFiles.CompareVersions(current, version) > 0
+                && File.Exists(Path.Combine(Root, "player", current, Windows ? "OniMoono.exe" : "OniMoono"));
         }
 
         /// A state file's line, or null.

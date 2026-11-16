@@ -62,6 +62,7 @@
     <!-- The Workshop loader mod's install, without the game (LoaderTests). -->
     <Compile Include="../../src/MoonoLoader/ItemInstall.cs" Link="MoonoLoader/ItemInstall.cs" />
     <Compile Include="../../src/MoonoLoader/LoaderStrings.cs" Link="MoonoLoader/LoaderStrings.cs" />
+    <Compile Include="../../src/MoonoLoader/InstallRun.cs" Link="MoonoLoader/InstallRun.cs" />
     <!-- The player's options and the game's command line (GameCommandLineTests). -->
     <Compile Include="../../src/OniMoono.Host/Options.cs" Link="Host/Options.cs" />
     <Compile Include="../../src/OniMoono.Host/GameCommandLine.cs" Link="Host/GameCommandLine.cs" />

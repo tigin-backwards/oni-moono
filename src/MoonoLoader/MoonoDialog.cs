@@ -11,13 +11,18 @@ namespace MoonoLoader
     /// The game's own info dialog (InfoDialogScreen), which stays open until Not now: a line on
     /// what Moono does, three numbered steps with the launch-option line in a box (the game's
     /// text field, shortened in the middle when long), and a muted line on how to stop it.
-    /// Copy launch option installs or refreshes Moono (ItemInstall), puts the whole line on the
-    /// clipboard and says so on its label and in step 1, so the player can switch to Steam,
-    /// paste and come back. The text is in the game's language where Moono has a translation.
+    /// Install & copy launch option installs or refreshes Moono (ItemInstall), puts the whole
+    /// line on the clipboard and says so on its label and in step 1, so the player can switch to
+    /// Steam, paste and come back. A first install copies the player off the main thread
+    /// (InstallRun), the button disabled and saying Installing… meanwhile. The text is in the
+    /// game's language where Moono has a translation.
     internal static class MoonoDialog
     {
         /// The line the last Copy put on the clipboard (the e2e spec reads it).
         internal static string? LastCopied;
+
+        /// The last install the button started, which a click while it runs joins.
+        static InstallRun? running;
 
         /// How much of the line the box shows (LoaderStrings.Shorten).
         const int ShownLength = 54;
@@ -58,20 +63,40 @@ namespace MoonoLoader
             copyLabel.text = T(LoaderStrings.Copy);
             copy.onClick += () =>
             {
-                try
+                if (!copy.isInteractable) return;
+                int pid = Process.GetCurrentProcess().Id;
+                var run = running = InstallRun.Join(running, install.NeedsCopy,
+                    () => install.Install(pid, Loader.OnWindows ? null : (Action<string>)Loader.MakeExecutable));
+                void Finish()
                 {
-                    var done = install.Install(Process.GetCurrentProcess().Id, Loader.OnWindows ? null : (Action<string>)Loader.MakeExecutable);
+                    if (run.Failure is { } failure)
+                    {
+                        copy.isInteractable = true;
+                        copyLabel.text = T(LoaderStrings.Copy);
+                        step1.text = "1. " + string.Format(T(LoaderStrings.Failed), failure);
+                        global::Debug.LogWarning("[MoonoLoader] not installed: " + failure);
+                        return;
+                    }
                     SetClipboard(install.LaunchOption);
                     LastCopied = install.LaunchOption;
+                    copy.isInteractable = true;
                     copyLabel.text = T(LoaderStrings.Copied);
                     step1.text = "1. " + T(LoaderStrings.Installed);
-                    global::Debug.Log($"[MoonoLoader] {done}; launch option copied: {install.LaunchOption}");
+                    global::Debug.Log($"[MoonoLoader] {run.Done}; launch option copied: {install.LaunchOption}");
                 }
-                catch (ItemInstall.Failure e)
+                if (run.Finished)
                 {
-                    step1.text = "1. " + string.Format(T(LoaderStrings.Failed), e.Message);
-                    global::Debug.LogWarning("[MoonoLoader] not installed: " + e.Message);
+                    Finish();
+                    return;
                 }
+                // Until the copy ends: no second click, the button says so, and the dialog's
+                // own Update shows the outcome on the main thread.
+                copy.isInteractable = false;
+                copyLabel.text = T(LoaderStrings.Installing);
+                global::Debug.Log("[MoonoLoader] installing Moono off the main thread");
+                var watch = dialog.gameObject.GetComponent<InstallWatch>();
+                if (watch == null) watch = dialog.gameObject.AddComponent<InstallWatch>();
+                watch.Watch(run, Finish);
             };
             // As little room above the buttons as below the title: the button row's own top
             // padding goes.
@@ -157,5 +182,30 @@ namespace MoonoLoader
         /// reference assemblies, so by name).
         static void SetClipboard(string text) =>
             Type.GetType("UnityEngine.GUIUtility, UnityEngine.IMGUIModule")?.GetProperty("systemCopyBuffer")?.SetValue(null, text);
+    }
+
+    /// Shows an InstallRun's outcome on the main thread once it ends, from the dialog's Update;
+    /// it goes with the dialog when the dialog closes first.
+    internal sealed class InstallWatch : MonoBehaviour
+    {
+        InstallRun? run;
+        System.Action? finish;
+
+        public void Watch(InstallRun run, System.Action finish)
+        {
+            this.run = run;
+            this.finish = finish;
+            enabled = true;
+        }
+
+        void Update()
+        {
+            if (run == null || !run.Finished) return;
+            var then = finish;
+            run = null;
+            finish = null;
+            enabled = false;
+            then?.Invoke();
+        }
     }
 }

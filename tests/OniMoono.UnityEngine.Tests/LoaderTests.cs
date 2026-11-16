@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading;
 using MoonoLoader;
 using OniMoono.Host.Install;
 using Xunit;
@@ -101,10 +102,11 @@ namespace OniMoono.Tests
         {
             var zh = new Dictionary<string, string>
             {
-                [LoaderStrings.Prefix + LoaderStrings.Copy] = "复制启动选项",
+                [LoaderStrings.Prefix + LoaderStrings.Copy] = "安装并复制启动选项",
                 [LoaderStrings.Prefix + LoaderStrings.Failed] = "无法安装 Moono",
             };
-            Assert.Equal("复制启动选项", LoaderStrings.Text(zh, LoaderStrings.Copy));
+            Assert.Equal("安装并复制启动选项", LoaderStrings.Text(zh, LoaderStrings.Copy));
+            Assert.Equal("Installing…", LoaderStrings.Text(zh, LoaderStrings.Installing));
             Assert.Equal("Moono could not be installed: {0}", LoaderStrings.Text(zh, LoaderStrings.Failed));
             Assert.Equal("Not now", LoaderStrings.Text(zh, LoaderStrings.NotNow));
             Assert.Equal("Play with Moono?", LoaderStrings.Text(null, LoaderStrings.Title));
@@ -219,6 +221,57 @@ namespace OniMoono.Tests
             new ItemInstall(Item, Root, windows: true).Install(1, null);
             Assert.Equal("MZ new", File.ReadAllText(Path.Combine(Root, "OniMoono.exe")));
             Assert.Equal("MZ old", File.ReadAllText(Path.Combine(Root, "OniMoono.exe.old")));
+        }
+
+        /// A first install copies off the calling thread (the game's main thread): the run is
+        /// unfinished while the copy goes on, a click meanwhile joins it rather than starting a
+        /// second copy into the same incoming folder, and its outcome is there once it ends.
+        [Fact]
+        public void FirstInstallRunsOffTheCallingThread()
+        {
+            FakeItem();
+            var install = new ItemInstall(Item, Root, windows: false);
+            Assert.True(install.NeedsCopy());
+            using var gate = new ManualResetEventSlim();
+            int caller = Environment.CurrentManagedThreadId, ranOn = 0, runs = 0;
+            var run = InstallRun.Join(null, install.NeedsCopy, () =>
+            {
+                ranOn = Environment.CurrentManagedThreadId;
+                Interlocked.Increment(ref runs);
+                gate.Wait();
+                return install.Install(4242, null);
+            });
+            Assert.False(run.Finished);
+            Assert.Null(run.Done);
+            Assert.Same(run, InstallRun.Join(run, install.NeedsCopy, () => throw new InvalidOperationException("a second install")));
+            gate.Set();
+            Assert.True(SpinWait.SpinUntil(() => run.Finished, TimeSpan.FromSeconds(30)));
+            Assert.NotEqual(caller, ranOn);
+            Assert.Equal(1, runs);
+            Assert.Equal($"Moono 2026.11.10.01-u60 installed in {Root}", run.Done);
+            Assert.Null(run.Failure);
+
+            // Installed: a later click runs on the calling thread and has finished on return.
+            Assert.False(install.NeedsCopy());
+            var again = InstallRun.Join(run, install.NeedsCopy, () => { ranOn = Environment.CurrentManagedThreadId; return install.Install(4242, null); });
+            Assert.True(again.Finished);
+            Assert.Equal(caller, ranOn);
+            Assert.Equal($"Moono 2026.11.10.01-u60 is installed in {Root}", again.Done);
+        }
+
+        [Fact]
+        public void FailedInstallSaysWhy()
+        {
+            FakeItem(tamper: "OniMoono.dll");
+            var install = new ItemInstall(Item, Root, windows: false);
+            var run = InstallRun.Join(null, install.NeedsCopy, () => install.Install(4242, null));
+            Assert.True(SpinWait.SpinUntil(() => run.Finished, TimeSpan.FromSeconds(30)));
+            Assert.Null(run.Done);
+            Assert.Contains("player/OniMoono.dll doesn't match the manifest", run.Failure);
+            // Not ItemInstall's own Failure: still an outcome, never an exception on the thread.
+            var odd = InstallRun.Join(run, () => true, () => throw new UnauthorizedAccessException("denied"));
+            Assert.True(SpinWait.SpinUntil(() => odd.Finished, TimeSpan.FromSeconds(30)));
+            Assert.Equal("UnauthorizedAccessException: denied", odd.Failure);
         }
     }
 }
