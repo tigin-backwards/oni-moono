@@ -45,5 +45,34 @@ namespace OniMoono.Tests
             }
             finally { Input.imeCompositionMode = saved; }
         }
+
+        [Fact]
+        public void TheCompositionIsTheWindowsImes()
+        {
+            try
+            {
+                ImeInput.Composition = "ni";
+                Assert.Equal("ni", Input.compositionString);
+            }
+            finally { ImeInput.Composition = ""; }
+            Assert.Equal("", Input.compositionString);
+        }
+
+        [Fact]
+        public void TheCursorIsInWholeClientPixels()
+        {
+            var saved = Input.compositionCursorPos;
+            try
+            {
+                Input.compositionCursorPos = new Vector2(676.5f, 707.1f);
+                Assert.Equal((676, 707), ImeInput.CursorPixels);
+                // The original's value before any field set it.
+                Input.compositionCursorPos = new Vector2(0f, 1.2329950e29f);
+                Assert.Equal((0, 32767), ImeInput.CursorPixels);
+                Assert.Equal(0, ImeInput.Pixel(float.NaN));
+                Assert.Equal(-32768, ImeInput.Pixel(float.NegativeInfinity));
+            }
+            finally { Input.compositionCursorPos = saved; }
+        }
     }
 }

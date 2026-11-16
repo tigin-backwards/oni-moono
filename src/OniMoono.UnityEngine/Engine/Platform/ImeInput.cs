@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace OniMoono.Engine.Platform
@@ -27,6 +28,21 @@ namespace OniMoono.Engine.Platform
 
         /// For the current frame's mode and IMGUI focus.
         public static bool WantedNow => Wanted(Input.imeCompositionMode, ImguiTextFieldFocused);
+
+        /// The text the IME is composing (Input.compositionString): set by the window's IME
+        /// messages on the main thread (OniMoono.Desktop.Win32Ime), "" outside a composition.
+        public static string Composition { get; set; } = "";
+
+        /// Input.compositionCursorPos in whole client pixels (x right, y down from the top), where
+        /// the IME's composition and candidate windows go; a value that is no position (the
+        /// original leaves it unset, as 1.2e29) is clamped into the window's coordinate range.
+        public static (int x, int y) CursorPixels => (Pixel(Input.compositionCursorPos.x), Pixel(Input.compositionCursorPos.y));
+
+        internal static int Pixel(float value)
+        {
+            if (float.IsNaN(value)) return 0;
+            return (int)Math.Clamp(Math.Round(value), -32768, 32767);
+        }
 
         static bool ImguiTextFieldFocused
         {

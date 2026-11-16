@@ -504,9 +504,14 @@ namespace UnityEngine.UI
                     consumed = true;
                 }
             }
-            if (consumed) UpdateLabel();
+            // The IME's composition changes without key events: the keys it takes never reach
+            // the field (issue #30).
+            if (consumed || !string.Equals(Input.compositionString, labelComposition, StringComparison.Ordinal)) UpdateLabel();
             eventData.Use();
         }
+
+        // The IME composition the label last showed.
+        string labelComposition = "";
 
         string SelectedText()
         {
@@ -803,7 +808,9 @@ namespace UnityEngine.UI
             updatingLabel = true;
             try
             {
-                string full = EventSystem.current != null && gameObject == EventSystem.current.currentSelectedGameObject && Input.compositionString.Length > 0
+                bool composing = EventSystem.current != null && gameObject == EventSystem.current.currentSelectedGameObject && Input.compositionString.Length > 0;
+                labelComposition = composing ? Input.compositionString : "";
+                string full = composing
                     ? text.Substring(0, m_CaretPosition) + Input.compositionString + text.Substring(m_CaretPosition)
                     : text;
                 string shown = inputType == InputType.Password ? new string(asteriskChar, full.Length) : full;
@@ -978,6 +985,25 @@ namespace UnityEngine.UI
             quad[3].position = new Vector3(start.x, start.y, 0f);
             m_CursorVerts = quad;
             vh.AddUIVertexQuad(quad);
+            PlaceIme(quad[0].position);
+        }
+
+        // Input.compositionCursorPos at the caret's bottom left in screen pixels from the top,
+        // where the IME places its windows, at each caret drawn (shipped: through the caret
+        // renderer's transform, the canvas's camera unless it is an overlay, and the input
+        // module's BaseInput).
+        void PlaceIme(Vector3 corner)
+        {
+            var canvas = m_TextComponent.canvas;
+            if (canvas == null || m_CachedInputRenderer == null) return;
+            int height = Screen.height;
+            int display = canvas.targetDisplay;
+            if (display > 0 && display < Display.displays.Length) height = Display.displays[display].renderingHeight;
+            Camera camera = canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+            Vector2 at = RectTransformUtility.WorldToScreenPoint(camera, m_CachedInputRenderer.gameObject.transform.TransformPoint(corner));
+            at.y = height - at.y;
+            var module = EventSystem.current != null ? EventSystem.current.currentInputModule : null;
+            if (module != null && module.input != null) module.input.compositionCursorPos = at;
         }
 
         /// One quad per line the selection covers.

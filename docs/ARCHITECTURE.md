@@ -2885,8 +2885,16 @@ leaves the game's hotkeys alone (issue #30).
   or its input language changes (`Win32Ime`: `WM_SETFOCUS`, `WM_INPUTLANGCHANGE`). Applied only
   as it changed, a player with a Chinese IME reported W, A, S and D doing nothing until Caps
   Lock was toggled. The original's re-applying at key messages is not copied.
-- **Committed IME text** arrives as typed characters. Ours reports no composition string (the
-  original's TMP fields show the composition inline, ours leave it to the IME's own window).
+- **Composition,** as in the original: the text being composed is `Input.compositionString`
+  (`WM_IME_COMPOSITION`), which TextMeshPro and uGUI fields show at the caret, and the composed
+  text arrives as typed characters. The IME draws no composition window of its own (measured in
+  the original with Microsoft Pinyin on its thread and `ImmSetCompositionString`: the string,
+  and no new window; ours showed the IME's window at the screen's top left before). The
+  candidate list is the IME's window, placed at `Input.compositionCursorPos`, which a focused
+  field sets to its caret's bottom left, through the input context's composition and candidate
+  forms. The original sets neither form nor a system caret by then, so where it places the list
+  is unmeasured; for the same caret in the same field its `compositionCursorPos` was 8 pixels
+  right of and 31 below ours (unexplained: the text's layout and rect were the same).
 - **X11 input methods** are untouched (none was available to measure).
 
 A minimized window keeps the size it had, as in Unity's player: Windows reports its framebuffer

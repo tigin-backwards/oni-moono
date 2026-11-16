@@ -203,7 +203,7 @@ namespace OniMoono.Desktop
                 });
             renderWindow.MakeContextCurrent();
             // Before the window is shown, so that the focus it takes as it shows applies the mode.
-            if (OperatingSystem.IsWindows()) ime = new Win32Ime((IntPtr)window.GetWin32Window(), e => callbackFailure ??= e);
+            if (OperatingSystem.IsWindows()) ime = new Win32Ime((IntPtr)window.GetWin32Window(), OnImeResult, e => callbackFailure ??= e);
             // Showing it focuses it unless FocusOnShow is off (glfwShowWindow). An exclusive
             // fullscreen window is already shown and focused (_glfwCreateWindowWin32).
             window.Visible = true;
@@ -706,6 +706,19 @@ namespace OniMoono.Desktop
             catch (Exception e)
             {
                 callbackFailure ??= e;
+            }
+        }
+
+        /// The text an IME composed: typed, one character event per UTF-16 unit, as GLFW's
+        /// characters are (Win32Ime keeps it from GLFW, which would never see a composition).
+        void OnImeResult(string text)
+        {
+            if (scripted) return;
+            var held = Modifiers();
+            foreach (var rune in text.EnumerateRunes())
+            {
+                uint codepoint = (uint)rune.Value;
+                Report(() => feed.Text(codepoint, held));
             }
         }
 
