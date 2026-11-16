@@ -2899,9 +2899,13 @@ leaves the game's hotkeys alone (issue #30).
   measured with `CoGetApartmentType`: ours was MTA, as .NET makes it). Text Services Framework,
   which current IMEs such as Microsoft Pinyin use, is apartment-threaded. The runtime still
   treats the thread as MTA, so its waits never dispatch window messages, as Mono's never do.
-  `ONI_MAIN_APARTMENT=mta` leaves it MTA. Whether this is what kept Pinyin taking the game's
-  keys is not measured: an IME takes keys only for the foreground window, which test runs never
-  are.
+  `ONI_MAIN_APARTMENT=mta` leaves it MTA. An IME takes keys only for the foreground window,
+  which test runs never are, so this was checked by hand on U60, windowed with Vulkan, with
+  Microsoft Pinyin in Chinese mode: in the build menu's search the composition showed
+  underlined in the field, the candidate list opened just under it, and the chosen characters
+  were typed; in play W, A, S and D panned the camera. Borderless fullscreen and OpenGL with
+  DXGI were not tried by hand, nor was the MTA build, so that the apartment was the cause is
+  not confirmed.
 - **X11 input methods** are untouched (none was available to measure).
 
 A minimized window keeps the size it had, as in Unity's player: Windows reports its framebuffer
