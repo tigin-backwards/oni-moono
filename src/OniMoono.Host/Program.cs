@@ -18,6 +18,13 @@ namespace OniMoono.Host
             var options = Options.Parse(args);
             if (options == null) return 2;
             foreach (var (name, path) in options.NativeOverrides) AssemblyPolicy.NativeOverrides[name] = path;
+            // The language of the messages before the game loads (StartText): the game's own
+            // choice in its settings, else the system's.
+            var language = Launch.PlayerLanguage.Choose(Launch.PlayerLanguage.SettingsFolder(options.RunHome, OperatingSystem.IsWindows(), Environment.GetEnvironmentVariable,
+                    Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)),
+                System.Globalization.CultureInfo.CurrentUICulture, Path.Combine(AppContext.BaseDirectory, "translations"));
+            Launch.StartText.Use(language.Strings);
+            Launch.LaunchStep.Log.Add($"start messages: {(language.Code.Length > 0 ? language.Code : "English")} ({language.Why}){(language.PoPath != null ? ", from " + language.PoPath : "")}");
             // Standalone starts find the game through Steam; a versioned install picks its version
             // (docs/INSTALL-MODES.md).
             if (Launch.LaunchStep.Run(options) is int launchExit) return launchExit;
@@ -132,7 +139,7 @@ namespace OniMoono.Host
             }
             if (GameVersionCheck.Problem(dataDir) is string versionProblem)
             {
-                GameVersionCheck.Report(versionProblem);
+                GameVersionCheck.Report(dataDir, versionProblem);
                 return 2;
             }
             // Each tweak against the game's files, before any is enabled: one written for another

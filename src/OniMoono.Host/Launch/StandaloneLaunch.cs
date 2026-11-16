@@ -77,7 +77,7 @@ namespace OniMoono.Host.Launch
             var installs = library.GameInstalls();
             if (installs.Count == 0)
                 return new Plan(Mode.Failed, null, ["launch: standalone: no Oxygen Not Included in any Steam library"],
-                    "Oxygen Not Included wasn't found in any Steam library. Install it in Steam, or start Moono from Steam's launch options.");
+                    StartText.Text(StartText.NotFound));
             var memory = Memory.Read(memoryPath);
             SteamLibrary.GameInstall install;
             if (installs.Count == 1) install = installs[0];
@@ -91,7 +91,7 @@ namespace OniMoono.Host.Launch
                 int? index = choose(installs);
                 if (index is not int n || n < 0 || n >= installs.Count)
                     return new Plan(Mode.Failed, null, [.. log, $"launch: standalone: {installs.Count} installs of the game and none chosen"],
-                        "Moono found several installs of Oxygen Not Included and none was chosen.");
+                        StartText.Text(StartText.NoneChosen));
                 install = installs[n];
                 memory.Game = install.Dir;
                 memory.Write(memoryPath);
@@ -104,11 +104,11 @@ namespace OniMoono.Host.Launch
                 var state = install.Manifest?.Describe() ?? "it has no appmanifest in its library";
                 log.Add($"launch: standalone: the install isn't ready: {state}; opening Steam on the game's page");
                 return new Plan(Mode.HandOff, install.Dir, log,
-                    "Steam has to finish installing or updating Oxygen Not Included first. Steam opens on the game's page; start Moono again once it is done.", GamePage, install.Root);
+                    StartText.Text(StartText.SteamBusy), GamePage, install.Root);
             }
             if (!client.EnsureRunning(install.Root, steamTimeout))
                 return new Plan(Mode.Failed, install.Dir, [.. log, "launch: standalone: Steam isn't running"],
-                    "Oxygen Not Included needs Steam, and Steam could not be started. Start Steam, then Moono again.");
+                    StartText.Text(StartText.NoSteam));
             log.Add("started directly, not by Steam: Steam Cloud syncs on the next start from Steam");
             return new Plan(Mode.Standalone, install.Dir, log, null, null, install.Root);
         }
@@ -139,7 +139,7 @@ namespace OniMoono.Host.Launch
                 if (DesktopDialog.Quiet(machine.Env, test)) return 0;
                 for (int i = 0; i < installs.Count; i++)
                 {
-                    int answer = MessageBoxW(IntPtr.Zero, $"Moono found {installs.Count} installs of Oxygen Not Included. Play the one at\n\n{installs[i].Dir}\n\n(Yes: this one, kept for later starts. No: the next one.)", "Moono", 0x3 | 0x20);
+                    int answer = MessageBoxW(IntPtr.Zero, StartText.Text(StartText.ChooseBox, installs.Count, installs[i].Dir), "Moono", 0x3 | 0x20);
                     if (answer == 6) return i;   // Yes
                     if (answer == 2) return null; // Cancel
                 }
@@ -153,7 +153,7 @@ namespace OniMoono.Host.Launch
                 Console.Error.Write("Which one (kept for later starts)? ");
                 return int.TryParse(Console.ReadLine(), out var n) ? n - 1 : null;
             }
-            var (asked, index) = dialog.Choose($"Moono found {installs.Count} installs of Oxygen Not Included. Which one should it play (kept for later starts)?",
+            var (asked, index) = dialog.Choose(StartText.Text(StartText.ChooseDialog, installs.Count),
                 installs.Select(i => i.Dir).ToList(), test);
             return asked ? index : 0;
         }

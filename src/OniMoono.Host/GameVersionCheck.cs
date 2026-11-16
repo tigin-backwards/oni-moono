@@ -1,6 +1,5 @@
 #nullable enable
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using OniMoono.Assets.Files;
@@ -15,42 +14,34 @@ namespace OniMoono.Host
     /// assemblies load). The game's Unity version is the globalgamemanagers header's.
     internal static class GameVersionCheck
     {
-        /// The game update each Unity version shipped with, for the message.
-        static readonly Dictionary<string, string> updates = new(StringComparer.Ordinal)
-        {
-            ["6000.3.5f2"] = "U59",
-            ["6000.3.17f1"] = "U60",
-        };
-
-        public const string ReleasesUrl = "https://github.com/tigin-backwards/oni-moono/releases";
+        public const string ReleasesUrl = Launch.StartText.Releases;
 
         /// The game update this build is for ("U59", "U60").
-        public static string? ThisUpdate => updates.TryGetValue(TypeTreeDatabase.UnityVersion, out var update) ? update : null;
+        public static string? ThisUpdate => Launch.StartText.Updates.TryGetValue(TypeTreeDatabase.UnityVersion, out var update) ? update.Name : null;
 
-        static string Describe(string unity) => updates.TryGetValue(unity, out var update) ? $"{update} (Unity {unity})" : $"Unity {unity}";
-
-        /// Null when the game's data matches this build, else the message to show.
-        public static string? Problem(string dataDir)
+        /// The game's Unity version when it is not this build's, else null.
+        public static string? OtherUnity(string dataDir)
         {
             string game;
             try { game = SerializedFile.Open(Path.Combine(dataDir, "globalgamemanagers")).UnityVersion; }
             catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException) { return null; }
-            string ours = TypeTreeDatabase.UnityVersion;
-            if (game == ours) return null;
-            string wanted = updates.TryGetValue(game, out var update)
-                ? $"Get the Moono build for {update} from {ReleasesUrl}."
-                : $"No Moono build supports it yet; see {ReleasesUrl}.";
-            return $"This Moono build is for Oxygen Not Included {Describe(ours)}, but the game is {Describe(game)}. {wanted} " +
-                   "To play now, clear the game's launch options in Steam.";
+            return game == TypeTreeDatabase.UnityVersion ? null : game;
         }
 
-        /// Logs the problem and, on Windows, where a player started from Steam sees no console,
-        /// shows it in a message box.
-        public static void Report(string message)
+        /// Null when the game's data matches this build, else the message to show, in the
+        /// player's language (Launch.StartText.VersionMismatch).
+        public static string? Problem(string dataDir) => OtherUnity(dataDir) is { } game ? Launch.StartText.VersionMismatch(game) : null;
+
+        /// Logs the problem (with the Unity versions, which the message leaves out) and, on
+        /// Windows, where a player started from Steam sees no console, shows it in a message box
+        /// unless this is a test run (ONI_HOST_NO_DIALOG=1).
+        public static void Report(string dataDir, string message)
         {
+            if (OtherUnity(dataDir) is { } game) EngineLog.Engine(Launch.StartText.VersionDetail(TypeTreeDatabase.UnityVersion, game));
             EngineLog.Engine(message);
             Console.Error.WriteLine(message);
-            if (OperatingSystem.IsWindows()) MessageBoxW(IntPtr.Zero, message, "Moono", 0x10);
+            if (OperatingSystem.IsWindows() && !Launch.DesktopDialog.Quiet(Environment.GetEnvironmentVariable, test: false))
+                MessageBoxW(IntPtr.Zero, message, "Moono", 0x10);
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]

@@ -1,4 +1,4 @@
-# Moono's strings (the Moono Tweaks screen and the Workshop loader mod): the template for a translation.
+# Moono's strings (the Moono Tweaks screen, the Workshop loader mod and the messages before the game starts): the template for a translation.
 # Generated from src/OniMoono.Host/GameTweaks/TweakStrings.cs; ONI_UPDATE_DOCS=1 with the unit tests rewrites it.
 # Copy it to CODE.po (the game's language code: zh, ko, ru, ...) and fill in each msgstr (docs/TWEAKS.md).
 msgid ""
@@ -1173,4 +1173,49 @@ msgstr ""
 #. That button's tooltip
 msgctxt "STRINGS.MOONO.LOADER.MODS_TIP"
 msgid "Install Moono and copy the launch option for Steam"
+msgstr ""
+
+#. Message box before the game starts: Moono for the U60 beta on the normal game; {0}: the download page. public_testing is the beta's name in Steam
+msgctxt "STRINGS.MOONO.START.GAME_IS_NORMAL"
+msgid "Your game is the normal version of Oxygen Not Included, and this Moono build is for the U60 beta.\n\nTo use this build, switch the game to the U60 beta: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose public_testing.\n\nOr get Moono for the normal game:\n{0}\n\nTo play now without Moono, clear the game's launch options in Steam."
+msgstr ""
+
+#. Message box before the game starts: Moono for the normal game on the U60 beta; {0}: the download page. None is the choice in Steam's Betas list
+msgctxt "STRINGS.MOONO.START.GAME_IS_BETA"
+msgid "Your game is the U60 beta of Oxygen Not Included, and this Moono build is for the normal version.\n\nGet Moono for the U60 beta:\n{0}\n\nOr leave the beta: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose None.\n\nTo play now without Moono, clear the game's launch options in Steam."
+msgstr ""
+
+#. Message box before the game starts: a game update no Moono build knows; {0}: the download page
+msgctxt "STRINGS.MOONO.START.GAME_UNKNOWN"
+msgid "This Moono build doesn't support your version of Oxygen Not Included, and no Moono build supports it yet. New builds appear at:\n{0}\n\nTo play now without Moono, clear the game's launch options in Steam."
+msgstr ""
+
+#. Message box when Moono is started directly and finds no game
+msgctxt "STRINGS.MOONO.START.NOT_FOUND"
+msgid "Oxygen Not Included wasn't found in any Steam library. Install it in Steam, or start Moono from Steam's launch options."
+msgstr ""
+
+#. Message box when Moono found several games and the player chose none
+msgctxt "STRINGS.MOONO.START.NONE_CHOSEN"
+msgid "Moono found several installs of Oxygen Not Included and none was chosen."
+msgstr ""
+
+#. Message box when the game's install or update isn't finished
+msgctxt "STRINGS.MOONO.START.STEAM_BUSY"
+msgid "Steam has to finish installing or updating Oxygen Not Included first. Steam opens on the game's page; start Moono again once it is done."
+msgstr ""
+
+#. Message box when Steam could not be started
+msgctxt "STRINGS.MOONO.START.NO_STEAM"
+msgid "Oxygen Not Included needs Steam, and Steam could not be started. Start Steam, then Moono again."
+msgstr ""
+
+#. Windows question with Yes, No and Cancel, once per game install; {0}: how many, {1}: the folder
+msgctxt "STRINGS.MOONO.START.CHOOSE_BOX"
+msgid "Moono found {0} installs of Oxygen Not Included. Play the one at\n\n{1}\n\n(Yes: this one, kept for later starts. No: the next one.)"
+msgstr ""
+
+#. Linux dialog above the list of game installs; {0}: how many
+msgctxt "STRINGS.MOONO.START.CHOOSE_DIALOG"
+msgid "Moono found {0} installs of Oxygen Not Included. Which one should it play (kept for later starts)?"
 msgstr ""
