@@ -2895,6 +2895,13 @@ leaves the game's hotkeys alone (issue #30).
   forms. The original sets neither form nor a system caret by then, so where it places the list
   is unmeasured; for the same caret in the same field its `compositionCursorPos` was 8 pixels
   right of and 31 below ours (unexplained: the text's layout and rect were the same).
+- **The main thread** is a single-threaded COM apartment, as the original's is (`MainApartment`;
+  measured with `CoGetApartmentType`: ours was MTA, as .NET makes it). Text Services Framework,
+  which current IMEs such as Microsoft Pinyin use, is apartment-threaded. The runtime still
+  treats the thread as MTA, so its waits never dispatch window messages, as Mono's never do.
+  `ONI_MAIN_APARTMENT=mta` leaves it MTA. Whether this is what kept Pinyin taking the game's
+  keys is not measured: an IME takes keys only for the foreground window, which test runs never
+  are.
 - **X11 input methods** are untouched (none was available to measure).
 
 A minimized window keeps the size it had, as in Unity's player: Windows reports its framebuffer

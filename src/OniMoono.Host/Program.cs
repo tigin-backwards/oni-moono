@@ -15,6 +15,8 @@ namespace OniMoono.Host
         static int Main(string[] args)
         {
             WindowsConsole.AttachToParent();
+            var apartment = MainApartment.MakeSingleThreaded();
+            if (apartment != null) Launch.LaunchStep.Log.Add(apartment);
             var options = Options.Parse(args);
             if (options == null) return 2;
             foreach (var (name, path) in options.NativeOverrides) AssemblyPolicy.NativeOverrides[name] = path;
