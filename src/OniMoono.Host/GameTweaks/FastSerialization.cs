@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -27,9 +28,11 @@ namespace OniMoono.Host.GameTweaks
     /// walk over its lists.
     [GameMember(GameUse.Uses, "System.Void Debug::LogError(System.Object)")]
     [GameMember(GameUse.Mirrors, "System.Void KSerialization.Helper::WriteValue(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Object)", "2ae90126aff89120 linux-744825 win-744825")]
+    [GameMember(GameUse.Mirrors, "System.Void KSerialization.Helper::WriteListPOD(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Collections.ICollection)", "c9958b4fd0354700 linux-744825 win-744825")]
     [GameMember(GameUse.Uses, "System.Void KSerialization.IOHelper::WriteSingleFast(System.IO.BinaryWriter,System.Single)")]
     [GameMember(GameUse.Uses, "System.Reflection.FieldInfo KSerialization.SerializationTemplate/SerializationField::field")]
     [GameMember(GameUse.Uses, "KSerialization.TypeInfo KSerialization.SerializationTemplate/SerializationField::typeInfo")]
+    [GameMember(GameUse.Uses, "KSerialization.TypeInfo[] KSerialization.TypeInfo::subTypes")]
     [GameMember(GameUse.Uses, "System.Reflection.PropertyInfo KSerialization.SerializationTemplate/SerializationProperty::property")]
     [GameMember(GameUse.Uses, "KSerialization.TypeInfo KSerialization.SerializationTemplate/SerializationProperty::typeInfo")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void KSerialization.SerializationTemplate::SerializeData(System.Object,System.IO.BinaryWriter)", "e283fa414b66f4a2 linux-744825 win-744825")]
@@ -47,15 +50,24 @@ namespace OniMoono.Host.GameTweaks
         /// Test runs only: off restores the game's path at run time (for comparing saves).
         public static bool Enabled = true;
 
+        /// Test runs only (TimelapseTimingTestMod's same-frame saves): true writes the
+        /// properties and the lists of numbers through the game's code, as before.
+        public static bool BypassGarbage = false;
+
         static Type templateType = null!, helperType = null!, ioHelperType = null!, typeInfoType = null!;
         static FieldInfo fieldsField = null!, propertiesField = null!, onSerializingField = null!, onSerializedField = null!, customSerializeField = null!, serializableTypeField = null!;
         static FieldInfo fieldInfoOfEntry = null!, typeInfoOfEntry = null!, propertyOfEntry = null!, typeInfoOfPropertyEntry = null!, infoOfTypeInfo = null!;
         static MethodInfo writeValue = null!, writeSingleFast = null!, gameLogError = null!;
+        static FieldInfo subTypesOfTypeInfo = null!;
+        static Action<BinaryWriter, float> writeSingle = null!;
 
         sealed class Plan
         {
             public Action<object, BinaryWriter> Fields = null!;
             public (PropertyInfo Property, object TypeInfo)[] Properties = [];
+            /// The properties read typed and written as Fields are, or null where one can't be
+            /// compiled (an indexer, no getter): then the loop over Properties.
+            public Action<object, BinaryWriter>? PropertiesWriter;
             public MethodInfo? OnSerializing, OnSerialized, CustomSerialize;
             public string TypeName = "";
         }
@@ -92,10 +104,13 @@ namespace OniMoono.Host.GameTweaks
             propertyOfEntry = AccessTools.Field(propertyEntry, "property");
             typeInfoOfPropertyEntry = AccessTools.Field(propertyEntry, "typeInfo");
             infoOfTypeInfo = AccessTools.Field(typeInfoType, "info");
+            subTypesOfTypeInfo = AccessTools.Field(typeInfoType, "subTypes");
             writeValue = AccessTools.Method(helperType, "WriteValue", [typeof(BinaryWriter), typeInfoType, typeof(object)]);
             writeSingleFast = AccessTools.Method(ioHelperType, "WriteSingleFast", [typeof(BinaryWriter), typeof(float)]);
             // The game's Debug (not UnityEngine's), as the template reports.
             gameLogError = AccessTools.Method(AccessTools.TypeByName("Debug"), "LogError", [typeof(object)]);
+            if (subTypesOfTypeInfo == null) throw new MissingMemberException($"{Name}: the game has no TypeInfo.subTypes");
+            writeSingle = (Action<BinaryWriter, float>)writeSingleFast.CreateDelegate(typeof(Action<BinaryWriter, float>));
             harmony.Patch(AccessTools.Method(templateType, "SerializeData", [typeof(object), typeof(BinaryWriter)]),
                 prefix: new HarmonyMethod(typeof(FastSerialization), nameof(SerializeData)));
         }
@@ -107,7 +122,8 @@ namespace OniMoono.Host.GameTweaks
             var plan = plans.GetValue(__instance, MakePlan);
             plan.OnSerializing?.Invoke(obj, null);
             plan.Fields(obj, writer);
-            foreach (var (property, typeInfo) in plan.Properties)
+            if (plan.PropertiesWriter != null && !BypassGarbage) plan.PropertiesWriter(obj, writer);
+            else foreach (var (property, typeInfo) in plan.Properties)
             {
                 try
                 {
@@ -156,6 +172,7 @@ namespace OniMoono.Host.GameTweaks
             {
                 Fields = FieldsWriter(type, (IEnumerable)fieldsField.GetValue(template)!),
                 Properties = properties.ToArray(),
+                PropertiesWriter = PropertiesWriter(type, properties),
                 OnSerializing = (MethodInfo?)onSerializingField.GetValue(template),
                 OnSerialized = (MethodInfo?)onSerializedField.GetValue(template),
                 CustomSerialize = (MethodInfo?)customSerializeField.GetValue(template),
@@ -220,7 +237,7 @@ namespace OniMoono.Host.GameTweaks
                 var typeInfo = typeInfos[i];
                 int kind = Convert.ToInt32(infoOfTypeInfo.GetValue(typeInfo)) & 63;
                 var read = Expression.Field(field.IsStatic ? null : Self(), field);
-                var write = PlainWrite(kind, field.FieldType, read, writerArg)
+                var write = PlainWrite(kind, typeInfo, field.FieldType, read, writerArg)
                             ?? Expression.Call(writers[i] ?? writeValue, writerArg, Expression.Constant(typeInfo, typeInfoType), Expression.Convert(read, typeof(object)));
                 var caught = Expression.Parameter(typeof(Exception), "e");
                 body.Add(Expression.TryCatch(Expression.Block(typeof(void), write),
@@ -231,10 +248,80 @@ namespace OniMoono.Host.GameTweaks
             return Expression.Lambda<Action<object, BinaryWriter>>(block, objArg, writerArg).Compile();
         }
 
+        /// The writer for a template's properties, kept per type as the fields' are: each read
+        /// through its getter, typed, and written by PlainWrite or Helper.WriteValue directly (no
+        /// PropertyInfo.GetValue box, no Invoke argument array), in the template's order, each
+        /// failure reported as the template reports it. Null when there are none, or one is an
+        /// indexer or has no getter (the reflection loop then reports what the game would).
+        static Action<object, BinaryWriter>? PropertiesWriter(Type type, List<(PropertyInfo Property, object TypeInfo)> properties)
+        {
+            if (properties.Count == 0) return null;
+            foreach (var (property, _) in properties)
+                if (property.GetIndexParameters().Length != 0 || property.GetGetMethod(true) == null) return null;
+            lock (compiledProperties)
+            {
+                if (compiledProperties.TryGetValue(type, out var kept) && SameProperties(kept, properties)) return kept.Write;
+                kept = new CompiledProperties { Properties = properties.Select(p => p.Property).ToArray(), TypeInfos = properties.Select(p => p.TypeInfo).ToArray() };
+                kept.Write = CompileProperties(type, kept.Properties, kept.TypeInfos);
+                compiledProperties[type] = kept;
+                return kept.Write;
+            }
+        }
+
+        sealed class CompiledProperties
+        {
+            public PropertyInfo[] Properties = [];
+            public object[] TypeInfos = [];
+            public Action<object, BinaryWriter> Write = null!;
+        }
+
+        static readonly Dictionary<Type, CompiledProperties> compiledProperties = new();
+
+        static bool SameProperties(CompiledProperties kept, List<(PropertyInfo Property, object TypeInfo)> properties)
+        {
+            if (kept.Properties.Length != properties.Count) return false;
+            for (int i = 0; i < properties.Count; i++)
+                if (kept.Properties[i] != properties[i].Property || !kept.TypeInfos[i].Equals(properties[i].TypeInfo)) return false;
+            return true;
+        }
+
+        static Action<object, BinaryWriter> CompileProperties(Type type, PropertyInfo[] properties, object[] typeInfos)
+        {
+            var objArg = Expression.Parameter(typeof(object), "obj");
+            var writerArg = Expression.Parameter(typeof(BinaryWriter), "writer");
+            var target = type.IsValueType ? (Expression)Expression.Unbox(objArg, type) : Expression.Convert(objArg, type);
+            var body = new List<Expression>();
+            ParameterExpression? local = null;
+            if (!type.IsValueType)
+            {
+                local = Expression.Variable(type, "self");
+                body.Add(Expression.Assign(local, target));
+            }
+            Expression Self() => type.IsValueType ? target : local!;
+            var failure = typeof(FastSerialization).GetMethod(nameof(Failure), BindingFlags.Static | BindingFlags.NonPublic)!;
+            for (int i = 0; i < properties.Length; i++)
+            {
+                var property = properties[i];
+                var typeInfo = typeInfos[i];
+                int kind = Convert.ToInt32(infoOfTypeInfo.GetValue(typeInfo)) & 63;
+                var getter = property.GetGetMethod(true)!;
+                // Read once into a local: a getter runs once, as GetValue runs it.
+                var value = Expression.Variable(property.PropertyType, "value");
+                var read = Expression.Assign(value, Expression.Call(getter.IsStatic ? null : Self(), getter));
+                var write = PlainWrite(kind, typeInfo, property.PropertyType, value, writerArg)
+                            ?? Expression.Call(writeValue, writerArg, Expression.Constant(typeInfo, typeInfoType), Expression.Convert(value, typeof(object)));
+                var caught = Expression.Parameter(typeof(Exception), "e");
+                body.Add(Expression.TryCatch(Expression.Block(typeof(void), [value], read, write),
+                    Expression.Catch(caught, Expression.Throw(Expression.Call(failure, Expression.Constant("property"), Expression.Constant(property.Name), Expression.Constant(type.Name), caught)))));
+            }
+            var block = local == null ? Expression.Block(body) : Expression.Block([local], body);
+            return Expression.Lambda<Action<object, BinaryWriter>>(block, objArg, writerArg).Compile();
+        }
+
         /// What Helper.WriteValue writes for a plain value of this kind, read typed; null when the
         /// field is not one the direct path covers exactly (then WriteValue writes it).
         [MirrorsGame("System.Void KSerialization.Helper::WriteValue(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Object)")]
-        static Expression? PlainWrite(int kind, Type fieldType, Expression value, Expression writer)
+        static Expression? PlainWrite(int kind, object typeInfo, Type fieldType, Expression value, Expression writer)
         {
             Expression Write(Type parameter, Expression v) => Expression.Call(writer, typeof(BinaryWriter).GetMethod(nameof(BinaryWriter.Write), [parameter])!, v);
             Expression Single(Expression v) => Expression.Call(writeSingleFast, writer, v);
@@ -265,8 +352,69 @@ namespace OniMoono.Host.GameTweaks
                     Expression Channel(string c) => Write(typeof(byte), Expression.Convert(Expression.Multiply(Member(value, c), Expression.Constant(255f)), typeof(byte)));
                     return Expression.Block(Channel("r"), Channel("g"), Channel("b"), Channel("a"));
                 }
+                // A List<T> of numbers: WriteValue's List case with WriteListPOD's element writes,
+                // which box every element (foreach over ICollection). Only for an element type info
+                // that is exactly the number's (WriteListPOD switches on the whole value).
+                case 20 when fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>)
+                             && PodInfo(fieldType.GetGenericArguments()[0]) is int pod && ElementInfo(typeInfo) == pod:
+                    return Expression.Call(typeof(FastSerialization).GetMethod(nameof(WriteNumberList), BindingFlags.Static | BindingFlags.NonPublic)!
+                        .MakeGenericMethod(fieldType.GetGenericArguments()[0]), writer, value, Expression.Constant(typeInfo, typeof(object)));
                 default: return null;
             }
+        }
+
+        /// SerializationTypeInfo of a number type that Helper.IsPOD accepts, or null.
+        static int? PodInfo(Type t) =>
+            t == typeof(sbyte) ? 1 : t == typeof(byte) ? 2 : t == typeof(short) ? 4 : t == typeof(ushort) ? 5 : t == typeof(int) ? 6 : t == typeof(uint) ? 7
+            : t == typeof(long) ? 8 : t == typeof(ulong) ? 9 : t == typeof(float) ? 10 : t == typeof(double) ? 11 : null;
+
+        /// TypeInfo.subTypes[0].info, whole (flags included), or -1.
+        static int ElementInfo(object typeInfo)
+        {
+            if (subTypesOfTypeInfo.GetValue(typeInfo) is not Array { Length: > 0 } subTypes || subTypes.GetValue(0) is not { } element) return -1;
+            return Convert.ToInt32(infoOfTypeInfo.GetValue(element));
+        }
+
+        /// Helper.WriteValue's List case for a List<T> of numbers (T one of PodInfo's), with
+        /// WriteListPOD's writes, element by element, unboxed: the same bytes.
+        [MirrorsGame("System.Void KSerialization.Helper::WriteValue(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Object)")]
+        [MirrorsGame("System.Void KSerialization.Helper::WriteListPOD(System.IO.BinaryWriter,KSerialization.TypeInfo,System.Collections.ICollection)")]
+        static void WriteNumberList<T>(BinaryWriter writer, List<T>? list, object typeInfo) where T : unmanaged
+        {
+            if (BypassGarbage)
+            {
+                writeValue.Invoke(null, [writer, typeInfo, list]);
+                return;
+            }
+            if (list == null)
+            {
+                writer.Write(0);
+                writer.Write(-1);
+                return;
+            }
+            long position = writer.BaseStream.Position;
+            writer.Write(0);
+            writer.Write(list.Count);
+            long position2 = writer.BaseStream.Position;
+            foreach (T item in list)
+            {
+                T v = item;
+                if (typeof(T) == typeof(byte)) writer.Write(Unsafe.As<T, byte>(ref v));
+                else if (typeof(T) == typeof(double)) writer.Write(Unsafe.As<T, double>(ref v));
+                else if (typeof(T) == typeof(short)) writer.Write(Unsafe.As<T, short>(ref v));
+                else if (typeof(T) == typeof(int)) writer.Write(Unsafe.As<T, int>(ref v));
+                else if (typeof(T) == typeof(long)) writer.Write(Unsafe.As<T, long>(ref v));
+                else if (typeof(T) == typeof(sbyte)) writer.Write(Unsafe.As<T, sbyte>(ref v));
+                else if (typeof(T) == typeof(float)) writeSingle(writer, Unsafe.As<T, float>(ref v));
+                else if (typeof(T) == typeof(ushort)) writer.Write(Unsafe.As<T, ushort>(ref v));
+                else if (typeof(T) == typeof(uint)) writer.Write(Unsafe.As<T, uint>(ref v));
+                else if (typeof(T) == typeof(ulong)) writer.Write(Unsafe.As<T, ulong>(ref v));
+            }
+            long position3 = writer.BaseStream.Position;
+            long num = position3 - position2;
+            writer.BaseStream.Position = position;
+            writer.Write((int)num);
+            writer.BaseStream.Position = position3;
         }
     }
 }
