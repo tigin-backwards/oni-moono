@@ -86,6 +86,9 @@ It only shows what it finds. It never turns a tweak on or off. The grades:
   `fix-table-scroll` (the tables' scroller placing and the layout groups' child placing),
   `fast-serialization` (for the report history only: the serializer's writers),
   `background-save` (for the colony summary only: `RetireColonyUtility.SaveColonySummaryData`),
+  `compact-report-entries` (`DailyReport.GetEntry`, `ReportManager.FindReport` and the colony
+  summary's constructor, for any patch but a postfix; also while a mod reads past days' entries
+  itself, see [Past days' report entries](#past-days-report-entries)),
   `fast-save-type-checks` (for its kept component arrays only: another transpiler of
   `SaveLoadRoot.SaveWithoutTransform`; the type checks stay on),
   and the two rewrites for a transpiler they did not review. The icon is the grey disabled sign.
@@ -302,6 +305,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Paged path grids** (`paged-path-grids`): Each Duplicant's map of path costs takes memory only where it can walk. A Duplicant's path grid covers the whole map. This keeps it in small pages, each made the first time a path probe writes there. The pathfinder reads the same values.
 - **Share identical data** (`shared-duplicates`): Names repeated across a colony's reports and other identical data are kept once, using less memory. While a save loads, copies of the same text (Duplicants' and critters' names in each day's report) become one. Buildings with the same footprint share one table of work spots, and work animations left at their defaults share one list. The game never writes to these, so it reads the same values. *Measured: ~0.3 GB less memory on a late-game colony; a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, 2026-11-09.*
 - **Compact report history** (`compact-report-history`): Past days' reports take a fraction of the memory. The notes of every day's report but today's are kept in flat arrays instead of a table for each entry; the reports screen and saves read the same notes in the same order. *Measured: ~0.9 GB less memory on a late-game colony; loading ~1 s faster; a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, 2026-11-10.*
+- **Compact report entries** (`compact-report-entries`): Past days' report entries take less memory and fewer objects for the game's memory cleanups. The entries of every day's report but today's are kept in flat arrays instead of an object each, and made again when something reads that day. The reports screen, the colony summary and saves read the same values in the same order. Off while a mod reads past days' entries itself. *Measured: 4.2 M fewer objects and 7.9 M fewer references for a full memory cleanup to trace on a late-game colony; its pause an estimated ~12% shorter (from a cost model, not timed); a late-game Spaced Out colony with every DLC (cycle 17,000+), Linux under WSL2, 2026-11-17.*
 - **Fetch checks by pile** (`fetch-by-cell`): Duplicants looking for things to fetch check each pile of identical items once, not item by item. Tracks the best item of each pile as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. Among items in a pile that the game ranks as equal, a Duplicant may take a different one than in the original. Off while a mod changes how Duplicants choose what to fetch. *Measured: fetch updates ~8× shorter on a colony with big piles (3.1–3.4 → 0.4 ms each); a late-game Spaced Out colony with 33,600 fetchable items, Windows, 2026-11-08.* *Off by default.*
 - **Direct conveyor bridge moves** (`direct-rail-bridges`): Conveyor bridges pass an item straight across instead of taking it off the rail and putting it back. The item only changes rail tile. What the rails carry and when, heat, germs, freshness, egg state and Conveyor Meter counts are the same. Two things differ: the Conveyor overlay may draw two overlapping items in the other order, and an item is no longer listed as fetchable for the instant it crosses. Undiscovered kinds of item, critters and items a mod has added components to cross the game's way. Off while another mod changes how items are stored on rails. *On by default; left out of `exact`.*
 
@@ -1209,6 +1213,61 @@ With `ONI_TWEAK_VERIFY=1` each save writes the history both ways into memory, th
 `fast-serialization`'s plans off, and compares the bytes (`fast-serialization: verify: the
 report history identical (N bytes against N; ...)`, and the same for today's report and for
 `compact-report-history`'s notes).
+
+### Past days' report entries
+
+Every day's report keeps a list of about 240 entries, and each entry its own list of entries
+per Duplicant or building. On a late-game colony (cycle 17,000) that is 4.1 million objects in
+187,000 arrays that the game never changes once the day is over, and that every full garbage
+collection traces. `compact-report-history` moved their notes into flat arrays;
+`compact-report-entries` does the same for the entries themselves:
+
+- **Packing.** After a load, every past day goes into flat arrays of 40 bytes an entry (its
+  numbers, its context as an index in a table of strings, its children as a range), and its
+  list becomes null. At each night the day that ended goes the same way. Today's report stays
+  as the game keeps it. A day of a shape the arrays do not keep exactly (an entry of another
+  type, a `gameHash` set, a null in a list) stays as the game has it.
+- **Reading.** The game reads a day's list itself in four places, checked at start-up from its
+  code: a new day, `DailyReport.GetEntry`, `SaveLoader.GetDailyReportMetrics` (a day from
+  `ReportManager.FindReport`) and the stress panel (today's). `GetEntry` on a packed day makes
+  that entry again as an object, with its children; `FindReport` makes the whole day. The
+  objects made are kept for the last 32 days read, so paging the reports screen shows the
+  same objects. A day leaving those 32 is compared with its arrays, and packed again from the
+  objects when something wrote to them (a `GetEntry` that added an entry, a mod that changed a
+  value).
+- **The colony summary.** Each save's colony summary reads 16 entries of every day and keeps
+  only numbers. Its calls read the arrays into four scratch entries, reused in turn, instead of
+  making 300,000 objects a save.
+- **Saving.** `fast-serialization`'s writer for the history writes a packed day from its arrays:
+  the same bytes, and the same templates asked for in the same order. A save that goes
+  through the game's own writer (`fast-serialization` off, or a mod patching what it stands in
+  for) gets every day's list back for that save.
+
+It is off for the session, with one line in `Player.log` (`compact-report-entries: off for this
+session: ...`), when:
+
+- a loaded mod reads or writes `DailyReport.reportEntries` itself, takes it as a Harmony
+  parameter (`___reportEntries`) or names it in a string (reflection). Mods that read days
+  through `GetEntry`, `FindReport`, `YesterdaysReport` and the like keep it on, and so do mods
+  that read an entry's `contextEntries`: every entry given out is a whole object;
+- another mod patches `DailyReport.GetEntry`, `ReportManager.FindReport` or the colony
+  summary's constructor (anything but a postfix);
+- the game reads `reportEntries` anywhere else, or its types have other fields.
+
+Of the 18 Workshop mods whose code names the report types, three turn it off: ONI Multiplayer
+(3807965885, which mirrors past reports for other players), ONI MCP Server (3807166922, its
+colony report tool) and RemoveDailyReports (1870873514). Fast Track, Fast Save (which trims old
+days), Vision Not Included, Achievement Tracker, Food Tooltip, Research Requirements, MoreTek and
+the others read days through the game's methods, or ship copies of the game's types they never
+use on the game's objects.
+
+With `ONI_TWEAK_VERIFY=1` each packed day keeps its original list. Every entry given out, every
+day made whole and every colony summary read is compared with it (`compact-report-entries:
+verify: N reads compared, 0 mismatches`), and each save writes the history the game's way over
+the original lists, whose bytes must be those of the arrays
+(`fast-serialization: verify: the report history identical`).
+`tests/e2e/compact-report-entries.yaml` compares the history's bytes, every past entry, the
+reports screen paged back eight days, a save and its reload with the original's.
 
 ### The colony summary a save writes
 

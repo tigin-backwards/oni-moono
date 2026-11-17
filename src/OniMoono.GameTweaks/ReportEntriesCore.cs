@@ -58,6 +58,10 @@ namespace OniMoono.GameTweaks
         bool dayTemplate, entryTemplate, contextTemplate;
         readonly TShapes shapes = default;
 
+        /// compact-report-entries' store, when it packs days: a packed day is written from its
+        /// records, with the same bytes and the same templates asked for at the same points.
+        public IPackedDays<TDay> Packed;
+
         /// Helper.WriteValue(writer, the List's type info, days).
         public void WriteDays(BinaryWriter writer, List<TDay> days)
         {
@@ -68,6 +72,7 @@ namespace OniMoono.GameTweaks
                 return;
             }
             Begin();
+            Packed?.BeforeWrite();
             long lengthAt = writer.BaseStream.Position;
             writer.Write(0);
             writer.Write(days.Count);
@@ -142,6 +147,12 @@ namespace OniMoono.GameTweaks
             }
             int length = Open();
             Int(shapes.Day(day));
+            if (Packed != null && Packed.TryPacked(day, out int start, out int count))
+            {
+                PackedEntries(Packed.Records, start, count);
+                Close(length);
+                return;
+            }
             var entries = shapes.Entries(day);
             if (entries == null)
             {
@@ -207,6 +218,74 @@ namespace OniMoono.GameTweaks
             }
             Int(shapes.ContextSize(entry));
             Int(shapes.ContextCapacity(entry));
+            Close(context);
+            Close(length);
+        }
+
+        /// A packed day's list: Day's for its entries, from the records.
+        void PackedEntries(PackedReportRecords records, int start, int count)
+        {
+            Room(8);
+            int bytes = Open();
+            Int(count);
+            int from = n;
+            for (int i = 0; i < count; i++) PackedRecord(records, start + i);
+            BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan(bytes), n - from);
+        }
+
+        /// Entry's bytes for a record (its `gameHash` is -1: the store packs no other).
+        void PackedRecord(PackedReportRecords records, int r)
+        {
+            Room(20);
+            if (!entryTemplate)
+            {
+                entryTemplate = true;
+                shapes.EntryTemplate();
+            }
+            ref var rec = ref records[r];
+            int length = Open();
+            Int(rec.Id);
+            Int(-1);
+            Int(rec.Type);
+            if (rec.Context < 0) Int(-1);
+            else
+            {
+                var utf8 = records.Utf8(rec.Context);
+                if (utf8.Length >= 1024) shapes.LargeString(records.String(rec.Context), utf8.Length);
+                Room(4 + utf8.Length);
+                Int(utf8.Length);
+                utf8.AsSpan().CopyTo(buf.AsSpan(n));
+                n += utf8.Length;
+            }
+            Room(40);
+            Int(rec.ContextId);
+            Single(rec.Accumulate);
+            Single(rec.Positive);
+            Single(rec.Negative);
+            if (!contextTemplate)
+            {
+                contextTemplate = true;
+                shapes.ContextTemplate();
+            }
+            int context = Open();
+            if (rec.Length == PackedEntry.NoArray)
+            {
+                Int(0);
+                Int(-1);
+            }
+            else
+            {
+                int bytes = Open();
+                Int(rec.Length);
+                int from = n;
+                int children = rec.Children, size = rec.Size, total = rec.Length;
+                for (int j = 0; j < size; j++) PackedRecord(records, children + j);
+                Room((total - size) * 4 + 16);
+                for (int j = size; j < total; j++) Int(-1);
+                BinaryPrimitives.WriteInt32LittleEndian(buf.AsSpan(bytes), n - from);
+            }
+            Int(rec.Size);
+            Int(rec.Capacity);
             Close(context);
             Close(length);
         }

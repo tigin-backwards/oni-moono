@@ -83,6 +83,19 @@ namespace OniMoono.GameTweaks
 
         static readonly ReportEntryWriter<DailyReport, ReportEntry, Shapes> writer = new ReportEntryWriter<DailyReport, ReportEntry, Shapes>();
 
+        /// compact-report-entries' store: its packed days are written from their records.
+        internal static IPackedDays<DailyReport> Packed
+        {
+            set => writer.Packed = value;
+        }
+
+        /// Whether the writers were handed to the host (the game's types are as they write them).
+        internal static bool Writes;
+
+        /// Whether this save's history goes through WriteDays' own writer (compact-report-entries
+        /// gives the game's writer the days' lists otherwise).
+        internal static bool WritesPacked() => Writes && !Bypass && hostEnabled != null && (bool)hostEnabled.GetValue(null) && !Foreign();
+
         /// The host's FastSerialization.Enabled, for the verify mode's game-only write.
         static FieldInfo hostEnabled;
 
@@ -98,6 +111,7 @@ namespace OniMoono.GameTweaks
                 global::Debug.Log($"{Name}: the report history keeps the game's writer ({why})");
                 return new object[0];
             }
+            Writes = true;
             return new object[]
             {
                 AccessTools.Field(typeof(ReportManager), nameof(ReportManager.dailyReports)), AccessTools.Method(typeof(ReportEntries), nameof(WriteDays)),
@@ -173,7 +187,7 @@ namespace OniMoono.GameTweaks
         public static void WriteDays(BinaryWriter target, TypeInfo typeInfo, object value)
         {
             var days = value as List<DailyReport>;
-            if (Bypass || (value != null && days == null) || Foreign()) Helper.WriteValue(target, typeInfo, value);
+            if (Bypass || (value != null && days == null) || Foreign()) CompactReportDays.WithEntries(() => Helper.WriteValue(target, typeInfo, value), false);
             else if (verify) Verified(target, typeInfo, value, w => writer.WriteDays(w, days), "the report history");
             else writer.WriteDays(target, days);
         }
@@ -198,7 +212,12 @@ namespace OniMoono.GameTweaks
             try
             {
                 hostEnabled?.SetValue(null, false);
-                using (var w = new BinaryWriter(game, System.Text.Encoding.UTF8, true)) Helper.WriteValue(w, typeInfo, value);
+                // compact-report-entries' packed days as the game would hold them.
+                CompactReportDays.WithEntries(() =>
+                {
+                    using var w = new BinaryWriter(game, System.Text.Encoding.UTF8, true);
+                    Helper.WriteValue(w, typeInfo, value);
+                }, true);
             }
             finally
             {

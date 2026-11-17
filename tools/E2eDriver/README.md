@@ -620,6 +620,8 @@ State reads that sum up a colony's world in one value, for comparing two players
 ### Report reads
 
 The daily reports in one value each (reflection only, the same in U59 and U60):
+- `type:E2eDriver.Reports::History`: the past days' reports as a save writes them (Object's
+  bytes with today's report left out and without the note storage), `bytes=N fnv=HEX`;
 - `type:E2eDriver.Reports::Notes`: the note storage's bytes as a save writes them
   (`NoteStorage.Serialize`), `bytes=N fnv=HEX`;
 - `type:E2eDriver.Reports::Object`: ReportManager's whole component as a save writes it

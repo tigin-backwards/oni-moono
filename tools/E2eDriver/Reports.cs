@@ -67,8 +67,55 @@ namespace E2eDriver
             if (today && manager.TodaysReport != null) days.Add(manager.TodaysReport);
             var walk = new Walker();
             foreach (var day in days)
-                foreach (var entry in day.reportEntries) walk.Entry(day.day, entry, 0);
+                foreach (var entry in Entries(manager, day)) walk.Entry(day.day, entry, 0);
             return "reports=" + days.Count + " entries=" + walk.Entries + " notes=" + walk.Notes + " fnv=" + walk.Hash.ToString("x16");
+        }
+
+        /// DailyReport's list of entries, found by its type: Moono's compact-report-entries keeps
+        /// past days' entries out of it, and stands down for a mod that reads the field by name
+        /// or reference. ReportManager.FindReport gives a packed day's list back, as the game's
+        /// own reader of it (SaveLoader.GetDailyReportMetrics) gets it.
+        static readonly FieldInfo entriesField = Array.Find(typeof(ReportManager.DailyReport).GetFields(Any),
+            f => f.FieldType == typeof(List<ReportManager.ReportEntry>)) ?? throw new DriverError("DailyReport has no list of entries");
+
+        static List<ReportManager.ReportEntry> Entries(ReportManager manager, ReportManager.DailyReport day)
+        {
+            if (entriesField.GetValue(day) is List<ReportManager.ReportEntry> list) return list;
+            if (manager.FindReport(day.day) != day) throw new DriverError($"day {day.day}'s entries cannot be read: another report has its number");
+            return entriesField.GetValue(day) as List<ReportManager.ReportEntry> ?? throw new DriverError($"day {day.day} has no entries");
+        }
+
+        /// The past days' reports as a save writes them: ReportManager's component through the
+        /// serializer (Object) with today's report left out while it is written, and without the
+        /// note storage the custom serializer writes last (its marker and Notes' bytes), as the
+        /// game writes to both in play: "bytes=N fnv=HEX".
+        public static string History
+        {
+            get
+            {
+                var manager = ReportManager.Instance ?? throw new DriverError("no ReportManager");
+                var todays = AccessTools.Field(typeof(ReportManager), "todaysReport");
+                var today = todays.GetValue(manager);
+                var ms = new MemoryStream();
+                var (saved, saves) = (Saved, Saves);
+                try
+                {
+                    todays.SetValue(manager, null);
+                    using (var w = new BinaryWriter(ms, Encoding.UTF8, true)) KSerialization.Serializer.SerializeTypeless(manager, w);
+                }
+                finally
+                {
+                    todays.SetValue(manager, today);
+                    (Saved, Saves) = (saved, saves);
+                }
+                var storage = NoteStorage();
+                var notes = new MemoryStream();
+                using (var w = new BinaryWriter(notes, Encoding.UTF8, true))
+                    storage.GetType().GetMethod("Serialize", Any, null, new[] { typeof(BinaryWriter) }, null).Invoke(storage, new object[] { w });
+                int length = (int)ms.Length - 4 - (int)notes.Length;
+                if (length < 0) throw new DriverError("ReportManager wrote fewer bytes than its notes");
+                return Digest(ms.GetBuffer(), 0, length);
+            }
         }
 
         sealed class Walker

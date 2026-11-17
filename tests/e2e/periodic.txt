@@ -19,6 +19,7 @@ timelapse-background-writes ours    # ours only, ~8 min: 8192x12288 snapshot hit
 post-load-gc-off ours               # ours only: its control, the pause with the tweak off
 quit-to-desktop                     # Quit to Desktop with Save and Quit: the player ends by itself, the save on disk
 compact-report-history              # the late-game colony's report history reads and saves as the original's (fixture U57)
+compact-report-entries              # its past days' entries, packed, read and save as the original's, in verify mode (fixture U57)
 pipe-network-status                 # pipes' "requires building intake" items through builds, cuts and a bridge (fast-pipe-rebuilds)
 fix-released-sounds ours            # ours only: released FMOD handles cleared, no call on one after (fixture U57)
 

@@ -109,6 +109,10 @@
     <Compile Include="../../src/OniMoono.GameTweaks/CompactReportsCore.cs" Link="GameTweaks/CompactReportsCore.cs" />
     <!-- fast-serialization's writer for the report history (ReportEntriesTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/ReportEntriesCore.cs" Link="GameTweaks/ReportEntriesCore.cs" />
+    <!-- The compact-report-entries game tweak's store of past days' entries and its scan of
+         mods and the game (CompactReportDaysTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/CompactReportDaysCore.cs" Link="GameTweaks/CompactReportDaysCore.cs" />
+    <Compile Include="../../src/OniMoono.Host/GameTweaks/ReportAccessScan.cs" Link="Host/ReportAccessScan.cs" />
     <!-- The instant-reachability game tweak's crossings, index and coverage (InstantReachabilityTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/ReachabilityIndex.cs" Link="GameTweaks/ReachabilityIndex.cs" />
     <!-- The mod overlaps with the tweaks: grading, the log and the tooltips (ModOverlapsTests). -->
