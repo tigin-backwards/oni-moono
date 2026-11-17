@@ -554,6 +554,11 @@ namespace OniMoono.Engine.UI
 
         static void Update()
         {
+            if (Rendering.RenderSplit.On)
+            {
+                UpdateTimed();
+                return;
+            }
             using (var snapshot = enabledSnapshot.Take(enabled))
                 foreach (var c in snapshot.Items) UpdateRootTransform(c);
             RunCanvasUpdate();
@@ -571,6 +576,25 @@ namespace OniMoono.Engine.UI
                 }
             }
             else Build();
+        }
+
+        /// Update with its parts timed (ONI_RENDER_TIMING=1; the canvas update's subscribers in
+        /// Canvas.Send).
+        static void UpdateTimed()
+        {
+            long t0 = Rendering.RenderSplit.Now;
+            using (var snapshot = enabledSnapshot.Take(enabled))
+                foreach (var c in snapshot.Items) UpdateRootTransform(c);
+            long t1 = Rendering.RenderSplit.Now;
+            RunCanvasUpdate();
+            long t2 = Rendering.RenderSplit.Now;
+            SendMovesOnPixelPerfectCanvases();
+            long t3 = Rendering.RenderSplit.Now;
+            Build();
+            long t4 = Rendering.RenderSplit.Now;
+            Rendering.RenderSplit.CanvasRootsTicks += t1 - t0;
+            Rendering.RenderSplit.CanvasMovesTicks += t3 - t2;
+            Rendering.RenderSplit.CanvasBuildTicks += t4 - t3;
         }
 
         /// A root canvas, or a nested canvas that overrides sorting: drawn and depth-counted as
@@ -1254,6 +1278,8 @@ namespace OniMoono.Engine.UI
                 run.Add((item, g.Renderers[i]));
             }
             Flush();
+            Rendering.RenderSplit.CanvasGathered += n;
+            Rendering.RenderSplit.CanvasItems += items.Count;
             g.Clear(n);
             gathered = g;
             batchRun = run;
@@ -1685,6 +1711,7 @@ namespace OniMoono.Engine.UI
                     same = ReferenceEquals(shared.Parts[i], group[i].Mesh) && shared.Versions[i] == group[i].Mesh.Version;
                 if (!same)
                 {
+                    Rendering.RenderSplit.CanvasNestedRebuilt++;
                     // Main-thread lists of the parts: rewritten in place at the same length.
                     if (shared.Parts.Length != group.Count)
                     {
@@ -1754,8 +1781,10 @@ namespace OniMoono.Engine.UI
             bool same = m.Parts.Length == run.Count;
             for (int i = 0; same && i < run.Count; i++)
                 same = ReferenceEquals(m.Parts[i], run[i].Item.Mesh) && m.Versions[i] == run[i].Item.Mesh.Version;
+            Rendering.RenderSplit.CanvasMerges++;
             if (!same)
             {
+                Rendering.RenderSplit.CanvasMergesRebuilt++;
                 if (m.Parts.Length != run.Count)
                 {
                     m.Parts = new MeshNative[run.Count];
@@ -1767,6 +1796,7 @@ namespace OniMoono.Engine.UI
                     m.Versions[i] = run[i].Item.Mesh.Version;
                 }
                 Concatenate(m.Parts, m.Mesh);
+                Rendering.RenderSplit.CanvasMergedVertices += m.Mesh.VertexCount;
             }
             var item = first.Item;
             item.Mesh = m.Mesh;
@@ -1882,6 +1912,8 @@ namespace OniMoono.Engine.UI
             if (r.Baked != null && ReferenceEquals(r.BakedGeometry, g) && r.BakedToSpace.Equals(toSpace) && r.BakedColor.Equals(color))
                 return r.Baked;
             int n = g.Positions.Length;
+            Rendering.RenderSplit.CanvasBaked++;
+            Rendering.RenderSplit.CanvasBakedVertices += n;
             var mesh = r.Baked ??= new MeshNative { Dynamic = true };
             // An element that only moved (world-space canvases follow their objects every frame)
             // keeps its colours: the array is never written once made, so the new version can
@@ -1977,7 +2009,11 @@ namespace OniMoono.Engine.UI
                 }
                 device.SetCamera(OverlayCamera(b.Root, FrameRenderer.ScreenProjection(Matrix4x4.Ortho(0f, size.x, 0f, size.y, -1000f, 1000f)), size));
                 // Canvas items name no pass (-1).
-                FrameRenderer.DrawQueue(device, Batched(b, overlay: true));
+                Rendering.RenderSplit.Enter(Rendering.RenderSplit.Part.OverlayBatch);
+                Rendering.RenderSplit.OverlayBatches++;
+                var batched = Batched(b, overlay: true);
+                Rendering.RenderSplit.Exit();
+                FrameRenderer.DrawQueue(device, batched);
             }
             if (verifyPixels && bound && Reorder && !FrameRenderer.RenderingCapture && ++pixelFrames % 120 == 0) VerifyPixels(device, size);
         }
@@ -2152,6 +2188,7 @@ namespace OniMoono.Engine.UI
                 if (root.RenderMode == RenderMode.WorldSpace && (cam.CullingMask & (1 << b.Canvas.GameObject.Layer)) == 0) continue;
                 var sorting = SortingOf(b);
                 var center = Hierarchy.Position(b.Canvas.GameObject.Transform);
+                Rendering.RenderSplit.CameraBatches++;
                 foreach (var item in Batched(b, overlay: false))
                 {
                     item.SortingLayerValue = SortingLayers.ValueOf(sorting.SortingLayerId);

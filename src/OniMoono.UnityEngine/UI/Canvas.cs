@@ -193,6 +193,18 @@ namespace UnityEngine
         {
             if (list.Count == 0) return;
             using var subscribers = list.Take();
+            if (OniMoono.Engine.Rendering.RenderSplit.On)
+            {
+                // Each subscriber timed (ONI_RENDER_TIMING=1).
+                bool pre = list != willRender;
+                foreach (var d in subscribers.Items)
+                {
+                    long start = OniMoono.Engine.Rendering.RenderSplit.Now;
+                    try { d(); }
+                    finally { OniMoono.Engine.Rendering.RenderSplit.WillRender(d.Method, OniMoono.Engine.Rendering.RenderSplit.Now - start, pre); }
+                }
+                return;
+            }
             foreach (var d in subscribers.Items) d();
         }
 
@@ -234,8 +246,11 @@ namespace UnityEngine
             else
             {
                 var native = (MeshNative)mesh.NativeOrThrow;
+                OniMoono.Engine.Rendering.RenderSplit.UiMeshesSet++;
                 if (d.CopiedGeometry == null || !ReferenceEquals(d.CopiedFrom, native) || d.CopiedVersion != native.Version)
                 {
+                    OniMoono.Engine.Rendering.RenderSplit.UiMeshesCopied++;
+                    if (OniMoono.Engine.Rendering.RenderSplit.On && IsText(d.GameObject)) OniMoono.Engine.Rendering.RenderSplit.TextMeshesCopied++;
                     var previous = d.CopiedGeometry;
                     var baked = d.Baked ??= new MeshNative { Dynamic = true };
                     d.CopiedGeometry = CanvasGeometry.From(native, baked, d.TakeSpareGeometry());
@@ -253,6 +268,14 @@ namespace UnityEngine
                 d.Geometry = d.CopiedGeometry;
             }
             d.Changed();
+        }
+
+        /// A TextMesh Pro text's object (ONI_RENDER_TIMING's counts).
+        static bool IsText(OniMoono.Engine.GameObjectNative go)
+        {
+            foreach (var c in go.Components)
+                if (c != null && c.GetType().Namespace == "TMPro") return true;
+            return false;
         }
 
         /// Removes the geometry and every material, texture and clipping state.
