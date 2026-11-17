@@ -51,6 +51,7 @@
       "build": "679336 (before U59)",
       "mods": "none",
       "used_by": [
+        "game-update-smoke-late",
         "path-probe-repair",
         "scripts/qa.sh dogfood: colony, codex, management, research, naming, overlays, saveload, resize (scripts/qa-scenarios, scripts/m9-scenarios; ONI_M9_SAVE overrides)"
       ],
