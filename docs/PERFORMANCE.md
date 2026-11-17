@@ -744,6 +744,9 @@ rendering and the canvas update beside it, and builds fixes for them (2026-11-17
   Exact, with a verify mode (`ONI_VERIFY_TEXT_SCALES=1`, 0 wrong on both colonies and on
   Vulkan). The Windows series could not resolve its effect on the frame: the machine slowed
   during the runs, and the expected 0.5 ms is far inside their spread.
+- **Queued meshes** (`Graphics.DrawMesh`) are skipped by cameras whose culling mask has none
+  of their layers: 9 of 15 cameras, about 7,300 of 12,160 visits a frame on the late-game
+  colony. Exact; not timed, as the machines were under heavy load.
 - **Reusing last frame's draw values** is exact (0 wrong in 4 million reused draws, OpenGL and
   Vulkan) but reuses only 25–41% of the passes it could, as draw items are pooled by position.
   Not landed.
