@@ -148,6 +148,10 @@ The tweaks' other settings for measurements and test runs (environment variables
 start-up; none is needed to play):
 - `ONI_TWEAK_VERIFY=1`: every tweak's verify mode ([TWEAKS.md](TWEAKS.md#how-exactly-the-same-is-checked)).
   `ONI_VERIFY_FETCH_BY_CELL=1` and `ONI_VERIFY_RELEASED_SOUNDS=1` turn on one tweak's alone.
+- `ONI_RENDER_TIMING=1`: every 600 frames, the main thread's time in rendering and its draw
+  queues (`render timing`), and the render phase split into its parts with their counts, each
+  camera's time and the canvas update's parts (`render split`;
+  [research/main-thread-rendering.md](research/main-thread-rendering.md)).
 - `ONI_TWEAK_TIMING=1`: `fast-anim-batches` and `fast-symbol-overrides` log their time a frame
   every 600 frames.
 - `ONI_FAST_ANIM_BATCHES_SERIAL=1`: `fast-anim-batches` leaves every write to the game's loop.
