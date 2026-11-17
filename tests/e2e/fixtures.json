@@ -41,6 +41,7 @@
       "build": "679336 (before U59)",
       "mods": "none",
       "used_by": [
+        "game-update-smoke-late",
         "path-probe-repair",
         "pipe-flow",
         "u60/r1-pipe-flow-vanilla",

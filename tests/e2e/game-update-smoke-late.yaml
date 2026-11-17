@@ -1,0 +1,10 @@
+# Game-update smoke on a late game (docs/GAME-UPDATES.md): the late base-game colony with busy
+# pipes, 180 game seconds; the Duplicants must gain experience. Run on Windows in ours on Vulkan
+# (scripts/e2e-windows/run.py --player ours), or on Linux. Nothing in it names a build.
+from: decrew
+memory_gb: 15
+steps:
+  - expect_state: {"sum:all:MinionResume::[*].DEBUG_ActiveExperienceGained": {save_as: before}}
+  - run: {seconds: 180}
+  - expect_state: {"sum:all:MinionResume::[*].DEBUG_ActiveExperienceGained": "> before + 50"}
+  - shot: smoke-late
