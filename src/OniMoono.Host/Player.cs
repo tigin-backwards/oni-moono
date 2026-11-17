@@ -144,6 +144,7 @@ namespace OniMoono.Host
             double total = quitClock.Elapsed.TotalMilliseconds;
             EngineLog.Engine($"Quit took {total:0} ms");
             foreach (var line in QuitStats.Lines()) EngineLog.Engine(line);
+            OniMoono.Engine.UI.TextScaleWatch.LogTotals();
             EngineLog.Engine($"Exiting after {frame} frames with code {PlayerLoop.ExitCode}");
             EngineLog.Close();
             Console.Out.Flush();

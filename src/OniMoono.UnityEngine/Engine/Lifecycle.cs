@@ -169,6 +169,7 @@ namespace OniMoono.Engine
             native.SetChildren(oldNative.Children.ToArray());
             foreach (var child in native.Children) child.Parent = native;
             native.Parent?.ReplaceChild(oldNative, native);
+            UI.TextScaleWatch.Moved(oldNative, native);
             var transform = Object.ConstructBound<Transform>(type, native);
             var comps = (Component[])go.Components.Clone();
             comps[0] = transform;

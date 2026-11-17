@@ -12,6 +12,7 @@ env:
   ONI_VERIFY_CANVAS_PRODUCTS: "1"
   ONI_VERIFY_COMPONENT_LAYOUTS: "1"
   ONI_VERIFY_RAW_LOADS: "1"
+  ONI_VERIFY_TEXT_SCALES: "1"
 steps:
   - dig: [110, 205, 118, 206]
   - run: {seconds: 300}

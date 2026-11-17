@@ -26,6 +26,10 @@ namespace UnityEngine
             remove => willRender.Remove(value);
         }
 
+        /// willRenderCanvases += `value`, called only while TextScaleWatch's `slot` is armed (0:
+        /// always): TextMeshPro's scale check. `-=` removes it as any other.
+        internal static void AddWillRenderCanvases(WillRenderCanvases value, int slot) => willRender.AddGated(value, slot);
+
         public Canvas() { }
 
         internal CanvasNative Data => (CanvasNative)NativeOrThrow;
@@ -193,19 +197,49 @@ namespace UnityEngine
         {
             if (list.Count == 0) return;
             using var subscribers = list.Take();
-            if (OniMoono.Engine.Rendering.RenderSplit.On)
+            var items = subscribers.Items;
+            var gates = subscribers.Gates;
+            if (OniMoono.Engine.Rendering.RenderSplit.On || TextScaleWatch.Verifying)
             {
-                // Each subscriber timed (ONI_RENDER_TIMING=1).
-                bool pre = list != willRender;
-                foreach (var d in subscribers.Items)
-                {
-                    long start = OniMoono.Engine.Rendering.RenderSplit.Now;
-                    try { d(); }
-                    finally { OniMoono.Engine.Rendering.RenderSplit.WillRender(d.Method, OniMoono.Engine.Rendering.RenderSplit.Now - start, pre); }
-                }
+                SendSlow(items, gates, list != willRender);
                 return;
             }
-            foreach (var d in subscribers.Items) d();
+            // A gated subscriber (TextScaleWatch) is skipped while its slot is disarmed. The
+            // array is read at each one: a subscriber may enable texts, which may grow it.
+            for (int i = 0; i < items.Length; i++)
+            {
+                int gate = gates[i];
+                if (gate != 0 && TextScaleWatch.Armed[gate] == 0) continue;
+                items[i]();
+            }
+        }
+
+        /// Send with each subscriber timed (ONI_RENDER_TIMING=1), or with the gated subscribers
+        /// it skips called anyway (ONI_VERIFY_TEXT_SCALES=1).
+        static void SendSlow(ReadOnlySpan<WillRenderCanvases> items, ReadOnlySpan<int> gates, bool pre)
+        {
+            bool timed = OniMoono.Engine.Rendering.RenderSplit.On;
+            for (int i = 0; i < items.Length; i++)
+            {
+                var d = items[i];
+                int gate = gates[i];
+                bool skip = gate != 0 && TextScaleWatch.Armed[gate] == 0;
+                if (skip && !TextScaleWatch.Verifying) continue;
+                long start = timed ? OniMoono.Engine.Rendering.RenderSplit.Now : 0;
+                try
+                {
+                    if (skip) TextScaleWatch.CallSkipped(d);
+                    else
+                    {
+                        if (gate != 0) TextScaleWatch.Called();
+                        d();
+                    }
+                }
+                finally
+                {
+                    if (timed) OniMoono.Engine.Rendering.RenderSplit.WillRender(d.Method, OniMoono.Engine.Rendering.RenderSplit.Now - start, pre);
+                }
+            }
         }
 
         /// The shared default UI material ("UI/Default").

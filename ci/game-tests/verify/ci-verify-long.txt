@@ -22,3 +22,4 @@ nav links verify (in play)
 path grids verify
 path-probe-repair
 raw texture loads
+text scales
