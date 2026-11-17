@@ -37,6 +37,28 @@ namespace OniMoono.Tests
             Assert.Same(child, go.GetComponent<IMarked>());
         }
 
+        /// GetComponents<T>() fills an array of exactly the matches: the list query's components,
+        /// in its order, a new array each call, and an empty one for no match.
+        [Fact]
+        public void ArrayQueryMatchesTheListQuery()
+        {
+            var go = new GameObject("a");
+            var first = go.AddComponent<First>();
+            var second = go.AddComponent<Second>();
+            var child = go.AddComponent<SecondChild>();
+            var list = new List<MonoBehaviour>();
+            go.GetComponents(list);
+            var array = go.GetComponents<MonoBehaviour>();
+            Assert.Equal(list.ToArray(), array);
+            Assert.Equal(new MonoBehaviour[] { first, second, child }, array);
+            Assert.NotSame(array, go.GetComponents<MonoBehaviour>());
+            Assert.Equal(new IMarked[] { first, child }, go.GetComponents<IMarked>());
+            Assert.Equal(new Second[] { second, child }, first.GetComponents<Second>());
+            Assert.Empty(go.GetComponents<Light>());
+            UnityEngine.Object.DestroyImmediate(second);
+            Assert.Equal(new MonoBehaviour[] { first, child }, go.GetComponents<MonoBehaviour>());
+        }
+
         [Fact]
         public void ObjectsWithTheSameComponentTypesShareMatches()
         {

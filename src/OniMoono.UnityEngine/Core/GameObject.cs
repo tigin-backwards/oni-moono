@@ -111,12 +111,7 @@ namespace UnityEngine
             return component != null;
         }
 
-        public T[] GetComponents<T>()
-        {
-            var list = new List<T>();
-            Components.All(GameObjectNative, list);
-            return list.ToArray();
-        }
+        public T[] GetComponents<T>() => Components.AllArray<T>(GameObjectNative);
 
         public Component[] GetComponents(Type type)
         {
