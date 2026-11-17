@@ -3588,6 +3588,19 @@ or to `DOTNET_DbgMiniDumpName`.
 starts the player and with standard error redirected, and on Linux the caught null reference
 and that recipe.
 
+**The sim data check** (`src/OniMoono.GameTweaks/SimDataCheck.cs`, always on, #91). The game
+reads element and building temperatures through `Game.simData`, five pointers into the sim's
+game data that only `Game.StepTheSim` assigns, and #91 crashed reading a stale one. The check
+records what each step got from the sim, and compares `simData` with it before `Game.Update`
+and before `Infrared.Update` (the temperature overlay), about 0.6 µs a check with nothing
+allocated. It changes nothing the game reads. Its first mismatch writes one
+`[Moono] sim-data-check: MISMATCH (#91)` line with the frame, the game time, the last step (and
+any exception from one), the save and Timelapser state, the sim's last cell message and the
+pointers; later ones are only counted (every 10 minutes, at the next colony and at the quit).
+It stands down for the session, with a line, when another Harmony owner patches `StepTheSim`
+with anything but a postfix. With `ONI_TWEAK_VERIFY=1`, `ONI_TEST_SIMDATA_SKIP=N` puts the
+previous step's pointers back after the Nth step, to see the line.
+
 Development diagnostics (host options, never needed by players):
 
 - `--trace-exceptions` logs every first-chance exception with per-frame IL offsets (the game
