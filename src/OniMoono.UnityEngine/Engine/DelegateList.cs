@@ -16,10 +16,15 @@ namespace OniMoono.Engine
     /// enables 1,500 texts searched a list of thousands for each, 46 ms of every opening of
     /// the Skills screen on a colony of 200 Duplicants. A removed entry leaves a gap (null)
     /// that the next call, or the next removal of a multicast delegate, closes.
+    ///
+    /// An entry may carry a gate, a slot of UI.TextScaleWatch (0: none), which the call reads
+    /// to skip it while the slot is disarmed.
     internal sealed class DelegateList<T> where T : Delegate
     {
         /// The subscribers in order; a null is one removed since the last Compact.
         readonly List<T> entries = new();
+        /// Each entry's gate (0: none), beside `entries`.
+        readonly List<int> gates = new();
         /// Each target's entries, as indices into `entries` in rising order (delegates without
         /// a target, static methods', under `noTarget`). Equal single-target delegates have the
         /// same target, so an entry equal to a delegate is among its target's.
@@ -27,7 +32,9 @@ namespace OniMoono.Engine
         readonly Stack<List<int>> spare = new();
         static readonly object noTarget = new();
         int live;
-        readonly ListSnapshot<T> snapshot = new();
+        T[] snapshotItems = Array.Empty<T>();
+        int[] snapshotGates = Array.Empty<int>();
+        bool snapshotTaken;
 
         public int Count => live;
 
@@ -36,16 +43,29 @@ namespace OniMoono.Engine
             if (value == null) return;
             if (!value.HasSingleTarget)
             {
-                foreach (var d in value.GetInvocationList()) Append((T)d);
+                foreach (var d in value.GetInvocationList()) Append((T)d, 0);
                 return;
             }
-            Append(value);
+            Append(value, 0);
         }
 
-        void Append(T d)
+        /// Adds a single-target delegate with a gate (Add for a multicast one).
+        public void AddGated(T value, int gate)
+        {
+            if (value == null) return;
+            if (!value.HasSingleTarget)
+            {
+                Add(value);
+                return;
+            }
+            Append(value, gate);
+        }
+
+        void Append(T d, int gate)
         {
             Index(d, entries.Count);
             entries.Add(d);
+            gates.Add(gate);
             live++;
         }
 
@@ -88,6 +108,7 @@ namespace OniMoono.Engine
                 for (int k = 0; match && k < run.Length; k++) match = entries[start + k].Equals(run[k]);
                 if (!match) continue;
                 entries.RemoveRange(start, run.Length);
+                gates.RemoveRange(start, run.Length);
                 live = entries.Count;
                 Reindex();
                 return;
@@ -100,8 +121,13 @@ namespace OniMoono.Engine
             if (entries.Count == live) return;
             int kept = 0;
             for (int i = 0; i < entries.Count; i++)
-                if (entries[i] is { } d) entries[kept++] = d;
+                if (entries[i] is { } d)
+                {
+                    gates[kept] = gates[i];
+                    entries[kept++] = d;
+                }
             entries.RemoveRange(kept, entries.Count - kept);
+            gates.RemoveRange(kept, gates.Count - kept);
             Reindex();
         }
 
@@ -116,11 +142,52 @@ namespace OniMoono.Engine
             for (int i = 0; i < entries.Count; i++) Index(entries[i], i);
         }
 
-        /// The subscribers as they are now, for a call (Dispose after it).
-        public ListSnapshot<T>.Lease Take()
+        /// The subscribers as they are now, with their gates, for a call (Dispose after it). The
+        /// copy is kept for the next call; a call made from inside one gets a copy of its own.
+        public Lease Take()
         {
             Compact();
-            return snapshot.Take(entries);
+            int n = entries.Count;
+            if (snapshotTaken) return new Lease(null, entries.ToArray(), gates.ToArray(), n);
+            if (snapshotItems.Length < n)
+            {
+                int size = Math.Max(n, snapshotItems.Length * 2);
+                snapshotItems = new T[size];
+                snapshotGates = new int[size];
+            }
+            entries.CopyTo(snapshotItems);
+            gates.CopyTo(snapshotGates);
+            snapshotTaken = true;
+            return new Lease(this, snapshotItems, snapshotGates, n);
+        }
+
+        public ref struct Lease
+        {
+            readonly DelegateList<T> owner;
+            readonly T[] items;
+            readonly int[] gates;
+            readonly int count;
+
+            internal Lease(DelegateList<T> owner, T[] items, int[] gates, int count)
+            {
+                this.owner = owner;
+                this.items = items;
+                this.gates = gates;
+                this.count = count;
+            }
+
+            public readonly ReadOnlySpan<T> Items => new(items, 0, count);
+
+            /// Each item's gate (0: none).
+            public readonly ReadOnlySpan<int> Gates => new(gates, 0, count);
+
+            /// Clears the copy (it holds no delegates past the call) and gives it back.
+            public readonly void Dispose()
+            {
+                if (owner == null) return;
+                Array.Clear(items, 0, count);
+                owner.snapshotTaken = false;
+            }
         }
     }
 }

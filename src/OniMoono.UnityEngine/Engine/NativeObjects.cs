@@ -283,6 +283,9 @@ namespace OniMoono.Engine
         /// Someone outside the engine follows this transform's moves (TransformMoveWatch): set on
         /// a few thousand game objects at most; every other transform pays the one test of it.
         internal bool MoveWatched;
+        /// TextMeshPro's scale check follows this transform's scale (UI.TextScaleWatch): its
+        /// slot, 0 for none. Every other transform pays the one test of it.
+        internal int ScaleWatchSlot;
 
         // World data, computed when first read after a change (MarkDirty). Reads may come from
         // several threads at once while nothing changes the hierarchy (game tweaks that read
@@ -490,6 +493,8 @@ namespace OniMoono.Engine
             if (cache != null) cache.WorldDirty = true;
             if (changed) HasChanged = true;
             if (CullBoundsWatched) Rendering.FrameRenderer.BoundsInputsChanged(GameObject);
+            int slot = ScaleWatchSlot;
+            if (slot != 0) UI.TextScaleWatch.Armed[slot] = 1;
             if (moved)
             {
                 OnMoved();

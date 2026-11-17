@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using OniMoono.Engine.UI;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -81,7 +82,10 @@ namespace TMPro
             }
             SetAllDirty();
             Canvas.willRenderCanvases -= RescaleIfScaleChanged;
-            Canvas.willRenderCanvases += RescaleIfScaleChanged;
+            // Called only while the scale may have changed (TextScaleWatch).
+            if (m_ScaleSlot == 0) m_ScaleSlot = TextScaleWatch.Watch(rectTransform.TransformNative);
+            TextScaleWatch.Arm(m_ScaleSlot);
+            Canvas.AddWillRenderCanvases(RescaleIfScaleChanged, m_ScaleSlot);
         }
 
         protected override void OnDisable()
@@ -101,6 +105,8 @@ namespace TMPro
         {
             base.OnDestroy();
             Canvas.willRenderCanvases -= RescaleIfScaleChanged;
+            TextScaleWatch.Unwatch(m_ScaleSlot);
+            m_ScaleSlot = 0;
             if (MeshCache != null) Destroy(MeshCache);
             MeshCache = null;
         }
@@ -238,6 +244,7 @@ namespace TMPro
                 // ellipsis's, when the cut leaves nothing).
                 if (textInfo.meshInfo.Length < Parsed.Materials.Count) System.Array.Resize(ref textInfo.meshInfo, Parsed.Materials.Count);
                 m_GeneratedScale = CurrentScale();
+                TextScaleWatch.Arm(m_ScaleSlot);
                 ClearRenderedGeometry();
                 for (int i = 0; i < textInfo.meshInfo.Length; i++) textInfo.meshInfo[i].vertexCount = 0;
                 UploadEmptySubMeshes();
@@ -246,6 +253,7 @@ namespace TMPro
                 return;
             }
             m_GeneratedScale = CurrentScale();
+            TextScaleWatch.Arm(m_ScaleSlot);
             BuildGeometry();
             InvokePreRender();
             UploadGeometry(Mathf.Max(1, Parsed.Materials.Count));
@@ -256,7 +264,11 @@ namespace TMPro
         bool m_IgnoreActiveStateNow;
 
         // The text's lossy scale (y) its geometry has the SDF scale for (-1: none generated).
+        // Each new value arms the scale check (a NaN scale rescales at every check).
         float m_GeneratedScale = -1f;
+
+        // Its transform's TextScaleWatch slot (0: none, checked every frame).
+        int m_ScaleSlot;
 
         // Before the canvases render: when the text's lossy scale (y) changed by more than a
         // factor of 1.25 (either way) since its SDF scale was last set, the SDF scale of its
@@ -264,19 +276,34 @@ namespace TMPro
         // smaller changes are left alone. From or to a scale of 0 the text is generated again.
         // A text marked isTextObjectScaleStatic is not checked. (All measured on the shipped
         // package.)
+        //
+        // Called only while its TextScaleWatch slot is armed: a check that finds the scale
+        // settled (the same check would again do nothing) disarms it; the early returns leave it
+        // armed, as their state may change without a move of the text.
         void RescaleIfScaleChanged()
         {
             if (this == null || !isActiveAndEnabled || m_IsTextObjectScaleStatic || m_GeneratedScale < 0f || m_textInfo == null) return;
             float scale = CurrentScale();
-            if (scale == m_GeneratedScale) return;
+            if (scale == m_GeneratedScale)
+            {
+                TextScaleWatch.Disarm(m_ScaleSlot);
+                return;
+            }
             if (scale == 0f || m_GeneratedScale == 0f)
             {
+                if (TextScaleWatch.InSkippedCall) TextScaleWatch.Missed(name, m_GeneratedScale, scale);
                 GenerateTextMesh();
                 return;
             }
             float ratio = scale / m_GeneratedScale;
-            if (ratio >= 0.8f && ratio <= 1.25f) return;
+            if (ratio >= 0.8f && ratio <= 1.25f)
+            {
+                TextScaleWatch.Disarm(m_ScaleSlot);
+                return;
+            }
+            if (TextScaleWatch.InSkippedCall) TextScaleWatch.Missed(name, m_GeneratedScale, scale);
             m_GeneratedScale = scale;
+            TextScaleWatch.Arm(m_ScaleSlot);
             var info = m_textInfo;
             int count = Mathf.Min(Mathf.Max(1, Parsed.Materials.Count), info.meshInfo.Length);
             for (int m = 0; m < count; m++)

@@ -220,7 +220,7 @@ def image(reference, new, diff, *options):
 VERIFY_NAMES = (
     r'(fast-[a-z-]+|path-probe-repair|instant-reachability|off-world-fallers|trim-anim-lists|nav links verify(?: \([a-z ]+\))?|path grids verify'
     r'|canvas skips?|canvas products|component layouts|texel copies|partial uploads|parallel draws|bindless handles'
-    r'|bundle blocks|vulkan draws|raw texture loads|raycast cache|cull cache|fetch-by-cell|canvas cull|mesh reuse|property sheets|pass states|child lists)'
+    r'|bundle blocks|vulkan draws|raw texture loads|raycast cache|cull cache|fetch-by-cell|canvas cull|mesh reuse|property sheets|pass states|child lists|text scales)'
 )
 ZERO_WORDS = (
     r"(?:wrong skips|wrong|stale items not marked|stale|mismatches|changed while copying|differed|cell\(s\) differ"
@@ -253,6 +253,7 @@ def verify(path, *options):
                 'pass states wrong',
                 'upload record wrong',
                 'child lists wrong',
+                'text scales wrong',
             )
         ):
             incidents.append(line.strip())
