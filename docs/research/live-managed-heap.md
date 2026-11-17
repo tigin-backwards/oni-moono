@@ -205,6 +205,9 @@ from its counts, not a measurement in the game.
 
 **3. `BehaviourNative` merged into the facade (engine).**
 
+[facade-merge.md](facade-merge.md) measures its frame time (under about 0.2 ms a frame) and scopes
+its safety site by site.
+
 - *What:* one record per `MonoBehaviour` (2.33 M), what Unity keeps natively: ids, flags,
   `Managed` (the facade), `GameObject`, `Script`, `Name`. The facade holds it back through
   `m_Native`, and `ObjectTable.slots` holds it too.
