@@ -731,6 +731,21 @@ Measured ideas that didn't pay off, so nobody needs to try them again:
     profiled through U57's 33 s load, `StateMachineSerializer` is 5% of the main thread's
     samples (about 0.8 s) and `Type.GetType` 1.5% (about 0.26 s).
 
+## Main-thread rendering
+
+[research/main-thread-rendering.md](research/main-thread-rendering.md) splits the main thread's
+rendering and the canvas update beside it, and builds fixes for them (2026-11-17):
+
+- **TextMesh Pro's scale check** runs only for texts whose transform, or an ancestor's, changed
+  since their scale last settled: 2,000–2,300 calls a frame became 10–40, and the check's time
+  went from 0.83 to 0.01 ms a frame (late game) and from 1.84 to 0.06 ms (mid game) on Linux.
+  Exact, with a verify mode (`ONI_VERIFY_TEXT_SCALES=1`, 0 wrong on both colonies and on
+  Vulkan). The Windows series could not resolve its effect on the frame: the machine slowed
+  during the runs, and the expected 0.5 ms is far inside their spread.
+- **Reusing last frame's draw values** is exact (0 wrong in 4 million reused draws, OpenGL and
+  Vulkan) but reuses only 25–41% of the passes it could, as draw items are pooled by position.
+  Not landed.
+
 ## What's left
 
 The biggest per-object costs are animation updates, cell-change
