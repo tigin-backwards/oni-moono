@@ -296,5 +296,5 @@ have run. Risk: the transform's dirty path is hot, and any scale change that byp
   `render timing` line, with the parts above, their counts, each camera's inclusive time, the
   canvas update's parts and each `willRenderCanvases` subscriber's time and calls. Off, it costs
   a static bool test per part change and a few counter increments.
-- **`tmp: check a text's scale only after its transform changed`** (u60 066bf18e, master
-  24177d0f): above.
+- **`tmp: check a text's scale only after its transform changed`** (u60 648b50d3, master
+  d0cac00b): above.
