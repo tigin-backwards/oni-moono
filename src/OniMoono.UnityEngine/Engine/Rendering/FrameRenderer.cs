@@ -287,13 +287,18 @@ namespace OniMoono.Engine.Rendering
         static void RenderFrame()
         {
             long start = timing ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            if (timing) RenderSplit.Begin();
             try
             {
                 RenderFrameCore();
             }
             finally
             {
-                if (timing) EndTiming(start);
+                if (timing)
+                {
+                    RenderSplit.End();
+                    EndTiming(start);
+                }
             }
         }
 
@@ -311,6 +316,7 @@ namespace OniMoono.Engine.Rendering
             lastCpu = cpu;
             EngineLog.Engine($"render timing: frame {Time.frameCount}, {fps:F2} fps, rendering {ms(renderTicks):F3} ms a frame, draw queues {ms(queueTicks):F3} ms ({queueDraws / timedFrames} draws a frame), cull candidates {liveCandidates} ({candidateChanges / timedFrames} changes, {layerMoves / timedFrames} layer moves and {(CullVisits - windowVisits) / timedFrames} visits a frame, culling bounds made at {(CullCache.Made - windowMade) / timedFrames} and kept at {(CullCache.Kept - windowKept) / timedFrames}){(device != null ? ", " + device : "")}"
                 + $"; pool threads {System.Threading.ThreadPool.ThreadCount}, pending {System.Threading.ThreadPool.PendingWorkItemCount}, process threads {System.Diagnostics.Process.GetCurrentProcess().Threads.Count}, cpu {cores:F1} cores, gc {GC.CollectionCount(0)}/{GC.CollectionCount(1)}/{GC.CollectionCount(2)}, heap {GC.GetTotalMemory(false) >> 20} MB");
+            EngineLog.Engine(RenderSplit.Take(timedFrames));
             renderTicks = queueTicks = queueDraws = candidateChanges = layerMoves = 0;
             windowVisits = CullVisits;
             windowMade = CullCache.Made;
@@ -327,18 +333,22 @@ namespace OniMoono.Engine.Rendering
                 device.DrawQueue(items);
                 return;
             }
+            RenderSplit.Enter(RenderSplit.Part.Record);
             long start = System.Diagnostics.Stopwatch.GetTimestamp();
             device.DrawQueue(items);
             queueTicks += System.Diagnostics.Stopwatch.GetTimestamp() - start;
             queueDraws += items.Count;
+            RenderSplit.Exit();
         }
 
         static void RenderFrameCore()
         {
             if (GraphicsDevice.Current.RendersFrames)
             {
+                RenderSplit.Enter(RenderSplit.Part.Uploads);
                 GraphicsDevice.UploadPending();
                 VideoPlanes.CopyRenderTextureVideos();
+                RenderSplit.Exit();
                 inFrameRender = true;
                 try
                 {
@@ -361,8 +371,11 @@ namespace OniMoono.Engine.Rendering
             foreach (var q in queued)
                 if (!q.DuringRender) frameQueued.Add(q);
             queued.Clear();
+            RenderSplit.Enter(RenderSplit.Part.Visibility);
+            RenderSplit.Visible += visibleThisFrame.Count;
             UpdateVisibility();
             GraphicsDevice.PrepareUndrawn();
+            RenderSplit.Exit();
         }
 
         /// Cameras rendering into textures, then those rendering to the screen, each set in
@@ -974,6 +987,9 @@ namespace OniMoono.Engine.Rendering
             Current = camera;
             var previousActive = RenderTexture.active;
             var previousView = GLState.View;
+            long splitStart = timing ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            long visitsBefore = CullVisits;
+            lastCullDraws = 0;
             try
             {
                 RenderCameraCore(camera, cam);
@@ -983,22 +999,41 @@ namespace OniMoono.Engine.Rendering
                 Current = previous;
                 RenderTexture.active = previousActive;
                 GLState.View = previousView;
+                if (timing)
+                {
+                    RenderSplit.CamerasRendered++;
+                    if (!RenderSplit.InFrame) RenderSplit.CamerasOutside++;
+                    RenderSplit.Camera(cam, cam.GameObject.Name, System.Diagnostics.Stopwatch.GetTimestamp() - splitStart, CullVisits - visitsBefore, lastCullDraws);
+                }
             }
         }
 
         static void RenderCameraCore(Camera camera, CameraNative cam)
         {
             var device = GraphicsDevice.Current;
+            RenderSplit.Enter(RenderSplit.Part.CameraCallbacks);
             SendToEnabled(cam.GameObject, s => s.OnPreCull);
-            if (cam.Destroyed) return;
+            if (cam.Destroyed)
+            {
+                RenderSplit.Exit();
+                return;
+            }
             Camera.onPreCull?.Invoke(camera);
+            RenderSplit.Exit();
 
             long departuresAtCull = candidateDepartures;
             var draws = Cull(camera, cam);
+            lastCullDraws = draws.Count;
 
+            RenderSplit.Enter(RenderSplit.Part.CameraCallbacks);
             SendToEnabled(cam.GameObject, s => s.OnPreRender);
-            if (cam.Destroyed) return;
+            if (cam.Destroyed)
+            {
+                RenderSplit.Exit();
+                return;
+            }
             Camera.onPreRender?.Invoke(camera);
+            RenderSplit.Exit();
 
             // Image effects render the camera into a temporary target first. The list is this
             // render's (a camera rendered from another's callbacks takes another).
@@ -1116,8 +1151,10 @@ namespace OniMoono.Engine.Rendering
             // In onPostRender the camera's target is the active one (measured in the original,
             // UnityProbe's apigaps "rt"); it is bound already, so only the field changes.
             RenderTexture.SetActiveBound(source ?? cam.TargetTexture);
+            RenderSplit.Enter(RenderSplit.Part.CameraCallbacks);
             SendToEnabled(cam.GameObject, s => s.OnPostRender);
             Camera.onPostRender?.Invoke(camera);
+            RenderSplit.Exit();
 
             if (effects.Count > 0 && source != null) ImageEffects(camera, cam, effects, source);
             Execute(camera, cam, CameraEvent.AfterEverything);
@@ -1126,6 +1163,13 @@ namespace OniMoono.Engine.Rendering
         // The OnRenderImage chain; Lifecycle.Invoke passes each effect its textures, so no
         // closure is allocated per effect.
         static void ImageEffects(Camera camera, CameraNative cam, List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)> effects, RenderTexture source)
+        {
+            RenderSplit.Enter(RenderSplit.Part.ImageEffects);
+            ImageEffectsCore(camera, cam, effects, source);
+            RenderSplit.Exit();
+        }
+
+        static void ImageEffectsCore(Camera camera, CameraNative cam, List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)> effects, RenderTexture source)
         {
             Execute(camera, cam, CameraEvent.BeforeImageEffects);
             var finalTarget = cam.TargetTexture;
@@ -1170,14 +1214,20 @@ namespace OniMoono.Engine.Rendering
         static bool Execute(Camera camera, CameraNative cam, CameraEvent evt)
         {
             if (!cam.CommandBuffers.TryGetValue(evt, out var list) || list.Count == 0) return false;
+            RenderSplit.Enter(RenderSplit.Part.CommandBuffers);
             foreach (var buffer in list.ToArray()) CommandExecution.Run(buffer, camera);
+            RenderSplit.Exit();
             return true;
         }
 
         // ----- Culling and draw lists -----
 
+        /// The draws the last camera's culling collected (ONI_RENDER_TIMING).
+        static int lastCullDraws;
+
         static List<DrawItem> Cull(Camera camera, CameraNative cam)
         {
+            RenderSplit.Enter(RenderSplit.Part.CullRenderers);
             var draws = NewDrawList();
             var frustum = new Frustum(cam.CullingOverride ?? cam.Projection * cam.WorldToCamera);
             // A renderer's draws go by when it became a candidate; then the queued meshes and
@@ -1265,6 +1315,9 @@ namespace OniMoono.Engine.Rendering
             // Cameras rendered by scripts after the frame's pass also draw the frame's meshes
             // (captures have already put them back in the queue).
             bool afterFrame = !inFrameRender && screenOverride == null;
+            RenderSplit.Exit();
+            RenderSplit.Enter(RenderSplit.Part.CullQueued);
+            int beforeQueued = draws.Count;
             // Each list in turn: through IEnumerable (Concat, or the conditional's type) the
             // enumerators were boxed for every camera. Read in place, by index: the loop runs
             // no script, so neither list changes under it, and a foreach copied each queued
@@ -1294,8 +1347,14 @@ namespace OniMoono.Engine.Rendering
                 }
             }
             int collected = draws.Count;
+            RenderSplit.QueuedSeen += (afterFrame ? frameQueued.Count : 0) + queued.Count;
+            RenderSplit.QueuedDrawn += collected - beforeQueued;
+            RenderSplit.Exit();
+            RenderSplit.Enter(RenderSplit.Part.CullCanvas);
             CollectDraws?.Invoke(camera, cam, draws);
             for (int i = collected; i < draws.Count; i++) draws[i].Sequence = sequence++;
+            RenderSplit.Exit();
+            RenderSplit.Enter(RenderSplit.Part.CullDistances);
 
             var position = Hierarchy.Position(cam.GameObject.Transform);
             var forward = cam.GameObject.Transform.WorldRotation * Vector3.forward;
@@ -1312,6 +1371,7 @@ namespace OniMoono.Engine.Rendering
                     _ => (center - position).sqrMagnitude,
                 };
             }
+            RenderSplit.Exit();
             return draws;
         }
 
@@ -1331,6 +1391,7 @@ namespace OniMoono.Engine.Rendering
         /// z offsets fall within a float step of each other at the camera's distance).
         static void DrawQueue(RenderDevice device, List<DrawItem> all, bool opaque, bool departed)
         {
+            RenderSplit.Enter(RenderSplit.Part.QueueSort);
             var list = NewDrawList();
             foreach (var d in all)
             {
@@ -1342,6 +1403,8 @@ namespace OniMoono.Engine.Rendering
                 if (opaque ? d.Queue <= 2500 : d.Queue > 2500) list.Add(d);
             }
             list.Sort(opaque ? OpaqueOrder : TransparentOrder);
+            RenderSplit.SortedDraws += list.Count;
+            RenderSplit.Exit();
             DrawQueue(device, list);
         }
 
