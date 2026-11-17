@@ -79,6 +79,35 @@ namespace OniMoono.Engine
             }
         }
 
+        /// All<T> into a new array of exactly the matches (GetComponents<T>()), with no list
+        /// grown on the way: a save asks every saved object for its 30 or so components.
+        public static T[] AllArray<T>(GameObjectNative go)
+        {
+            var components = go.Components;
+            var matches = LayoutOf(go, components).Matches(QueryIds.For<T>.Id, typeof(T));
+            if (matches.Length == 0)
+            {
+                if (verify) VerifyCount<T>(go, components, 0);
+                return Array.Empty<T>();
+            }
+            var results = new T[matches.Length];
+            for (int i = 0; i < matches.Length; i++)
+            {
+                var c = components[matches[i]];
+                if (c is MissingScript) c = null;
+                results[i] = System.Runtime.CompilerServices.Unsafe.As<Component, T>(ref c);
+            }
+            if (verify) VerifyCount<T>(go, components, matches.Length);
+            return results;
+        }
+
+        static void VerifyCount<T>(GameObjectNative go, Component[] components, int count)
+        {
+            int expected = 0;
+            foreach (var c in components) if (c is T) expected++;
+            if (expected != count) EngineLog.Engine($"component layouts: {go.Name} has {expected} {typeof(T).Name}, the layout {count} ({System.Threading.Interlocked.Increment(ref wrong)})");
+        }
+
         static long verified, wrong;
 
         static void Verify(GameObjectNative go, Component[] components, Type type, Component found)
