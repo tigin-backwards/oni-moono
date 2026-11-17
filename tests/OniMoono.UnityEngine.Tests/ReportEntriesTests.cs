@@ -16,7 +16,7 @@ namespace OniMoono.Tests
     /// IOHelper.WriteKleiString (U59 744825 and U60, copied below for the kinds these types
     /// have), over types shaped as ReportManager.DailyReport, ReportEntry and ArrayRef. The bytes,
     /// the templates asked for and their order, and the large-string warnings must be the game's.
-    public class ReportEntriesTests
+    public partial class ReportEntriesTests
     {
         enum Kind { Zero, One, Two }
 

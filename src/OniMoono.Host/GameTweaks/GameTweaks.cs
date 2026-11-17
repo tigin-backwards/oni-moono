@@ -92,6 +92,7 @@ namespace OniMoono.Host.GameTweaks
                 var typedInstall = install;
                 yield return (name, h =>
                 {
+                    if (name == GameTweakNames.CompactReportEntries) ReportScans();
                     if (!(bool)typedInstall.Invoke(null, [h, name])!) throw new InvalidOperationException($"OniMoono.GameTweaks has no tweak {name}");
                 }, true);
             }
@@ -115,6 +116,22 @@ namespace OniMoono.Host.GameTweaks
                 var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
                 EngineLog.Engine($"{FastSerialization.Name}: the report history keeps the game's writer: {cause.GetType().Name}: {cause.Message}");
             }
+        }
+
+        /// compact-report-entries' reading of assemblies (ReportAccessScan): the mods' metadata,
+        /// and the game's IL on a worker, its methods that read `reportEntries` themselves.
+        static void ReportScans()
+        {
+            var type = TypedAssembly.GetType("OniMoono.GameTweaks.CompactReportDays", throwOnError: true)!;
+            var path = System.IO.Path.Combine(AssemblyPolicy.ReferenceDirectories[0], "Assembly-CSharp.dll");
+            var sites = System.Threading.Tasks.Task.Run(() =>
+            {
+                using var file = System.IO.File.OpenRead(path);
+                using var pe = new System.Reflection.PortableExecutable.PEReader(file);
+                return ReportAccessScan.FieldSites(pe).ToArray();
+            });
+            type.GetField("ModAccess")!.SetValue(null, (Func<System.Reflection.Assembly, string?>)ReportAccessScan.ModAccess);
+            type.GetField("GameSites")!.SetValue(null, (Func<string[]>)(() => sites.Result));
         }
 
         /// background-save's colony summary, built against the game's types

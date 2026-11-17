@@ -1,7 +1,8 @@
 # The live managed heap of a late-game colony (2026-11-17)
 
-Status: inventory, cost measurements and designs. Nothing landed: no engine-owned candidate is
-both contained and a clear share of the pause ("Verdict").
+Status: inventory, cost measurements and designs. Candidate 1, past days' report entries, is
+built (`compact-report-entries`, 2026-11-17). No engine-owned candidate is both contained and a
+clear share of the pause ("Verdict").
 
 A blocking full collection on the late-game colony pauses 0.73–0.78 s on Windows
 ([gc-pauses.md](gc-pauses.md), "Less garbage from each save"). It marks every live object,
@@ -187,6 +188,50 @@ from its counts, not a measurement in the game.
   needs a path that reads the arrays directly, or each save rebuilds 4 M objects.
 - *Size, risk:* large; medium-high (a field-access rewrite over mods, the save path).
 
+*Built (2026-11-17): `compact-report-entries`* (a row of its own, beside
+`compact-report-history`; docs/TWEAKS.md, "Past days' report entries"). How it differs from the
+design:
+
+- *No field rewrite.* The game reads `reportEntries` itself in four methods only (DailyReport's
+  constructor and `GetEntry`, `SaveLoader.GetDailyReportMetrics` after `FindReport`, the stress
+  panel's today), checked from its IL at start-up. So patches serve them: a prefix on `GetEntry`
+  makes that one entry again (with its children), a postfix on `FindReport` the whole day, and a
+  transpiler sends the colony summary's 16 `GetEntry` calls a day to scratch entries filled from
+  the arrays. Mods are not rewritten: one that reads the field itself (by reference, as a
+  Harmony `___reportEntries` parameter or by name) turns the tweak off for the session. Of the
+  18 Workshop mods that name the report types, three do: ONI Multiplayer, ONI MCP Server and
+  RemoveDailyReports.
+- *Write-back.* Objects given out are kept for the last 32 days read; a day leaving them is
+  compared with its arrays and packed again when it was written to.
+- *Records:* 40 bytes an entry (4.09 M entries in 165 MB, in 64 K-entry chunks on the large
+  object heap), 551 distinct contexts. Saves write the packed days from the arrays through
+  `fast-serialization`'s history writer.
+
+*Measured* (master, release build, U59 744825; Linux under WSL2 on a heavily loaded machine, the
+late-game colony, a player's default tweaks, one heap dump of each about two minutes after the
+load, HeapInv as in "Method"):
+
+| Reachable | Without | With | Change |
+|---|---:|---:|---:|
+| Objects | 29,596,809 | 25,359,519 | −4,237,290 (−14.3%) |
+| References | 85,959,106 | 78,075,547 | −7,883,559 (−9.2%) |
+| Small-object heap | 2,982 MB | 2,632 MB | −349 MB (−11.7%) |
+| Large-object heap | 2,163 MB | 2,327 MB | +164 MB (the records) |
+| All live bytes | 5,275 MB | 5,093 MB | −182 MB |
+| `ReportEntry` objects; their arrays | 4,089,286; 186,687 | 350; 19 | |
+| GC committed memory (dotnet-counters) | 7.50 GB | 7.02 GB | −0.48 GB |
+| Working set | 12.6 GB | 11.7 GB | −0.9 GB (one pair; it varies with play) |
+
+- *The pause, estimated:* the cost model ("What tracing costs": 5 ns an object, 2.5 ns a
+  reference, 0.04 ns a small-object byte) gives 461 ms of work before and 407 ms after: −55 ms,
+  −12%. As that share of the 0.75 s Windows pause, about 90 ms. Not timed: the machine was under
+  heavy load, so no pause, save or screen timing was taken.
+- *Exactness:* the unit tests (CompactReportDaysTests) pack, give back and write every shape;
+  on the colony, the e2e spec `compact-report-entries` in verify mode read the history's bytes,
+  the reports screen paged back eight days, a save and its reload the same with the tweak on as
+  with it off, with every given-out entry compared and each save's history bytes compared with
+  the game's writer over the original objects (0 mismatches).
+
 **2. Event subscription tables (game; a tweak).**
 
 - *What:* each `KObject`'s `EventSystem` (98,660) holds `Dictionary<int, SBOVector4<Entry>>`,
@@ -254,7 +299,9 @@ from its counts, not a measurement in the game.
 
 ## Verdict
 
-- **Nothing landed.** The one engine candidate worth a clear share, merging the records into
+- **Candidate 1 landed** (`compact-report-entries`): 4.2 M objects and 7.9 M references fewer,
+  an estimated 12% of the full collection's work.
+- **Nothing else landed.** The one engine candidate worth a clear share, merging the records into
   the facades (35–45 ms of 0.75 s), rewrites the engine's object model: not contained. The
   contained one, the host's reflection caches, is worth about 13 ms (under 2%): not worth a
   change to Harmony's patching path on its own.
@@ -262,8 +309,7 @@ from its counts, not a measurement in the game.
   traces, in millions of small objects per component, state machine, subscription and report
   entry. Moving large arrays off the heap, as the nav and path-grid tweaks did, saves memory but
   not collection time.
-- **Order to take them in**, if the pause is to shrink: past days' report entries (1; ~70 ms,
-  and it grows a day at a time on long colonies), the event tables (2; 25–40 ms), the engine
+- **Order to take them in**, if the pause is to shrink: past days' report entries (1, built), the event tables (2; 25–40 ms), the engine
   records (3; 35–45 ms), then 4 and 5. Together they would cut the pause by about a quarter;
   the rest is the colony itself. A collection made rarer or concurrent (gc-pauses.md) is the
   other lever.

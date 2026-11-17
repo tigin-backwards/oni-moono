@@ -219,6 +219,7 @@ namespace OniMoono.GameTweaks
             // fast-serialization's report writer and background-save's colony summary.
             Add(ReportEntries.Name, ReportEntries.Guarded);
             Add(ColonySummaryWrite.Name, () => new[] { ColonySummaryWrite.Guarded() });
+            Add(CompactReportDays.Name, CompactReportDays.Guarded, CompactReportDays.KindsOf);
             return guards;
         }
     }

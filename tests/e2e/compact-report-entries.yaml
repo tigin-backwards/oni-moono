@@ -1,0 +1,67 @@
+# The compact-report-entries game tweak (src/OniMoono.GameTweaks/CompactReportDays.cs) on a
+# late-game colony (fixture U57), in its verify mode: its 17,000 past days' report entries, which
+# the tweak keeps in flat arrays, read and save as in the original.
+#
+# E2eDriver's report reads (tools/E2eDriver/README.md, "Report reads") compare, with the
+# original's: the history's bytes as a save writes them (`History`: every past entry's saved
+# fields; compact-report-history's spec walks their notes), the reports screen paged back eight days and forward again (each
+# day's rows and their tooltips), the pause menu's Save over the colony's own file, and the same
+# reads after loading that save again. ONI_TWEAK_VERIFY=1 compares every entry the tweak gives out
+# with the game's own objects and each save's history bytes with the game's writer over them; the
+# log says so (`compact-report-entries: verify: ...`, `fast-serialization: verify: the report
+# history identical`).
+from: U57
+memory_gb: 18
+env: {ONI_TWEAK_VERIFY: "1"}
+steps:
+  - driver: {reports.watch: {}}
+  - expect_state: {"type:E2eDriver.Reports::History": "== original"}
+  - open: {management: report}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - click: {ui: "**/ReportScreen/Subtitle/Prev"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - expect_state: {"type:E2eDriver.Reports::Screen": "== original"}
+  - click: {ui: "**/ReportScreen/Subtitle/Prev"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - expect_state: {"type:E2eDriver.Reports::Screen": "== original"}
+  - click: {ui: "**/ReportScreen/Subtitle/Prev"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - click: {ui: "**/ReportScreen/Subtitle/Prev"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - click: {ui: "**/ReportScreen/Subtitle/Prev"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - click: {ui: "**/ReportScreen/Subtitle/Prev"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - click: {ui: "**/ReportScreen/Subtitle/Prev"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - click: {ui: "**/ReportScreen/Subtitle/Prev"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - expect_state:
+      "ReportScreen.Instance.currentReport.day": "== original"
+      "type:E2eDriver.Reports::Screen": "== original"
+  - click: {ui: "**/ReportScreen/Subtitle/NextDay"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - click: {ui: "**/ReportScreen/Subtitle/NextDay"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - click: {ui: "**/ReportScreen/Subtitle/NextDay"}
+  - ui_wait: {path: "**/ReportScreen/Body/Viewport/Contents", cond: stable}
+  - expect_state:
+      "ReportScreen.Instance.currentReport.day": "== original"
+      "type:E2eDriver.Reports::Screen": "== original"
+      "type:E2eDriver.Reports::History": "== original"
+  # The pause menu's Save, over the colony's own file: the colony summary reads every day too.
+  - key: {code: Escape}
+  - key: {code: Escape}
+  - ui_wait: {path: "**/PauseScreen/**/SaveButton", cond: stable}
+  - click: {ui: "**/PauseScreen/**/SaveButton"}
+  - ui_wait: {path: "**/ConfirmDialog/**/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/**/OKButton"}
+  - wait_state: {state: {"type:E2eDriver.Reports::Saves": 1}, seconds: 300}
+  - expect_state:
+      "type:E2eDriver.Reports::Saved": "== original"
+      "type:E2eDriver.Reports::History": "== original"
+  # That save loaded again: the same history.
+  - key: {code: Escape}
+  - call: {tool: game_control, args: {domain: save, action: load, index: 0, type: local, confirm: true}}
+  - run: {seconds: 10}
+  - expect_state: {"type:E2eDriver.Reports::History": "== original"}
