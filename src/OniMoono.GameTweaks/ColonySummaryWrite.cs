@@ -164,16 +164,21 @@ namespace OniMoono.GameTweaks
             return false;
         }
 
-        /// The writer's part: the method's JSON and its write, with its retries.
+        /// The writer's part: the method's JSON and its write, with its retries. The JSON goes
+        /// straight into UTF-8 in blocks kept from one save to the next (Json), instead of a
+        /// string of about 19 MB, its StringBuilder's chunks and a byte array of half that on a
+        /// late-game colony (JsonUtf8: the bytes of Encoding.UTF8.GetBytes(JsonConvert
+        /// .SerializeObject(data))).
         static void Write(string path, RetiredColonyData data, string onMain)
         {
-            string s = JsonConvert.SerializeObject(data);
+            var json = Json(data);
             if (onMain != null)
             {
-                bool same = s == onMain;
+                byte[] expected = Encoding.UTF8.GetBytes(onMain);
+                bool same = json.SameAs(expected);
                 verified++;
                 if (!same) mismatches++;
-                string line = $"{Name}: verify: the colony summary's JSON {(same ? "identical" : "DIFFERS from the main thread's")} ({s.Length:N0} characters; {verified} saves, {mismatches} mismatches)";
+                string line = $"{Name}: verify: the colony summary's JSON {(same ? "identical" : "DIFFERS from the main thread's")} ({json.Length:N0} bytes against {expected.Length:N0}; {verified} saves, {mismatches} mismatches)";
                 if (same) global::Debug.Log(line);
                 else global::Debug.LogWarning(line);
             }
@@ -186,9 +191,7 @@ namespace OniMoono.GameTweaks
                     Thread.Sleep(num * 100);
                     using FileStream fileStream = File.Open(path, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
                     flag2 = true;
-                    Encoding uTF = Encoding.UTF8;
-                    byte[] bytes = uTF.GetBytes(s);
-                    fileStream.Write(bytes, 0, bytes.Length);
+                    json.WriteTo(fileStream);
                 }
                 catch (Exception ex)
                 {
@@ -196,6 +199,15 @@ namespace OniMoono.GameTweaks
                 }
                 num++;
             }
+        }
+
+        /// The writer's blocks for the JSON (only the writer's chain uses them, one save at a time).
+        static readonly JsonUtf8.Blocks jsonBuffer = new JsonUtf8.Blocks();
+
+        static JsonUtf8.Blocks Json(RetiredColonyData data)
+        {
+            JsonUtf8.Serialize(data, jsonBuffer);
+            return jsonBuffer;
         }
     }
 }

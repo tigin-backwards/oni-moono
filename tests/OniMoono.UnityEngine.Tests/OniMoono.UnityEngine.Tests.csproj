@@ -137,6 +137,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/OverrideBlockLog.cs" Link="GameTweaks/OverrideBlockLog.cs" />
     <!-- fast-anim-batches' loop over the dirty batches (WorkerLoopTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/WorkerLoop.cs" Link="GameTweaks/WorkerLoop.cs" />
+    <!-- background-save's colony summary JSON (JsonUtf8Tests), with the game's Newtonsoft.Json. -->
+    <Compile Include="../../src/OniMoono.GameTweaks/JsonUtf8.cs" Link="GameTweaks/JsonUtf8.cs" />
     <!-- The background-save game tweak's writes (BackgroundSaveTests), with the game's zlib. -->
     <Compile Include="../../src/OniMoono.Host/GameTweaks/BackgroundSave.cs" Link="Host/BackgroundSave.cs" />
     <Reference Include="Ionic.Zip">
