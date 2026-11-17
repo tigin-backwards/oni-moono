@@ -43,6 +43,7 @@ namespace OniMoono.GameTweaks
                 case OwnWorkshopItem.Name: OwnWorkshopItem.Install(harmony); return true;
                 case TimelapseWrites.Name: TimelapseWrites.Install(harmony); return true;
                 case TableScrollJumps.Name: TableScrollJumps.Install(harmony); return true;
+                case SimDataCheck.Name: SimDataCheck.Install(harmony); return true;
                 case LazyTableRefresh.Name: LazyTableRefresh.Install(harmony); return true;
                 case FastOverlayRemovals.Name: FastOverlayRemovals.Install(harmony); return true;
                 case FastTableRows.Name: FastTableRows.Install(harmony); return true;

@@ -298,9 +298,10 @@ namespace OniMoono.Host.GameTweaks
         public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "critter-needs-first", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, TableScroll, FetchByCell, SharedDuplicates, LazyTableRefresh, "fast-table-rows", CompactReports, FastPipeRebuilds, ReleasedSounds, "fast-overlay-removals", "direct-rail-bridges"];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
-        /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem) and
-        /// wait-timelapse-writes (OniMoono.GameTweaks.TimelapseWrites).
-        public static readonly string[] AlwaysOn = ["skip-own-workshop-item", "wait-timelapse-writes"];
+        /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem),
+        /// wait-timelapse-writes (OniMoono.GameTweaks.TimelapseWrites) and the sim-data-check
+        /// diagnostic (OniMoono.GameTweaks.SimDataCheck, #91).
+        public static readonly string[] AlwaysOn = ["skip-own-workshop-item", "wait-timelapse-writes", "sim-data-check"];
 
         /// Every `--game-tweak` name, in the screen's order.
         public static readonly string[] All = Rows.Where(r => r.IsTweak).Select(r => r.Id).ToArray();
