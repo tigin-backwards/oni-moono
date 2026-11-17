@@ -456,3 +456,83 @@ busy besides:
 So this is a memory change, not a fix for the freeze. The freeze under a high memory load
 needs the collector's choice changed there (its high-memory threshold) or less memory in use,
 measured on a PC that pages.
+
+## Less garbage from each save (2026-11-17)
+
+The save's small objects feed the full collection after it (above). Re-measured, then cut where the
+saved bytes stay the same.
+
+**Method.** u60 at 57b53828 (before) and the same with the changes below (after); the late-game
+colony, a player's default tweaks. Allocation: two autosaves 600 frames apart on Linux, the
+runtime's allocation ticks with stacks (`dotnet-trace`, `tools/AllocTrace`) over the second, plus
+`GC.GetAllocatedBytesForCurrentThread` around `SaveLoader.Save` and its stages. Collections: Windows,
+Vulkan, `--no-focus`, monitor 2, High priority, one morning autosave and 0.9 of a cycle after it,
+before and after alternating, two launches each as shipped and with `DOTNET_GCHighMemPercent=0x14`,
+through runq's perf slot (no launch flagged noisy).
+
+**A correction.** The earlier probe patched `RetireColonyUtility.SaveColonySummaryData` to time
+it. That made `background-save` step aside, so the colony summary's JSON (the 19 MB string, the
+9.5 MB array, most strings, `char[]` and `StringBuilder`s) was counted on the main thread. With the
+probe timing `GetCurrentColonyRetiredColonyData` instead, the JSON is on the writer, as shipped.
+
+**What one autosave allocates** (the second of a run; MB):
+
+| Where | Call site | Before | After |
+|---|---|---|---|
+| Main thread, the serialization buffer | `Game.DelayedSave` → `SaveLoader.Save`'s `MemoryStream` | 782 | 782 |
+| Main thread, `KMonoBehaviour[]` and its `List` | `SaveLoadRoot.SaveWithoutTransform` → `GetComponents<KMonoBehaviour>()` (52 of it the list's growth in `Components.All`) | 71 | 0 |
+| Main thread, boxed numbers and argument arrays | `Helper.WriteListPOD` on `List<float>`/`List<int>` fields, `FastSerialization.SerializeData`'s property path | 11 | 0 |
+| Main thread, boxed numbers in nested collections | `Helper.WriteListPOD` and `WriteValue` under a dictionary or list field | 10 | 10 |
+| Main thread, boxed structs | compiled field writers → `Helper.WriteValue` (`DamageSourceInfo`, `Tag`, `PrioritySetting`, `HashedString`) | 12 | 12 |
+| Main thread, templates made anew | `SerializationTemplate..ctor` (the game's `Manager.Clear` each save) | 4 | 4 |
+| Main thread, the colony summary's data | `RetiredColonyData..ctor` (16 statistics × 17,000 `Tuple<float,float>`) | 9 | 9 |
+| Main thread, in all | | 908 | 825 |
+| Writer, the colony summary's JSON | `JsonConvert.SerializeObject` → `ToString`, `Encoding.UTF8.GetBytes`, `StringBuilder` chunks | 48 | 0 |
+| Writer, numbers in that JSON | Newtonsoft's `JsonConvert.ToString(float)` strings, boxed floats from the tuples' getters | 45 | 45 |
+
+Small objects per save, main thread and writer together: about 212 MB before, 82 MB after. On
+the first save of a run the JSON blocks are allocated once (about 10 MB in 64 KB arrays, kept);
+before, every save made 29 MB of large objects there.
+
+**The changes** (all exact: four saves of one paused frame, alternately with the changes
+bypassed and on, had the same body by SHA-256, 711 MB on U60 and 710 MB on U59, with every verify
+check at 0 differ; unit tests for the array query and the JSON bytes):
+
+- **Engine:** `GetComponents<T>()` fills one array of the layout's match count, with no list.
+- **`fast-save-type-checks`:** `SaveWithoutTransform`'s array is one kept per length and nesting
+  depth, cleared on the way out; another owner's transpiler of the method turns this part off.
+- **`fast-serialization`:** properties are compiled like fields; `List<T>` fields of numbers are
+  written typed, with `WriteListPOD`'s bytes and the same length fix-up.
+- **`background-save`:** the summary's JSON goes straight into UTF-8 in kept 64 KB blocks
+  (`JsonUtf8`), byte-identical to `Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(...))`.
+
+**The first full collection after the morning autosave** (Windows; "RAM" is what the machine had
+available around the save, of 94 GB; the runtime's high-memory threshold is 95% as shipped):
+
+| Condition | Run | RAM, GB | First full collection after the save | Kind | Its pause |
+|---|---|---|---|---|---|
+| As shipped | before 1 | 8.6–9.7 | 10 s (0.05 of a cycle) | background | under 60 ms |
+| As shipped | before 2 | 3.8–5.2 | 21 s (0.10) | **blocking** | **768 ms** |
+| As shipped | before, earlier launch | 6.3–7.4 | 9 s (0.04) | background | under 60 ms |
+| As shipped | after 1 | 5.3–6.3 | 24 s (0.11) | background | under 60 ms |
+| As shipped | after 2 | 3.3–4.3 | 26 s (0.12) | **blocking** | **727 ms** |
+| `GCHighMemPercent=0x14` | before 1 | 7.2–10.6 | 36 s (0.16) | background | under 100 ms |
+| `GCHighMemPercent=0x14` | before 2 | 7.9–9.3 | 22 s (0.10) | **blocking** | **780 ms** |
+| `GCHighMemPercent=0x14` | after 1 | 8.4–9.8 | 38 s (0.17) | **blocking** | **735 ms** |
+| `GCHighMemPercent=0x14` | after 2 | 5.5–6.8 | 36 s (0.17) | **blocking** | **733 ms** |
+
+The save's frame was 1.66–1.82 s in every run, before and after.
+
+- **The blocking collection did not get shorter or rarer.** It came whenever the machine had
+  less than about 5% of its RAM free (as shipped) or the threshold was lowered, before and after
+  alike, and its pause stayed 0.73–0.78 s: it marks and compacts the whole heap, and the saved
+  garbage is a small part of that.
+- **It may come a little later.** After the change the first full collection came 24–38 s after
+  the save, against 9–36 s before. With two launches per condition that is a hint, not a result:
+  a collection moved is not a collection removed.
+- **What the change does give:** about 130 MB less short-lived garbage per autosave (61% of the
+  save's small objects), and no large objects for the summary's JSON.
+- **Not done:** boxed structs and numbers in nested collections (about 21 MB, the game's
+  `WriteValue` walk), Newtonsoft's number strings and boxes in the summary (45 MB on the writer),
+  the summary data's tuples (9 MB, the game's), and the serialization buffer (shown above not to
+  matter for this collection).

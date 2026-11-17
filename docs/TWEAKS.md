@@ -83,6 +83,8 @@ It only shows what it finds. It never turns a tweak on or off. The grades:
   `lazy-table-refresh` (the tables' update, sort and row refresh and the columns' dirty marks),
   `fast-serialization` (for the report history only: the serializer's writers),
   `background-save` (for the colony summary only: `RetireColonyUtility.SaveColonySummaryData`),
+  `fast-save-type-checks` (for its kept component arrays only: another transpiler of
+  `SaveLoadRoot.SaveWithoutTransform`; the type checks stay on),
   and the two rewrites for a transpiler they did not review. The icon is the grey disabled sign.
   A tweak that steps aside stays off until the game restarts.
 
@@ -1223,7 +1225,9 @@ with a point for every cycle. The game gathers them, turns them into JSON and wr
 all on the main thread.
 
 With `background-save` on, a save still gathers the data on the main thread. The JSON and the
-file are made on the save's writer, ahead of the save's own write. The gathered data is a
+file are made on the save's writer, ahead of the save's own write. The writer runs the game's
+serializer straight into UTF-8 in a buffer it keeps, so no string of the whole JSON (19 MB on a
+late-game colony) and no byte array of it (9.5 MB) are made for each save. The gathered data is a
 snapshot (strings, numbers and collections made for it, nothing of the live game), and the
 file's bytes are the same.
 
@@ -1234,8 +1238,8 @@ file's bytes are the same.
   game's method. So does a save while another mod patches that method or
   `JsonConvert.DefaultSettings` is set, with a line in `Player.log` (`background-save: the
   colony summary is written on the main thread (...)`).
-- **Verify.** With `ONI_TWEAK_VERIFY=1` the JSON is made on the main thread too and compared
-  (`background-save: verify: the colony summary's JSON identical`).
+- **Verify.** With `ONI_TWEAK_VERIFY=1` the JSON is made on the main thread too and its bytes
+  compared (`background-save: verify: the colony summary's JSON identical`).
 
 ## Translating Moono Tweaks
 
