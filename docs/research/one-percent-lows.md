@@ -66,6 +66,9 @@ Earlier work this builds on and does not repeat:
 - **Tracking:** `scripts/perf-spread.py` now reports the median frame, the p99 frame and the 1%
   low with B/A, never judged (Part 4). The nightly's summary table carries them.
 - **Nothing else landed.** The probe's brackets are local (branch `onepct-u60`).
+- **2026-11-17:** on today's build the same step still fills most of the slowest 1%. Computing
+  it ahead and committing at the tick reaches only the flows' solve, about 1 ms; not built
+  ([the update](#update-2026-11-17-todays-build-and-computing-the-step-ahead)).
 
 ## Part 1: the numbers, from existing data (no new runs)
 
@@ -521,6 +524,125 @@ after the save, Satori.
   comparisons (they are local tools, not in the repository), and the mean of the slowest 1%
   beside the p99 in PerfProbe's own window line, which today prints a `worst1%` that mixes
   windows when the window is not 600 frames.
+
+## Update 2026-11-17: today's build, and computing the step ahead
+
+The question: with `direct-rail-bridges` and (U60 only) `fast-pipe-rebuilds` on by default, what fills the
+slowest 1% now, and can the 200 ms step's work be computed over the frames before it and only
+applied ("committed") at the tick?
+
+**Verdict.**
+- **Still the liquid-and-rails step.** It is 54% of the slowest 1% on the late-game colony and 66%
+  on a late base-game colony; with the frame right after it, 72% and 73% (measured, Windows).
+- **The step is now 10.3 ms on the late-game colony** (11.2 on 2026-11-14): rails 3.2 ms
+  (3.9). Its frame is 25 ms against 8.6 ms without a step.
+- **Most of the step cannot be computed ahead.** Everything but the two flows' solves is 68–79%
+  of it; the endpoints (consumers, dispensers, bridges, valves) and power alone are 59–63%. They read storages, operational flags and items that change
+  every frame, and fire events and state changes that must happen at the tick.
+- **Only the flows' network solve could be, at 21–32% of the step.** Exact is possible for the
+  rails' solve and, with a replay at the tick, for the pipes' mass moves. About 1 ms of the
+  step would come off at best: +0.7 to +0.9 fps of 1% low (estimated). The design's cost is not
+  worth that. **Verdict: feasible only in part, and not worth building.**
+- **The other options measured or estimated are smaller still.** Fusing the pipes' job runs was
+  prototyped and measured: −0.12 ms a step. Nothing was landed.
+
+### What fills the slowest 1% today
+
+Released u60 code (origin/u60 57b53828, U60 763325), default tweaks, speed 3, the jank recorder's
+brackets plus a split of each flow at the end of its `SOAInfo.EndFrame`. "Solve" is
+`Sim200ms` up to there: BeginFrame, the network passes and their job runs, Finish, the sort
+and EndFrame's publishes. "Endpoints" are the updater callbacks after it. Windows: 12,000
+frames a launch, vsync off, 1280×720 on monitor 2, unfocused, High priority. Linux: 6,000
+frames under Xvfb, with brackets on each endpoint kind too (about 0.5 µs a call).
+
+| | Late-game colony, Windows | Late base-game colony, Windows |
+|---|---|---|
+| Average / median fps, 1% low (with brackets) | 99.9 / 117, 36.9 | 197 / 226, 70.5 |
+| Slowest 1%: heavy step, frame after it, other steps, no step | 54%, 18%, 26%, 2% | 66%, 7%, 19%, 8% |
+| Heavy-step frame p50 / no-step frame mean, ms | 24.0 / 8.6 | 13.9 / 4.7 |
+| **Heavy step**, ms | **10.29** | **7.90** |
+| · liquid pipes: solve (of it job runs) / endpoints | 1.67 (1.15) / 2.58 | 1.77 (1.22) / 2.03 |
+| · rails: solve / endpoints | 0.54 / 2.66 | 0.76 / 1.54 |
+| · power (`EnergySim`, circuits) | 1.20 | 1.07 |
+| · plant absorbers | 0.52 | 0.22 |
+| · conduit temperature and disease (native) | 0.18 | 0.31 |
+| · the native sim's call, the rest (read-back, callbacks, mass consumed) | 0.01, 0.93 | 0.01, 0.19 |
+| Gas step: solve / endpoints | 0.47 / 0.65 | 1.66 / 0.95 |
+| Heavy-step frame, beside the step: sub-ticks, brains, LateUpdate | 3.3, 2.0, 4.5 | 0.5, 0.6, 1.8 |
+
+Inside the endpoints (Linux, late-game colony, ms of a heavy step, bracketed):
+
+| Flow | Consumers | Dispensers | Bridges | Other (valves, filters, panels, `RequireOutputs`) |
+|---|---|---|---|---|
+| Liquid (3.64) | 1.58 (574 calls) | 0.63 (325) | 0.34 (620) | 1.09 |
+| Rails (3.92) | 1.20 (204) | 0.88 (195) | 1.44 (422) | 0.40 |
+
+- The two Linux launches (late-game colony 49.6 fps, late base-game colony 46.0) give the same
+  shape; their slowest 1% are diluted by Linux's slow render, so the Windows shares are the
+  ones to read.
+- The first Windows launch of the base-game colony ran with vsync on (60 Hz); its 1% low was a
+  doubled refresh and is not used. Its step split agrees (7.9 against 8.3 ms).
+
+### Computing the step ahead and committing at the tick
+
+What each flow's step reads (U60 763325, code reading):
+
+| Input | Changes between ticks? | By what |
+|---|---|---|
+| Pipe contents' mass and element | Yes | `AirConditioner.Sim200ms` (Thermo Regulator, Aquatuner) adds to its output pipe every 200 ms step on any sub-tick; `EmptyConduitWorkable`, pipe deconstruction and damage (`Conduit.EmptyConduit`), contents freezing or melting (`ConduitTemperatureManager.Sim200ms` → `FreezeConduitContents`, `MeltConduitContents`), `MorbRoverMaker`, mods |
+| Pipe contents' temperature | Every step | the native conduit temperature update, which runs right before the flows in `StepTheSim`; `BeginFrame` reads it (`Conduit.GetContents`) |
+| Pipe contents' germs | Every step | `ConduitDiseaseManager.Sim200ms`, also right before the flows |
+| Flow directions (source, target, pull) and permitted directions | Only at the tick and at a network rebuild | the solve itself; `OnUtilityNetworksRebuilt` after any pipe built or removed |
+| Rail items (handles in the rail grid) | Rarely | endpoints at the tick; an item destroyed or a rail deconstructed in between; `freedHandles` freed in `BeginFrame` |
+| Storages, operational flags, power, items (the endpoints) | Every frame | Duplicants delivering and taking, automation, the sim's step, other buildings |
+
+- **Endpoints: not feasible.** A consumer's take depends on its storage at the tick, a
+  dispenser's on its storage and the pipe after the solve, a bridge on both sides after the
+  solve. They fire storage, operational and tag events and start state machine changes. Running
+  them earlier is a timing change, and replaying them means running them.
+- **Pipe solve: exact only with a replay.** The mass decisions read mass, element and
+  directions only; temperature and germs are mixed along the moves (`GetFinalTemperature`,
+  `CalculateFinalDiseaseInfo`). So a pass could run ahead on a copy and record its moves; at the
+  tick, `BeginFrame` still reads the new temperatures and germs, the recorded moves are
+  replayed for them, and any network written in between is solved again. Aquatuners and
+  regulators write every step, so their networks would be solved at the tick each time. What
+  stays at the tick (the copy-in, the replay, Finish, the publishes, the re-solved networks) is
+  most of the solve's 1.7 ms: about half of it comes off (estimate).
+- **Rail solve: exact, cheaply checked.** Its moves read only item handles and directions.
+  Run on a copy after the tick's endpoints, it is valid while nothing writes the rail grid. The
+  commit applies the moves and the copied arrays, frees `freedHandles`, and falls back to the
+  game's pass after any rail-grid write or rebuild. It saves most of 0.5–0.8 ms.
+- **Together:** about 1 ms off a 7.9–10.3 ms step. By Part 3's replay that is +0.7 fps of 1% low
+  on a 32 fps launch, +0.9 on this one. It needs copies of both flows' state, hooks on every
+  writer of the pipe and rail grids (and mods' writers, which cannot be listed), a verify mode
+  that runs the game's pass beside it, and stand-downs for the mods that patch the flows' `Sim200ms` (about 15 name it). Not built.
+
+### Other options
+
+| Option | Exact? | Saving on the heavy step | Status |
+|---|---|---|---|
+| One job run per pipe network for BeginFrame and all passes (networks are disjoint), instead of up to five runs | Yes | **Measured**, prototype, late-game colony, Windows, 300 on/off steps each: liquid 1.35 → 1.22 ms, gas 0.36 → 0.33 ms; about 0.1 fps | Dropped: `fast-jobs` already made a run cheap |
+| Network passes split across workers within a network | No: a pass walks the network's cells in order | — | Ruled out |
+| `Finish`, the temperature publish on workers | Finish yes; the publish calls SimDLL, which Klei runs on the main thread | under 0.3 ms ([conduit-updates.md](conduit-updates.md)) | Not worth it |
+| The rails' solve beside the liquid endpoints (disjoint data) | Yes for the game's code; mods are unknown | at most 0.5–0.8 ms, the rails' solve | Same cost class as computing ahead; not built |
+| Start the step earlier to overlap rendering | No: the main thread does not wait on rendering (0.01 ms after present, Part 2); the step would run beside LateUpdate, which reads what it writes | 0 | Ruled out |
+| Allocation in the step | Already covered by the allocation batches | — | Not followed |
+| The 1,000 ms sim buckets on the heavy step's sub-ticks: 1.4 ms of a heavy-step frame against 0.35 on others (late-game colony; 3.0 against 0.33 on Linux for the base-game colony) | Per updater | up to ~1 ms of that frame | Next lead: name them (`ONI_BUCKET_PROFILE=1`) |
+
+### Recommendation
+
+- Do not build a spread-and-commit step. The part it can touch exactly is a fifth to a third of
+  the step, and what stays at the tick leaves about 1 ms of gain.
+- The step is game-object work, about 8% shorter than on 2026-11-14 (rails −17%, mostly
+  `direct-rail-bridges`; one launch each). What remains is endpoints that do real work every time.
+- The measured way to a higher 1% low remains the frame under the step (`brain-rate`, and every
+  ms off the ordinary frame). The one open lead in the step's frame is the 1,000 ms buckets that
+  coincide with it.
+
+Runs (2026-11-17, runq, owner onepct2): Linux j0003358 (late-game colony) and j0003362 (base-game
+colony), Windows j0003370 and j0003390, the vsync launch j0003369 (not used), the prototype
+j0003402. None was flagged noisy. Local, not in the repository: the probe's split and the
+prototype (branch `onepct2-probe`).
 
 ## Runs
 
