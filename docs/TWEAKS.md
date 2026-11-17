@@ -974,7 +974,7 @@ FMOD Studio runs, before the game has made any instance, and only when all three
   getVersion).
 - The SHA-256 of the loaded Studio library's file (U59's `fmodstudio.dll` and
   `libfmodstudio.so`, and U60's `fmodstudioL.dll` and `libfmodstudioL.so`, the same in every
-  U60 build so far, 761015 to 763023).
+  U60 build so far, 761015 to 763325).
 - Every byte the patch relies on: the site and what follows it to the epilogue, and the
   destroy's code (on Windows also the slack still empty).
 
