@@ -361,8 +361,8 @@ scripts/ci-game-tests.sh push OUT                 # what the game job runs (QA_U
 
 The verify runs set only the verify modes that check without drawing, which a headless player (no
 GL device, as in the push run) reports: `ONI_TWEAK_VERIFY`'s game tweaks,
-`ONI_VERIFY_FETCH_BY_CELL`, `_CANVAS_CULL`, `_CANVAS_PRODUCTS`, `_COMPONENT_LAYOUTS` and
-`_RAW_LOADS`. `ci/game-tests/verify/SPEC.txt` lists the checks each run must report. A check
+`ONI_VERIFY_FETCH_BY_CELL`, `_CANVAS_CULL`, `_CANVAS_PRODUCTS`, `_COMPONENT_LAYOUTS`,
+`_RAW_LOADS` and `_TEXT_SCALES`. `ci/game-tests/verify/SPEC.txt` lists the checks each run must report. A check
 that reports nothing fails the run, as a wrong answer does: silence is not zero wrong.
 
 CI does not cover the modes that need drawing, input or a GPU: `ONI_VERIFY_CANVAS_SKIPS`,

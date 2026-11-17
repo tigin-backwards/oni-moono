@@ -23,6 +23,10 @@ up against Unity's and ranks fixes.
 - **The parts are mostly real work spread thin.** No part has a small, exact fix worth more than
   the runs' spread; the three fixes below are designs. What landed is the measurement itself
   (`ONI_RENDER_TIMING=1` now logs the split).
+- **Built since** ([below](#built-on-2026-11-17)): TextMesh Pro's scale check now runs only for
+  texts whose scale may have changed (1.84 → 0.06 ms a frame on the mid-game colony, landed).
+  Reusing last frame's draw values is exact but hits too few draws to measure; it and the
+  culling-mask skip stay on a local branch.
 
 ## Method
 
@@ -212,6 +216,79 @@ texts under the moved subtree; the check visits only those, in the order the sub
 have run. Risk: the transform's dirty path is hot, and any scale change that bypasses
 `MarkDirty` would leave a text unscaled. Unity pays the same per-text check.
 
+## Built on 2026-11-17
+
+### TextMesh Pro's scale check, for moved texts only (landed)
+
+- **What it does.** Each text's transform gets a slot (`TextScaleWatch`). Every invalidation of
+  the transform's cached world data (`TransformNative.WorldChanged`: its own change or an
+  ancestor's) arms the slot. The text's `willRenderCanvases` entry carries the slot and keeps
+  its place among the subscribers; the call skips it while the slot is disarmed. A check that
+  finds the scale settled disarms it; a rescale, a regeneration and every new SDF scale arm it.
+- **Why exact.** The check reads the transform's cached lossy scale, which changes only through
+  an invalidation; a disarmed text would read the scale it settled with. The early returns
+  (static scale, nothing generated) leave the slot armed.
+- **Engine, not a tweak.** Like the engine's other exact fast paths (canvas skips, the cull
+  cache, mesh reuse): always on, with a verify mode, `ONI_VERIFY_TEXT_SCALES=1`, which calls
+  every skipped check and logs each that would have acted. `qa.sh verify` and CI's headless
+  verify runs set it.
+- **Cost on the transform path.** One field test per transform marked dirty: 8.43 ns a
+  transform before, 8.44 after (median of five runs each of a 4,681-transform hierarchy moved
+  400 times, release build).
+
+| Linux, one launch each | Late game, before | after | Mid game, before | after |
+|---|---|---|---|---|
+| Scale check (ms a frame) | 0.829 | 0.007 | 1.837 | 0.057 |
+| · checks called a frame | 2,294 | 10 | 2,025 | 37 |
+| Post-late phase (frame stats, ms) | 1.75 | 0.68 | 4.48 | 2.56 |
+| Frame rate (PerfProbe, timing on) | 35.2 | 45.8 | 18.9 | 19.2 |
+
+- **The machine was slow most of the afternoon** (the mid-game pair ran at 19 fps, against 45 in
+  this page's first runs), so frame rates compare only within a pair, and even there they move
+  with the machine. The post-late phase fell by the scale check and more; the late pair's
+  launches came 3 hours apart (a first after-launch on a machine at half speed was run again).
+- **Verify runs:** 0 wrong on both colonies (Linux, OpenGL) and on Windows (Vulkan, late game):
+  5.4, 5.1 and 13.7 million skipped checks run.
+- **Windows, alternating 3+3 launches, Vulkan, 7,200 frames each after warm-up** (median
+  [range]):
+
+| Colony | Before fps | After fps | Before 1% low | After 1% low |
+|---|---|---|---|---|
+| Late game | 68.0 [26.2–68.5] | 28.5 [26.2–80.2] | 17.9 [11.5–22.3] | 11.7 [8.9–25.5] |
+| Mid game | 44.2 [37.1–48.3] | 43.2 [38.9–45.0] | 18.9 [16.5–19.3] | 18.5 [15.9–18.8] |
+
+  Not resolved: the machine slowed partway through the late-game series (both launches of the
+  third pair ran at 26 fps), and the mid-game series ran slowed throughout. The expected
+  saving, about 0.5 ms of a 12–15 ms frame, is far inside these ranges.
+
+### Reusing last frame's draw values (built, not landed)
+
+- **What it does.** Each queued draw item keeps, per pass, the values it recorded and every
+  input `GlUniforms.RecordFrom` reads: the program, the material's values with a new content
+  stamp (bumped only when a resolve changes their bits), the block and its version, the object
+  matrix, the camera constants, the conventions and the render-texture flag, all bit for bit.
+  Programs reading the time or a texture's size never reuse.
+- **Exact:** `ONI_VERIFY_DRAW_REUSE=1` made every reused draw's values again: 0 wrong in 0.94
+  million (late), 0.95 million (mid) on OpenGL and 2.2 million on Vulkan.
+- **Why not landed.** It reuses only 25–41% of the passes it could: draw items are pooled by
+  position, so one moved draw shifts the rest (material and block misses, 290–630 passes a
+  frame), the material values' content changes every frame for some programs (stamp, about
+  280), and blocks are set again each frame (block version, 95–115). Its saving could not be
+  told from the afternoon's spread, and every miss pays an extra copy. Keying the record on the
+  draw's own objects (the renderer, or the queued mesh's block) instead of the pooled item would
+  be the next step.
+
+### Smaller ones
+
+- **Skipping a camera whose culling mask misses every queued mesh's layer:** built, exact
+  (a unit test; each skipped mesh would fail the mask test), not landed: the queued-mesh cull
+  row is 0.09–0.47 ms and its change could not be measured on the afternoon's machine.
+- **Sorting on one packed key:** not built. The transparent order is not a key: two
+  `Graphics.DrawMesh` draws tied on everything else go by material, a renderer's draw between
+  them by sequence, so three such draws can order in a cycle and the result depends on which
+  pairs the sort compares. A packed key would order them differently. The opaque order is a
+  plain key, but sorting is 0.08–0.2 ms in all.
+
 ## What landed
 
 - **`render: split the main thread's rendering under ONI_RENDER_TIMING`** (u60 56e7855b, cherry-picked
@@ -219,3 +296,5 @@ have run. Risk: the transform's dirty path is hot, and any scale change that byp
   `render timing` line, with the parts above, their counts, each camera's inclusive time, the
   canvas update's parts and each `willRenderCanvases` subscriber's time and calls. Off, it costs
   a static bool test per part change and a few counter increments.
+- **`tmp: check a text's scale only after its transform changed`** (u60 648b50d3, master
+  d0cac00b): above.
