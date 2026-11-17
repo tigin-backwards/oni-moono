@@ -25,8 +25,9 @@ up against Unity's and ranks fixes.
   (`ONI_RENDER_TIMING=1` now logs the split).
 - **Built since** ([below](#built-on-2026-11-17)): TextMesh Pro's scale check now runs only for
   texts whose scale may have changed (1.84 → 0.06 ms a frame on the mid-game colony, landed).
-  Reusing last frame's draw values is exact but hits too few draws to measure; it and the
-  culling-mask skip stay on a local branch.
+  Cameras whose culling mask has none of the queued meshes' layers skip them (exact, landed
+  untimed: 60% of the queued-mesh visits on the late-game colony). Reusing last frame's draw
+  values is exact but hits too few draws to measure; it stays on a local branch.
 
 ## Method
 
@@ -198,8 +199,9 @@ small, contained and exact with a saving a 3+3 series on Windows could tell from
 - **Queued meshes:** each of the 15 cameras walks every `Graphics.DrawMesh` mesh (12,000–21,000
   visits a frame for 790–1,320 in view). A layer mask of the frame's queued meshes, kept as they
   are queued, lets a camera whose culling mask misses all of them skip the loop: exact (the
-  skipped visits all end in the mask test), about 0.05 ms. Lists by layer would save more, with
-  sequence numbers taken from the queue position so that ties keep their order.
+  skipped visits all end in the mask test), about 0.05 ms ([landed](#smaller-ones)). Lists by
+  layer would save more, with sequence numbers taken from the queue position so that ties keep
+  their order.
 - **Sorting:** the opaque and transparent sorts compare up to five fields through a delegate. A
   packed key (queue, sorting layer and order, distance's bits, sequence) sorted as one `long`
   gives the same order, since the sequence makes every key distinct: about half of 0.075–0.144 ms.
@@ -280,9 +282,20 @@ have run. Risk: the transform's dirty path is hot, and any scale change that byp
 
 ### Smaller ones
 
-- **Skipping a camera whose culling mask misses every queued mesh's layer:** built, exact
-  (a unit test; each skipped mesh would fail the mask test), not landed: the queued-mesh cull
-  row is 0.09–0.47 ms and its change could not be measured on the afternoon's machine.
+- **Skipping a camera whose culling mask misses every queued mesh's layer** (landed). The
+  engine keeps the layers of each queued-mesh list, one bit per layer (`1 << Layer`, the bit
+  the mask test reads), updated wherever a list gains meshes or is cleared. A camera whose
+  culling mask has none of a list's bits skips the list.
+  - **Exact.** Every skipped mesh would fail the mask test. `Graphics.DrawMesh` is the only
+    way into the lists, and every overload passes its layer through; a mesh queued for one
+    camera still needs that camera's mask to have its layer, so the camera argument only
+    narrows further. Command buffers keep their own list. A unit test draws two layers for two
+    cameras.
+  - **Work skipped.** On the late-game colony (Linux, one launch, a counting build), 9 of the
+    15 cameras a frame skip the list: about 7,300 of 12,160 visits a frame, with the meshes in
+    view unchanged (790).
+  - **Not timed.** The queued-mesh cull row is 0.09–0.47 ms. The change only removes work, so
+    it landed without frame-rate runs while the machines were under heavy load.
 - **Sorting on one packed key:** not built. The transparent order is not a key: two
   `Graphics.DrawMesh` draws tied on everything else go by material, a renderer's draw between
   them by sequence, so three such draws can order in a cycle and the result depends on which
@@ -298,3 +311,5 @@ have run. Risk: the transform's dirty path is hot, and any scale change that byp
   a static bool test per part change and a few counter increments.
 - **`tmp: check a text's scale only after its transform changed`** (u60 648b50d3, master
   d0cac00b): above.
+- **`render: skip queued meshes a camera's culling mask has no layer of`** (u60 5ebe7b7c,
+  master 5a777ec9): above.
