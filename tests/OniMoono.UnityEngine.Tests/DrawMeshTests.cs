@@ -51,6 +51,61 @@ namespace OniMoono.Tests
             }
         }
 
+        /// A camera draws the queued meshes on the layers of its culling mask; one whose mask has
+        /// none of the queued meshes' layers skips them all, as each would fail the mask test.
+        [Fact]
+        public void QueuedMeshesDrawOnlyForCamerasWithTheirLayers()
+        {
+            AssetSystem.Initialize(GameInstall.DataDir);
+            ProjectSettings.Load();
+            FrameRenderer.Install();
+            var device = new RecordingDevice();
+            var previous = GraphicsDevice.Current;
+            GraphicsDevice.Install(device);
+            var owned = new System.Collections.Generic.List<Object>();
+            try
+            {
+                Camera Make(string name, int mask, float depth)
+                {
+                    var c = new GameObject(name, typeof(Camera)).GetComponent<Camera>();
+                    c.transform.position = new Vector3(0f, 0f, -10f);
+                    c.cullingMask = mask;
+                    c.depth = depth;
+                    owned.Add(c.gameObject);
+                    return c;
+                }
+                var five = Make("five", 1 << 5, 0f);
+                var six = Make("six", 1 << 6, 1f);
+                var mesh = new Mesh { vertices = [Vector3.zero, Vector3.up, Vector3.right], triangles = [0, 1, 2] };
+                var a = new Material(Shader.Find("Hidden/Internal-GUITextureClip"));
+                var b = new Material(a);
+                owned.Add(mesh);
+                owned.Add(a);
+                owned.Add(b);
+
+                Graphics.DrawMesh(mesh, Matrix4x4.identity, a, 5);
+                Graphics.DrawMesh(mesh, Matrix4x4.identity, b, 7);
+                Frame();
+                Assert.Equal(new[] { a }, device.MeshDraws.Select(d => d.Material).ToArray());
+
+                device.MeshDraws.Clear();
+                Graphics.DrawMesh(mesh, Matrix4x4.identity, a, 7);
+                Graphics.DrawMesh(mesh, Matrix4x4.identity, b, 6);
+                Frame();
+                Assert.Equal(new[] { b }, device.MeshDraws.Select(d => d.Material).ToArray());
+
+                // Queued in the next frame: none (the queue ends with the frame).
+                device.MeshDraws.Clear();
+                Frame();
+                Assert.Empty(device.MeshDraws);
+            }
+            finally
+            {
+                foreach (var o in owned) Object.DestroyImmediate(o);
+                GraphicsDevice.Install(previous);
+            }
+        }
+
         /// Graphics.DrawMeshNow draws at once with the pass Material.SetPass set last, measured in
         /// the original (tools/UnityProbe, drawmeshnow): the matrix places the mesh in the world,
         /// seen by the rendering camera's view (GL.modelview plays no part) through GL's
