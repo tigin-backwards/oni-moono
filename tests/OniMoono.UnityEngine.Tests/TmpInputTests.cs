@@ -122,6 +122,8 @@ namespace OniMoono.Tests
         public void TheImeCompositionShowsAtTheCaretUntilItIsTyped()
         {
             var savedCursor = Input.compositionCursorPos;
+            // The caret, which places the IME, is drawn in the canvas update (as in UGuiTest).
+            OniMoono.Engine.UI.CanvasSystem.Install();
             try
             {
                 var field = NewField();
