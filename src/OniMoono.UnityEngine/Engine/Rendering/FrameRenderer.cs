@@ -107,6 +107,10 @@ namespace OniMoono.Engine.Rendering
         /// Cull passes running: a camera rendered from OnBecameVisible culls inside another.
         static int culling;
         static readonly List<QueuedMesh> queued = new();
+        /// The layers of `queued`'s and `frameQueued`'s meshes, one bit each as the cull tests
+        /// them (1 << Layer): a camera whose culling mask has none of them skips the list, whose
+        /// every mesh would fail that test.
+        static int queuedLayers, frameQueuedLayers;
         static readonly HashSet<RendererNative> visibleThisFrame = new();
         static readonly HashSet<RendererNative> visibleLastFrame = new();
 
@@ -265,6 +269,7 @@ namespace OniMoono.Engine.Rendering
         {
             m.DuringRender = Current != null;
             queued.Add(m);
+            queuedLayers |= 1 << m.Layer;
         }
 
         /// The frame's meshes queued by scripts outside camera rendering. Like Unity's
@@ -368,9 +373,15 @@ namespace OniMoono.Engine.Rendering
             // blit's target instead, that frame was black.
             RenderTexture.active = null;
             frameQueued.Clear();
+            frameQueuedLayers = 0;
             foreach (var q in queued)
-                if (!q.DuringRender) frameQueued.Add(q);
+                if (!q.DuringRender)
+                {
+                    frameQueued.Add(q);
+                    frameQueuedLayers |= 1 << q.Layer;
+                }
             queued.Clear();
+            queuedLayers = 0;
             RenderSplit.Enter(RenderSplit.Part.Visibility);
             RenderSplit.Visible += visibleThisFrame.Count;
             UpdateVisibility();
@@ -641,6 +652,7 @@ namespace OniMoono.Engine.Rendering
                 if (scale > 1)
                 {
                     queued.Clear();
+                    queuedLayers = 0;
                     screenOverride = null;
                     window = null;
                     lightCamera = null;
@@ -724,6 +736,7 @@ namespace OniMoono.Engine.Rendering
             }
             queued.Clear();
             queued.AddRange(frameQueued);
+            queuedLayers = frameQueuedLayers;
             RenderScreen(overlays);
             if (overlays) RenderScreenLate?.Invoke();
         }
@@ -793,6 +806,7 @@ namespace OniMoono.Engine.Rendering
                 {
                     queued.Clear();
                     queued.AddRange(frameQueued);
+                    queuedLayers = frameQueuedLayers;
                     RenderCamera(camera);
                 }
                 finally
@@ -939,6 +953,7 @@ namespace OniMoono.Engine.Rendering
                 }
             captures.Clear();
             frameQueued.Clear();
+            frameQueuedLayers = 0;
             if (CullCache.Verifying && Time.frameCount % 600 == 0) CullCache.Report();
             // The frame's queued draws are done with the property blocks they share.
             PropertySheet.RenderEpoch++;
@@ -1324,6 +1339,7 @@ namespace OniMoono.Engine.Rendering
             // mesh (about 110 bytes) out of the list.
             for (int list = afterFrame ? 0 : 1; list < 2; list++)
             {
+                if ((cam.CullingMask & (list == 0 ? frameQueuedLayers : queuedLayers)) == 0) continue;
                 var span = System.Runtime.InteropServices.CollectionsMarshal.AsSpan(list == 0 ? frameQueued : queued);
                 for (int k = 0; k < span.Length; k++)
                 {
