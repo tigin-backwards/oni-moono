@@ -7,7 +7,8 @@ namespace OniMoono.GameTweaks
     ///
     /// - FrameTimeCap: a frame's game time capped at the sim's 0.2 s, so animations, the
     ///   automation clock and Time.time timers keep the sim's pace;
-    /// - LogicTicks: a frame's later automation ticks run between its sim sub-ticks.
+    /// - LogicTicks: a frame's later automation ticks run between its sim sub-ticks;
+    /// - LeakTiming: a damaged tile's once-a-second leak window on game time, not real time.
     ///
     /// One row and one switch. Each part checks for other mods' patches and stands down on its
     /// own (`low-fps-timing: PART off (...)` in Player.log), so a mod that patches what one part
@@ -21,6 +22,7 @@ namespace OniMoono.GameTweaks
         {
             FrameTimeCap.Install(harmony);
             LogicTicks.Install(harmony);
+            LeakTiming.Install(harmony);
         }
     }
 }

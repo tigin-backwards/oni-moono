@@ -100,6 +100,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/SimStepPaceCore.cs" Link="GameTweaks/SimStepPaceCore.cs" />
     <!-- The low-fps-timing game tweak's automation tick plan against the game's Refresh and SimEveryTick (LogicTicksTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/LogicTicksCore.cs" Link="GameTweaks/LogicTicksCore.cs" />
+    <!-- The low-fps-timing game tweak's leak clock against a copy of WorldDamage's leak window (LeakTimingTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/LeakTimingCore.cs" Link="GameTweaks/LeakTimingCore.cs" />
     <!-- The sim-data-check diagnostic's record, checks and lines (SimDataCheckTests, #91). -->
     <Compile Include="../../src/OniMoono.GameTweaks/SimDataCheckCore.cs" Link="GameTweaks/SimDataCheckCore.cs" />
     <!-- A tweak written for another game version is off; the checks and the install (TweakChecksTests). -->

@@ -212,6 +212,7 @@ namespace OniMoono.GameTweaks
             // low-fps-timing: each part's own (on SimEveryTick the broader, the automation part's).
             Add(LowFpsTiming.Name, FrameTimeCap.Guarded, FrameTimeCap.KindsOf);
             Add(LowFpsTiming.Name, LogicTicks.Guarded);
+            Add(LowFpsTiming.Name, LeakTiming.Guarded, LeakTiming.KindsOf);
             Add(FastPartitionerEvents.Name, FastPartitionerEvents.Guarded);
             Add(FastConduitSorts.Name, FastConduitSorts.Guarded);
             Add(FastOverlayRemovals.Name, FastOverlayRemovals.Guarded);

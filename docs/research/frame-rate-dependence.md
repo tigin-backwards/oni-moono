@@ -58,7 +58,7 @@ regime more often than the original, so Moono is closer to the high-fps behaviou
 | 9 | Animation ends seen on frame boundaries: `AnimEventManager.Update` tests `currentFrame` computed **before** adding dt, so an animation ends on the first frame after its last frame is reached, and its state moves on in the next frame's sim | Any speed, worse at high speed and moderate frame rates (no cap needed): each animation-gated step lasts about 0.5-1.5 frames of game time longer than at high fps (the range depends on whether `Global.Update` runs before or after `Game.Update`, not checked) | Speed 3 at 30 fps (0.1 game s a frame): +0.05 to 0.15 s per step, +10-30% for a 0.5 s animation; at 20 fps +0.08 to 0.23 s; speed 1 at 60 fps: +0.01 to 0.03 s | Read; size inferred | Not changed | `fast-anim-events` mirrors it | **D** (below), opt-in | Zero |
 | 10 | Logic ticks back to back: when a frame covers more than 0.1 s of scaled time (speed 3 below 30 fps, speed 2 below 20, speed 1 below 10), `Refresh` runs 2+ `PropagateSignals` in one call, before the frame's sub-ticks | A network state lasting one tick (0.1 s) can begin and end inside one call: event-driven consumers see both edges, but no sub-tick runs in between, so a pump, door or valve switched on for one tick does nothing. Pulse-driven builds meter differently at speed 3 | Share of one-tick states the sim never sees ≈ 1 − 0.1/(scaled frame time): 33% at speed 3 and 20 fps, 50% at 15 fps, 67% at 10 fps | Read; share inferred | Not changed | None | **B** (below), opt-in | Zero (same ticks, moved) |
 | 11 | Other `Time.time` thresholds: `timeinstate` in `ExternalTemperatureMonitor` (6 s), `PressureMonitor` (3 s), `BurrowMonitor`, `SweepStates` (16 s), `SweepBotReactMonitor`, `RocketSelfDestructMonitor`, `FoodFightEvent` (30 s); `CreatureCalorieMonitor`/`BeehiveCalorieMonitor` minimum time before pooping (10 s), `PoopStates` cooldown, `CallAdultMonitor`, `SeedPlantingMonitor`, `ClimbableTreeMonitor`, `Sleepable` wake delay, `SuitMarker`/`MaskStation` 2.8 s and `StandardWorker` 10 s fallbacks, `MinimumOperatingTemperature` 5 s hysteresis, `SlipperyMonitor` | Long frames: each wait lasts 1/R of its game time | Small one by one | Read | Not changed | None | **A** | Zero |
-| 12 | `WorldDamage`: a liquid leak through a damaged tile (1 kg) at most once per **real** second per cell (`realtimeSinceStartup`) | Speed-dependent at any frame rate: at speed 3 a tile can leak a third as often per game second as at speed 1 | ×1/speed, only while damage events come faster than once a second per cell | Read | Not changed | None | Use `GameClock` time instead of real time | Zero |
+| 12 | `WorldDamage`: a liquid leak through a damaged tile (1 kg) at most once per **real** second per cell (`realtimeSinceStartup`) | Speed-dependent at any frame rate: at speed 3 a tile can leak a third as often per game second as at speed 1 | ×1/speed, only while damage events come faster than once a second per cell | Read | Not changed | `low-fps-timing`'s leak part (built, below) | Use `GameClock` time instead of real time | Zero |
 
 ### Only lags, or display only
 
@@ -96,20 +96,22 @@ regime more often than the original, so Moono is closer to the high-fps behaviou
   of case 9; the other is the sim reading the new state next frame, which is inherent. The last
   frame of a non-looping animation would no longer be held for a frame, a visible change, so
   opt-in and low priority.
-- `WorldDamage` (case 12): `GameClock` time instead of `realtimeSinceStartup`. Low priority.
+- `WorldDamage` (case 12): `GameClock` time instead of `realtimeSinceStartup`. Low priority
+  (built 2026-11-18 as a third part of `low-fps-timing`, below).
 
 **Recommended:** A first (eight outcome cases, no cost, one place), then B for automation
 builds, then C as a U60 backport. D and case 12 only if someone reports them.
 
 ## Built (2026-11-18)
 
-A and B are the two parts of one opt-in tweak, `low-fps-timing` ("Accurate timing at low FPS"),
+A and B, and later case 12, are the parts of one opt-in tweak, `low-fps-timing` ("Accurate timing at low FPS"),
 in the Changes gameplay group, on master and u60
 ([TWEAKS.md](../TWEAKS.md#accurate-timing-at-low-fps)). They landed as two tweaks the same day
 and were merged into one row before any release: one switch for every fix of this kind, each
 part checking for other mods and standing down on its own (`low-fps-timing: PART off (...)` in
-Player.log). Later fixes from this study (case 9, steps ending on frame boundaries; case 12,
-tile leaks on real time) would join it as parts, not rows.
+Player.log). Case 12 joined it as its third part; later fixes from this study (case 9, steps
+ending on frame boundaries) would join it as parts too, not rows. Its in-game text names the
+kind of problem it fixes, not each part, so a new part needs no new text.
 
 - **A: the game time cap** (`FrameTimeCap`). A postfix on `Game.SimEveryTick` arms a one-frame cap in
   `Time.BeginFrame` (`Time.CapNextFrame`, through `OniMoono.Host.GameTimeCap`): the next frame's
@@ -119,8 +121,8 @@ tile leaks on real time) would join it as parts, not rows.
   what the sim takes, bit for bit. Frames at or under the cap are untouched. Only frames after
   one that ran SimEveryTick are capped: the main menu and loading never are. `Time.time`,
   `smoothDeltaTime`, `timeSinceLevelLoad` and the FixedUpdate steps follow; `unscaledDeltaTime`
-  and `realtimeSinceStartup` stay real. Paused frames have no game time either way. Not changed:
-  case 9 (frame rounding) and case 12 (real time). FMOD's listener velocity and
+  and `realtimeSinceStartup` stay real. Paused frames have no game time either way. Not changed
+  by this part: case 9 (frame rounding) and case 12 (real time, its own part below). FMOD's listener velocity and
   `FlowOffsetRenderer` divide by `deltaTime`: a smaller divisor on long frames only, where the
   world already moves at the sim's pace.
 - **B: automation ticks** (`LogicTicks`). Not one tick per 6 sub-ticks as first proposed (that changes the
@@ -131,6 +133,20 @@ tile leaks on real time) would join it as parts, not rows.
   leaving one for each tick after it. A frame with one tick or one sub-tick at most runs exactly
   as the game's (unit tests against copies of Refresh and SimEveryTick). It shares
   SimEveryTick's loop with `sim-step-pace`.
+- **Case 12: leak timing** (`LeakTiming`). A transpiler on `WorldDamage.ApplyDamage` and one
+  on `WorldDamage.Update` swap their `Time.realtimeSinceStartup` read (one in each) for game
+  time: `GameClock`'s `timeSinceStartOfCycle + cycle × 600` in double (as U60's
+  `GetTimeAsDouble`), counted from the session's first reading and stored as float.
+  `GetTime` is a float on U59 and U60 alike and steps by 1/8 s at cycle 2,000; counted from the
+  session it stays as fine as `realtimeSinceStartup`. A cell then leaks at most once a game
+  second at any speed (at speed 1 as before, in game-time terms; at speed 3 three times as
+  often per game second as without it). Every caller of `ApplyDamage` runs on the sim's updates
+  or its damage reports, so nothing damages tiles while paused, and the window waiting with the
+  paused clock changes nothing. Only liquid pressure and comets pass a source cell, so digging
+  never leaks. Off when another owner patches either method other than with a postfix
+  (`low-fps-timing: leak timing off (...)`): the clock reads real time again and the window's
+  entries are dropped once. Unit tests against a copy of the window (`LeakTimingTests`); no
+  game run.
 
 Counts on a Linux lane (speed 3 at 5 fps against speed 1 at 220 fps, TWEAKS.md has the tables):
 `Time.time` 3.0 → 1.0 s per sim second, automation ticks 30 → 10 a second, a 10 s Buffer Gate
