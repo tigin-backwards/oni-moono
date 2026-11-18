@@ -64,8 +64,8 @@ namespace OniMoono.Tests
             Assert.True(steps >= 1);
         }
 
-        /// The frame-time-cap tweak's cap (Time.CapNextFrame): the next frame's deltaTime at most
-        /// the cap, real time untouched, frames under the cap bit for bit as without, one frame only.
+        /// The low-fps-timing tweak's game time cap (Time.CapNextFrame): the next frame's deltaTime at
+        /// most the cap, real time untouched, frames under the cap bit for bit as without, one frame only.
         [Fact]
         public void CapNextFrameCapsOnlyTheScaledTimeOfOneFrame()
         {

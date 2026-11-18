@@ -5,10 +5,11 @@ using HarmonyLib;
 namespace OniMoono.GameTweaks
 {
     /// Game.SimEveryTick's loop for the tweaks that change it (SimStepPaceCore): sim-step-pace
-    /// leaves out its calls of no time, logic-in-sim-steps runs a frame's later automation ticks
-    /// between its sub-ticks. One prefix for both, patched under the Harmony ID of the first that
-    /// installs it (ForeignPatches.Hooked: again by the next if that install is taken back). It
-    /// runs the game's method when neither has anything to do in a frame.
+    /// leaves out its calls of no time, low-fps-timing's automation part (LogicTicks) runs a
+    /// frame's later automation ticks between its sub-ticks. One prefix for both, patched under
+    /// the Harmony ID of the first that installs it (ForeignPatches.Hooked: again by the next if
+    /// that install is taken back). It runs the game's method when neither has anything to do in
+    /// a frame.
     internal static class SimEveryTickLoop
     {
         static MethodInfo everyTick;

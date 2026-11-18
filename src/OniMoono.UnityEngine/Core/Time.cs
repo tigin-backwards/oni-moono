@@ -82,7 +82,7 @@ namespace UnityEngine
             s_UnscaledTime += realDelta;
             float clamped = realDelta < s_MaximumDeltaTime ? realDelta : s_MaximumDeltaTime;
             float scaled = clamped * s_TimeScale;
-            // The frame-time-cap game tweak: armed by the game's sim step of the frame before,
+            // The low-fps-timing game tweak: armed by the game's sim step of the frame before,
             // so only while a colony runs; below the cap the frame's time is left as it is.
             if (s_ScaledCapArmed)
             {
@@ -100,7 +100,7 @@ namespace UnityEngine
         static bool s_ScaledCapArmed;
 
         /// Caps the next frame's deltaTime (scaled, after maximumDeltaTime) at `cap`, for one
-        /// frame: the frame-time-cap game tweak arms it at each of the game's sim steps, with the
+        /// frame: the low-fps-timing game tweak arms it at each of the game's sim steps, with the
         /// step's own cap (OniMoono.Host.GameTimeCap). unscaledDeltaTime stays the real time.
         internal static void CapNextFrame(float cap)
         {

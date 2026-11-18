@@ -103,10 +103,15 @@ builds, then C as a U60 backport. D and case 12 only if someone reports them.
 
 ## Built (2026-11-18)
 
-A and B are opt-in tweaks in the Changes gameplay group, on master and u60
-([TWEAKS.md](../TWEAKS.md#game-time-at-the-simulations-pace)):
+A and B are the two parts of one opt-in tweak, `low-fps-timing` ("Accurate timing at low FPS"),
+in the Changes gameplay group, on master and u60
+([TWEAKS.md](../TWEAKS.md#accurate-timing-at-low-fps)). They landed as two tweaks the same day
+and were merged into one row before any release: one switch for every fix of this kind, each
+part checking for other mods and standing down on its own (`low-fps-timing: PART off (...)` in
+Player.log). Later fixes from this study (case 9, steps ending on frame boundaries; case 12,
+tile leaks on real time) would join it as parts, not rows.
 
-- **A: `frame-time-cap`.** A postfix on `Game.SimEveryTick` arms a one-frame cap in
+- **A: the game time cap** (`FrameTimeCap`). A postfix on `Game.SimEveryTick` arms a one-frame cap in
   `Time.BeginFrame` (`Time.CapNextFrame`, through `OniMoono.Host.GameTimeCap`): the next frame's
   scaled `deltaTime` is at most 0.2 s, SimEveryTick's own `Mathf.Min(dt, 0.2f)` (declared as a
   mirror). The sim consumes exactly `min(deltaTime, 0.2)` a frame (sub-ticks of 1/60 s, the
@@ -118,7 +123,7 @@ A and B are opt-in tweaks in the Changes gameplay group, on master and u60
   case 9 (frame rounding) and case 12 (real time). FMOD's listener velocity and
   `FlowOffsetRenderer` divide by `deltaTime`: a smaller divisor on long frames only, where the
   world already moves at the sim's pace.
-- **B: `logic-in-sim-steps`.** Not one tick per 6 sub-ticks as first proposed (that changes the
+- **B: automation ticks** (`LogicTicks`). Not one tick per 6 sub-ticks as first proposed (that changes the
   tick count when a frame passes the cap, and the tick phase): Refresh's own loop counts the
   frame's ticks, as many as the game's with the same `elapsedTime` left, and only where they run
   changes. The first tick of a frame runs where the game runs it; each later one before the

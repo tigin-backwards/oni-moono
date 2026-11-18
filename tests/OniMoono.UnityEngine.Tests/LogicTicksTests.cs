@@ -7,8 +7,8 @@ using Xunit;
 
 namespace OniMoono.Tests
 {
-    /// The logic-in-sim-steps game tweak's plan (src/OniMoono.GameTweaks/LogicTicksCore.cs) and the
-    /// shared SimEveryTick loop (SimStepPaceCore.cs), against copies of the game's
+    /// The low-fps-timing game tweak's automation plan (src/OniMoono.GameTweaks/LogicTicksCore.cs)
+    /// and the shared SimEveryTick loop (SimStepPaceCore.cs), against copies of the game's
     /// LogicCircuitManager.Refresh tick loop and Game.SimEveryTick (U59 744825, U60 763325): the
     /// same ticks and sub-ticks, the same state after each frame; the same order whenever a frame
     /// has one tick or one sub-tick at most; a sub-tick after every tick otherwise.

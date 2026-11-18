@@ -1,7 +1,8 @@
 namespace OniMoono.GameTweaks
 {
-    /// Where a frame's automation ticks go, for the logic-in-sim-steps tweak (LogicTicks), without
-    /// the game types (the unit tests drive it against copies of the game's loops).
+    /// Where a frame's automation ticks go, for the low-fps-timing tweak's automation part
+    /// (LogicTicks), without the game types (the unit tests drive it against copies of the game's
+    /// loops).
     ///
     /// The game's LogicCircuitManager.Refresh adds the frame's Time.deltaTime to `elapsedTime` and
     /// runs a tick (PropagateSignals, onLogicTick) while it is above the 0.1 s interval, all before

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- A test mod (KMod) that counts how far game time, animations, automation ticks and Time.time
-       timers get against the sim in each frame (frame-time-cap and logic-in-sim-steps,
+       timers get against the sim in each frame (low-fps-timing,
        tests/e2e/frame-rate-probe.yaml, `test_mods`). OniManaged is the game's Managed
        folder. -->
   <PropertyGroup>

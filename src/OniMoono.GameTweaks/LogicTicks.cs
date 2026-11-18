@@ -4,9 +4,9 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `logic-in-sim-steps` (**changes timing**): when a frame holds two automation
-    /// ticks or more, the second and later run between the frame's sim sub-ticks instead of back
-    /// to back before them.
+    /// Game tweak `low-fps-timing`'s automation part (**changes timing**; LowFpsTiming): when a
+    /// frame holds two automation ticks or more, the second and later run between the frame's sim
+    /// sub-ticks instead of back to back before them.
     ///
     /// LogicCircuitManager.Refresh (from Game.Update, before Game.SimEveryTick) runs a tick
     /// (PropagateSignals, then onLogicTick) for each 0.1 s of Time.deltaTime. A frame of more than
@@ -23,8 +23,8 @@ namespace OniMoono.GameTweaks
     /// Topology refreshes (a dirty network), bridge lists and overload checks stay where they are.
     /// Ticks left over (a frame whose SimEveryTick did not run) run at the next Refresh, first.
     ///
-    /// Off for the session once another Harmony owner patches Refresh, RenderEveryTick or
-    /// SimEveryTick (checked at the first frame, then every 4,096).
+    /// This part is off for the session once another Harmony owner patches Refresh,
+    /// RenderEveryTick or SimEveryTick (checked at the first frame, then every 4,096).
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void LogicCircuitManager::Refresh(System.Single)", "e1d5feb1a7177132 linux-744825 win-744825")]
     [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void Game::SimEveryTick(System.Single)", "0339e1b13ef02096 linux-744825 win-744825")]
     [GameMember(GameUse.Uses, "System.Void LogicCircuitManager::RenderEveryTick(System.Single)")]
@@ -34,7 +34,9 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Uses, "System.Boolean Game::hasFirstSimTickRun")]
     public static class LogicTicks
     {
-        public const string Name = "logic-in-sim-steps";
+        /// The tweak this is a part of (its game members are declared under that name), and the
+        /// part as Player.log names it.
+        public const string Name = LowFpsTiming.Name, Part = "automation ticks";
 
         static MethodBase[] guarded;
         static long frames;
@@ -71,7 +73,7 @@ namespace OniMoono.GameTweaks
         static bool Foreign()
         {
             if (ForeignPatches.Find(guarded) is not { } why) return false;
-            global::Debug.Log($"{Name}: off ({why})");
+            global::Debug.Log($"{Name}: {Part} off ({why})");
             return true;
         }
 

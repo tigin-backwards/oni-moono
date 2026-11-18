@@ -6,10 +6,10 @@ using UnityEngine;
 namespace FrameRateProbeTestMod
 {
     /// Counts what the game's clocks give against the sim, by game speed (Time.timeScale), for the
-    /// frame-time-cap and logic-in-sim-steps tweaks (tests/e2e/frame-rate-probe.yaml,
-    /// docs/research/frame-rate-dependence.md). It patches no method those tweaks guard
-    /// (SimEveryTick, UnsafeSim200ms, LogicCircuitManager's Refresh and RenderEveryTick), so they
-    /// stay on. Logs a line every 10 game seconds: `FrameRateProbe: ...`.
+    /// low-fps-timing tweak (tests/e2e/frame-rate-probe.yaml,
+    /// docs/research/frame-rate-dependence.md). It patches no method that tweak or sim-step-pace
+    /// guard (SimEveryTick, UnsafeSim200ms, LogicCircuitManager's Refresh and RenderEveryTick), so
+    /// they stay on. Logs a line every 10 game seconds: `FrameRateProbe: ...`.
     ///
     /// - Frames, their real time (unscaledDeltaTime), their game time (deltaTime) and the sim's
     ///   (GameClock).
@@ -116,7 +116,7 @@ namespace FrameRateProbeTestMod
 
         static System.Reflection.FieldInfo moved;
 
-        /// logic-in-sim-steps' ticks run between sub-ticks (OniMoono.GameTweaks.LogicTicks.Moved), or -1.
+        /// low-fps-timing's automation ticks run between sub-ticks (OniMoono.GameTweaks.LogicTicks.Moved), or -1.
         static long Moved()
         {
             if (moved == null)
@@ -168,7 +168,7 @@ namespace FrameRateProbeTestMod
                 c.Frames++;
                 c.Real += Time.unscaledDeltaTime;
                 c.Scaled += Time.deltaTime;
-                // A frame whose game time is under its real time × speed: frame-time-cap's cap.
+                // A frame whose game time is under its real time × speed: low-fps-timing's game time cap.
                 if (Mathf.Min(Time.unscaledDeltaTime, Time.maximumDeltaTime) * Time.timeScale > Time.deltaTime * 1.0001f) c.Capped++;
                 float now = SimTime;
                 if (lastGameTime >= 0f) c.Sim += now - lastGameTime;
