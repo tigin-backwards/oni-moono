@@ -15,9 +15,9 @@ The tweaks added or changed after that are in
   `GetCustomShaderParams` for `GetPostProcessingParams`, and missing methods fail the install);
   `fast-serialization`'s member checks at install (u60). (u60's `fix-disease-overlay-crash` was
   retired with U60 762230, which fixes the crash itself.)
-- **Game code:** onimaxxing's decompiles `decomp/u59-csharp*` and `decomp/u60-csharp*`. The
-  methods the tweaks touch differ between U59 and U60 only in decompiler noise, except where
-  noted.
+- **Game code:** Klei's decompiled U59 and U60 code (oni-archives, U59-744825 and the U60 beta of
+  the time, 761015 or 761211). The methods the tweaks touch differ between U59 and U60 only in
+  decompiler noise, except where noted.
 - **Mods:** the 2,897 Workshop folders in `out/ws` (2,717 with code). `tools/ModTriage` was run
   over all of them (not only the ranked 750) and its per-mod patch targets indexed by
   `Type::Method`; then a raw scan of every DLL for the methods' names (UTF-8 and UTF-16) found
