@@ -1118,7 +1118,7 @@ namespace OniMoono.Engine.Rendering
         {
             if (cam.TargetTexture) return ((RenderTextureNative)cam.TargetTexture.NativeOrThrow).CaptureLogicalSize != default;
             return cam.TargetColorBuffers is { Length: > 0 }
-                && ObjectTable.FindByInstanceId(cam.TargetColorBuffers[0].m_RenderTextureInstanceID) is RenderTextureNative { CaptureLogicalSize.x: > 0 };
+                && ObjectTable.FindByInstanceId(cam.TargetColorBuffers[0].m_RenderTextureInstanceID)?.NativeRecord is RenderTextureNative { CaptureLogicalSize.x: > 0 };
         }
 
         static void RenderCameraPasses(Camera camera, CameraNative cam, RenderDevice device, List<DrawItem> draws,
@@ -1205,8 +1205,8 @@ namespace OniMoono.Engine.Rendering
             if (cam.TargetColorBuffers != null)
             {
                 var colors = new RenderTextureNative[cam.TargetColorBuffers.Length];
-                for (int i = 0; i < colors.Length; i++) colors[i] = ObjectTable.FindByInstanceId(cam.TargetColorBuffers[i].m_RenderTextureInstanceID) as RenderTextureNative;
-                var depth = ObjectTable.FindByInstanceId(cam.TargetDepthBuffer.m_RenderTextureInstanceID) as RenderTextureNative;
+                for (int i = 0; i < colors.Length; i++) colors[i] = ObjectTable.FindByInstanceId(cam.TargetColorBuffers[i].m_RenderTextureInstanceID)?.NativeRecord as RenderTextureNative;
+                var depth = ObjectTable.FindByInstanceId(cam.TargetDepthBuffer.m_RenderTextureInstanceID)?.NativeRecord as RenderTextureNative;
                 return new RenderTargetBinding(colors, depth, 0);
             }
             return cam.TargetTexture ? RenderTargetBinding.Of((RenderTextureNative)cam.TargetTexture.NativeOrThrow) : ScreenBinding;
