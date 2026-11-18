@@ -1,7 +1,8 @@
 # mod-overlaps-en.yaml in the game's Simplified Chinese (zh_klei), with the update badge beside
 # the overlap badge (the releases list of update-badge.yaml): the badge's count, the rows' icons
 # and tooltips from translations/zh.po, and the search for the test mod's name. Ours only
-# (`--player ours`).
+# (`--player ours`). As in English, TweakSpecTests checks the counts and texts against the
+# tweaks' declared patches and translations/zh.po, and the search is checked against the screen.
 from: main-menu
 language: zh_klei
 tweaks_menu: true
@@ -15,6 +16,10 @@ steps:
   - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
   - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
   - ui_wait: {path: "**/MoonoUpdateBadge", cond: stable, frames: 600}
+  - expect_state:
+      "type:OniMoono.GameTweaks.ModOverlaps::High": [2, {save_as: high}]
+      "type:OniMoono.GameTweaks.ModOverlaps::Low": [1, {save_as: low}]
+      "type:OniMoono.GameTweaks.ModOverlaps::StepsAside": [1, {save_as: aside}]
   - expect_ui:
       "**/MoonoOverlapBadge/Count": {active: true, text: "2 处重叠"}
   - shot: menu
@@ -25,15 +30,19 @@ steps:
   # The screen's first Chinese text fills the font atlas: on a busy machine that takes a while.
   - ui_wait: {path: "**/MoonoTweaksScreen", cond: exists, frames: 600}
   - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable, frames: 1200}
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -28}
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
-  - shot: rows
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 100}
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/*/**/OverlapIcon": {count: "== high + low + aside"}
+  - shot: screen
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "overlap test"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - expect_ui:
-      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 6}
+      "**/MoonoTweaksScreen/**/Content/fast-jobs": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-anim-cleanup": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-sublimation": {active: true}
+      "**/MoonoTweaksScreen/**/Content/fast-smi-lookups": {active: true}
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": "== high + low + aside"
   - shot: search
   - scroll: {at: "**/MoonoTweaksScreen/**/fast-jobs/**/OverlapIcon", notches: 0}
   - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~Overlap Test 也修补了 JobManager.Run（它会改写游戏的代码）。"}

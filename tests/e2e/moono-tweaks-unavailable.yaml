@@ -18,12 +18,15 @@ steps:
   - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
   - click: {ui: "**/MainMenuButtons/MoonoTweaksButton"}
   - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
-  # fast-jobs and its neighbours in Simulation: "worker" matches it alone, "faster" a few.
-  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "faster"}
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  # fast-jobs is labelled, an available row is not; then the search box brings fast-jobs to the
+  # top of the list, wherever the catalog puts it.
   - expect_ui:
       "**/MoonoTweaksScreen/**/Content/fast-jobs/**/Version": {active: true, text: "NOT AVAILABLE"}
       "**/MoonoTweaksScreen/**/Content/fast-sublimation/**/Version": {active: false}
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "fast-jobs"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/fast-jobs", cond: stable}
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
   - shot: {name: rows, crop: "**/MoonoTweaksScreen"}
   # The toggle's tooltip, and a click that changes nothing: no Restart to apply.
   - scroll: {at: "**/MoonoTweaksScreen/**/Content/fast-jobs/**/EnabledToggle", notches: 0}
@@ -32,9 +35,9 @@ steps:
   - click: {ui: "**/MoonoTweaksScreen/**/Content/fast-jobs/**/EnabledToggle"}
   - expect_ui:
       "**/MoonoTweaksScreen/**/Content/fast-jobs/**/Version": {active: true, text: "NOT AVAILABLE"}
-  # The row's tooltip says it first, then how the tweak works.
+  # The row's tooltip says it first, then how the tweak works (its details, whatever they say).
   - scroll: {at: "**/MoonoTweaksScreen/**/Content/fast-jobs", notches: 0}
   - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~Not available on this game version."}
   - expect_ui:
-      "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/^(<color=#FFB040>)?Not available on this game version\\.(<\\/color>)?\\n\\nWakes only as many/"}
+      "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab": {active: true, text: "/^(<color=#FFB040>)?Not available on this game version\\.(<\\/color>)?\\n\\n\\S/"}
   - shot: {name: row-tip, pointer: stay}

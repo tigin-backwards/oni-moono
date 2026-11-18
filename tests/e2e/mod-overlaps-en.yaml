@@ -5,6 +5,11 @@
 # (fast-smi-lookups steps aside). The main menu's badge counts the two high ones; each affected
 # row has an icon beside its toggle and names the mod in its tooltip; searching for the mod's
 # name lists those rows. Ours only (`--player ours`).
+#
+# The rows, counts and texts here follow from the test mod's patches: TweakSpecTests checks them
+# against the tweaks' declared patches (GameMember) and the catalog's strings, so a tweak that
+# starts or stops patching one of these methods, or a reworded overlap line, fails a unit test
+# that names the line to change. The search is checked against the screen itself.
 from: main-menu
 tweaks_menu: true
 test_mods: [OverlapTestMod]
@@ -16,9 +21,9 @@ steps:
   - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
   - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
   - expect_state:
-      "type:OniMoono.GameTweaks.ModOverlaps::High": 2
-      "type:OniMoono.GameTweaks.ModOverlaps::Low": 1
-      "type:OniMoono.GameTweaks.ModOverlaps::StepsAside": 1
+      "type:OniMoono.GameTweaks.ModOverlaps::High": [2, {save_as: high}]
+      "type:OniMoono.GameTweaks.ModOverlaps::Low": [1, {save_as: low}]
+      "type:OniMoono.GameTweaks.ModOverlaps::StepsAside": [1, {save_as: aside}]
   - expect_ui:
       "**/MoonoOverlapBadge/Count": {active: true, text: "2 overlaps"}
   - shot: menu
@@ -32,16 +37,11 @@ steps:
       "**/MoonoTweaksScreen/**/Content/fast-anim-cleanup/**/OverlapIcon": {active: true}
       "**/MoonoTweaksScreen/**/Content/fast-sublimation/**/OverlapIcon": {active: true}
       "**/MoonoTweaksScreen/**/Content/fast-smi-lookups/**/OverlapIcon": {active: true}
-      "**/MoonoTweaksScreen/**/Content/fast-save-type-checks/**/OverlapIcon": {exists: false}
-      "**/MoonoTweaksScreen/**/Content/splash/**/OverlapIcon": {exists: false}
+  # Those rows alone have an icon: one row per overlap.
+  - expect_ui:
+      "**/MoonoTweaksScreen/**/Content/*/**/OverlapIcon": {count: "== high + low + aside"}
   - shot: screen
-  # Down to the Simulation rows: two with icons, high and low, and one where the tweak steps aside.
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -24}
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
-  - shot: rows
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 100}
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
-  # The mod's name in the search box: the four rows it overlaps, under their headings.
+  # The mod's name in the search box: the rows it overlaps, under their headings.
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "overlap test"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - expect_ui:
@@ -49,10 +49,9 @@ steps:
       "**/MoonoTweaksScreen/**/Content/fast-anim-cleanup": {active: true}
       "**/MoonoTweaksScreen/**/Content/fast-sublimation": {active: true}
       "**/MoonoTweaksScreen/**/Content/fast-smi-lookups": {active: true}
-      "**/MoonoTweaksScreen/**/Content/fast-offset-tables": {exists: false}
-      "**/MoonoTweaksScreen/**/Content/splash": {exists: false}
-  - expect_ui:
-      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 6}
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": "== high + low + aside"
   - shot: search
   # The tooltips: high (a transpiler), high (a prefix that can skip), low, steps aside.
   - scroll: {at: "**/MoonoTweaksScreen/**/fast-jobs/**/OverlapIcon", notches: 0}
