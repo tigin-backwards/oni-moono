@@ -431,11 +431,16 @@ step. The original run itself records it and passes.
 - ui_dump: {name: graph, root: "**/Graph_*", mask_path: ['(?<=Graph_)-?\d+']}   # ids in element names
 - shot: {name: selector, crop: "**/BlueprintSelector", mask: ["**/Portrait", "**/DateLabel", [0, 0, 64, 64]]}
 - shot: {name: dialog, crop: "**/Dialog", threshold: 0.04}     # a text-dense screen
+- shot: {name: colony, specks: 5, threshold: 0.01}             # a moving scene (see below)
 - shot: overview                                               # the whole frame
 - world_shot: {name: zoomed, ortho: 45, at: [128, 210], hide_ui: true, mask: [[600, 300, 80, 80]]}
 - file_shot: {name: preview, path: "save_files/e2e/e2e.png"}   # an image the game wrote in the profile
 ```
 
+- `specks: N` (odd, 3 or more; any shot kind) leaves out the differing pixels that no N x N
+  square of differing pixels covers: particles, outlines and edges a few pixels apart, as two
+  players' simulations drift. A missing panel or a wrongly coloured sprite is wider and still
+  counts. The diff image shows the left-out specks dark grey.
 - `file_shot` copies an image the game wrote into the run's profile (a save's colony preview, a
   timelapse frame; `path` relative to the profile, a glob's newest match) into the evidence, once
   it exists and its size holds for a second (`wait`, default 60 s), and compares it as a
@@ -495,7 +500,7 @@ A run of ours also fails on these differences from the original (§5.3 of the pl
 | log signatures (`qa-tools.py signatures`) | ours has one that none of the original's runs has |
 | `require_log` | a line is in the original's log, not in ours |
 | `ui_dump` (`ui-diff.py --tolerance 2 --mask-text ...`) | an element is only in one dump; a state or text differs after masking; a rect is off by more than 2 px, a size by more than 2 px and 2 %; an element is 0-sized in one only |
-| `shot` (`qa-tools.py image --crop --mask`) | more than `threshold` of the unmasked pixels differ by more than 40 in a channel (default 2 %); each player is cropped to its own rect |
+| `shot` (`qa-tools.py image --crop --mask --specks`) | more than `threshold` of the unmasked pixels differ by more than 40 in a channel (default 2 %), less the `specks`; each player is cropped to its own rect |
 | `world_shot` | the same, with a default threshold of 5 % |
 | `== original` | ours does not meet the relation to the original's value |
 | an `expect_ui`/`expect_state` failure | the result notes that it held in the original |

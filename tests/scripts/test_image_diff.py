@@ -1,4 +1,4 @@
-"""qa-tools.py image's crop, mask and size tolerance; ui-diff.py's --tolerance and --mask-text."""
+"""qa-tools.py image's crop, mask, specks and size tolerance; ui-diff.py's --tolerance and --mask-text."""
 
 import os, subprocess, sys, tempfile, unittest
 
@@ -48,6 +48,26 @@ class Images(unittest.TestCase):
         masked = qa_tools.compare_images(a, b, None, crop=[10, 10, 40, 20], crop_new=[30, 20, 40, 20], masks=[[2, 2, 5, 5]])
         self.assertEqual((masked['fraction'], masked['masked'], masked['size']), (0.0, 25, [40, 20]))
 
+    def test_specks_drop_thin_differences_only(self):
+        # Two 1-px outlines and a 2x2 dot (moved edges, particles) and one solid 8x8 block (a
+        # missing panel) on a 100x50 image.
+        b = png(
+            self.path('b.png'),
+            boxes=[(5, 5, 30, 1, (255, 255, 255)), (60, 5, 1, 30, (255, 255, 255)), (40, 30, 2, 2, (255, 0, 0)), (80, 30, 8, 8, (0, 200, 0))],
+        )
+        a = png(self.path('a.png'))
+        self.assertAlmostEqual(qa_tools.compare_images(a, b, None)['fraction'], (30 + 30 + 4 + 64) / 5000)
+        result = qa_tools.compare_images(a, b, self.path('d.png'), specks=3)
+        self.assertAlmostEqual(result['fraction'], 64 / 5000)  # the block, whole
+        diff = np.asarray(Image.open(self.path('d.png')))
+        self.assertEqual((diff[34, 84], diff[5, 10], diff[0, 0]), (255, 64, 0))  # kept, speck, same
+        # A 5 px square opening also drops a 4-px-wide stripe, but keeps the block.
+        c = png(self.path('c.png'), boxes=[(0, 40, 100, 4, (255, 255, 255)), (80, 10, 8, 8, (0, 200, 0))])
+        self.assertAlmostEqual(qa_tools.compare_images(a, c, None, specks=3)['fraction'], (400 + 64) / 5000)
+        self.assertAlmostEqual(qa_tools.compare_images(a, c, None, specks=5)['fraction'], 64 / 5000)
+        # Masks still count against the specks' result.
+        self.assertEqual(qa_tools.compare_images(a, b, None, masks=[[80, 30, 8, 8]], specks=3)['fraction'], 0.0)
+
     def test_size_tolerance(self):
         a = png(self.path('a.png'), size=(100, 50))
         b = png(self.path('b.png'), size=(101, 50))
@@ -66,6 +86,8 @@ class Images(unittest.TestCase):
         self.assertEqual(run('--mask', '0,0,10,10'), '0.0000')
         self.assertEqual(run('--crop', '0,0,20,10'), '0.5000')
         self.assertEqual(run('--crop', '0,0,20,10', '--mask', '0,0,5,10'), '0.3333')  # 50 of 150
+        self.assertEqual(run('--specks', '21'), '0.0000')  # the 10x10 square (the image's edge extends it)
+        self.assertEqual(run('--specks', '9'), '0.0200')
 
 
 DUMP_A = '''/Canvas#0/Panel#1\trect -100,-50,200,100 world 540,310,740,410 | Image color=255,255,255,255 raycastTarget=True

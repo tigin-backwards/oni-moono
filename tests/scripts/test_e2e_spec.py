@@ -18,6 +18,16 @@ class SpecValidation(unittest.TestCase):
         self.assertEqual(loaded['setup'], [])
         self.assertFalse(e2e.needs_driver(loaded))
 
+    def test_shot_specks(self):
+        good = spec(
+            'from: early-base\nsteps:\n  - shot: {name: a, specks: 5, threshold: 0.01}\n'
+            '  - world_shot: {name: b, specks: 3}\n  - file_shot: {name: c, path: x.png, specks: 7}\n'
+        )
+        self.assertEqual(e2e.check_spec(good), [])
+        for bad in ('4', '1', 'true', '"5"'):
+            problems = e2e.check_spec(spec(f'from: early-base\nsteps:\n  - shot: {{name: a, specks: {bad}}}\n'))
+            self.assertEqual(problems, ['steps 1: shot `specks` is an odd number of pixels, 3 or more'], bad)
+
     def test_every_new_step_kind_of_the_plan(self):
         # The step list of §4.4, as written there.
         s = spec('''
