@@ -1,9 +1,17 @@
 # Game-update smoke (docs/GAME-UPDATES.md): early-base on the build under test, 180 game seconds
 # at speed 3, in both players. Nothing in it names a build: the game is the one qa.env (or the
 # environment) points at.
+#
+# Two shots. `loaded`, before any game time, is the strict one: both players show the same
+# scene, so art and interface compare closely. Masked: the notification list, still sliding in
+# after the load, and the original's "Development Build" mark. By `smoke`, 180 s later, the two
+# simulations have drifted (Duplicants, the water surface, particles, a notification line), so
+# it only catches a broken frame. `specks` leaves out differences thinner than 5 px (moved edges,
+# particles).
 from: early-base
 steps:
   - expect: {duplicants: 3}
+  - shot: {name: loaded, mask: [[0, 110, 330, 170], [1150, 690, 130, 30]], specks: 5, threshold: 0.002}
   - run: {seconds: 180}
   - expect: {duplicants: 3}
-  - shot: {name: smoke, threshold: 0.03}   # a moving scene: Duplicants, water, particles (763612 QA: 2.2–2.6%)
+  - shot: {name: smoke, specks: 5, threshold: 0.03}
