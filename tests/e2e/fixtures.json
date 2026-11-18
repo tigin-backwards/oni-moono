@@ -216,29 +216,29 @@
       "asset": "u60-w9-geovent.sav"
     },
     "v1-current.sav": {
-      "description": "early-base with its header's build set to the build under test (763325)",
+      "description": "early-base with its header's build set to the build under test (763612)",
       "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
-      "build": "763325 (U60, header restamped)",
+      "build": "763612 (U60, header restamped)",
       "mods": "none",
       "used_by": [
         "u60-v1-build-check (extra_saves)"
       ],
-      "sha256": "3f0612f6e0b0bcdc4cea28d71e9170cdc995aaaf9386640f98275d6907bc220e",
+      "sha256": "3c90b34da71781b36d89b1b9ec6d9f73e7ecec423a5b37e30c57b568cbc26494",
       "size": 1360609,
-      "tag": "saves/3f0612f6e0b0bcdc",
+      "tag": "saves/3c90b34da71781b3",
       "asset": "v1-current.sav"
     },
     "v1-newer.sav": {
-      "description": "early-base with its header's build set to one past the build under test (763326)",
+      "description": "early-base with its header's build set to one past the build under test (763613)",
       "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
-      "build": "763326 (U60, header restamped)",
+      "build": "763613 (U60, header restamped)",
       "mods": "none",
       "used_by": [
         "u60-v1-build-check (extra_saves)"
       ],
-      "sha256": "e7d6bb55bbd366552e2d202da6cd7dec4badfd05de4cac532ea97cf61ba4f897",
+      "sha256": "efb64aa0f86fbd40fc01dc47e08523dee97bea9fc850ed4bc9862c3b10e49a83",
       "size": 1360609,
-      "tag": "saves/e7d6bb55bbd36655",
+      "tag": "saves/efb64aa0f86fbd40",
       "asset": "v1-newer.sav"
     },
     "vanilla-base.sav": {
