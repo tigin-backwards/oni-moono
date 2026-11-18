@@ -57,18 +57,18 @@ namespace OniMoono.Engine
         }
 
         /// Makes a root GameObject a member of a scene (appended last among the roots).
-        public static void AddRoot(SceneRecord scene, GameObjectNative go)
+        public static void AddRoot(SceneRecord scene, GameObject go)
         {
             scene.Roots.Add(go);
         }
 
-        public static void RemoveRoot(SceneRecord scene, GameObjectNative go)
+        public static void RemoveRoot(SceneRecord scene, GameObject go)
         {
             scene.Roots.Remove(go);
         }
 
         /// Sets the scene of a GameObject and all its descendants.
-        public static void SetSceneRecursive(GameObjectNative go, SceneRecord scene)
+        public static void SetSceneRecursive(GameObject go, SceneRecord scene)
         {
             go.Scene = scene;
             foreach (var child in go.Transform.Children) SetSceneRecursive(child.GameObject, scene);
@@ -76,7 +76,7 @@ namespace OniMoono.Engine
 
         public static void MoveToDontDestroyOnLoad(GameObject go)
         {
-            var native = (GameObjectNative)go.Native;
+            var native = go.Alive ? go : null;
             var t = native.Transform;
             // Unity applies DontDestroyOnLoad to the root of the hierarchy only and warns otherwise.
             if (t.Parent is not null)

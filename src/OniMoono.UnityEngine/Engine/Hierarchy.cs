@@ -212,7 +212,7 @@ namespace OniMoono.Engine
     internal static class Messages
     {
         /// Script messages reach only GameObjects that are active in the hierarchy.
-        public static void SendToComponents(GameObjectNative go, Func<ScriptInfo, Action<MonoBehaviour>> select)
+        public static void SendToComponents(GameObject go, Func<ScriptInfo, Action<MonoBehaviour>> select)
         {
             if (!go.ActiveInHierarchy) return;
             foreach (var c in go.Components)
@@ -223,7 +223,7 @@ namespace OniMoono.Engine
             }
         }
 
-        public static void SendToSubtree(GameObjectNative go, Func<ScriptInfo, Action<MonoBehaviour>> select)
+        public static void SendToSubtree(GameObject go, Func<ScriptInfo, Action<MonoBehaviour>> select)
         {
             SendToComponents(go, select);
             foreach (var child in go.Transform.Children) SendToSubtree(child.GameObject, select);

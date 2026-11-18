@@ -86,7 +86,7 @@ namespace OniMoono.Tests
             var plain = go.AddComponent<Plain>();
             Assert.IsType<Engine.Rendering.CameraNative>(camera.EngineState);
             Assert.Same(camera, camera.EngineState.Managed);
-            Assert.Same(go.NativeRecord, camera.EngineState.GameObject);
+            Assert.Same(go, camera.EngineState.GameObject);
             Assert.True(camera.enabled);
             Assert.True(((BehaviourNative)camera.EngineState).IsActiveAndEnabledState);
             Assert.IsType<TransformNative>(go.transform.EngineState);
@@ -198,7 +198,7 @@ namespace OniMoono.Tests
             Assert.Same(rect, go.transform);
             Assert.Same(rect, s.transform);
             Assert.Same(rect, rect.EngineState.Managed);
-            Assert.Same(go.NativeRecord, rect.EngineState.GameObject);
+            Assert.Same(go, rect.EngineState.GameObject);
         }
 
         [Fact]

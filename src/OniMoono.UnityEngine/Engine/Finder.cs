@@ -8,16 +8,16 @@ namespace OniMoono.Engine
     internal static class Finder
     {
         /// Every GameObject in loaded scenes and DontDestroyOnLoad, in hierarchy order.
-        public static IEnumerable<GameObjectNative> AllSceneGameObjects() => Collect(activeOnly: false);
+        public static IEnumerable<GameObject> AllSceneGameObjects() => Collect(activeOnly: false);
 
-        public static IEnumerable<GameObjectNative> ActiveGameObjects() => Collect(activeOnly: true);
+        public static IEnumerable<GameObject> ActiveGameObjects() => Collect(activeOnly: true);
 
         /// The scenes' GameObjects in hierarchy order (pre-order from each root), collected before
         /// they are returned so callers may change the hierarchy. With activeOnly, inactive
         /// subtrees are skipped whole: no descendant of an inactive object is active.
-        static List<GameObjectNative> Collect(bool activeOnly)
+        static List<GameObject> Collect(bool activeOnly)
         {
-            var result = new List<GameObjectNative>();
+            var result = new List<GameObject>();
             var stack = new Stack<TransformNative>();
             foreach (var scene in Scenes.WithDontDestroyOnLoad())
                 foreach (var root in scene.Roots.ToArray())
@@ -88,7 +88,7 @@ namespace OniMoono.Engine
             // the original: a scene object found before a later DontDestroyOnLoad one and after an
             // earlier one, and an object deactivated and activated again found after one activated
             // in between).
-            GameObjectNative first = null;
+            GameObject first = null;
             foreach (var go in ActiveGameObjects())
                 if (go.Name == name && (first is null || go.ActivatedAt < first.ActivatedAt)) first = go;
             return (GameObject)first?.Managed;

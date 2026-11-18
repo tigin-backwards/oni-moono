@@ -55,14 +55,13 @@ namespace OniMoono.Tests
         /// gameObject read, so until then a walk of a component as Component finds it null and
         /// throws (after it, the walk would go round the object's components back to the start).
         /// The component's other engine fields are declared after it, so the walk meets it first.
-        /// A walk of an object that has a record (a GameObject, a transform, an engine component)
-        /// as UnityEngine.Object goes from the record (Object.m_Native) back to the object and
-        /// overflows the stack. Scripts have no record since the merge of step 2 (before it, a
-        /// script walked as Object did the same).
+        /// A walk of an object that has a record (a transform, an engine component) as
+        /// UnityEngine.Object goes from the record (Object.m_Native) back to the object and
+        /// overflows the stack. Scripts have no record since step 2 of the merge and GameObjects
+        /// since step 3 (before them, those walked as Object did the same).
         static readonly string[] KnownCycles =
         [
             "Component: throws, a null GameObject: Component.m_GameObject",
-            "Object: GameObject: Object.m_Native -> NativeObject.Managed",
             "Object: Transform: Object.m_Native -> NativeObject.Managed",
             "WalkedBehaviour: throws, a null GameObject: WalkedBehaviour.other -> Component.m_GameObject",
         ];
@@ -83,7 +82,8 @@ namespace OniMoono.Tests
                 if (c) roots.Add((type, c));
             }
             Assert.True(roots.Count > 20, $"{roots.Count} components added");
-            roots.Add((typeof(GameObject), go));
+            // A GameObject-typed field: SetFont walks each component by its actual type.
+            foreach (var c in go.GetComponents<Component>()) roots.Add((c.GetType(), c));
             roots.Add((typeof(Transform), child.transform));
             var rect = new GameObject("rect", typeof(RectTransform));
             rect.transform.SetParent(go.transform);

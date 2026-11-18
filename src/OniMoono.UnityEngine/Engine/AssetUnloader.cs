@@ -59,10 +59,9 @@ namespace OniMoono.Engine
             if (o.EngineDestroyed || o.EngineDestroyRequested) return false;
             if ((o.EngineHideFlags & HideFlags.DontUnloadUnusedAsset) != 0) return false;
             if (o is Component c) return c.EngineIsPersistent && c.EngineGameObject is { Scene: null };
+            if (o is GameObject go) return go.IsPersistent && go.Scene == null;
             switch (o.NativeRecord)
             {
-                case GameObjectNative go:
-                    return go.IsPersistent && go.Scene == null;
                 case AssetBundleNative:
                     return false;
                 case null:

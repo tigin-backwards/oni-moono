@@ -11,21 +11,19 @@ namespace UnityEngine
         public GameObject(string name)
         {
             Threads.AssertMainThread("GameObject constructor");
+            InitEngineState();
             Lifecycle.CreateGameObject(this, name, null);
         }
 
         public GameObject(string name, params Type[] components)
         {
             Threads.AssertMainThread("GameObject constructor");
+            InitEngineState();
             Lifecycle.CreateGameObject(this, name, components);
         }
 
-        /// Engine constructor: the caller binds a native record (deserialization, cloning).
-        internal GameObject(NativeObject native) : base() => Bind(native);
 
-        internal GameObjectNative GameObjectNative => (GameObjectNative)NativeOrThrow;
-
-        public Transform transform => (Transform)GameObjectNative.Components[0];
+        public UnityEngine.Transform transform => (UnityEngine.Transform)GameObjectNative.Components[0];
 
         public GameObject gameObject => this;
 
@@ -95,59 +93,59 @@ namespace UnityEngine
             return Lifecycle.AddComponent(GameObjectNative, componentType);
         }
 
-        public T GetComponent<T>() => Components.First<T>(GameObjectNative);
-        public Component GetComponent(Type type) => (Component)Components.First(GameObjectNative, type);
-        public Component GetComponent(string type) => Components.FirstByName(GameObjectNative, type);
+        public T GetComponent<T>() => OniMoono.Engine.Components.First<T>(GameObjectNative);
+        public Component GetComponent(Type type) => (Component)OniMoono.Engine.Components.First(GameObjectNative, type);
+        public Component GetComponent(string type) => OniMoono.Engine.Components.FirstByName(GameObjectNative, type);
 
         public bool TryGetComponent<T>(out T component)
         {
-            component = Components.First<T>(GameObjectNative);
+            component = OniMoono.Engine.Components.First<T>(GameObjectNative);
             return component != null;
         }
 
         public bool TryGetComponent(Type type, out Component component)
         {
-            component = (Component)Components.First(GameObjectNative, type);
+            component = (Component)OniMoono.Engine.Components.First(GameObjectNative, type);
             return component != null;
         }
 
-        public T[] GetComponents<T>() => Components.AllArray<T>(GameObjectNative);
+        public T[] GetComponents<T>() => OniMoono.Engine.Components.AllArray<T>(GameObjectNative);
 
         public Component[] GetComponents(Type type)
         {
             var list = new List<Component>();
-            Components.All(GameObjectNative, type, list);
+            OniMoono.Engine.Components.All(GameObjectNative, type, list);
             return list.ToArray();
         }
 
         public void GetComponents<T>(List<T> results)
         {
             results.Clear();
-            Components.All(GameObjectNative, results);
+            OniMoono.Engine.Components.All(GameObjectNative, results);
         }
 
         public void GetComponents(Type type, List<Component> results)
         {
             results.Clear();
-            Components.All(GameObjectNative, type, results);
+            OniMoono.Engine.Components.All(GameObjectNative, type, results);
         }
 
         public T GetComponentInChildren<T>() => GetComponentInChildren<T>(false);
-        public T GetComponentInChildren<T>(bool includeInactive) => (T)(object)Components.InChildren(GameObjectNative, typeof(T), includeInactive);
+        public T GetComponentInChildren<T>(bool includeInactive) => (T)(object)OniMoono.Engine.Components.InChildren(GameObjectNative, typeof(T), includeInactive);
         public Component GetComponentInChildren(Type type) => GetComponentInChildren(type, false);
-        public Component GetComponentInChildren(Type type, bool includeInactive) => (Component)Components.InChildren(GameObjectNative, type, includeInactive);
+        public Component GetComponentInChildren(Type type, bool includeInactive) => (Component)OniMoono.Engine.Components.InChildren(GameObjectNative, type, includeInactive);
 
         public T GetComponentInParent<T>() => GetComponentInParent<T>(false);
-        public T GetComponentInParent<T>(bool includeInactive) => (T)(object)Components.InParent(GameObjectNative, typeof(T), includeInactive);
+        public T GetComponentInParent<T>(bool includeInactive) => (T)(object)OniMoono.Engine.Components.InParent(GameObjectNative, typeof(T), includeInactive);
         public Component GetComponentInParent(Type type) => GetComponentInParent(type, false);
-        public Component GetComponentInParent(Type type, bool includeInactive) => (Component)Components.InParent(GameObjectNative, type, includeInactive);
+        public Component GetComponentInParent(Type type, bool includeInactive) => (Component)OniMoono.Engine.Components.InParent(GameObjectNative, type, includeInactive);
 
         public T[] GetComponentsInChildren<T>() => GetComponentsInChildren<T>(false);
 
         public T[] GetComponentsInChildren<T>(bool includeInactive)
         {
             var list = new List<T>();
-            Components.AllInChildren(GameObjectNative, typeof(T), includeInactive, list);
+            OniMoono.Engine.Components.AllInChildren(GameObjectNative, typeof(T), includeInactive, list);
             return list.ToArray();
         }
 
@@ -156,7 +154,7 @@ namespace UnityEngine
         public void GetComponentsInChildren<T>(bool includeInactive, List<T> results)
         {
             results.Clear();
-            Components.AllInChildren(GameObjectNative, typeof(T), includeInactive, results);
+            OniMoono.Engine.Components.AllInChildren(GameObjectNative, typeof(T), includeInactive, results);
         }
 
         public Component[] GetComponentsInChildren(Type type) => GetComponentsInChildren(type, false);
@@ -164,7 +162,7 @@ namespace UnityEngine
         public Component[] GetComponentsInChildren(Type type, bool includeInactive)
         {
             var list = new List<Component>();
-            Components.AllInChildren(GameObjectNative, type, includeInactive, list);
+            OniMoono.Engine.Components.AllInChildren(GameObjectNative, type, includeInactive, list);
             return list.ToArray();
         }
 
@@ -173,14 +171,14 @@ namespace UnityEngine
         public T[] GetComponentsInParent<T>(bool includeInactive)
         {
             var list = new List<T>();
-            Components.AllInParent(GameObjectNative, typeof(T), includeInactive, list);
+            OniMoono.Engine.Components.AllInParent(GameObjectNative, typeof(T), includeInactive, list);
             return list.ToArray();
         }
 
         public void GetComponentsInParent<T>(bool includeInactive, List<T> results)
         {
             results.Clear();
-            Components.AllInParent(GameObjectNative, typeof(T), includeInactive, results);
+            OniMoono.Engine.Components.AllInParent(GameObjectNative, typeof(T), includeInactive, results);
         }
 
         public Component[] GetComponentsInParent(Type type) => GetComponentsInParent(type, false);
@@ -188,7 +186,7 @@ namespace UnityEngine
         public Component[] GetComponentsInParent(Type type, bool includeInactive)
         {
             var list = new List<Component>();
-            Components.AllInParent(GameObjectNative, type, includeInactive, list);
+            OniMoono.Engine.Components.AllInParent(GameObjectNative, type, includeInactive, list);
             return list.ToArray();
         }
 

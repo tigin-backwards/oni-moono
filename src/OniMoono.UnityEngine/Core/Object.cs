@@ -155,6 +155,13 @@ namespace UnityEngine
             Volatile.Write(ref m_CachedPtr, ObjectTable.Register(this));
         }
 
+        /// The binding of an object that keeps all its state itself (a GameObject).
+        internal void BindAsGameObject()
+        {
+            if (m_EngineInstanceId == 0) m_EngineInstanceId = ObjectTable.NewInstanceId(m_EngineIsPersistent);
+            Volatile.Write(ref m_CachedPtr, ObjectTable.Register(this));
+        }
+
         /// Detaches from the native record: from now on this object compares equal to null.
         internal virtual void Unbind()
         {
@@ -214,11 +221,13 @@ namespace UnityEngine
             get
             {
                 if (this is Component c) return c.EngineGameObjectOrThrow.Name;
+                if (this is GameObject go) return go.GameObjectNative.Name;
                 return NativeOrThrow.Name;
             }
             set
             {
                 if (this is Component c) c.EngineGameObjectOrThrow.Name = value ?? "";
+                else if (this is GameObject go) go.GameObjectNative.Name = value ?? "";
                 else NativeOrThrow.Name = value ?? "";
             }
         }
@@ -240,7 +249,7 @@ namespace UnityEngine
         public override string ToString()
         {
             if (!Alive) return "null";
-            return (this is Component c ? c.EngineGameObject.Name : m_Native.Name) + " (" + GetType().FullName + ")";
+            return (this is Component c ? c.EngineGameObject.Name : this is GameObject go ? go.Name : m_Native.Name) + " (" + GetType().FullName + ")";
         }
 
         // Inlined into callers: the game null-checks objects everywhere (1.4% of a large colony's

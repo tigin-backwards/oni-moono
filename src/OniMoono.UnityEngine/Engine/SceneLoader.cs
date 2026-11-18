@@ -70,7 +70,7 @@ namespace OniMoono.Engine
             firstSceneLoaded = true;
             var file = AssetSystem.Get("level" + index);
             ObjectLoader.BeginSceneFile(file, scene);
-            var gameObjects = new List<GameObjectNative>();
+            var gameObjects = new List<GameObject>();
             try
             {
                 int done = 0;
@@ -79,7 +79,7 @@ namespace OniMoono.Engine
                     Platform.MainThreadPump.Maybe();
                     if (index == 0) StartupProgress.PhaseFraction((double)done++ / file.Objects.Count);
                     var obj = ObjectLoader.Load(file, info.PathId);
-                    if (obj is GameObject go) gameObjects.Add((GameObjectNative)go.Native);
+                    if (obj is GameObject go) gameObjects.Add(go.Alive ? go : null);
                 }
             }
             finally
@@ -108,8 +108,8 @@ namespace OniMoono.Engine
         /// engine components, then scripts in script execution order (load order within an order).
         static void Activate(SceneRecord scene)
         {
-            var active = new List<GameObjectNative>();
-            void Walk(GameObjectNative go, bool parentActive)
+            var active = new List<GameObject>();
+            void Walk(GameObject go, bool parentActive)
             {
                 go.ActiveInHierarchy = parentActive && go.ActiveSelf;
                 if (go.ActiveInHierarchy) active.Add(go);
@@ -132,7 +132,7 @@ namespace OniMoono.Engine
         static void Unload(SceneRecord scene, bool notify)
         {
             foreach (var root in scene.Roots.ToArray())
-                if (root.Managed && root.Managed.Native is not null) Lifecycle.DestroyNow(root.Managed, unloading: true);
+                if (root.Alive) Lifecycle.DestroyNow(root, unloading: true);
             if (notify) UnityEngine.SceneManagement.SceneManager.RaiseSceneUnloaded(scene);
             Scenes.Remove(scene);
         }

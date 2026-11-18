@@ -48,7 +48,7 @@ namespace UnityEngine
             return list;
         }
 
-        static void AddChildren(GameObjectNative go, List<ParticleSystemNative> list)
+        static void AddChildren(GameObject go, List<ParticleSystemNative> list)
         {
             foreach (var child in go.Transform.Children)
                 foreach (var c in child.GameObject.Components)

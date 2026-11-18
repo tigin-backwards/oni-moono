@@ -99,7 +99,7 @@ namespace OniMoono.Engine.Serialization
         static Object InstantiateHierarchy(Object original, Transform parent, bool worldPositionStays, Vector3? position, Quaternion? rotation, CloneContext context)
         {
             var rootOriginal = original as GameObject ?? ((Component)original).gameObject;
-            var rootNative = (GameObjectNative)rootOriginal.NativeOrThrow;
+            var rootNative = rootOriginal.GameObjectNative;
             var remap = context.Remap;
 
             // 1. Structure: GameObjects, transforms and components, without lifecycle calls.
@@ -167,9 +167,9 @@ namespace OniMoono.Engine.Serialization
             Hierarchy.Touch(parent);
         }
 
-        static GameObjectNative CloneStructure(GameObjectNative src, TransformNative parentClone, Dictionary<Object, Object> remap)
+        static GameObject CloneStructure(GameObject src, TransformNative parentClone, Dictionary<Object, Object> remap)
         {
-            var go = new GameObjectNative
+            var go = new GameObject(default(GameObject.EngineMade))
             {
                 Name = src.Name,
                 HideFlags = src.HideFlags,
@@ -178,8 +178,7 @@ namespace OniMoono.Engine.Serialization
                 ActiveSelf = src.ActiveSelf,
                 IsStatic = src.IsStatic,
             };
-            var goManaged = new GameObject(go);
-            remap[src.Managed] = goManaged;
+            remap[src] = go;
 
             var components = src.Components;
             var clones = new Component[components.Length];

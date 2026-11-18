@@ -53,7 +53,7 @@ namespace OniMoono.Engine.UI
         public static void Write(string path)
         {
             var text = new StringBuilder();
-            var paths = new Dictionary<GameObjectNative, string>(ReferenceEqualityComparer.Instance);
+            var paths = new Dictionary<GameObject, string>(ReferenceEqualityComparer.Instance);
             int elements = 0;
             foreach (var go in Finder.ActiveGameObjects())
             {

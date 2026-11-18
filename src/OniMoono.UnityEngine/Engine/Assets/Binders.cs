@@ -15,7 +15,7 @@ namespace OniMoono.Engine.Assets
         public override Object Create(LoadRequest request)
         {
             var f = request.ReadNative();
-            var native = new GameObjectNative
+            var native = new GameObject(default(GameObject.EngineMade))
             {
                 Name = f.String("m_Name"),
                 Layer = (int)f.Get<uint>("m_Layer"),
@@ -23,12 +23,12 @@ namespace OniMoono.Engine.Assets
                 ActiveSelf = f.Get<bool>("m_IsActive"),
                 Serialized = f,
             };
-            return new GameObject(native);
+            return native;
         }
 
         public override void Fill(Object obj, LoadRequest request)
         {
-            var native = (GameObjectNative)obj.NativeOrThrow;
+            var native = ((GameObject)obj).GameObjectNative;
             var pairs = native.Serialized.Array("m_Component");
             var components = new List<Component>(pairs.Length);
             foreach (Fields pair in pairs)
@@ -70,7 +70,7 @@ namespace OniMoono.Engine.Assets
             var native = (TransformNative)obj.NativeOrThrow;
             var f = native.Serialized;
             native.Serialized = null;
-            ((Component)obj).SetEngineGameObject((GameObjectNative)request.Resolver.Resolve(f.PPtr("m_GameObject")).NativeOrThrow);
+            ((Component)obj).SetEngineGameObject(((GameObject)request.Resolver.Resolve(f.PPtr("m_GameObject"))).GameObjectNative);
             var parent = request.Resolver.Resolve(f.PPtr("m_Father")) as Transform;
             native.Parent = !parent ? null : (TransformNative)parent.EngineStateOrThrow;
             var children = f.Array("m_Children");
@@ -142,7 +142,7 @@ namespace OniMoono.Engine.Assets
             pending.TryGetValue(obj, out var p);
             pending.Remove(obj);
             if (obj is Component component)
-                component.SetEngineGameObject((GameObjectNative)request.Resolver.Resolve(p.Base.PPtr("m_GameObject")).NativeOrThrow);
+                component.SetEngineGameObject(((GameObject)request.Resolver.Resolve(p.Base.PPtr("m_GameObject"))).GameObjectNative);
             if (obj is MissingScript)
             {
                 // Its data has no class to go to.
@@ -219,7 +219,7 @@ namespace OniMoono.Engine.Assets
                 unbound.TryGetValue(obj, out f);
                 unbound.Remove(obj);
             }
-            component.SetEngineGameObject((GameObjectNative)request.Resolver.Resolve(f.PPtr("m_GameObject")).NativeOrThrow);
+            component.SetEngineGameObject(((GameObject)request.Resolver.Resolve(f.PPtr("m_GameObject"))).GameObjectNative);
             native?.Bind(f, request.Resolver);
         }
     }

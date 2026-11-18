@@ -1,4 +1,5 @@
 using System;
+using GameObject = UnityEngine.GameObject;
 
 namespace OniMoono.Engine.UI
 {
@@ -18,7 +19,7 @@ namespace OniMoono.Engine.UI
             if (++rects % 1000000 == 0) Line();
         }
 
-        public static void Nearest(GameObjectNative go, CanvasNative kept, CanvasNative fresh)
+        public static void Nearest(GameObject go, CanvasNative kept, CanvasNative fresh)
         {
             if (!ReferenceEquals(kept, fresh))
                 EngineLog.Engine($"ui caches wrong ({++nearestWrong}): nearest canvas of {go.Name} kept {kept?.GameObject?.Name}, found {fresh?.GameObject?.Name}");

@@ -25,8 +25,9 @@ namespace OniMoono.Engine
 
         public static void CreateGameObject(GameObject managed, string name, Type[] components)
         {
-            var native = new GameObjectNative { Name = name ?? "" };
-            managed.Bind(native);
+            var native = managed;
+            native.Name = name ?? "";
+            managed.BindAsGameObject();
             AttachTransform(native, typeof(Transform));
             var scene = Scenes.Active;
             if (scene != null)
@@ -40,7 +41,7 @@ namespace OniMoono.Engine
         }
 
         /// Creates the GameObject's Transform (or RectTransform) as component 0.
-        static Transform AttachTransform(GameObjectNative go, Type transformType)
+        static Transform AttachTransform(GameObject go, Type transformType)
         {
             var native = (TransformNative)ComponentNatives.Create(transformType);
             var t = (Transform)Object.ConstructComponent(transformType, native, new ComponentInit(go));
@@ -49,7 +50,7 @@ namespace OniMoono.Engine
             return t;
         }
 
-        public static Component AddComponent(GameObjectNative go, Type type)
+        public static Component AddComponent(GameObject go, Type type)
         {
             Platform.MainThreadPump.Maybe();
             if (type == null)
@@ -116,13 +117,13 @@ namespace OniMoono.Engine
             typeof(ParticleSystemRenderer),
         ];
 
-        static void RefuseSameType(GameObjectNative go, Type type) =>
+        static void RefuseSameType(GameObject go, Type type) =>
             EngineLog.Message(LogType.Log, $"Can't add component '{type.Name}' to {go.Name} because such a component is already added to the game object!", "");
 
         /// The class whose [DisallowMultipleComponent] refuses TYPE here, and the component in the
         /// way. The attribute covers the class declaring it and its subclasses, so the most basic
         /// declaring class decides; the second line of the message names it.
-        static (Type declaring, Component existing)? DisallowedBy(GameObjectNative go, Type type)
+        static (Type declaring, Component existing)? DisallowedBy(GameObject go, Type type)
         {
             Type declaring = null;
             for (var t = type; t != null && t != typeof(Component); t = t.BaseType)
@@ -134,7 +135,7 @@ namespace OniMoono.Engine
         }
 
         /// Constructs a component and appends it to the GameObject (no lifecycle calls).
-        public static Component CreateComponent(GameObjectNative go, Type type)
+        public static Component CreateComponent(GameObject go, Type type)
         {
             var native = ComponentNatives.Create(type);
             var init = new ComponentInit(go);
@@ -155,7 +156,7 @@ namespace OniMoono.Engine
 
         /// Replaces the GameObject's Transform with one of TYPE (Transform or RectTransform), keeping
         /// its local placement and its place in the hierarchy.
-        static Component ConvertTransform(GameObjectNative go, Type type)
+        static Component ConvertTransform(GameObject go, Type type)
         {
             var old = (Transform)go.Components[0];
             var oldNative = (TransformNative)old.EngineStateOrThrow;
@@ -183,13 +184,13 @@ namespace OniMoono.Engine
 
         // ---- Activation ----
 
-        public static bool ParentActive(GameObjectNative go)
+        public static bool ParentActive(GameObject go)
         {
             var parent = go.Transform.Parent;
             return parent is not null ? parent.GameObject.ActiveInHierarchy : go.Scene != null;
         }
 
-        public static void SetActive(GameObjectNative go, bool value)
+        public static void SetActive(GameObject go, bool value)
         {
             if (go.ActiveSelf == value) return;
             go.ActiveSelf = value;
@@ -198,27 +199,27 @@ namespace OniMoono.Engine
 
         /// Recomputes activeInHierarchy for a subtree after its activeSelf, parent or scene
         /// changed, and runs the resulting lifecycle callbacks.
-        public static void UpdateActiveInHierarchy(GameObjectNative go)
+        public static void UpdateActiveInHierarchy(GameObject go)
         {
             Hierarchy.Touch(go.Transform);
             ApplyActive(go, go.ActiveSelf && ParentActive(go));
         }
 
-        static void ApplyActive(GameObjectNative go, bool now)
+        static void ApplyActive(GameObject go, bool now)
         {
             if (now == go.ActiveInHierarchy) return;
-            var changed = ScratchList<GameObjectNative>.Rent();
+            var changed = ScratchList<GameObject>.Rent();
             try
             {
                 ApplyActive(go, now, changed);
             }
             finally
             {
-                ScratchList<GameObjectNative>.Return(changed);
+                ScratchList<GameObject>.Return(changed);
             }
         }
 
-        static void ApplyActive(GameObjectNative go, bool now, List<GameObjectNative> changed)
+        static void ApplyActive(GameObject go, bool now, List<GameObject> changed)
         {
             if (now)
             {
@@ -234,7 +235,7 @@ namespace OniMoono.Engine
             }
         }
 
-        static void CollectActive(GameObjectNative go, List<GameObjectNative> active)
+        static void CollectActive(GameObject go, List<GameObject> active)
         {
             if (!go.ActiveInHierarchy) return;
             active.Add(go);
@@ -249,7 +250,7 @@ namespace OniMoono.Engine
         /// deactivates one of them disables it there and then (the walk then skips it).
         /// DetailCollapsableLabel.OnDisable hides its content rows, later siblings, only while
         /// they still read active (issue #23).
-        static void DeactivateTree(GameObjectNative go)
+        static void DeactivateTree(GameObject go)
         {
             if (!go.ActiveInHierarchy) return;
             go.ActiveInHierarchy = false;
@@ -266,10 +267,10 @@ namespace OniMoono.Engine
         /// uGUI's LayoutRebuilder listens and marks the layout around each one, which is how a
         /// layout group re-lays out when a child without a Graphic or layout element appears or
         /// disappears (the build menu's search results).
-        static void ReapplyDrivenOnActivation(TransformNative t, List<GameObjectNative> changed)
+        static void ReapplyDrivenOnActivation(TransformNative t, List<GameObject> changed)
         {
             if (changed.Count == 0) return;
-            var set = changed.Count == 1 ? null : new HashSet<GameObjectNative>(changed, ReferenceEqualityComparer.Instance);
+            var set = changed.Count == 1 ? null : new HashSet<GameObject>(changed, ReferenceEqualityComparer.Instance);
             void PostOrder(TransformNative n)
             {
                 foreach (var child in n.Children)
@@ -287,7 +288,7 @@ namespace OniMoono.Engine
         /// SetActive): engine components first, then scripts in script execution order, hierarchy
         /// order within an order. A component whose GameObject an earlier callback deactivated
         /// is skipped.
-        public static void AwakeAndEnableAll(List<GameObjectNative> activated)
+        public static void AwakeAndEnableAll(List<GameObject> activated)
         {
             var scripts = ScratchList<(Component c, int order, int seq)>.Rent();
             try
@@ -300,7 +301,7 @@ namespace OniMoono.Engine
             }
         }
 
-        static void AwakeAndEnableAll(List<GameObjectNative> activated, List<(Component c, int order, int seq)> scripts)
+        static void AwakeAndEnableAll(List<GameObject> activated, List<(Component c, int order, int seq)> scripts)
         {
             int seq = 0;
             foreach (var g in activated)
@@ -314,7 +315,7 @@ namespace OniMoono.Engine
                 if (c.Alive && c.EngineGameObject.ActiveInHierarchy) AwakeAndEnable(c);
         }
 
-        static void SetFlags(GameObjectNative go, bool active, List<GameObjectNative> changed)
+        static void SetFlags(GameObject go, bool active, List<GameObject> changed)
         {
             bool now = active && go.ActiveSelf;
             if (now == go.ActiveInHierarchy) return;
@@ -446,7 +447,7 @@ namespace OniMoono.Engine
         }
 
         /// Coroutines stop when their GameObject is deactivated (not when the behaviour is disabled).
-        static void StopCoroutinesOn(GameObjectNative go)
+        static void StopCoroutinesOn(GameObject go)
         {
             foreach (var c in go.Components)
                 if (c is MonoBehaviour mb && mb.Alive && mb.EngineCoroutines is { Count: > 0 })
@@ -522,7 +523,7 @@ namespace OniMoono.Engine
             switch (obj)
             {
                 case GameObject go:
-                    var native = (GameObjectNative)go.NativeRecord;
+                    var native = go;
                     DisableComponentsForDestroy(native);
                     foreach (var child in native.Transform.Children) DisableComponentsForDestroy(child.GameObject);
                     break;
@@ -535,7 +536,7 @@ namespace OniMoono.Engine
             }
         }
 
-        static void DisableComponentsForDestroy(GameObjectNative g)
+        static void DisableComponentsForDestroy(GameObject g)
         {
             foreach (var c in g.Components)
                 if (c.Alive)
@@ -597,7 +598,7 @@ namespace OniMoono.Engine
             switch (obj)
             {
                 case GameObject go:
-                    DestroyGameObject((GameObjectNative)go.NativeRecord, unloading);
+                    DestroyGameObject(go, unloading);
                     break;
                 case Transform:
                     Debug.LogError("Destroying the transform component is not permitted. Destroy the GameObject instead.");
@@ -620,7 +621,7 @@ namespace OniMoono.Engine
             }
         }
 
-        static void DestroyGameObject(GameObjectNative go, bool unloading)
+        static void DestroyGameObject(GameObject go, bool unloading)
         {
             var t = go.Transform;
             // 0. The destroyed object itself turns inactive (activeSelf false) before its
@@ -646,15 +647,15 @@ namespace OniMoono.Engine
             DestroySubtree(go);
         }
 
-        static void DeactivateForDestroy(GameObjectNative go) => DeactivateTree(go);
+        static void DeactivateForDestroy(GameObject go) => DeactivateTree(go);
 
         /// OnDestroy for every component of the subtree first, then the objects are released:
         /// while the callbacks run, every object of the subtree is still alive (OnDestroy code
         /// looks up sibling components, as in Unity).
-        static void DestroySubtree(GameObjectNative root)
+        static void DestroySubtree(GameObject root)
         {
             var released = ScratchList<Object>.Rent();
-            void Callbacks(GameObjectNative go)
+            void Callbacks(GameObject go)
             {
                 if (go.Destroyed) return;
                 go.Destroyed = true;

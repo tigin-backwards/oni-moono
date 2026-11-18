@@ -171,16 +171,16 @@ namespace OniMoono.Engine.UI
 
         static bool IsLive(CanvasNative c) => c.IsActiveAndEnabledState && !c.Destroyed;
 
-        static CanvasNative CanvasOn(GameObjectNative go) => PartsOf(go).Canvas is { } c && IsLive(c) ? c : null;
+        static CanvasNative CanvasOn(GameObject go) => PartsOf(go).Canvas is { } c && IsLive(c) ? c : null;
 
         /// A GameObject's canvas, enabled or not.
-        internal static CanvasNative AnyCanvasOn(GameObjectNative go) => PartsOf(go).Canvas is { } c && !c.Destroyed ? c : null;
+        internal static CanvasNative AnyCanvasOn(GameObject go) => PartsOf(go).Canvas is { } c && !c.Destroyed ? c : null;
 
         /// A GameObject's canvas components, found once per component list: GameObject.Components
         /// is copy-on-write, so the list is the same array until a component is added or removed.
         /// The canvas walks run every frame over the whole UI; their state (enabled, destroyed,
         /// alpha) is read from the components each time.
-        static UiParts PartsOf(GameObjectNative go)
+        static UiParts PartsOf(GameObject go)
         {
             var parts = go.UiParts;
             var components = go.Components;
@@ -240,7 +240,7 @@ namespace OniMoono.Engine.UI
         /// they would belong to above it: one on an object above it, up to its nearest live canvas
         /// (a graphic's canvas is the nearest live one; uGUI's GraphicRaycaster tests the graphics
         /// of its own canvas). False when the object has a live canvas of its own.
-        static bool RaycasterAbove(GameObjectNative go)
+        static bool RaycasterAbove(GameObject go)
         {
             if (CanvasOn(go) is not null) return false;
             for (var t = go.Transform.Parent; t is not null; t = t.Parent)
@@ -290,7 +290,7 @@ namespace OniMoono.Engine.UI
         /// hierarchy is unchanged (Hierarchy.Touches: parents, activation, components and their
         /// enabled state, which decide which canvases are live), so a mask's pass, which asks for
         /// every graphic it clips each frame (CanvasRenderer.hasMoved), walks each object once.
-        public static CanvasNative NearestCanvas(GameObjectNative go)
+        public static CanvasNative NearestCanvas(GameObject go)
         {
             if (go is null) return null;
             long touches = Hierarchy.Touches + 1; // never 0, the mark of none kept
@@ -306,7 +306,7 @@ namespace OniMoono.Engine.UI
         }
 
         /// The nearest live canvas found by walking up, for the verify mode.
-        static CanvasNative WalkNearestCanvas(GameObjectNative go)
+        static CanvasNative WalkNearestCanvas(GameObject go)
         {
             for (var t = go.Transform; t is not null; t = t.Parent)
                 if (CanvasOn(t.GameObject) is { } c) return c;
@@ -777,7 +777,7 @@ namespace OniMoono.Engine.UI
         /// and log differences.
         static readonly List<CanvasRendererNative> popRenderers = new();
 
-        static void Collect(CanvasBatch batch, GameObjectNative go, CanvasNative space, bool isBatchRoot, Counter depth,
+        static void Collect(CanvasBatch batch, GameObject go, CanvasNative space, bool isBatchRoot, Counter depth,
             CanvasNative nearest, Matrix4x4 worldToNearest, long nearestStamp, Matrix4x4 parentToNearest, long parentStamp, float groupAlpha, bool blocksRaycasts)
         {
             if (!go.ActiveInHierarchy) return;
@@ -942,7 +942,7 @@ namespace OniMoono.Engine.UI
         /// would not stop the raycast).
         internal static bool OutOfSight(GameObject gameObject)
         {
-            if (!clipOutOfSight || !gameObject || gameObject.Native is not GameObjectNative go) return false;
+            if (!clipOutOfSight || !gameObject || gameObject is not { Alive: true } go) return false;
             for (var t = go.Transform; t is not null; t = t.Parent)
             {
                 var o = t.GameObject;
@@ -956,7 +956,7 @@ namespace OniMoono.Engine.UI
         /// canvases), and a raycast from below it meets a group that stops raycasts (as a
         /// graphic's raycast looks up: groups up to one that ignores its parents, stopping at a
         /// canvas that sorts on its own).
-        static bool HiddenTop(GameObjectNative top) => InheritedGroups(top).Alpha <= 0f && !Reachable(top);
+        static bool HiddenTop(GameObject top) => InheritedGroups(top).Alpha <= 0f && !Reachable(top);
 
         static long unreachablePass, unreachableTouches = -1;
 
@@ -967,7 +967,7 @@ namespace OniMoono.Engine.UI
         /// nothing once a group has, are not asked.
         internal static bool Unreachable(GameObject gameObject)
         {
-            if (!raycastOutOfSight || !gameObject || gameObject.Native is not GameObjectNative go) return false;
+            if (!raycastOutOfSight || !gameObject || gameObject is not { Alive: true } go) return false;
             if (unreachableTouches != Hierarchy.Touches)
             {
                 unreachableTouches = Hierarchy.Touches;
@@ -976,7 +976,7 @@ namespace OniMoono.Engine.UI
             return Unreachable(go, unreachablePass);
         }
 
-        static bool Unreachable(GameObjectNative o, long pass)
+        static bool Unreachable(GameObject o, long pass)
         {
             if (o.UnreachablePass == pass) return o.Unreachable;
             bool answer;
@@ -1014,13 +1014,13 @@ namespace OniMoono.Engine.UI
         /// its own and any group that ignores its parents).
         internal static void VerifyOutOfSight(GameObject gameObject)
         {
-            if (!gameObject || gameObject.Native is not GameObjectNative go) return;
+            if (!gameObject || gameObject is not { Alive: true } go) return;
             if (InheritedGroups(go).Alpha > 0f || Reachable(go))
                 EngineLog.Engine($"canvas skip wrong ({++clipSkipsWrong}): {go.Name}, clipped out of sight, can be drawn or hit");
             if (++clipSkipsVerified % 100000 == 0) EngineLog.Engine($"canvas skips: {clipSkipsVerified} graphics skipped by masks, {clipSkipsWrong} wrong");
         }
 
-        static bool Reachable(GameObjectNative go)
+        static bool Reachable(GameObject go)
         {
             bool groupsIgnored = false;
             for (var t = go.Transform; t is not null; t = t.Parent)
@@ -1058,7 +1058,7 @@ namespace OniMoono.Engine.UI
 
         /// A skipped hidden subtree, as the walk would visit it: every element numbered by the
         /// batch's last renumbering and no live group that ignores its parents.
-        static void VerifySkipped(CanvasNative batch, GameObjectNative go, bool isTop, bool raycasters = false)
+        static void VerifySkipped(CanvasNative batch, GameObject go, bool isTop, bool raycasters = false)
         {
             if (isTop && ++skipsVerified % 10000 == 0) EngineLog.Engine($"canvas skips: {skipsVerified} verified, {skipsWrong} wrong");
             if (!go.ActiveInHierarchy) return;
@@ -1120,7 +1120,7 @@ namespace OniMoono.Engine.UI
         /// Group alpha inherited through CanvasGroups up to (and including) one that ignores its
         /// parents.
         /// The CanvasGroups' alpha at an object, and whether they let raycasts through.
-        internal static (float Alpha, bool BlocksRaycasts) InheritedGroups(GameObjectNative go)
+        internal static (float Alpha, bool BlocksRaycasts) InheritedGroups(GameObject go)
         {
             float alpha = 1f;
             bool blocks = true;

@@ -305,7 +305,7 @@ namespace UnityEngine
         }
 
         /// A TextMesh Pro text's object (ONI_RENDER_TIMING's counts).
-        static bool IsText(OniMoono.Engine.GameObjectNative go)
+        static bool IsText(GameObject go)
         {
             foreach (var c in go.Components)
                 if (c && c.GetType().Namespace == "TMPro") return true;
