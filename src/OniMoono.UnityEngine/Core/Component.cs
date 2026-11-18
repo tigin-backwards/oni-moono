@@ -88,8 +88,15 @@ namespace UnityEngine
         /// parameterless constructor): its state, then its slot.
         internal void BindComponent(ComponentNative state, in ComponentInit init)
         {
+            // What the record kept before it was bound first, then the starting state over it
+            // (Instantiate's copy of the source's hide flags, which a record of an engine
+            // component would otherwise put back to its own, none).
+            if (state is not null)
+            {
+                state.HandOver(this);
+                state.GameObject = init.GameObject;
+            }
             m_EngineGameObject = init.GameObject;
-            if (state is not null) state.GameObject = init.GameObject;
             EngineHideFlags = init.HideFlags;
             if (this is Behaviour b) b.InitBehaviour(in init);
             BindAsComponent(state);
