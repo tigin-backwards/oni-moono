@@ -24,16 +24,20 @@ namespace UnityEngine
         /// Its GameObject's record. Set before the constructor body runs, cleared when the
         /// component is destroyed (so a destroyed component the game keeps holds nothing of its
         /// object's hierarchy).
-        internal GameObjectNative EngineGameObject => m_EngineGameObject;
+        internal GameObject EngineGameObject
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Unsafe.As<GameObject>(m_EngineGameObject);
+        }
 
         /// EngineGameObject of a component that must be alive; throws Unity's error otherwise.
-        internal GameObjectNative EngineGameObjectOrThrow
+        internal GameObject EngineGameObjectOrThrow
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
                 if (!Alive) ThrowDestroyed();
-                return m_EngineGameObject;
+                return Unsafe.As<GameObject>(m_EngineGameObject);
             }
         }
 
@@ -74,7 +78,7 @@ namespace UnityEngine
         internal new NativeObject NativeOrThrow => throw new InvalidOperationException();
 
         /// A loaded component's GameObject, known once the component is filled (ObjectLoader).
-        internal void SetEngineGameObject(GameObjectNative go)
+        internal void SetEngineGameObject(GameObject go)
         {
             m_EngineGameObject = go;
             if (NativeRecord is ComponentNative state) state.GameObject = go;
@@ -111,7 +115,9 @@ namespace UnityEngine
         // (Lifecycle clears the cache). A destroyed component still throws, as before.
         GameObject m_GameObject;
         Transform m_Transform;
-        GameObjectNative m_EngineGameObject;
+        // Untyped: Localization.SetFont follows a GameObject-typed field into every component of
+        // that object, and m_GameObject is to stay the only one (SetFontWalkTests).
+        object m_EngineGameObject;
         bool m_EngineAwakeCalledForComponent;
         bool m_EngineEnableRan;
         bool m_EngineDestroyPending;
@@ -122,7 +128,7 @@ namespace UnityEngine
             {
                 var go = m_GameObject;
                 if (go is not null && Handle != IntPtr.Zero) return go;
-                return m_GameObject = (GameObject)EngineGameObjectOrThrow.Managed;
+                return m_GameObject = EngineGameObjectOrThrow;
             }
         }
 

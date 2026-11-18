@@ -43,7 +43,7 @@ namespace OniMoono.Engine.UI
             public void Take(Component canvas)
             {
                 count = 0;
-                if (!canvas || canvas.gameObject.Native is not GameObjectNative go || go.Transform is not { } t) return;
+                if (!canvas || canvas.gameObject is not { Alive: true } go || go.Transform is not { } t) return;
                 Add(go, go.SubtreeVersion, t.SubtreeMoves, t.WorldStamp);
                 AddNumbering(go);
                 for (var p = t.Parent; p is not null; p = p.Parent)
@@ -57,7 +57,7 @@ namespace OniMoono.Engine.UI
 
             // A canvas here: its numbering, which says whether the elements it numbered have a
             // depth (CanvasRendererNative.HasDepth).
-            void AddNumbering(GameObjectNative o)
+            void AddNumbering(GameObject o)
             {
                 if (CanvasSystem.AnyCanvasOn(o) is { } canvas) Add(canvas, canvas.DepthEpoch, 0, 0);
             }

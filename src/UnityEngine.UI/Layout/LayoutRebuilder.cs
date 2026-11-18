@@ -171,7 +171,7 @@ namespace UnityEngine.UI
 
         /// Whether the object's layout components are all known ones: kept with its component
         /// types' shared layout (ComponentLayout.LayoutKinds: 1 known, 2 not).
-        static bool KnownOn(OniMoono.Engine.GameObjectNative go)
+        static bool KnownOn(UnityEngine.GameObject go)
         {
             var layout = OniMoono.Engine.Components.LayoutFor(go);
             if (layout.LayoutKinds != 0) return layout.LayoutKinds == 1;

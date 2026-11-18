@@ -20,7 +20,7 @@ namespace OniMoono.Engine
         static readonly bool verify = Environment.GetEnvironmentVariable("ONI_VERIFY_COMPONENT_LAYOUTS") == "1";
 
         /// The layout of the object's current component list.
-        static ComponentLayout LayoutOf(GameObjectNative go, Component[] components)
+        static ComponentLayout LayoutOf(GameObject go, Component[] components)
         {
             var cached = go.Layout;
             if (cached != null && ReferenceEquals(cached.Source, components)) return cached.Layout;
@@ -31,10 +31,10 @@ namespace OniMoono.Engine
 
         /// The object's component layout (shared by every object with the same component types
         /// in the same order), for what the UI package keeps with it (LayoutKinds).
-        internal static ComponentLayout LayoutFor(GameObjectNative go) => LayoutOf(go, go.Components);
+        internal static ComponentLayout LayoutFor(GameObject go) => LayoutOf(go, go.Components);
 
         /// First component, in component order, assignable to `type` (classes or interfaces).
-        public static object First(GameObjectNative go, Type type)
+        public static object First(GameObject go, Type type)
         {
             var components = go.Components;
             var matches = LayoutOf(go, components).Matches(QueryIds.Of(type), type);
@@ -45,7 +45,7 @@ namespace OniMoono.Engine
 
         /// First<T> and All<T>: the generic queries the game makes constantly (GetComponent<T> is
         /// among its most frequent engine calls).
-        public static T First<T>(GameObjectNative go)
+        public static T First<T>(GameObject go)
         {
             var components = go.Components;
             var matches = LayoutOf(go, components).Matches(QueryIds.For<T>.Id, typeof(T));
@@ -61,7 +61,7 @@ namespace OniMoono.Engine
             return System.Runtime.CompilerServices.Unsafe.As<Component, T>(ref found);
         }
 
-        public static void All<T>(GameObjectNative go, List<T> results)
+        public static void All<T>(GameObject go, List<T> results)
         {
             var components = go.Components;
             var matches = LayoutOf(go, components).Matches(QueryIds.For<T>.Id, typeof(T));
@@ -81,7 +81,7 @@ namespace OniMoono.Engine
 
         /// All<T> into a new array of exactly the matches (GetComponents<T>()), with no list
         /// grown on the way: a save asks every saved object for its 30 or so components.
-        public static T[] AllArray<T>(GameObjectNative go)
+        public static T[] AllArray<T>(GameObject go)
         {
             var components = go.Components;
             var matches = LayoutOf(go, components).Matches(QueryIds.For<T>.Id, typeof(T));
@@ -101,7 +101,7 @@ namespace OniMoono.Engine
             return results;
         }
 
-        static void VerifyCount<T>(GameObjectNative go, Component[] components, int count)
+        static void VerifyCount<T>(GameObject go, Component[] components, int count)
         {
             int expected = 0;
             foreach (var c in components) if (c is T) expected++;
@@ -110,7 +110,7 @@ namespace OniMoono.Engine
 
         static long verified, wrong;
 
-        static void Verify(GameObjectNative go, Component[] components, Type type, Component found)
+        static void Verify(GameObject go, Component[] components, Type type, Component found)
         {
             Component expected = null;
             foreach (var c in components)
@@ -120,7 +120,7 @@ namespace OniMoono.Engine
         }
 
         /// Unity matches the component's class name (script or engine class).
-        public static Component FirstByName(GameObjectNative go, string typeName)
+        public static Component FirstByName(GameObject go, string typeName)
         {
             foreach (var c in go.Components)
             {
@@ -131,7 +131,7 @@ namespace OniMoono.Engine
             return null;
         }
 
-        public static void All(GameObjectNative go, Type type, IList results)
+        public static void All(GameObject go, Type type, IList results)
         {
             var components = go.Components;
             foreach (int i in LayoutOf(go, components).Matches(QueryIds.Of(type), type)) results.Add(components[i] is MissingScript ? null : components[i]);
@@ -142,13 +142,13 @@ namespace OniMoono.Engine
         /// active itself is skipped with its subtree, so activity is judged relative to the
         /// starting object (Unity's rule: the shipped MainMenu deactivates its DLC ad and then
         /// finds the ad's KButton with GetComponentInChildren).
-        public static object InChildren(GameObjectNative go, Type type, bool includeInactive)
+        public static object InChildren(GameObject go, Type type, bool includeInactive)
         {
             var found = First(go, type);
             return found ?? InDescendants(go, type, includeInactive);
         }
 
-        static object InDescendants(GameObjectNative go, Type type, bool includeInactive)
+        static object InDescendants(GameObject go, Type type, bool includeInactive)
         {
             foreach (var child in go.Transform.Children)
             {
@@ -160,13 +160,13 @@ namespace OniMoono.Engine
             return null;
         }
 
-        public static void AllInChildren(GameObjectNative go, Type type, bool includeInactive, IList results)
+        public static void AllInChildren(GameObject go, Type type, bool includeInactive, IList results)
         {
             All(go, type, results);
             AllInDescendants(go, type, includeInactive, results);
         }
 
-        static void AllInDescendants(GameObjectNative go, Type type, bool includeInactive, IList results)
+        static void AllInDescendants(GameObject go, Type type, bool includeInactive, IList results)
         {
             foreach (var child in go.Transform.Children)
             {
@@ -178,7 +178,7 @@ namespace OniMoono.Engine
         }
 
         /// This object, then its ancestors.
-        public static object InParent(GameObjectNative go, Type type, bool includeInactive)
+        public static object InParent(GameObject go, Type type, bool includeInactive)
         {
             for (var t = go.Transform; t is not null; t = t.Parent)
             {
@@ -190,7 +190,7 @@ namespace OniMoono.Engine
             return null;
         }
 
-        public static void AllInParent(GameObjectNative go, Type type, bool includeInactive, IList results)
+        public static void AllInParent(GameObject go, Type type, bool includeInactive, IList results)
         {
             for (var t = go.Transform; t is not null; t = t.Parent)
             {
@@ -241,7 +241,7 @@ namespace OniMoono.Engine
     /// SendMessage and BroadcastMessage.
     internal static class Messaging
     {
-        public static void Send(GameObjectNative go, string methodName, object value, bool hasValue, SendMessageOptions options)
+        public static void Send(GameObject go, string methodName, object value, bool hasValue, SendMessageOptions options)
         {
             Threads.AssertMainThread("SendMessage");
             bool received = false;
@@ -257,10 +257,10 @@ namespace OniMoono.Engine
                 Debug.LogError($"SendMessage {methodName} has no receiver!", (UnityEngine.Object)go.Managed);
         }
 
-        public static void Broadcast(GameObjectNative go, string methodName, object value, bool hasValue, SendMessageOptions options)
+        public static void Broadcast(GameObject go, string methodName, object value, bool hasValue, SendMessageOptions options)
         {
             bool received = false;
-            void Visit(GameObjectNative g)
+            void Visit(GameObject g)
             {
                 if (!g.ActiveInHierarchy) return;
                 foreach (var c in g.Components)

@@ -80,7 +80,7 @@ namespace OniMoono.Tests
             foreach (var t in typeof(Component).Assembly.GetTypes())
                 if (typeof(Component).IsAssignableFrom(t) && !t.IsGenericTypeDefinition) types.Add(t);
             foreach (var t in types) go.GetComponent(t);
-            var native = (GameObjectNative)go.NativeOrThrow;
+            var native = go.GameObjectNative;
             // Ids are global: every query type seen so far in the run has one.
             int ids = QueryIds.Count;
             Assert.True(native.Layout.Layout.TableLength <= 2 * Math.Max(ids, types.Count) + 2,

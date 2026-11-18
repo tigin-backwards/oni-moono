@@ -631,7 +631,7 @@ namespace OniMoono.Engine.Rendering
     internal sealed class MeshRendererNative : RendererNative
     {
         /// A MeshRenderer without a MeshFilter draws its GameObject's TextMesh.
-        public static OniMoono.Engine.Text.TextMeshNative TextMesh(GameObjectNative go)
+        public static OniMoono.Engine.Text.TextMeshNative TextMesh(GameObject go)
         {
             foreach (var c in go.Components)
                 if (c is TextMesh && c.EngineState is OniMoono.Engine.Text.TextMeshNative t) return t;
@@ -948,7 +948,7 @@ namespace OniMoono.Engine.Rendering
             {
                 int order = 0;
                 int found = -1;
-                void Visit(GameObjectNative go)
+                void Visit(GameObject go)
                 {
                     if (found >= 0) return;
                     foreach (var c in go.Components)

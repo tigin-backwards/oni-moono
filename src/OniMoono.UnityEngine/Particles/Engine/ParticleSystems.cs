@@ -71,7 +71,7 @@ namespace OniMoono.Engine.Particles
 
         static readonly ConcurrentDictionary<Type, Action<MonoBehaviour>> stoppedMessages = new();
 
-        static void SendStopped(GameObjectNative go)
+        static void SendStopped(GameObject go)
         {
             foreach (var c in go.Components)
             {

@@ -117,88 +117,20 @@ namespace OniMoono.Engine
     /// Identity of an object loaded from a file: the file and the object's pathID in it.
     internal readonly record struct AssetSource(string File, long PathId);
 
-    internal sealed class GameObjectNative : NativeObject
-    {
-        /// Component order as in Unity; [0] is always the Transform. Copy-on-write so that
-        /// worker threads can read it while the main thread mutates.
-        public Component[] Components
-        {
-            get => components;
-            set
-            {
-                components = value;
-                if (CullBoundsWatched) Rendering.FrameRenderer.BoundsInputsChanged(this);
-            }
-        }
-        Component[] components = System.Array.Empty<Component>();
-        /// A renderer of it keeps culling bounds that depend on its components (its mesh
-        /// filter's mesh): a change of them recomputes those bounds (FrameRenderer). Never
-        /// cleared.
-        public bool CullBoundsWatched;
-        public int Layer;
-        public string Tag = "Untagged";
-        public bool ActiveSelf = true;
-        /// Cached activeInHierarchy, maintained by activation changes.
-        public bool ActiveInHierarchy
-        {
-            get => activeInHierarchy;
-            set
-            {
-                if (value && !activeInHierarchy) ActivatedAt = ++activations;
-                activeInHierarchy = value;
-            }
-        }
-        bool activeInHierarchy;
-        /// When it last became active in its hierarchy, counting activations (main thread):
-        /// GameObject.Find returns the match activated first.
-        public long ActivatedAt;
-        static long activations;
-        /// Owning scene; null for prefab assets and other objects that are not in a scene.
-        public SceneRecord Scene;
-        public bool IsStatic;
-
-        /// The native side of Components[0].
-        public TransformNative Transform;
-        /// Slot in the owning scene's root list while a root, else -1 (SceneRoots).
-        public int RootSlot = -1;
-        /// Its canvas components, cached by CanvasSystem for the current Components array.
-        public UI.UiParts UiParts;
-        /// Its component types' shared layout, for the component list it was made for (Components).
-        public ComponentLayout.Cached Layout;
-        /// Changes below and at this object (Hierarchy.Touch).
-        public long SubtreeVersion;
-        /// Changes at this object itself (Hierarchy.Touch on its transform).
-        public long SelfVersion;
-        /// The SubtreeVersion at which CanvasSystem last walked this object as the top of a
-        /// subtree hidden by its CanvasGroups, finding no group that ignores its parents; -1 when
-        /// not known to be so.
-        public long CanvasHiddenAt = -1;
-        /// Likewise for the top of a hidden subtree whose groups let raycasts through, where the
-        /// walk found no enabled raycaster in it or above it to its nearest live canvas.
-        public long CanvasNoRaycastersAt = -1;
-        /// CanvasSystem.Unreachable's answer for this object, and the pass it was found in.
-        public long UnreachablePass;
-        public bool Unreachable;
-        /// CanvasSystem.NearestCanvas's answer for the object, and the Hierarchy.Touches it was
-        /// found at (0: none kept).
-        public long NearestCanvasAt;
-        public UI.CanvasNative NearestCanvas;
-    }
-
     /// What a component starts with, set before its constructor body runs (Object.ConstructComponent):
     /// its GameObject's record, its hide flags, and for a behaviour whether it starts disabled
     /// or without GUILayout and its script. Defaults are a component's: enabled, using
     /// GUILayout.
     internal struct ComponentInit
     {
-        public GameObjectNative GameObject;
+        public GameObject GameObject;
         public HideFlags HideFlags;
         public bool Disabled;
         public bool NoGUILayout;
         public ScriptInfo Script;
         public int ExecutionOrder;
 
-        public ComponentInit(GameObjectNative gameObject) : this() => GameObject = gameObject;
+        public ComponentInit(GameObject gameObject) : this() => GameObject = gameObject;
     }
 
     /// The record of an engine component (transforms, renderers, colliders, cameras…): the state
@@ -209,7 +141,7 @@ namespace OniMoono.Engine
     {
         /// The component's GameObject record, as the component's (set when it is bound, never
         /// changed): read here without going through the component.
-        public GameObjectNative GameObject;
+        public GameObject GameObject;
 
         public Component Component => Unsafe.As<Component>(Managed);
 

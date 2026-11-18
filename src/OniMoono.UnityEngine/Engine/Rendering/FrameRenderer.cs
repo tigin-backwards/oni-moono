@@ -176,7 +176,7 @@ namespace OniMoono.Engine.Rendering
 
         /// The GameObject's components, a mesh filter's mesh or the transform's world matrix
         /// changed: the culling bounds of its renderers are made again.
-        public static void BoundsInputsChanged(GameObjectNative go)
+        public static void BoundsInputsChanged(GameObject go)
         {
             foreach (var c in go.Components)
                 if (c?.EngineState is RendererNative r) BoundsChanged(r);
@@ -194,7 +194,7 @@ namespace OniMoono.Engine.Rendering
 
         /// A GameObject's layer changed: its candidate renderers move to that layer's list,
         /// keeping their place in the order.
-        public static void LayerChanged(GameObjectNative go)
+        public static void LayerChanged(GameObject go)
         {
             foreach (var c in go.Components)
             {
@@ -984,7 +984,7 @@ namespace OniMoono.Engine.Rendering
         static void SendToRendererObject(RendererNative r, Func<ScriptInfo, Action<MonoBehaviour>> select) => SendToEnabled(r.GameObject, select);
 
         /// Camera and render messages go to the enabled behaviours of an active GameObject.
-        static void SendToEnabled(GameObjectNative go, Func<ScriptInfo, Action<MonoBehaviour>> select)
+        static void SendToEnabled(GameObject go, Func<ScriptInfo, Action<MonoBehaviour>> select)
         {
             if (!go.ActiveInHierarchy) return;
             foreach (var c in go.Components)

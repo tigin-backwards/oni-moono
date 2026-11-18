@@ -112,7 +112,7 @@ namespace OniMoono.Engine.Assets
                     throw;
                 }
                 if (key.File.StartsWith("Resources/", StringComparison.Ordinal))
-                    lock (builtinLoads) builtinLoads.Add((key.File, pathId, type.ClassId, obj.GetType().Name, native is Rendering.ShaderNative shader ? shader.ShaderName : obj is Component ? "" : native.Name));
+                    lock (builtinLoads) builtinLoads.Add((key.File, pathId, type.ClassId, obj.GetType().Name, native is Rendering.ShaderNative shader ? shader.ShaderName : obj is Component ? "" : obj is GameObject go ? go.Name : native.Name));
                 return obj;
             }
             finally
