@@ -1,8 +1,8 @@
 # U60 review: overlay tweaks
 
 `fast-overlays` and `fast-overlay-textures` against U60 (761015, public test), from Klei's
-decompiled game code (U59 = `aa9baa00`, U60 = `4a63c523` in oni-versioning, paths under
-`OxygenNotIncluded/`) and the U60 assemblies. Static review and a U60 compile only: no player ran.
+decompiled game code (U59 = U59-744825, U60 = U60-761015 in oni-archives, paths under
+`raw/Assembly-CSharp/`) and the U60 assemblies. Static review and a U60 compile only: no player ran.
 
 Short version: Klei's U60 rewrite of the overlays does what each part of both tweaks did, or
 removes what it patches.

@@ -9,18 +9,18 @@ Nothing here has been run. Status of the port itself: [u60-inventory.md](u60-inv
 
 ## Method
 
-- **Changed methods.** The authoritative list is the IL fingerprint diff of the U59 release
-  against the U60 beta, as oni-versioning's README ("Beta against release") prescribes: `ilspycmd
-  -il` (11.1.0.9782) on `Assembly-CSharp.dll` and `Assembly-CSharp-firstpass.dll` from
-  `~/projects/oni-linux` (744825) and `~/projects/oni-linux-761015`, then
-  `scripts/il-fingerprint-diff.py a.il b.il --methods`. Assembly-CSharp: 1,412 types changed.
-  Firstpass: 2,148, of which 2,041 are the Epic Online Services binding (`Epic.*`) and 24
-  FuzzySharp; the other 83 were read one by one.
-- **Citations.** Read in the C# diff `git diff U59-744825 U60-761015`. `u60:File.cs:N` is a line
-  of `OxygenNotIncluded/File.cs` at tag U60-761015, `u59:` the same at U59-744825. Firstpass
-  files are not in oni-versioning: `fp60:`/`fp59:` are lines in
-  `~/projects/onimaxxing/decomp/u60-csharp-firstpass` and `u59-csharp-firstpass` (checked equal to
-  the tags for the files spot-checked). "new" means the U59 release has no counterpart.
+- **Changed methods.** The authoritative list is the IL fingerprint diff of the U59 release against
+  the U60 beta (in oni-archives, whose `norm` tree compares beta against release: `changed_members
+  U59-744825 U60-761015`): `ilspycmd -il` (11.1.0.9782) on `Assembly-CSharp.dll` and
+  `Assembly-CSharp-firstpass.dll` from `~/projects/oni-linux` (744825) and
+  `~/projects/oni-linux-761015`, then `scripts/il-fingerprint-diff.py a.il b.il --methods`.
+  Assembly-CSharp: 1,412 types changed. Firstpass: 2,148, of which 2,041 are the Epic Online
+  Services binding (`Epic.*`) and 24 FuzzySharp; the other 83 were read one by one.
+- **Citations.** Read in the C# diff of U59-744825 against U60-761015 (oni-archives).
+  `761015:raw/Assembly-CSharp/File.cs:N` is a line of that file at tag U60-761015, `744825:` the
+  same at U59-744825, and `Assembly-CSharp-firstpass` in place of `Assembly-CSharp` a firstpass
+  line. A bare `File.cs:N` is a U60 line; `761015:N` or `744825:N` after a file name is that
+  file's line at that build. "new" means the U59 release has no counterpart.
 - **Not used:** the U59-736385 → U60 beta-to-beta diff. U59 took hotfixes after its last beta, so
   that diff credits U60 with them. Every item of the baseline report found that way was checked
   against the method list above; all of them are in it.
@@ -156,9 +156,10 @@ Also changed: `ConduitFlowKAnimVisualizer.cs` (new); the `OverlayModes.ConduitMo
 strings `STRINGS/UI.cs` CONDUITFLOW.
 
 **Where:**
-- `fp60:KAnimBatchGroup.cs:179, 237, 291`; U59: `fp59:KAnimBatchGroup.cs:283`
-- `u60:ConduitFlowKAnimVisualizer.cs:4` on (new)
-- `u60:OverlayModes.cs:78-240`
+- `761015:raw/Assembly-CSharp-firstpass/KAnimBatchGroup.cs:179, 237, 291`; U59:
+  `744825:raw/Assembly-CSharp-firstpass/KAnimBatchGroup.cs:283`
+- `761015:raw/Assembly-CSharp/ConduitFlowKAnimVisualizer.cs:4` on (new)
+- `761015:raw/Assembly-CSharp/OverlayModes.cs:78-240`
 
 **Engine surface:**
 - a shader new to the game, run from Unity's shipped Vulkan programs and our GLSL path
@@ -205,8 +206,8 @@ raw-mineral kinds are used (six of them). The qa verify half runs with the final
 | Names | material, mesh and texture names | dropped |
 
 **Where:**
-- `fp60:KAnimBatchGroup.cs:453-470` (the pool)
-- `fp60:KAnimBatch.cs`
+- `761015:raw/Assembly-CSharp-firstpass/KAnimBatchGroup.cs:453-470` (the pool)
+- `761015:raw/Assembly-CSharp-firstpass/KAnimBatch.cs`
 - U59: no counterpart
 
 **Engine surface:**
@@ -251,10 +252,11 @@ so it is not compared.
 | Ground | `GroundRenderer.RenderAll` | removed |
 
 **Where:**
-- `u60:Timelapser.cs:314-430` (`Timelapser.CapturePng`, `ReadPixelsSync`, `QueueEncodeAndWrite`,
-  `FlushPendingScreenshots`); U59: `u59:Timelapser.cs:290-301`
-- `u60:SaveLoader.cs:930`
-- `u59:GroundRenderer.cs:511`
+- `761015:raw/Assembly-CSharp/Timelapser.cs:314-430` (`Timelapser.CapturePng`, `ReadPixelsSync`,
+  `QueueEncodeAndWrite`, `FlushPendingScreenshots`); U59:
+  `744825:raw/Assembly-CSharp/Timelapser.cs:290-301`
+- `761015:raw/Assembly-CSharp/SaveLoader.cs:930`
+- `744825:raw/Assembly-CSharp/GroundRenderer.cs:511`
 
 **Engine surface:**
 - AsyncGPUReadback on both renderers: row order, RGBA byte order, and when the callback runs
@@ -310,9 +312,10 @@ Also changed:
 - `Slideshow.DestroyCurrentSlideImage`, `RetiredColonyInfoScreen.OnForcedCleanUp`
 
 **Where:**
-- `u60:RetireColonyUtility.cs:474-508` (`RetireColonyUtility.LoadPreviewTexture`, `DownscaleToFit`,
-  `CreatePreviewSprite`); U59: `u59:RetireColonyUtility.cs:452-520`
-- `u60:LoadScreen.cs:1238-1276`
+- `761015:raw/Assembly-CSharp/RetireColonyUtility.cs:474-508`
+  (`RetireColonyUtility.LoadPreviewTexture`, `DownscaleToFit`, `CreatePreviewSprite`); U59:
+  `744825:raw/Assembly-CSharp/RetireColonyUtility.cs:452-520`
+- `761015:raw/Assembly-CSharp/LoadScreen.cs:1238-1276`
 
 **Engine surface:**
 - `Graphics.Blit` scaling with bilinear filtering
@@ -353,8 +356,9 @@ signatures). Window resize stays with the qa `resize` scenario.
 | Freeing | never freed | the third target and its copy destroyed when the coloured overlay buffer is off; all destroyed with the camera |
 
 **Where:**
-- `u60:MultipleRenderTargetProxy.cs:39-120` (`MultipleRenderTargetProxy.RecreateCopyRT`,
-  `DestroyRT`, `OnDestroy`); U59: `u59:MultipleRenderTargetProxy.cs:57`
+- `761015:raw/Assembly-CSharp/MultipleRenderTargetProxy.cs:39-120`
+  (`MultipleRenderTargetProxy.RecreateCopyRT`, `DestroyRT`, `OnDestroy`); U59:
+  `744825:raw/Assembly-CSharp/MultipleRenderTargetProxy.cs:57`
 
 **Engine surface:**
 - `Camera.SetTargetBuffers` with two, then three colour buffers
@@ -402,8 +406,8 @@ are not in the spec yet.
 - The overlay pixelation and the carpet gap have no code change found: data (materials or anims).
 
 **Where:**
-- `u60:TileVisualizer.cs:32`
-- `u60:VentController.cs:66-84`
+- `761015:raw/Assembly-CSharp/TileVisualizer.cs:32`
+- `761015:raw/Assembly-CSharp/VentController.cs:66-84`
 
 **Engine surface:**
 - block tile meshes
@@ -447,7 +451,7 @@ the new buildings' and Merpip's anims.
 - `Assets.LoadAnims` changed
 
 **Where:**
-- `u60:Assets.cs:237-266`
+- `761015:raw/Assembly-CSharp/Assets.cs:237-266`
 
 **Engine surface:**
 - our bundle reader, and kanim build/anim texture upload for files new to the data
@@ -493,9 +497,9 @@ modes and the geyser and Aquatuner heat icons.
 **Where:**
 - `GeyserGenericConfig.cs:196,204`, `AirConditionerConfig.cs:48`, `LiquidHeaterConfig.cs:54`,
   `NuclearReactorConfig.cs:138` (U60 lines, from the baseline and confirmed in the method list)
-- `u60:GraphicsOptionsScreen.cs:280-318`
-- `u60:SimDebugView.cs:466-848`
-- `u59:STRINGS/UI.cs:4250` (Tritanopia)
+- `761015:raw/Assembly-CSharp/GraphicsOptionsScreen.cs:280-318`
+- `761015:raw/Assembly-CSharp/SimDebugView.cs:466-848`
+- `744825:raw/Assembly-CSharp/STRINGS.UI.cs:4250` (Tritanopia)
 
 **Engine surface:**
 - overlay icon sprites
@@ -532,7 +536,7 @@ and pauses it past 2 s), equal to the original's.
   when the widget goes.
 
 **Where:**
-- `u60:VideoWidget.cs:56-79`
+- `761015:raw/Assembly-CSharp/VideoWidget.cs:56-79`
 
 **Engine surface:**
 - our VideoPlayer
@@ -582,8 +586,9 @@ code).
 While rebinding, the screen polls `Input.GetKey`/`GetKeyDown` for the new buttons.
 
 **Where:**
-- `u60:InputBindingsScreen.cs:52, 165-168`; U59: `u59:InputBindingsScreen.cs:52`
-- `fp60:KInputController.cs:41, 103`
+- `761015:raw/Assembly-CSharp/InputBindingsScreen.cs:52, 165-168`; U59:
+  `744825:raw/Assembly-CSharp/InputBindingsScreen.cs:52`
+- `761015:raw/Assembly-CSharp-firstpass/KInputController.cs:41, 103`
 
 **Engine surface:**
 - Our input layer: GLFW reports X11 buttons 8–11 as its buttons 3–6, which `InputStateFeed` maps
@@ -627,7 +632,8 @@ move sounds equal the original's.
 `Slider.wholeNumbers` is read for the first time by game code.
 
 **Where:**
-- `fp60:KSlider.cs:46, 125-175`; U59: `fp59:KSlider.cs` has neither
+- `761015:raw/Assembly-CSharp-firstpass/KSlider.cs:46, 125-175`; U59:
+  `744825:raw/Assembly-CSharp-firstpass/KSlider.cs` has neither
 
 **Engine surface:**
 - our uGUI event system: `ExecuteEvents.GetEventHandler<IScrollHandler>` picks the slider before an
@@ -680,8 +686,10 @@ opened, A held for 2 s at 60 fps and again with the frame rate capped low, in bo
 ClusterMapScreen has only compiler-shape changes; its fix is elsewhere or in KScrollRect.
 
 **Where:**
-- `fp60:KScrollRect.cs:188-208`; U59: `fp59:KScrollRect.cs:186-206`
-- `u60:ResearchScreen.cs:226`; U59: `u59:ResearchScreen.cs:223`
+- `761015:raw/Assembly-CSharp-firstpass/KScrollRect.cs:188-208`; U59:
+  `744825:raw/Assembly-CSharp-firstpass/KScrollRect.cs:186-206`
+- `761015:raw/Assembly-CSharp/ResearchScreen.cs:226`; U59:
+  `744825:raw/Assembly-CSharp/ResearchScreen.cs:223`
 
 **Engine surface:**
 - `Time.unscaledDeltaTime`
@@ -719,7 +727,7 @@ tool too; all equal to the original's.
   Duplicant's `MoveToLocationMonitor` (new).
 
 **Where:**
-- `u60:UserMenuScreen.cs:182-201`
+- `761015:raw/Assembly-CSharp/UserMenuScreen.cs:182-201`
 
 **Engine surface:**
 - key events through KInputController
@@ -759,7 +767,8 @@ enabled, names, title bar dumps and the codex article equal the original's.
   Return first.
 
 **Where:**
-- `u60:EditableTitleBar.cs:58-81, 154`; U59: `u59:EditableTitleBar.cs:58-80`
+- `761015:raw/Assembly-CSharp/EditableTitleBar.cs:58-81, 154`; U59:
+  `744825:raw/Assembly-CSharp/EditableTitleBar.cs:58-80`
 
 **Engine surface:**
 - our `TMP_InputField` (submit, end edit, deselect order)
@@ -801,8 +810,8 @@ either player.
 - `ResearchEntryIcon`, a new class: `OnPointerEnter`, `OnPointerExit`, `OnInfoButtonClick`.
 
 **Where:**
-- `u60:PriorityButton.cs:58`
-- `u60:ResearchEntryIcon.cs:16-42`
+- `761015:raw/Assembly-CSharp/PriorityButton.cs:58`
+- `761015:raw/Assembly-CSharp/ResearchEntryIcon.cs:16-42`
 
 **Engine surface:**
 - double-click counting and toggle groups in our event system
@@ -842,7 +851,7 @@ rectangle of rock; the selection and the dig orders equal the original's.
 - `BrushTool.VisitBrushOffsets`, `SupportsNonCircleBrushShapes`
 
 **Where:**
-- `u60:BrushTool.cs:81-126`
+- `761015:raw/Assembly-CSharp/BrushTool.cs:81-126`
 
 **Engine surface:**
 - hover and selection under the cursor
@@ -893,8 +902,9 @@ the layout group's preferred height differs by 0.04 (masked out of V1's dumps).
 - `HoverTextDrawer` reuses widgets.
 
 **Where:**
-- `u60:LocText.cs:211-228`
-- `fp60:KleiStringBuilder.cs` (new); the formatting at `fp60:KleiStringBuilder.cs:344-378`
+- `761015:raw/Assembly-CSharp/LocText.cs:211-228`
+- `761015:raw/Assembly-CSharp-firstpass/KleiStringBuilder.cs` (new); the formatting at
+  `761015:raw/Assembly-CSharp-firstpass/KleiStringBuilder.cs:344-378`
 
 **Engine surface:**
 - our TMP (SetCharArray, link parsing)
@@ -943,7 +953,7 @@ deactivated (alpha 0), and the original scrolls Consumables back to the left whe
 - Used by `TableScreen`, `AllResourcesScreen`, `AllDiagnosticsScreen`.
 
 **Where:**
-- `fp60:ShowOptimizedKScreen.cs:35-76`
+- `761015:raw/Assembly-CSharp-firstpass/ShowOptimizedKScreen.cs:35-76`
 
 **Engine surface:**
 - `Behaviour.enabled` toggles on masks and scroll views in inactive trees
@@ -989,7 +999,7 @@ cards and the queued blueprint (steps 2-3) are not in the spec yet.
 - `TUNING/BUILDINGS.cs` plan categories
 
 **Where:**
-- `u60:PlanScreen.cs:1328` (`String.CompareOrdinal`)
+- `761015:raw/Assembly-CSharp/PlanScreen.cs:1328` (`String.CompareOrdinal`)
 
 **Engine surface:**
 - GridLayoutGroup and toggle layout
@@ -1032,10 +1042,11 @@ Blueprints" deep link, Electrical → Power, the Regal pump rename, Manual Gener
   `KleiInventoryScreen` (15), `OutfitBrowserScreen_CategoriesAndSearchBar`, `KleiPermitDioramaVis_*`
 
 **Where:**
-- `u60:Database/BlueprintSearch.cs:6`
-- `u60:FuzzySearch.cs:75-193`; U59: `u59:FuzzySearch.cs:55-142`
-- `fp60:FuzzySharp/TokenizedString.cs:22`,
-  `FuzzySharp.SimilarityRatio.Scorer.StrategySensitive/TokenSortScorerBase.cs:12`
+- `761015:raw/Assembly-CSharp/Database.BlueprintSearch.cs:6`
+- `761015:raw/Assembly-CSharp/FuzzySearch.cs:75-193`; U59:
+  `744825:raw/Assembly-CSharp/FuzzySearch.cs:55-142`
+- `761015:raw/Assembly-CSharp-firstpass/FuzzySharp.TokenizedString.cs:22`,
+  `FuzzySharp.SimilarityRatio.Scorer.StrategySensitive.TokenSortScorerBase.cs:12`
 
 **Engine surface:**
 - culture-sensitive string comparison (our CoreCLR uses ICU on Linux; the original uses Mono's
@@ -1084,8 +1095,9 @@ label; Neutronium tooltip.
 - codex yaml (`codex/TechComponents/DynamicCodexEntry_Electrobank.yaml` new)
 
 **Where:**
-- `u60:CodexCollapsibleHeader.cs:27-40`; U59: `u59:CodexCollapsibleHeader.cs:12-52`
-- `fp60:Descriptor.cs`
+- `761015:raw/Assembly-CSharp/CodexCollapsibleHeader.cs:27-40`; U59:
+  `744825:raw/Assembly-CSharp/CodexCollapsibleHeader.cs:12-52`
+- `761015:raw/Assembly-CSharp-firstpass/Descriptor.cs`
 
 **Engine surface:**
 - layout groups, ContentSizeFitter, TMP
@@ -1124,7 +1136,7 @@ the Options screen is not run.
 - `MessageDialogFrame` (9)
 
 **Where:**
-- `u60:Tutorial.cs:71-99`
+- `761015:raw/Assembly-CSharp/Tutorial.cs:71-99`
 
 **Engine surface:**
 - KPlayerPrefs, a toggle
@@ -1161,8 +1173,8 @@ difference.
 - The ko, ru and zh `.po` files changed.
 
 **Where:**
-- `u60:Localization.cs:886-930` (new)
-- `u60:Localization.cs:567` (the call)
+- `761015:raw/Assembly-CSharp/Localization.cs:886-930` (new)
+- `761015:raw/Assembly-CSharp/Localization.cs:567` (the call)
 
 **Engine surface:**
 - string scanning with `String.Split` and the culture-sensitive `String.IndexOf(string, int)` (ICU
@@ -1199,7 +1211,7 @@ its bobbing asteroid and the caret masked) equal the original's.
 - DLC logo sprites in the data
 
 **Where:**
-- `u60:KMod/Manager.cs:954` (the restart dialog)
+- `761015:raw/Assembly-CSharp/KMod.Manager.cs:954` (the restart dialog)
 
 **Engine surface:**
 - sprite sampling at the logos' edges (the white lines were a texture-border artefact)
@@ -1240,8 +1252,9 @@ the spec yet.
 - `UnstableGroundManager`
 
 **Where:**
-- `u60:...:28-80` (the shape and layer control)
-- `u60:UnstableGroundManager.cs:167`
+- `761015:raw/Assembly-CSharp/SandboxToolParameterMenu_ShapeLayerControl.cs:28-80` (the shape and
+  layer control)
+- `761015:raw/Assembly-CSharp/UnstableGroundManager.cs:167`
 
 **Engine surface:**
 - toggles and sliders in the tool menu
@@ -1285,8 +1298,8 @@ player).
 - `KMonoBehaviour.KObj`; `Grid.PosToCell`
 
 **Where:**
-- `fp60:CellChangeMonitor.cs:164-268`
-- `fp60:KObject.cs`
+- `761015:raw/Assembly-CSharp-firstpass/CellChangeMonitor.cs:164-268`
+- `761015:raw/Assembly-CSharp-firstpass/KObject.cs`
 
 **Engine surface:**
 - instance ids, child order
@@ -1342,8 +1355,8 @@ Simplified Chinese; only mod code doing culture-sensitive comparisons could see 
 - `HashCode`, `MemoryExtensions`, `ArraySegment<byte>` in VYaml-generated formatters
 
 **Where:**
-- `u60:SteamUGCService.cs:199-211`
-- `u60:SaveLoader.cs:246`
+- `761015:raw/Assembly-CSharp/SteamUGCService.cs:199-211`
+- `761015:raw/Assembly-CSharp/SaveLoader.cs:246`
 
 **Engine surface:**
 - CoreCLR's BCL in place of Mono's
@@ -1374,7 +1387,7 @@ ApiCheck finds 787 type and 3,225 member refs, 0 types and 13 members missing, a
 - `UIScheduler.GetTimeAsDouble` uses `Time.unscaledTimeAsDouble` (new)
 
 **Where:**
-- `u60:UIScheduler.cs:16`
+- `761015:raw/Assembly-CSharp/UIScheduler.cs:16`
 
 **Engine surface:**
 - ApiCheck, and the no-op assertion and profiler members
@@ -1409,7 +1422,7 @@ values, `density` 39,016, `heatOffset` 35,901). LibNoise evaluates its float exp
 (`Libnoise.Lerp`, `SCurve5`) without storing intermediates. Before the settle, 19 cells' element
 and 6,909 masses differ; the settle (same SimDLL, fed these cells) spreads that to 270 elements.
 All nine worlds of the cluster differ the same way, so the other start worlds most likely differ
-too: their specs do not hash the cells. The cell mass formula (`TerrainCell.cs:943`,
+too: their specs do not hash the cells. The cell mass formula (`ProcGenGame.TerrainCell.cs:943`,
 `GetDensityMassForCell`) gives different results under the two float rules in about 870 cells.
 There the original's mass is Mono's double evaluation in 805 of 890 and ours is the per-operation
 float rounding in 811 of 863. Matching would mean Mono's float rules in LibNoise and the worldgen
@@ -1433,7 +1446,8 @@ All templates, not only POIs. VYaml attributes on `TemplateContainer` (29),
 `TemplateClasses.Prefab` (30), `Cell`, `StorageItem`, `Rottable`, `TemplateAmountValue`; `Info` (17).
 
 **Where:**
-- `u60:TemplateCache.cs:40-63`; U59: `u59:TemplateCache.cs:48`
+- `761015:raw/Assembly-CSharp/TemplateCache.cs:40-63`; U59:
+  `744825:raw/Assembly-CSharp/TemplateCache.cs:48`
 
 **Engine surface:**
 - VYaml runs from `Managed/` on our BCL (UTF-8 decoding, number parsing)
@@ -1470,7 +1484,7 @@ timing script's).
 - `GlobalAssets`, `Db`
 
 **Where:**
-- `u60:Assets.cs:212-338`
+- `761015:raw/Assembly-CSharp/Assets.cs:212-338`
 
 **Engine surface:**
 - our bundle reader and the order prefabs are made in
@@ -1513,8 +1527,8 @@ are loaded in memory".
 - Garden is commented out in `dlc/dlc4/templates/bases/gardenBase.yaml`.
 
 **Where:**
-- `u60:VistaConfigs.cs:27-155`
-- `u60:VistaLayers.cs:77-123`
+- `761015:raw/Assembly-CSharp/VistaConfigs.cs:27-155`
+- `761015:raw/Assembly-CSharp/VistaLayers.cs:77-123`
 
 **Engine surface:**
 - `Resources.UnloadAsset` and reload from the asset file (0e763810)
@@ -1556,7 +1570,8 @@ strings.
 **Where:**
 - `worldgen/traits/MetalRich.yaml:35-37`, `MetalPoor.yaml:35-37`
 - `dlc/expansion1/templates/poi/frozen/frag_breakroom.yaml`
-- `fp60:StreamedTextures.cs`, `fp60:SteamDistributionPlatform.cs:54-55`
+- `761015:raw/Assembly-CSharp-firstpass/StreamedTextures.cs`,
+  `761015:raw/Assembly-CSharp-firstpass/SteamDistributionPlatform.cs:54-55`
 
 **Engine surface:**
 - none new, except a DLC the Steam double may report as owned whose bundle is missing
@@ -1596,10 +1611,11 @@ and open doors equal the original's.
 Also changed: `EntombedItemManager`, `MinionResume.GrantedSkillIDs`, `Door.OnSpawn`.
 
 **Where:**
-- `u60:SaveManager.cs:84-86`; U59: `u59:SaveManager.cs:84`
-- `u60:EntombedItemManager.cs:20-80`
-- `u60:MinionResume.cs:51, 118`
-- `u60:Door.cs:180-195`
+- `761015:raw/Assembly-CSharp/SaveManager.cs:84-86`; U59:
+  `744825:raw/Assembly-CSharp/SaveManager.cs:84`
+- `761015:raw/Assembly-CSharp/EntombedItemManager.cs:20-80`
+- `761015:raw/Assembly-CSharp/MinionResume.cs:51, 118`
+- `761015:raw/Assembly-CSharp/Door.cs:180-195`
 
 **Engine surface:**
 - KSerialization with our save tweaks (fast-serialization, fast-save-compression, background-save)
@@ -1635,10 +1651,10 @@ recorded.
 - `Global.OnExitRequest`.
 
 **Where:**
-- `u60:SaveScreen.cs:95-110`
-- `u60:SaveLoader.cs:809`
-- `u60:SaveLoader.cs:930` (the first timelapse frame)
-- `u60:Global.cs:360-407`
+- `761015:raw/Assembly-CSharp/SaveScreen.cs:95-110`
+- `761015:raw/Assembly-CSharp/SaveLoader.cs:809`
+- `761015:raw/Assembly-CSharp/SaveLoader.cs:930` (the first timelapse frame)
+- `761015:raw/Assembly-CSharp/Global.cs:360-407`
 
 **Engine surface:**
 - background-save moves the save off the frame; U60 starts a GPU readback and a worker-thread PNG
@@ -1682,7 +1698,8 @@ files in a folder, as well as continuing to support the legacy zip format."
 - `KMod.Steam.MakeMod` tries `new Directory(pchFolder)` before `new ZipFile`.
 
 **Where:**
-- `u60:KMod/Steam.cs:21-131`; U59: `u59:KMod/Steam.cs:12-84`
+- `761015:raw/Assembly-CSharp/KMod.Steam.cs:21-131`; U59:
+  `744825:raw/Assembly-CSharp/KMod.Steam.cs:12-84`
 
 **Engine surface:**
 - our mod loading hooks (ModAccess's transpiler on `DLLLoader.LoadDLLs`, ModVersionStamp on
@@ -1724,8 +1741,8 @@ dialog. The mod after the restart: not run (e2e has no restart). Windows: pendin
 - `KMod.Manager.SubscribeCorruptMod`, `OnCorruptModReacquired`
 
 **Where:**
-- `u60:KMod/Steam.cs:21-131`
-- `u60:SteamUGCService.cs:166-230`
+- `761015:raw/Assembly-CSharp/KMod.Steam.cs:21-131`
+- `761015:raw/Assembly-CSharp/SteamUGCService.cs:166-230`
 
 **Engine surface:**
 - our Steamworks.NET port (call results, struct layout of `RemoteStorageDownloadUGCResult_t`)
@@ -1769,9 +1786,10 @@ original's start-up worldgen settings load stops with a FileNotFoundException an
 - `ProcGen.SettingsCache.GetRandomTraits`
 
 **Where:**
-- `u60:ModUtil.cs:106`
-- `u60:Substance.cs:118`
-- `fp60:ProcGen/WorldMixingSettings.cs:24`, `fp60:ProcGen/SubworldMixingSettings.cs:28`
+- `761015:raw/Assembly-CSharp/ModUtil.cs:106`
+- `761015:raw/Assembly-CSharp/Substance.cs:118`
+- `761015:raw/Assembly-CSharp-firstpass/ProcGen.WorldMixingSettings.cs:24`,
+  `761015:raw/Assembly-CSharp-firstpass/ProcGen.SubworldMixingSettings.cs:28`
 
 **Engine surface:**
 - none new
@@ -1808,7 +1826,7 @@ a structural reason (it checks for Unity's Mono).
 - `TUNING/CROPS.cs`
 
 **Where:**
-- `fp60:EventSystem.cs`
+- `761015:raw/Assembly-CSharp-firstpass/EventSystem.cs`
 
 **Engine surface:**
 - Harmony patches by mods on moved methods
@@ -1844,9 +1862,9 @@ popup either); both played.
 - `QueueSimDLLLoadError`.
 
 **Where:**
-- `u60:KCrashReporter.cs:261-263, 453-470` (new)
-- `u60:KCrashReporter.cs:261` (the prefixes)
-- `u60:ProcGenGame/WorldGen.cs:544-552`
+- `761015:raw/Assembly-CSharp/KCrashReporter.cs:261-263, 453-470` (new)
+- `761015:raw/Assembly-CSharp/KCrashReporter.cs:261` (the prefixes)
+- `761015:raw/Assembly-CSharp/ProcGenGame.WorldGen.cs:544-552`
 
 **Engine surface:** the text of our `DllNotFoundException` and of the log line our player writes
 for it.
@@ -2022,7 +2040,8 @@ Also: `KFMOD` caches event paths by GUID (`eventPathsByGuid`, `PathToEventRefere
 `GlobalAssets.GetSound`; banks changed.
 
 **Where:**
-- `fp60:KFMOD.cs:59-91, 210-322`; U59: `fp59:KFMOD.cs:178-228`
+- `761015:raw/Assembly-CSharp-firstpass/KFMOD.cs:59-91, 210-322`; U59:
+  `744825:raw/Assembly-CSharp-firstpass/KFMOD.cs:178-228`
 
 **Engine surface:**
 - FMODUnity (shipped) and the native library
@@ -2045,14 +2064,14 @@ Each item is game code with no new engine surface. One spec per item, functional
 
 | Id | Changes | Where | Check |
 |---|---|---|---|
-| G1 | Swimming and Swimming2 in all versions; Aquatic Grooming Station everywhere; Swim Hack booster un-gated | `Database/Skills.cs` u60:335,342 vs u59:340,345 (`DLC5_ID`); `BionicUpgradeComponentConfig` | base-game colony (`vanilla-base`): skill list has Swimming; a Duplicant swims a pool |
-| G2 | Study, Workshop, Cooking ("Cuisine" in the notes), Forge Tools; the Support subcategory | `Database/SupportBuildingBoosts.cs:3-16` (new), `SupportBuilding` (42), `SupportBuildingReceptor` (22), `SupportBuildingBoost_*`, `STRINGS/BUILDINGS.cs:42-44` | recipe time with and without a tool in range; Study Tools stacking |
-| G3 | Space Racer, Trampoline, Sandpit; recreation durations; recreation preference | `AstronautTrainingCenterConfig.cs` (u60:17-27; u59:19 `Deprecated`), `TrampolineConfig.cs` (new), `SandboxBuildingConfig.cs` (new), `SodaFountainWorkable.cs:30`, `HotTubWorkable.cs:24`, `RecreationWorkable` (13) | effect durations and which building a Duplicant picks |
+| G1 | Swimming and Swimming2 in all versions; Aquatic Grooming Station everywhere; Swim Hack booster un-gated | `Database.Skills.cs` 761015:335,342 vs 744825:340,345 (`DLC5_ID`); `BionicUpgradeComponentConfig` | base-game colony (`vanilla-base`): skill list has Swimming; a Duplicant swims a pool |
+| G2 | Study, Workshop, Cooking ("Cuisine" in the notes), Forge Tools; the Support subcategory | `Database.SupportBuildingBoosts.cs:3-16` (new), `SupportBuilding` (42), `SupportBuildingReceptor` (22), `SupportBuildingBoost_*`, `STRINGS.BUILDINGS.cs:42-44` | recipe time with and without a tool in range; Study Tools stacking |
+| G3 | Space Racer, Trampoline, Sandpit; recreation durations; recreation preference | `AstronautTrainingCenterConfig.cs` (761015:17-27; 744825:19 `Deprecated`), `TrampolineConfig.cs` (new), `SandboxBuildingConfig.cs` (new), `SodaFountainWorkable.cs:30`, `HotTubWorkable.cs:24`, `RecreationWorkable` (13) | effect durations and which building a Duplicant picks |
 | G4 | Merpip, Pips eating Caviar, Snow Globe keepsake, Merpip and other Better Together rewards, Tublia care package | `SquirrelAquaticConfig.cs` (new, 15-69), `BaseSquirrelConfig.cs:99-114`, `MinnowImperativePOIStates` (10) | diet and excretion; reward spawns |
 | G5 | Smart Storage Bin no power and sliders; Copy Settings on suit docks; Oxylite 3×3; Window Tile and Wicker Door decor; fridge cooling only; drywall and Tempshift Plate behind tiles; Bottle Drainer; Lead Suit from any Glassy; insulated rocket storage; Party Line Phone light; Breathing Station charges (tank 25 → 30 kg); Coquina → Pearl; Deep Fryer without a Kitchen (requirement removed, not only the status) | `StorageLockerSmart.cs:80-82`, `SuitLockerConfig.cs:40`, `OxyliteRefineryConfig.cs:26-29`, `GlassTileConfig.cs:14`, `WoodenDoorConfig.cs:15`, `RefrigeratorController.cs:13-39`, `ExteriorWallConfig.cs:12`, `ThermalBlockConfig.cs:19`, `BottleEmptierConduitLiquidConfig.cs:38`, `SuitFabricatorConfig.cs:122,148`, `RocketInteriorLiquidInputConfig.cs:49`, `TelephoneCallerWorkable.cs:29`, `UnderwaterBreathingStationConfig.cs:10-12`, `Deepfryer` | building defs and behaviour values |
 | G6 | Shine Bug temperature; Beetinies; Rhex/Jawbo culling; Pips not planting Starnacle/Pinpoki; Slogo/Gildgo eat and poop, Mucin temperature; condos must be operational; large flyers; Fish Trap crash; Orehull/Jawbo feeders; harvest stops on a bite | `BaseLightBugConfig.cs:13`, `BaseBeeConfig`, `CritterCondoStates.cs:50`, `Growing.cs:121`, `CreatureCalorieMonitor` (17), `CreatureFeeder` (4), `OvercrowdingMonitor` (2) | critter states over a few cycles |
-| G7 | Suit checkpoints idling; flee crash; transit tube destroyed; rescued during a save; clapping; double cheer; socialising; Bionic bed rest; Advanced Construction booster (+5 Construction, Heavi-Watt and Steam Turbine perk); rocket lander breath; full-bladder pilots; bionic dance at the edge; starving tooltip order | `FleeChore.cs:85`, `IdleSuitMarkerCellQuery`, `TravelTube` (6), `Database/SkillPerks.cs:311`, `SteamTurbineConfig2.cs:53`, `WireRefinedHighWattageConfig.cs:25`, `MinionResume.cs:51,118`, `NotificationScreen` | chores and states after each setup |
-| G8 | Status and string renames: Just Ate → Growing Antlers/Fur/Regal Crest/Feathers, Replenishing Ink, Growing Iron Ore; Well Fed → Replenishing Biodiesel; Wood → Lumber; Stations → Operations; Electrical → Power; Regal Neutronium Pitcher Pump; Engineering and Advanced Construction Booster; Jungle, Rhex, Bammoth, Seaquine descriptions; Flue Coral "Peak Conditions", "plant"; Aquatic Critter Fountain text; checkpoint, Steam Turbine, wire, Fine Dining tooltips; gaskets in units | `STRINGS/CREATURES.cs:4656-4698`, `STRINGS/ITEMS.cs:213,220`, `STRINGS/UI.cs`, `.pot` | one `ui_dump` per string in English and zh, `== original` |
+| G7 | Suit checkpoints idling; flee crash; transit tube destroyed; rescued during a save; clapping; double cheer; socialising; Bionic bed rest; Advanced Construction booster (+5 Construction, Heavi-Watt and Steam Turbine perk); rocket lander breath; full-bladder pilots; bionic dance at the edge; starving tooltip order | `FleeChore.cs:85`, `IdleSuitMarkerCellQuery`, `TravelTube` (6), `Database.SkillPerks.cs:311`, `SteamTurbineConfig2.cs:53`, `WireRefinedHighWattageConfig.cs:25`, `MinionResume.cs:51,118`, `NotificationScreen` | chores and states after each setup |
+| G8 | Status and string renames: Just Ate → Growing Antlers/Fur/Regal Crest/Feathers, Replenishing Ink, Growing Iron Ore; Well Fed → Replenishing Biodiesel; Wood → Lumber; Stations → Operations; Electrical → Power; Regal Neutronium Pitcher Pump; Engineering and Advanced Construction Booster; Jungle, Rhex, Bammoth, Seaquine descriptions; Flue Coral "Peak Conditions", "plant"; Aquatic Critter Fountain text; checkpoint, Steam Turbine, wire, Fine Dining tooltips; gaskets in units | `STRINGS.CREATURES.cs:4656-4698`, `STRINGS.ITEMS.cs:213,220`, `STRINGS/UI.cs`, `.pot` | one `ui_dump` per string in English and zh, `== original` |
 | G9 | Unit-mass items never split; fabricator reserved amounts; Egg Cracker; storage thresholds equality; filter and memorial keep settings on Change Material; Outhouse uses; pressure damage destroys Farm Tile and others; decor of solid-tile buildings; wire max wattage; pipe damage status and "requires building intake"; Lavatory tooltip; filters with undiscovered options; bubbles in Airflow Tiles; Printerceptor; agriculture speed; neutronium under construction; Gleaner without DLC5 | `FetchManager` (4), `ComplexFabricator` (20), `EggCrackerConfig`, `ConduitThresholdSensor`, `Filterable.cs:7,95-100`, `Grave.cs:124-133`, `Toilet` (10), `BuildingHP`, `DecorProvider` (13), `ElectricalUtilityNetwork.GetMaxSafeWattage`, `ConduitDamageFeedback` (new), `BubbleManager` (19), `HijackedHeadquarters.cs:176-181`, `Tinkerable.cs:135`, `MilkFatSeparatorConfig.cs:85` | masses, counts, status items |
 | G10 | Start bases (forest lost its Hatch, 18 → 17 wide, cells to Vacuum); Zinc Ore in metal traits; frozen breakroom revealable; mixing shows the right traits; Demolior setting availability; unplaced `labPOI1.yaml`, two critter-enclosure templates | `templates/bases/forestBase.yaml`, `sandstoneBase.yaml`, `worldgen/traits/MetalRich.yaml:35-37`, `frag_breakroom.yaml`, `CustomGameSettingConfigs.cs:104` | new games, functional (never cell by cell) |
 | G11 | Sandbox: Pacu Treat in the Spawner, destroy clears falling sand | U9 | covered by U9 |
@@ -2093,21 +2112,22 @@ over cycles, chores after each setup) are not run; the definitions are.
 
 ## The 761015 → 761211 delta
 
-Plain C# diff of the two betas (`git diff U60-761015 U60-761211`): 13 files. `u761211:` lines are
-at tag U60-761211. Of the 136 Managed DLLs only `Assembly-CSharp.dll` changed (byte comparison of
-`E:\Development\U60-761015\Managed` and `U60-761211\Managed`). 761211's StreamingAssets are not on
-this machine.
+Plain C# diff of the two betas (`changed_members U60-761015 U60-761211` in oni-archives): 13 files.
+`761211:raw/Assembly-CSharp/` lines are at tag U60-761211. Of the 136 Managed DLLs only
+`Assembly-CSharp.dll` changed (byte comparison of the two builds' `Managed\`; the sha256 sums in
+oni-archives' `builds/manifests/U60-761015.json` and `U60-761211.json` agree). 761211's
+StreamingAssets are not on this machine.
 
 - **Build number** 761015 → 761211 in `KleiVersion.ChangeList`, `BuildWatermark`, `Game`
   (changelists played on), `Global`, `KCrashReporter`, `KMod/Mod.cs` (`minimumSupportedBuild <=
   761211`), `LoadScreen` and `MainMenu` (a save from a newer build is refused), `SaveGame` header,
   `PerformanceCaptureMonitor`. Save minor version stays 39.
 - **Rail gun and orbital cargo transfers:** the loop that moves mass into a payload now stops when
-  `Storage.Transfer` moves nothing (u761211:RailGun.cs:425-440,
-  u761211:OrbitalDeployCargoModule.cs:149-163). Before, a storage holding mass it could not transfer
-  spun forever on the main thread.
+  `Storage.Transfer` moves nothing (761211:raw/Assembly-CSharp/RailGun.cs:425-440,
+  761211:raw/Assembly-CSharp/OrbitalDeployCargoModule.cs:149-163). Before, a storage holding mass it
+  could not transfer spun forever on the main thread.
 - **CreatureDeliveryPoint:** `deliveryOffsets` from `OffsetGroups.Use` to a single (0, 0) offset
-  (u761211:CreatureDeliveryPoint.cs:175).
+  (761211:raw/Assembly-CSharp/CreatureDeliveryPoint.cs:175).
 
 Tests if we retarget:
 

@@ -1,12 +1,12 @@
 # U60 review: the save tweaks
 
-Static review of the save game tweaks against U60 (761015, public test) from U59 (744825). No
-player ran; the tweaks were built against the U60 assemblies (`win761015-game`). Line numbers
-are in the U60 decomp (oni-versioning commit 4a63c523, `OxygenNotIncluded/`). KSerialization
-lives in Assembly-CSharp-firstpass, which the decomp does not cover: it was decompiled from both
+Static review of the save game tweaks against U60 (761015, public test) from U59 (744825). No player
+ran; the tweaks were built against the U60 assemblies (`win761015-game`). Line numbers are in the
+U60 decomp (oni-archives tag U60-761015, `raw/Assembly-CSharp/`). KSerialization lives in
+Assembly-CSharp-firstpass, which the decomp read then did not cover: it was decompiled from both
 builds with ilspycmd and compared (only `Helper`, `SerializationTemplate`, `Manager` and
-`Serializer` differ, and only in compiler shape: extra locals, renamed temporaries, inverted
-early returns; `IOHelper`, `TypeInfo` and `SerializationTypeInfo` are identical).
+`Serializer` differ, and only in compiler shape: extra locals, renamed temporaries, inverted early
+returns; `IOHelper`, `TypeInfo` and `SerializationTypeInfo` are identical).
 
 General U60 finding: Assembly-CSharp is now compiled without optimization. `SaveLoader.Save`
 has 75 `nop`s in U60 and none in U59, and most of the decomp's U59-to-U60 diff in these files is

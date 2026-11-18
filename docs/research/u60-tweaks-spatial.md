@@ -5,10 +5,10 @@ from U59 (744825). No player ran: there is no Linux U60 build yet.
 
 ## Method
 
-- **Source:** Klei's decompiled game code, `git -C /mnt/e/Development/oni-versioning diff
-  aa9baa00 4a63c523 -- OxygenNotIncluded/<file>`. Line numbers below are U60's (`4a63c523`).
+- **Source:** Klei's decompiled game code in oni-archives, `diff_type <Type> U59-744825
+  U60-761015`. Line numbers below are U60's (`761015:raw/Assembly-CSharp/`).
 - **Firstpass types** (`HybridListHashSet`, `KCompactedVectorBase`, `HandleVector`,
-  `GlobalJobManager`) are not in that repository. They were decompiled with ilspycmd from U59's
+  `GlobalJobManager`) were not in the decompile read then. They were decompiled with ilspycmd from U59's
   Linux `Assembly-CSharp-firstpass.dll` and U60's Windows one and compared.
 - **IL:** each transpiler's anchors were checked in the IL of U60's Windows `Assembly-CSharp.dll`
   (`ilspycmd -il`). That build's IL is unoptimised (`nop`s, comparisons stored to locals before

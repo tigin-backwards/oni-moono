@@ -1,9 +1,9 @@
 # U60 review: simulation tweaks
 
 Static review of seven game tweaks against U60 (build 761015, public test) before a U60
-player exists. No game was run. Klei's decompiled source: U59 = oni-versioning `aa9baa00`,
-U60 = `4a63c523` (Assembly-CSharp only). The firstpass types (JobManager, the update
-buckets, the event system, the cell-change monitor) are not in that repository; they were
+player exists. No game was run. Klei's decompiled source: U59 = oni-archives tag U59-744825,
+U60 = U60-761015 (Assembly-CSharp, `raw/`). The firstpass types (JobManager, the update
+buckets, the event system, the cell-change monitor) were not in the decompile read then; they were
 compared by decompiling Assembly-CSharp-firstpass from the U59 Linux install and from the
 U60 Windows build (`out/local-tools/win761015/Managed`). Line numbers are U60's.
 
@@ -75,7 +75,7 @@ U60 Windows build (`out/local-tools/win761015/Managed`). Line numbers are U60's.
 | | |
 |---|---|
 | Game members touched | Harmony prefix (skip) on `JobManager.Run(IWorkItemCollection)` (firstpass), reimplementing it; reads by name `JobManager.threads`; calls `IWorkItemCollection.Count`/`InternalDoWorkItem(i, threadIndex)`; sets `JobManager.errorOccured`. Assumes thread indices 1..threads.Count for workers and 0 for the caller, every item run once before Run returns, and no work item depending on which thread runs it. U60 callers (Assembly-CSharp): FetchManager, GlobalChoreProvider/ChoreProvider (chore collection), ConduitFlow and ConduitFlowVisualizer, AmountInstance, NavGridUpdater, SolidTransferArm, PropertyTextures, SimDebugView, EggProtectionMonitor, CreatureLightToggleController. |
-| U60 change | None. Decompiled firstpass `JobManager` differs only in `WorkerThread.ThreadMain` (a local split out); `Run`, `Initialize` (threads `KWorker{i}` with index i+1), `DoNextWorkItem`, `threads` are identical. `IWorkItemCollection` and `WorkItemCollection` identical. In Assembly-CSharp the only U60 change on a line mentioning JobManager, work items or thread indices is `TaskDivision.Run` (for loop to foreach, TaskDivision.cs:31-38); the callers' other U60 changes (e.g. GlobalChoreProvider's storage-fetch tag dedup, 307-341) run on the main thread or inside items and do not depend on which thread runs an item. |
+| U60 change | None. Decompiled firstpass `JobManager` differs only in `WorkerThread.ThreadMain` (a local split out); `Run`, `Initialize` (threads `KWorker{i}` with index i+1), `DoNextWorkItem`, `threads` are identical. `IWorkItemCollection` and `WorkItemCollection` identical. In Assembly-CSharp the only U60 change on a line mentioning JobManager, work items or thread indices is `TaskDivision.Run` (for loop to foreach, TaskDivision_2.cs:31-38); the callers' other U60 changes (e.g. GlobalChoreProvider's storage-fetch tag dedup, 307-341) run on the main thread or inside items and do not depend on which thread runs an item. |
 | Verdict | Unchanged |
 | Runtime check | With `ONI_TWEAK_VERIFY=1`, `fast-jobs: N runs checked, 0 wrong` every 20,000 runs; frame stats show time in JobManager.Run down as on U57. |
 

@@ -6,8 +6,8 @@ is built with Unity 6000.3.17f1 (U59: 744825, Unity 6000.3.5f2). This branch (`u
 `u60` merges into it.
 
 Sources:
-- Klei's decompiled game code for both builds in oni-versioning (`aa9baa00` U59, `4a63c523` U60
-  761015, `50066d31` U60 761211).
+- Klei's decompiled game code for both builds in oni-archives (tags U59-744825, U60-761015 and
+  U60-761211).
 - The public test's patch notes.
 - `tools/AssemblyDiff`, `tools/ApiCheck` and the player's `--check-*` modes run against the Windows
   U60 install.

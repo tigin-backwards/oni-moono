@@ -6,10 +6,9 @@ against U60 with no errors.
 
 Sources:
 
-- The Assembly-CSharp members come from Klei's decompiled source
-  (`/mnt/e/Development/oni-versioning`, U59 `aa9baa00`, U60 `4a63c523`). Line numbers are U60
-  lines under `OxygenNotIncluded/`.
-- That repo does not include the firstpass classes (KAnimBatch, KAnimBatchManager, BatchSet,
+- The Assembly-CSharp members come from Klei's decompiled source (oni-archives, tags U59-744825
+  and U60-761015). Line numbers are U60 lines under `raw/Assembly-CSharp/`.
+- The Assembly-CSharp-only decompile read then did not include the firstpass classes (KAnimBatch, KAnimBatchManager, BatchSet,
   KAnimBatchGroup, SymbolOverrideInfoGpuData, SymbolInstanceGpuData, KBatchedAnimInstanceData,
   KAnimConverter, KAnim, TransformExtensions). For those, `Assembly-CSharp-firstpass.dll` was
   decompiled with ilspycmd, from the U59 Linux install and from the U60 Windows build, and the

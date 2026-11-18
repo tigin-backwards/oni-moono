@@ -304,13 +304,14 @@ banks, and Linux's bank files are byte-identical to Windows'. The patterns:
 | `ParrotFish_voice_die_*`, `ParrotFishBaby_poop` | 5, oldest | 5, oldest | 5, oldest |
 
 - The Beakon is the ParrotFish. Game update 740622 (7 July 2026) listed "Fixed audio performance
-  issue with Beakons" under the Aquatic Planet Pack. oni-versioning's 737790 → 740622 C# diff has
-  no change in any sound code: `KFMOD`, `SoundEvent`, `AnimEventManager`, `LoopingSoundManager`
-  and `AudioMixer` changed only in decompiler noise. The only ParrotFish change is the flop
-  animation's frame range (`FlopStates.Def`). The fix was in the bank: `DLC5_Creatures.bank` of
-  733790 (a local copy, `SimNotIncluded-U59-733790`; the build is its folder's name) against 740622's and 744825's (identical
-  files). Klei turned 19 ParrotFish events from "5, steal oldest" or "4, virtualize" into "1, steal
-  none". The DepotDownloader step wasn't needed: copies on E: bracket the fix.
+  issue with Beakons" under the Aquatic Planet Pack. The 737790 → 740622 C# diff (oni-archives,
+  `changed_members U59-737790 U59-740622`) has no change in any sound code: `KFMOD`, `SoundEvent`,
+  `AnimEventManager`, `LoopingSoundManager` and `AudioMixer` changed only in decompiler noise. The
+  only ParrotFish change is the flop animation's frame range (`FlopStates.Def`). The fix was in the
+  bank: `DLC5_Creatures.bank` of 733790 (a local copy, `SimNotIncluded-U59-733790`; the build is its
+  folder's name) against 740622's and 744825's (identical files). Klei turned 19 ParrotFish events
+  from "5, steal oldest" or "4, virtualize" into "1, steal none". The DepotDownloader step wasn't
+  needed: copies on E: bracket the fix.
 - The vole pile runs on the events that kept "5, steal oldest". `Rock_creature_land` makes nearly
   all of the pile's 2,900 instances a second. This is the upstream root cause. The same bank
   change Klei made for Beakons (stealing *none*, or a lower limit) would apply to
