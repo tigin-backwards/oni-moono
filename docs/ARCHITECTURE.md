@@ -1758,8 +1758,10 @@ citing why.
     coroutines. Scripts and plain components have no record. Engine components (transforms,
     renderers, colliders, cameras, canvases…) keep their subsystem's state in a record, which
     reads the component's state through properties.
-  - GameObjects and assets (textures, meshes, materials, shaders, fonts…) keep their state in
-    their records.
+  - Every GameObject keeps its state (its component array, layer, tag, active flags, scene, its
+    transform's record, the canvas system's answers) and has no record. A component's link to
+    it is stored untyped, so `m_GameObject` stays the only `GameObject`-typed field.
+  - Assets (textures, meshes, materials, shaders, fonts…) keep their state in their records.
 
   The facades declare only private fields:
   - `Object`: `IntPtr m_CachedPtr`, Unity's only field, here the handle of the object's slot in
@@ -1768,7 +1770,8 @@ citing why.
   - `Component`: `GameObject m_GameObject` and `Transform m_Transform`, the cached `gameObject`
     and `transform`, first, then the component's state.
   - `Behaviour`: the behaviour's state.
-  - `MonoBehaviour`, `GameObject`, `Transform`, `RectTransform`: none. Unity's `MonoBehaviour`
+  - `GameObject`: the object's state, none of it `GameObject`-typed.
+  - `MonoBehaviour`, `Transform`, `RectTransform`: none. Unity's `MonoBehaviour`
     has `m_CancellationTokenSource`; ours has none.
 
   Game code reflects over components' fields, so new engine fields on the facades keep three
@@ -1789,11 +1792,11 @@ citing why.
   KSerialization's templates take a type's public fields and public settable properties up to
   `object` (OptOut) or its `[Serialize]` members (OptIn), so the facade bases give a template
   exactly what Unity's give (`SaveTemplateTests` compares them with the game's CoreModule).
-- A record holds the name of a GameObject or asset, and the scene-graph data of GameObjects and
-  transforms. **Fake-null semantics** follow Unity: `==`, `!=`, `op_Implicit(bool)` and `Equals`
+- A record holds the name of an asset, and the scene-graph data of transforms. **Fake-null semantics** follow Unity: `==`, `!=`, `op_Implicit(bool)` and `Equals`
   treat destroyed objects (and C#-created `UnityEngine.Object`s the engine never bound) as null;
   these checks read `m_CachedPtr` only, lock-free, from any thread. A destroyed component drops
-  its GameObject's record, so one the game keeps holds nothing of its hierarchy.
+  its link to its GameObject, and a destroyed GameObject its components and transform, so one
+  the game keeps holds nothing of its hierarchy.
 - **The engine compares its objects by reference.** Records have no equality of their own, but
   a facade's is Unity's, under which every destroyed object equals every other. The engine's
   analyzer (`src/OniMoono.Analyzers`, `IdentityAnalyzer`) makes these build errors:
