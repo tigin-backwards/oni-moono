@@ -1693,21 +1693,60 @@ citing why.
 
 ### 3.2 Object model
 
-- **Engine state lives on the "native side", never in managed fields of public types.** Like
-  Unity, `UnityEngine.Object` has only private value-type fields: `IntPtr m_CachedPtr` (here a
-  `GCHandle` to the engine's internal `NativeObject` record) and `int m_InstanceID`. Public
-  engine classes (`GameObject`, `Component`, `Transform`, `Behaviour`, `MonoBehaviour`, …)
-  declare **no other instance fields** unless Unity's own class declares them (e.g. the
-  managed fields of `MonoBehaviour`). Reason: game code reflects over the full field set of
-  components. `Localization.SetFont` walks `Instance|Public|NonPublic` fields recursively and
-  follows `GameObject` fields into `GetComponents()` (*runtime §7.4*), and KSerialization builds
-  templates over `Object`/`Component`/`Behaviour` fields with `GetCustomAttributes`. Managed
-  back-references there would recurse forever or be serialized.
-- The `NativeObject` record holds the alive/destroyed flag, name, hide flags, owning asset (if
-  loaded from a file), and for GameObjects/Components the scene-graph data. **Fake-null
-  semantics** follow Unity: `==`, `!=`, `op_Implicit(bool)` and `Equals` treat destroyed objects
-  (and C#-created `UnityEngine.Object`s with no record) as null; these checks are lock-free
-  reads usable from any thread.
+- **Engine state lives on the "native side", in records, not in the facades.** Each
+  UnityEngine object is a facade (`UnityEngine.Object` and its subclasses, what the game sees)
+  and an engine record (`OniMoono.Engine.NativeObject` and its subclasses, what Unity keeps
+  natively: `Engine/NativeObjects.cs`). The facades declare only private fields:
+  - `Object`: `IntPtr m_CachedPtr`, Unity's only field, here the handle of the object's slot in
+    `ObjectTable` (slot and generation packed; zero once destroyed), and `NativeObject
+    m_Native`, the record itself, read on nearly every engine call. There is no
+    `m_InstanceID`, as in Unity 6.
+  - `Component`: `GameObject m_GameObject` and `Transform m_Transform`, the cached `gameObject`
+    and `transform`.
+  - `Behaviour`, `MonoBehaviour`, `GameObject`, `Transform`, `RectTransform`: none. Unity's
+    `MonoBehaviour` has `m_CancellationTokenSource`; ours has none.
+
+  Game code reflects over components' fields, so new engine fields on the facades keep three
+  rules (`SetFontWalkTests`, docs/research/facade-merge.md, category 5):
+  1. Fields on `Object`, `Component`, `Behaviour` and `MonoBehaviour` are private. A derived
+     type's `GetFields(Instance|Public|NonPublic|FlattenHierarchy)` does not return them.
+  2. No facade but `Component` declares a `GameObject`-typed field. `Localization.SetFont` walks
+     a type's fields that way, follows a `GameObject` field into every component of that object,
+     and any other field whose type differs from its class into the field's type, with no visited
+     set (*runtime §7.4*).
+  3. The fields form no cycle such a walk can go round. Two exist today, both reached only from
+     a field declared as a base type, which the game's one walk (its confirm dialog) has none
+     of: a component walked as `Component` meets `m_GameObject` (null until the first
+     `gameObject` read, which throws; set, it leads round the object's components), and an
+     object walked as `Object` meets `m_Native`, whose `Managed` is the object again.
+
+  KSerialization's templates take a type's public fields and public settable properties up to
+  `object` (OptOut) or its `[Serialize]` members (OptIn), so the facade bases give a template
+  exactly what Unity's give (`SaveTemplateTests` compares them with the game's CoreModule).
+- The record holds the alive/destroyed flags, name, hide flags, owning asset (if loaded from a
+  file), and for GameObjects and components the scene-graph data. **Fake-null semantics** follow
+  Unity: `==`, `!=`, `op_Implicit(bool)` and `Equals` treat destroyed objects (and C#-created
+  `UnityEngine.Object`s with no record) as null; these checks read `m_CachedPtr` only, lock-free,
+  from any thread.
+- **The engine compares its objects by reference.** Records have no equality of their own, but
+  a facade's is Unity's, under which every destroyed object equals every other. The engine's
+  analyzer (`src/OniMoono.Analyzers`, `IdentityAnalyzer`) makes these build errors:
+  - `==`, `!=` and `Equals` on the records of game objects and components, anywhere: written
+    `is null`, `is not null` or `ReferenceEquals` (MOONO001, MOONO003). These keep their meaning
+    should a record merge into its facade.
+  - Unity's `==`, `!=` and `Equals` on facades in the engine's own code (MOONO002, MOONO003):
+    the OniMoono namespaces of the engine and the desktop platform, and the facades' non-public
+    members. Identity is written `is null` or `ReferenceEquals`, liveness as the bool conversion
+    (`!obj`, `if (obj)`). The facades' public members, Unity's packages and the host keep
+    Unity's operators, as game code does.
+  - Hashed collections, `EqualityComparer<T>.Default` and LINQ's set operators keyed by either,
+    with the default comparer (MOONO004): they take `ReferenceEqualityComparer.Instance`.
+  - `List`/`Array` searches by `Equals` (MOONO005): `ByReference.IndexOf`, `Contains`, `Remove`.
+
+  A site that means Unity's equality says so with `#pragma warning disable` and a reason.
+  `IdentityCollisionTests` puts two behaviours whose keys' hashes collide through the phase lists,
+  and `DestroyedFacadeRetentionTests` checks that a destroyed facade the game keeps holds nothing
+  of its object's hierarchy.
 - Value types used by saves keep Unity's exact field shape: `Vector2/3/4` (`x,y,z,w` public
   fields), `Color` (`r,g,b,a`), `Color32` (`r,g,b,a` bytes), `Quaternion` (`x,y,z,w`), and **no
   public settable instance properties** on `Color32`/`Vector4` (KSerialization's OptOut rule

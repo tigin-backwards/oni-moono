@@ -1,6 +1,7 @@
 # Merging the engine records into the facades (2026-11-17)
 
-Status: study only, nothing built in the engine. It answers two questions about candidate 3 of
+Status: the guard rails landed (step 1 of the recommendation, "Progress" below); no record is
+merged yet. The study answers two questions about candidate 3 of
 [live-managed-heap.md](live-managed-heap.md), "`BehaviourNative` merged into the facade":
 how much frame time the facade-to-record step costs, and how safe the merge would be.
 
@@ -699,6 +700,69 @@ smaller share than candidates 1 and 2 of the heap study for more risk. If the pa
 
 Measure each step with an object census and a heap count on the late-game colony, and the
 in-game full-collection probe of the heap study, before going on.
+
+## Progress
+
+### Step 1: the guard rails (landed)
+
+What landed, on master and u60, before any record moves:
+
+- **The analyzer** (`src/OniMoono.Analyzers`, `IdentityAnalyzer`), run by every project that sees
+  the records (the engine, the desktop platform, the host, uGUI, TextMeshPro, Timeline and the
+  engine bridge). Its errors:
+  - MOONO001: `==`/`!=` on the records of game objects and components (`GameObjectNative`,
+    `ComponentNative`, their subclasses, and `NativeObject` itself), anywhere. Asset records
+    (textures, meshes, shaders…) stay records and are not checked.
+  - MOONO002: Unity's `==`/`!=` on facades in the engine's own code (the OniMoono namespaces of
+    the engine and the desktop platform, and the facades' non-public members). The host is left
+    out: its UI and game tweaks are game code.
+  - MOONO003: `Equals` on either. MOONO004: hashed collections, `EqualityComparer<T>.Default`
+    and LINQ's set operators keyed by either (tuples and C# records holding them included) with
+    the default comparer. MOONO005: `List`/`Array`/LINQ searches by `Equals`.
+- **The sites it found**, all rewritten in the same commit: 128 record comparisons (the study's
+  probe found 105 on `GameObjectNative` and `ComponentNative`; `NativeObject` and the subclasses
+  add the rest), 176 facade comparisons, 20 default-comparer collections and 22 searches in the
+  engine, and 8 facade comparisons in the desktop platform (10 on u60, with the Vulkan
+  device's two).
+  - Record comparisons became `is null`, `is not null` and `ReferenceEquals`: the same IL, as
+    the records have no operators.
+  - Facade comparisons with null became the bool conversion (`x == null` is `!x`, `x != null` is
+    `x`): the same call, `IsAlive`. The five that compared two facades became `ReferenceEquals`
+    where one side is known alive (the camera being rendered, a bundle being unloaded, an object
+    just bound), which is the same answer; `AnimationNative.RemoveClip` keeps Unity's equality
+    (it is the facade's own API) and says so.
+  - The 11 hashed collections of the study and the others take
+    `ReferenceEqualityComparer.Instance`; the lists search with `ByReference`. For records this
+    is the same comparison as before. For facades (the enabled cameras, sorting groups,
+    animation notifications, merged canvas runs, bundles) every entry is alive when it is added,
+    searched or removed (the lists change in `EngineOnEnable`/`EngineOnDisable` and before
+    `Unbind`), where Unity's equality is reference equality too.
+  - `SpriteRendererNative.GeometryMesh` keeps its tuple's `Equals`: its sprite is alive there.
+- **Tests:**
+  - `IdentityAnalyzerTests`: each rule on samples, the scopes, and that every project above runs
+    the analyzer.
+  - `SetFontWalkTests`: the base classes' fields are private; no facade but `Component` declares
+    a `GameObject` field; `Localization.SetFont`'s walk run on every component type, a
+    `GameObject`, transforms and a behaviour seen as each base type. It finds three things today,
+    recorded as known: a component walked as `Component` meets `m_GameObject` null (the
+    `gameObject` cache is filled on first read) and would throw, or, filled, go round its
+    object's components; and an object walked as `Object` meets `m_Native`, whose `Managed` is
+    the object again. Neither is reachable from the one object the game walks (its confirm
+    dialog); both come from fields Unity's facades lack. The second goes away with the merge.
+  - `SaveTemplateTests`: what KSerialization's OptOut and OptIn templates take from `Object`,
+    `Component`, `Behaviour` and `MonoBehaviour` equals what they take from Unity's (the game's
+    CoreModule, read with MetadataLoadContext).
+  - `DestroyedFacadeRetentionTests`: a destroyed behaviour, game object, transform or child
+    transform the game keeps holds none of its hierarchy's other facades or any record after a
+    collection (a mutation that keeps `m_Native` fails all six cases). The physics world holds
+    a destroyed collider, and so its whole hierarchy, until its next query, which the game makes
+    every frame; the test makes one.
+  - `IdentityCollisionTests`: two behaviours whose keys' hashes collide, destroyed together,
+    added and removed in one frame, and one destroyed while the other is removed and added
+    again; and every hashed collection of the study compares by reference.
+- **ARCHITECTURE.md §3.2** says what the facades declare (`m_CachedPtr` is a table handle, not a
+  `GCHandle`; no `m_InstanceID`; `m_Native`, `m_GameObject`, `m_Transform`), the three
+  reflection rules and the identity rules.
 
 ## Not measured
 
