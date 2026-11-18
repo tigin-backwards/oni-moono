@@ -1,7 +1,7 @@
 # Merging the engine records into the facades (2026-11-17)
 
-Status: the guard rails landed (step 1 of the recommendation, "Progress" below); no record is
-merged yet. The study answers two questions about candidate 3 of
+Status: the guard rails (step 1 of the recommendation) and step 2, every component's state on
+the component, landed ("Progress" below). The study answers two questions about candidate 3 of
 [live-managed-heap.md](live-managed-heap.md), "`BehaviourNative` merged into the facade":
 how much frame time the facade-to-record step costs, and how safe the merge would be.
 
@@ -763,6 +763,107 @@ What landed, on master and u60, before any record moves:
 - **ARCHITECTURE.md §3.2** says what the facades declare (`m_CachedPtr` is a table handle, not a
   `GCHandle`; no `m_InstanceID`; `m_Native`, `m_GameObject`, `m_Transform`), the three
   reflection rules and the identity rules.
+
+### Step 2: components keep their own state (landed)
+
+The owner chose the form for the engine components: their records stay, as the state of their
+subsystem, without an identity of their own. Three commits:
+
+1. **Every object keeps its identity.** The instance id, hide flags, source file and
+   destruction flags moved from `NativeObject` to `UnityEngine.Object` (private fields). The
+   records read them there through properties of the same names, so their readers did not
+   change. A record without an object (the engine's own meshes, or one not bound yet) keeps
+   them itself and hands them over when bound, before the object's constructor body runs, as
+   the record's own fields were set before it. `ObjectTable` holds the objects, not their
+   records.
+2. **Every component keeps its state.** `Component` holds its GameObject's record and its
+   lifecycle flags; `Behaviour` its enabled state, Awake/Start/OnEnable flags, script,
+   execution order and coroutines. Scripts and plain components have no record:
+   `BehaviourNative` and `ComponentNative` are now the state of engine components only, and
+   read the component's state through properties.
+   - **Construction.** `Object.ConstructComponent` hands a component its starting state
+     (`ComponentInit`: GameObject record, hide flags, enabled, useGUILayout, script) through the
+     same thread-static pending binding the records used, so it is in place before the
+     constructor body runs, as before. The loaders, which learn a component's GameObject only
+     when they fill it, set it then.
+   - **Destruction.** Liveness is still `m_CachedPtr` alone. A destroyed component drops its
+     GameObject's record (`Component.Unbind`), so one the game keeps holds nothing of its
+     hierarchy (`DestroyedFacadeRetentionTests`; a mutation that keeps it fails 4 of 6 cases).
+   - **Instantiate** copies enabled (disabled while the source awaits destruction),
+     useGUILayout and hide flags into the clone's starting state, as the records' copy did.
+   - **Compile-time guard.** `Component` hides `Object.Native` and `NativeOrThrow` with
+     `[Obsolete(error)]` members, so no engine code reads a component's record for its liveness
+     or state: each such read was rewritten to `Alive`, `EngineState` or the component's own
+     fields.
+   - **Reflection.** The new fields are private and declared after `Component.m_GameObject`, so
+     `Localization.SetFont`'s walk of a component seen as `Component` still meets that field
+     first. A script walked as `UnityEngine.Object` no longer goes round through its record (it
+     has none): one of the walk test's known cycles is gone for scripts; objects with records
+     keep it.
+3. **The slot comes from the handle.** `m_CachedPtr` already packs the slot and generation, so
+   the object keeps no copy; the source file is boxed (few objects have one). Each object is 16
+   bytes smaller than in commit 1.
+
+**Verified** on master and u60 (U60 763612 after the u60 rebase):
+- `check.sh` and `ci-unit-tests.sh` green on both; the analyzer clean; new unit tests
+  (`MergedComponentStateTests`: starting state, a constructor's view of it, a component made
+  without a constructor, engine components' state, inactive objects, destroy and fake null,
+  Destroy's deferred disable, Instantiate's copy, the Transform→RectTransform conversion, the
+  table holding components without records).
+- The core e2e list on both players, in 15-minute jobs on Linux lanes. Failures, each checked
+  against the code before the step: `moono-tweaks-en`, `-search-en` and `-search-zh` fail the
+  same way on the base (their counts predate the latest tweaks); `issue-52-states-bic` failed
+  once in five runs (an ignored click) and passed twice of two on the base; the rest were
+  missing local test mods and Workshop copies, which passed once provided.
+- Mods: on master, Ronivan's Legacy, Flow Splitters, Rotate Everything and Fast Track
+  (`issue-52-fast-track`), both players, besides the core list's mod specs. On u60 the mod gate
+  skipped them: onimaxxing had not reviewed the uploads for 763612 yet.
+- `qa.sh verify` on the late-game colony, every tweak and engine verify mode: 0 wrong in each
+  (component layouts 270 M queries, cull cache 1.1 M, parallel draws 8.5 M, canvas products,
+  skips, raycast cache, text scales and the rest), 1,640 game seconds, no new log signature.
+- Saves: the late-game colony loaded and saved at once differs from the base's save only in
+  `GameClock`'s float of real time (2 bytes of a 710 MB body), as two saves of the same build
+  do.
+
+**Heap** (master, the late-game colony 90 s after the load, a heap dump through HeapInv):
+
+| | Base | Step 2 | |
+|---|---:|---:|---:|
+| Reachable objects | 25.29 M | 23.10 M | −2.19 M (−8.7%) |
+| References | 77.7 M | 71.3 M | −6.45 M (−8.3%) |
+| Bytes | 5.13 GB | 5.00 GB | −126 MB |
+| `BehaviourNative` | 2.29 M, 275 MB | 0 | |
+
+On u60 (U60 763612) the same colony: 24.30 M → 22.08 M reachable objects (−2.22 M), 81.9 M →
+75.3 M references, 4.52 → 4.40 GB.
+
+The facades grew by the state they took (a game script by about 64 bytes, a GameObject by 24).
+Net, each removed record saved about 55 bytes, more than the study's estimate of 32–40: the
+records' fields were padded, and their copies of the GameObject link went with them.
+
+**Hot paths** (a micro-benchmark of the engine itself, base against step 2, 150,000 game objects
+with 14 behaviours, six alternating processes in runq's perf slot on a quiet machine; ns a call,
+medians):
+
+| Member | Hot base | Hot new | Cold base | Cold new |
+|---|---:|---:|---:|---:|
+| fake-null check (control) | 1.25 | 1.24 | 15.6 | 15.1 |
+| `enabled` | 1.81 | 1.31 | 31.5 | 18.2 |
+| `isActiveAndEnabled` | 1.85 | 1.25 | 36.1 | 16.4 |
+| `GetComponent<T>` | 4.14 | 3.22 | 125.4 | 100.2 |
+| `name` | 2.43 | 1.23 | 53.0 | 24.9 |
+| `gameObject` | 1.33 | 1.33 | 19.2 | 19.4 |
+| `activeInHierarchy` | 1.77 | 1.70 | 38.9 | 41.0 |
+| `localPosition` | 2.02 | 1.93 | 48.1 | 49.9 |
+| `GetInstanceID` | 1.31 | 1.23 | 23.7 | 16.0 |
+| Update dispatch (a behaviour) | | | 8.45 | 7.27 |
+| Instantiate (14 behaviours), ns | | | 5,189 | 4,867 |
+| Instantiate, bytes | | | 3,232 | 2,480 |
+
+No hot member is slower. Cold, the members that read a GameObject or transform through the
+component (`gameObject`, `activeInHierarchy`, `localPosition`) are 1–5% slower: the facade's
+own fields now sit further from its handle, so the two more often fall in different cache
+lines. The members that read the merged state save a cache miss (14–30 ns cold).
 
 ## Not measured
 

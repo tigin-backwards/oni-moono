@@ -389,6 +389,10 @@ The 2026-11-06 tables (v2026.11.06.01 on U59) had U57 at about 90 fps with defau
 - **Memory:** Moono's peak working set on U57 went from 16.2–16.8 GB to 13.6–14.4 GB, and its
   private bytes are now below the original's on both builds (U57 settled: 14.0 against 15.4 GB
   on U59, 13.1 against 18.1 GB on U60).
+- **Engine records merged into the facades** (docs/research/facade-merge.md, step 2): scripts
+  and plain components have no record of their own any more. On U57 the live heap holds 2.19 M
+  objects (8.7%) and 6.45 M references fewer, 126 MB less, which a full collection no longer
+  traces; an Instantiate of a 14-script object allocates 23% less (2,480 against 3,232 bytes).
 - **Frame times** are new: p50 and p99 for every configuration.
 - **Opt-in tweaks:** `brain-rate` still makes most of U57's gap between default and every tweak
   (default with it: 142 fps, one launch); `sim-step-pace` gave 159 → 170 fps at speed 1 on U57
