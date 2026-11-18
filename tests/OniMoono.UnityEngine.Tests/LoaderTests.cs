@@ -221,6 +221,8 @@ namespace OniMoono.Tests
             new ItemInstall(Item, Root, windows: true).Install(1, null);
             Assert.Equal("MZ new", File.ReadAllText(Path.Combine(Root, "OniMoono.exe")));
             Assert.Equal("MZ old", File.ReadAllText(Path.Combine(Root, "OniMoono.exe.old")));
+            // App.Restart's Restarter.exe beside it: the same native host (PlayerFiles.InstallWindowsEntry).
+            Assert.Equal("MZ new", File.ReadAllText(Path.Combine(Root, "Restarter.exe")));
         }
 
         /// A first install copies off the calling thread (the game's main thread): the run is

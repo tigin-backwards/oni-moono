@@ -172,6 +172,35 @@ namespace OniMoono.Host.Install
             return s.ToString();
         }
 
+        /// The Windows entry point's files (Entry): ROOT\OniMoono.exe, and ROOT\Restarter.exe for
+        /// the game's App.Restart, which starts Restarter.exe from the folder of the process's
+        /// executable, here the entry point's. Both are the version's OniMoono.exe, the native
+        /// host: named Restarter.exe it runs the installed version's Restarter.
+        public static readonly string[] WindowsEntryFiles = { "OniMoono.exe", "Restarter.exe" };
+
+        /// Puts the version's OniMoono.exe in place as each of WindowsEntryFiles in `root`. One
+        /// that differs is renamed to NAME.old first (a running exe can be renamed, not
+        /// overwritten), which the entry point deletes at its next start. True when one changed.
+        public static bool InstallWindowsEntry(string root, string versionDir)
+        {
+            var fresh = Path.Combine(versionDir, "OniMoono.exe");
+            var bytes = File.ReadAllBytes(fresh);
+            bool changed = false;
+            foreach (var name in WindowsEntryFiles)
+            {
+                var path = Path.Combine(root, name);
+                if (File.Exists(path) && File.ReadAllBytes(path).SequenceEqual(bytes)) continue;
+                if (File.Exists(path))
+                {
+                    if (File.Exists(path + ".old")) File.Delete(path + ".old");
+                    File.Move(path, path + ".old");
+                }
+                File.Copy(fresh, path);
+                changed = true;
+            }
+            return changed;
+        }
+
         /// The Linux entry point, ROOT/OniMoono (Entry).
         public const string EntryScript = """
             #!/bin/sh

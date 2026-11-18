@@ -1,4 +1,10 @@
+#nullable enable
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Text;
 using OniMoono.Restarter;
 using Xunit;
@@ -118,6 +124,67 @@ namespace OniMoono.Tests
             Assert.Equal(args[1..], RestartCommand.From(args, "not json")!.Arguments);
             Assert.Equal(args[1..], RestartCommand.From(args, "[null]")!.Arguments);
         }
+
+        [Fact]
+        public void TheRecordedEntryPointStartsInPlaceOfTheExecutable()
+        {
+            // The versioned install's entry point (ONI_MOONO_RESTART_EXE, RestartEntry), with the
+            // recorded arguments as before; an empty record is none.
+            const string entry = @"C:\Users\a\AppData\Local\oni-moono\versioned\OniMoono.exe";
+            string[] args = [@"C:\Users\a\AppData\Local\oni-moono\versioned\player\2026.11.16.04-u60\OniMoono.exe", "--", "x"];
+            var plan = RestartCommand.From(args, """["--","C:\\Games\\ONI\\OxygenNotIncluded.exe"]""", entry)!;
+            Assert.Equal(entry, plan.Executable);
+            Assert.Equal(["--", @"C:\Games\ONI\OxygenNotIncluded.exe"], plan.Arguments);
+            Assert.Equal(args[0], RestartCommand.From(args, null, "")!.Executable);
+            Assert.Equal(args[0], RestartCommand.From(args, null)!.Executable);
+            Assert.Null(RestartCommand.From([], null, entry));
+        }
+
+        /// The Linux Restarter (src/OniMoono.Host/Restarter): once its parent (the player) has
+        /// exited, the recorded entry point starts in place of the executable it was given, with
+        /// the recorded arguments; without the record, that executable.
+        [Fact]
+        public void TheLinuxScriptStartsTheRecordedEntryPoint()
+        {
+            if (OperatingSystem.IsWindows()) return;
+            var dir = Path.Combine(Path.GetTempPath(), "oni-moono-restarter-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(dir);
+            try
+            {
+                var script = Path.Combine(RepoRoot(), "src", "OniMoono.Host", "Restarter");
+                var output = Path.Combine(dir, "started.txt");
+                string Target(string name)
+                {
+                    var path = Path.Combine(dir, name);
+                    File.WriteAllText(path, $"#!/bin/sh\nprintf '%s\\n' \"$0\" \"$@\" > '{output}'\n");
+                    File.SetUnixFileMode(path, (UnixFileMode)0b111_101_101);
+                    return path;
+                }
+                var player = Target("player");
+                var entry = Target("entry");
+                string[] Run(string? recordedExe)
+                {
+                    File.Delete(output);
+                    // The player: a shell that starts the Restarter and exits a moment later.
+                    var start = new ProcessStartInfo("/bin/sh") { ArgumentList = { "-c", "sh \"$0\" \"$1\" --given & sleep 0.5", script, player } };
+                    start.Environment["ONI_MOONO_RESTART_ARGS"] = "'--game' 'a b' '--' '/games/ONI/OxygenNotIncluded'";
+                    if (recordedExe != null) start.Environment["ONI_MOONO_RESTART_EXE"] = recordedExe;
+                    else start.Environment.Remove("ONI_MOONO_RESTART_EXE");
+                    using (var shell = Process.Start(start)!) shell.WaitForExit();
+                    for (int i = 0; i < 200 && !File.Exists(output); i++) Thread.Sleep(50);
+                    Thread.Sleep(100);
+                    return File.Exists(output) ? File.ReadAllLines(output) : ["(not started)"];
+                }
+                Assert.Equal([entry, "--game", "a b", "--", "/games/ONI/OxygenNotIncluded"], Run(entry));
+                Assert.Equal(player, Run(null)[0]);
+            }
+            finally
+            {
+                Directory.Delete(dir, true);
+            }
+        }
+
+        static string RepoRoot([CallerFilePath] string here = "") => Path.GetFullPath(Path.Combine(Path.GetDirectoryName(here)!, "..", ".."));
 
         [Fact]
         public void NoExecutableIsAUsageError()

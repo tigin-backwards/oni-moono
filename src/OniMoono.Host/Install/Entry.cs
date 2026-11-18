@@ -12,7 +12,8 @@ namespace OniMoono.Host.Install
     /// - Windows: the native host (src/OniMoono.NativeHost) itself, copied from the chosen
     ///   version, which runs in "entry" mode when it has player/ beside it. The running exe can't
     ///   be overwritten but can be renamed: a new one goes in as OniMoono.exe after the old one
-    ///   is renamed to OniMoono.exe.old, which the next start deletes.
+    ///   is renamed to OniMoono.exe.old, which the next start deletes. The same exe goes in as
+    ///   Restarter.exe too, for App.Restart (PlayerFiles.InstallWindowsEntry).
     /// - Linux: a shell script (Script), written to a temporary file and renamed over the old
     ///   one; a running shell keeps reading the file it opened.
     internal static class Entry
@@ -26,10 +27,7 @@ namespace OniMoono.Host.Install
             {
                 if (OperatingSystem.IsWindows())
                 {
-                    var fresh = Path.Combine(versionDir, "OniMoono.exe");
-                    if (File.Exists(entry) && File.ReadAllBytes(entry).AsSpan().SequenceEqual(File.ReadAllBytes(fresh))) return;
-                    if (File.Exists(entry)) File.Move(entry, entry + ".old", overwrite: true);
-                    File.Copy(fresh, entry);
+                    if (!PlayerFiles.InstallWindowsEntry(install.Root, versionDir)) return;
                 }
                 else
                 {

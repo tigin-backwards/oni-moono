@@ -19,10 +19,13 @@ namespace OniMoono.Restarter
         /// game's arguments (GameCommandLine), without the host's own options. The arguments the
         /// host recorded (ONI_MOONO_RESTART_ARGV, a JSON array: all of the host's, the game's
         /// among them) are exact and win, so a restart starts the player as it was started; the
-        /// ones on the command line are used without them. Null without an executable.
-        internal static Plan? From(string[] args, string? recordedArgv)
+        /// ones on the command line are used without them. The executable the host recorded
+        /// (ONI_MOONO_RESTART_EXE: the versioned install's entry point, RestartEntry) wins over
+        /// the one given. Null without an executable.
+        internal static Plan? From(string[] args, string? recordedArgv, string? recordedExe = null)
         {
             if (args.Length == 0 || args[0].Length == 0) return null;
+            var executable = string.IsNullOrEmpty(recordedExe) ? args[0] : recordedExe;
             string[]? recorded = null;
             if (!string.IsNullOrEmpty(recordedArgv))
             {
@@ -30,7 +33,7 @@ namespace OniMoono.Restarter
                 catch (JsonException) { }
             }
             if (recorded != null && recorded.Any(a => a == null)) recorded = null;
-            return new Plan(args[0], recorded ?? args[1..]);
+            return new Plan(executable, recorded ?? args[1..]);
         }
 
         /// The arguments as one Windows command line, read back into the same arguments by

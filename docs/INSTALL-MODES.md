@@ -70,6 +70,7 @@ For a distribution that updates Moono in place, as the Steam Workshop would
 ```
 %LOCALAPPDATA%\oni-moono\versioned\        ~/.local/share/oni-moono/versioned/ on Linux
   OniMoono.exe                             the entry point (Linux: OniMoono, a shell script)
+  Restarter.exe                            Windows: the entry point again, for the game's App.Restart
   player\2026.11.08.01-u60\                one player per version, never written once there
   player\2026.11.08.01\
   state\current  source  pin  switch       what the entry point and the player read
@@ -87,6 +88,11 @@ runtime, and each version carries its own (self-contained).
   with `ONI_MOONO_INSTALL_ROOT` set, so the GPU exports and the crash records work as from any
   player folder.
 - **Linux:** the shell script does the same.
+- **Restarts.** The game's `App.Restart` (a language change, the mods screen) starts the entry
+  point again with the same arguments, so the version is chosen again. On Windows it looks for
+  `Restarter.exe` beside the entry point, a copy of it that runs the installed version's
+  Restarter; on Linux the host tells the version's Restarter to start the entry point
+  ([ARCHITECTURE.md](ARCHITECTURE.md), "Which executable").
 
 The choice needs the game's build and the versions' `mod_info.yaml`, which the player reads:
 
@@ -125,6 +131,7 @@ The entry point updates itself from the chosen version:
 
 - **Windows:** the running `OniMoono.exe` is renamed to `OniMoono.exe.old` (a running exe can be
   renamed, not replaced) and the new one put in place. The next start deletes the `.old`.
+  `Restarter.exe` is updated the same way.
 - **Linux:** a rename replaces the script.
 
 Moono makes no shortcut. After the first start, start Moono through the entry point,

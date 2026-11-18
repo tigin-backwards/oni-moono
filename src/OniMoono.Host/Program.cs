@@ -36,6 +36,11 @@ namespace OniMoono.Host
             Environment.SetEnvironmentVariable("ONI_MOONO_RESTART_ARGS", string.Join(" ", args.Select(a => "'" + a.Replace("'", "'\\''") + "'")));
             Environment.SetEnvironmentVariable("ONI_MOONO_RESTART_ARGV", System.Text.Json.JsonSerializer.Serialize(args));
             Environment.SetEnvironmentVariable("ONI_MOONO_RESTART_PID", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            // The versioned install's entry point, which a restart starts in place of this
+            // executable (RestartEntry).
+            TestAppRestart.Take();
+            var restartEntry = Install.RestartEntry.Record();
+            Launch.LaunchStep.Log.Add($"restart: starts {(restartEntry != null ? "the entry point " + restartEntry : "this executable")}, arguments {Environment.GetEnvironmentVariable("ONI_MOONO_RESTART_ARGV")}");
 
             // The install's layout: OxygenNotIncluded_Data beside the game (Linux, Windows) or the
             // macOS bundle OxygenNotIncluded.app, told from the files (GameLayout).

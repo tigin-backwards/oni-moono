@@ -6,7 +6,10 @@ namespace OniMoono.Restarter
     /// Restarter EXECUTABLE [ARGUMENT...] (Windows): started by the game's App.Restart before the
     /// player quits (e.g. after a language change). Once the player has exited, the executable is
     /// started again with the arguments the player was started with (RestartCommand), which the
-    /// host records in ONI_MOONO_RESTART_ARGV with its process id in ONI_MOONO_RESTART_PID.
+    /// host records in ONI_MOONO_RESTART_ARGV with its process id in ONI_MOONO_RESTART_PID; the
+    /// versioned install's entry point in its place when ONI_MOONO_RESTART_EXE names one. The
+    /// entry point's own Restarter.exe is the native host, which runs this from the installed
+    /// version's folder.
     /// Klei's Restarter starts the game at once, without waiting, in the executable's folder;
     /// this one waits for the player and keeps the folder it was started in (the player's), so a
     /// relative path among the arguments (--game) still finds the same files.
@@ -14,7 +17,7 @@ namespace OniMoono.Restarter
     {
         static int Main(string[] args)
         {
-            var plan = RestartCommand.From(args, Environment.GetEnvironmentVariable("ONI_MOONO_RESTART_ARGV"));
+            var plan = RestartCommand.From(args, Environment.GetEnvironmentVariable("ONI_MOONO_RESTART_ARGV"), Environment.GetEnvironmentVariable("ONI_MOONO_RESTART_EXE"));
             if (plan == null)
             {
                 Console.Error.WriteLine("usage: Restarter EXECUTABLE [ARGUMENT...]");
