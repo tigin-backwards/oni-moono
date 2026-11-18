@@ -145,11 +145,7 @@ namespace UnityEngine
         /// before the component's constructor body runs.
         internal void BindAsComponent(ComponentNative state)
         {
-            if (state is not null)
-            {
-                state.HandOver(this);
-                state.Managed = this;
-            }
+            if (state is not null) state.Managed = this;
             if (m_EngineInstanceId == 0) m_EngineInstanceId = ObjectTable.NewInstanceId(m_EngineIsPersistent);
             m_Native = state;
             Volatile.Write(ref m_CachedPtr, ObjectTable.Register(this));
