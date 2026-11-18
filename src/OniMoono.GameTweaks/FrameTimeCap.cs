@@ -5,8 +5,9 @@ using OniMoono.Tweaks;
 
 namespace OniMoono.GameTweaks
 {
-    /// Game tweak `frame-time-cap` (**changes timing**): while a colony runs, a frame's game time
-    /// (Time.deltaTime, and so Time.time) is capped at the 0.2 s the sim takes of it.
+    /// Game tweak `low-fps-timing`'s game time part (**changes timing**; LowFpsTiming): while a
+    /// colony runs, a frame's game time (Time.deltaTime, and so Time.time) is capped at the 0.2 s
+    /// the sim takes of it.
     ///
     /// Game.SimEveryTick takes min(Time.deltaTime, 0.2 s) a frame (its sub-ticks, and the remainder
     /// under 1/60 s kept for the next frame) and drops the rest. Time.deltaTime is the real frame
@@ -24,14 +25,16 @@ namespace OniMoono.GameTweaks
     /// speed 3, 10 at speed 2, 5 at speed 1. The main menu and loading run no SimEveryTick, so
     /// no cap.
     ///
-    /// Off for the session once another Harmony owner patches SimEveryTick other than with a
-    /// postfix (it could change the sim's cap; checked at the first frame, then every 4,096), or
-    /// when the engine has no cap (not Moono's).
+    /// This part is off for the session once another Harmony owner patches SimEveryTick other than
+    /// with a postfix (it could change the sim's cap; checked at the first frame, then every
+    /// 4,096). Without the engine's cap (not Moono's) its install fails, and the tweak's with it.
     [GameMember(GameUse.Postfix, "System.Void Game::SimEveryTick(System.Single)")]
     [GameMember(GameUse.Mirrors, "System.Void Game::SimEveryTick(System.Single)", "0339e1b13ef02096 linux-744825 win-744825", "5c36683191300649 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     public static class FrameTimeCap
     {
-        public const string Name = "frame-time-cap";
+        /// The tweak this is a part of (its game members are declared under that name), and the
+        /// part as Player.log names it.
+        public const string Name = LowFpsTiming.Name, Part = "game time cap";
 
         static Action<float> capNextFrame;
         static MethodBase[] guarded;
@@ -58,7 +61,7 @@ namespace OniMoono.GameTweaks
         static bool Foreign()
         {
             if (ForeignPatches.Find(guarded, ProbeRepairPolicy.GuardedKinds.AllButPostfixes) is not { } why) return false;
-            global::Debug.Log($"{Name}: off ({why})");
+            global::Debug.Log($"{Name}: {Part} off ({why})");
             return true;
         }
 

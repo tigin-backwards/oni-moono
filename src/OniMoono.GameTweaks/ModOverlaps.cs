@@ -135,9 +135,11 @@ namespace OniMoono.GameTweaks
                 if (guards.TryGetValue((method.Module, method.MetadataToken), out var guarding))
                     foreach (var (tweak, kinds) in guarding)
                     {
+                        // A tweak whose parts guard the method against other kinds: the broadest
+                        // (All < AllButPostfixes < Finalizers).
                         var u = Use(tweak);
+                        u.GuardKinds = u.Guard && u.GuardKinds < kinds ? u.GuardKinds : kinds;
                         u.Guard = true;
-                        u.GuardKinds = kinds;
                     }
                 // Uses of a tweak that is off this run (none: its patches are not made) are kept
                 // out all the same.
@@ -206,8 +208,9 @@ namespace OniMoono.GameTweaks
             Add(FastAnimEvents.Name, FastAnimEvents.Guarded, FastAnimEvents.KindsOf);
             Add(FastPipeRebuilds.Name, FastPipeRebuilds.Guarded);
             Add(SimStepPace.Name, SimStepPace.Guarded);
-            Add(FrameTimeCap.Name, FrameTimeCap.Guarded, FrameTimeCap.KindsOf);
-            Add(LogicTicks.Name, LogicTicks.Guarded);
+            // low-fps-timing: each part's own (on SimEveryTick the broader, the automation part's).
+            Add(LowFpsTiming.Name, FrameTimeCap.Guarded, FrameTimeCap.KindsOf);
+            Add(LowFpsTiming.Name, LogicTicks.Guarded);
             Add(FastPartitionerEvents.Name, FastPartitionerEvents.Guarded);
             Add(FastConduitSorts.Name, FastConduitSorts.Guarded);
             Add(FastOverlayRemovals.Name, FastOverlayRemovals.Guarded);

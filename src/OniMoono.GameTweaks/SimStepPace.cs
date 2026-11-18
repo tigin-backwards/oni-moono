@@ -18,7 +18,7 @@ namespace OniMoono.GameTweaks
     /// 1x uncapped against 40 ms capped at 50 fps, on that colony).
     ///
     /// With the tweak, SimEveryTick runs as the game's (SimStepPaceCore, through SimEveryTickLoop,
-    /// which logic-in-sim-steps shares) but for that call:
+    /// which low-fps-timing's automation part shares) but for that call:
     /// sub-ticks, state machine updates and the 200 ms steps are the game's, as is the call on a
     /// frame with no game time (paused), so tools used while paused show at once. What changes:
     /// above 60 fps at normal speed the grid's data, dug and built tiles, and the solid and

@@ -2,7 +2,7 @@ namespace OniMoono.GameTweaks
 {
     /// What a frame of Game.SimEveryTick asks of the game (SimEveryTickLoop): a call of
     /// UnsafeSim200ms, a sub-tick of StateMachineUpdater, and what runs before the frame's k-th
-    /// sub-tick (1-based; logic-in-sim-steps' deferred automation ticks).
+    /// sub-tick (1-based; low-fps-timing's deferred automation ticks).
     internal interface ISimTicks
     {
         void Sim200ms(float dt);
@@ -10,7 +10,7 @@ namespace OniMoono.GameTweaks
         void BeforeSubTick(int k);
     }
 
-    /// Game.SimEveryTick's frame for the sim-step-pace and logic-in-sim-steps tweaks, without the
+    /// Game.SimEveryTick's frame for the sim-step-pace and low-fps-timing tweaks, without the
     /// game types (the unit tests drive it against a copy of the game's own). The game's loop as
     /// it is: the frame's time, at most 0.2 s, adds to `simDt`; each 1/60 s of it is a sub-tick,
     /// and every 12th sub-tick steps the sim by 0.2 s. With `skipNoTime` (sim-step-pace), a frame
