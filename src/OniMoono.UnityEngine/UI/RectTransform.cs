@@ -7,50 +7,59 @@ namespace UnityEngine
     {
         public RectTransform() { }
 
-        internal RectTransformNative Rect => (RectTransformNative)EngineStateOrThrow;
+        /// The rect transform itself, which must be alive; throws Unity's error otherwise. (It was
+        /// the record.)
+        internal RectTransform RectState
+        {
+            get
+            {
+                if (!Alive) throw new NullReferenceException();
+                return this;
+            }
+        }
 
-        public Rect rect => Rect.ComputeRect();
+        public Rect rect => RectState.ComputeRect();
 
         public Vector2 anchorMin
         {
-            get => Rect.AnchorMin;
-            set { var r = Rect; if (r.AnchorMin == value) return; r.AnchorMin = value; r.Resolve(); }
+            get => RectState.AnchorMin;
+            set { var r = RectState; if (r.AnchorMin == value) return; r.AnchorMin = value; r.Resolve(); }
         }
 
         public Vector2 anchorMax
         {
-            get => Rect.AnchorMax;
-            set { var r = Rect; if (r.AnchorMax == value) return; r.AnchorMax = value; r.Resolve(); }
+            get => RectState.AnchorMax;
+            set { var r = RectState; if (r.AnchorMax == value) return; r.AnchorMax = value; r.Resolve(); }
         }
 
         public Vector2 anchoredPosition
         {
-            get => Rect.AnchoredPosition;
-            set { var r = Rect; if (r.AnchoredPosition == value) return; r.AnchoredPosition = value; r.Resolve(); }
+            get => RectState.AnchoredPosition;
+            set { var r = RectState; if (r.AnchoredPosition == value) return; r.AnchoredPosition = value; r.Resolve(); }
         }
 
         public Vector2 sizeDelta
         {
-            get => Rect.SizeDelta;
-            set { var r = Rect; if (r.SizeDelta == value) return; r.SizeDelta = value; r.Resolve(); }
+            get => RectState.SizeDelta;
+            set { var r = RectState; if (r.SizeDelta == value) return; r.SizeDelta = value; r.Resolve(); }
         }
 
         public Vector2 pivot
         {
-            get => Rect.Pivot;
-            set { var r = Rect; if (r.Pivot == value) return; r.Pivot = value; r.Resolve(); }
+            get => RectState.Pivot;
+            set { var r = RectState; if (r.Pivot == value) return; r.Pivot = value; r.Resolve(); }
         }
 
         public Vector3 anchoredPosition3D
         {
             get
             {
-                var r = Rect;
+                var r = RectState;
                 return new Vector3(r.AnchoredPosition.x, r.AnchoredPosition.y, r.LocalPosition.z);
             }
             set
             {
-                var r = Rect;
+                var r = RectState;
                 r.AnchoredPosition = new Vector2(value.x, value.y);
                 r.LocalPosition.z = value.z;
                 r.Resolve();
@@ -81,27 +90,27 @@ namespace UnityEngine
 
         public Object drivenByObject
         {
-            get => Rect.DrivenByObject;
-            set => Rect.DrivenByObject = value;
+            get => RectState.DrivenByObject;
+            set => RectState.DrivenByObject = value;
         }
 
         internal DrivenTransformProperties drivenProperties
         {
-            get => Rect.DrivenProperties;
-            set => Rect.DrivenProperties = value;
+            get => RectState.DrivenProperties;
+            set => RectState.DrivenProperties = value;
         }
 
         public bool sendChildDimensionsChange
         {
-            get => Rect.SendChildDimensionsChange;
-            set => Rect.SendChildDimensionsChange = value;
+            get => RectState.SendChildDimensionsChange;
+            set => RectState.SendChildDimensionsChange = value;
         }
 
         public static event ReapplyDrivenProperties reapplyDrivenProperties;
 
         internal static void SendReapplyDrivenProperties(RectTransform driven) => reapplyDrivenProperties?.Invoke(driven);
 
-        public void ForceUpdateRectTransforms() => Rect.Resolve();
+        public void ForceUpdateRectTransforms() => RectState.Resolve();
 
         public void GetLocalCorners(Vector3[] fourCornersArray)
         {
@@ -131,7 +140,7 @@ namespace UnityEngine
 
         public void SetSizeWithCurrentAnchors(Axis axis, float size)
         {
-            var r = Rect;
+            var r = RectState;
             int i = (int)axis;
             var sizeDelta = r.SizeDelta;
             sizeDelta[i] = size - r.ParentSize()[i] * (r.AnchorMax[i] - r.AnchorMin[i]);
@@ -144,7 +153,7 @@ namespace UnityEngine
         /// the near side sits inset from the edge whatever the pivot. The other axis is kept.
         public void SetInsetAndSizeFromParentEdge(Edge edge, float inset, float size)
         {
-            var r = Rect;
+            var r = RectState;
             int axis = edge == Edge.Top || edge == Edge.Bottom ? 1 : 0;
             bool farEdge = edge == Edge.Right || edge == Edge.Top;
             float anchor = farEdge ? 1f : 0f;
@@ -174,44 +183,52 @@ namespace UnityEngine
     }
 }
 
-namespace OniMoono.Engine
+namespace UnityEngine
 {
-    /// RectTransform state. anchoredPosition and sizeDelta are authoritative; localPosition.xy
-    /// is resolved from them and the parent rect, and re-resolved whenever the parent rect changes.
-    internal sealed class RectTransformNative : TransformNative
+    /// RectTransform state, kept on the RectTransform itself (docs/research/facade-merge.md, step
+    /// 4; it was its record). anchoredPosition and sizeDelta are authoritative; localPosition.xy is
+    /// resolved from them and the parent rect, and re-resolved whenever the parent rect changes.
+    public partial class RectTransform
     {
-        UnityEngine.Vector2 anchorMin = new(0.5f, 0.5f), anchorMax = new(0.5f, 0.5f), sizeDelta = new(100f, 100f), pivot = new(0.5f, 0.5f);
+        UnityEngine.Vector2 m_EngineAnchorMin, m_EngineAnchorMax, m_EngineSizeDelta, m_EnginePivot;
 
         // The rect (ComputeRect) reads these, the parent's and the parents' above: each write of
-        // one, and each change of any transform's parent (TransformNative.Parent), starts a new
+        // one, and each change of any transform's parent (Transform.Parent), starts a new
         // rect epoch, and a rect computed in the current epoch is returned as it was computed.
         // A write of the value already there (the same bits: a layout group placing its children
         // where they are) changes no rect and keeps the epoch.
-        public UnityEngine.Vector2 AnchorMin { get => anchorMin; set { if (!SameBits(anchorMin, value)) { anchorMin = value; RectEpoch++; } } }
-        public UnityEngine.Vector2 AnchorMax { get => anchorMax; set { if (!SameBits(anchorMax, value)) { anchorMax = value; RectEpoch++; } } }
-        public UnityEngine.Vector2 SizeDelta { get => sizeDelta; set { if (!SameBits(sizeDelta, value)) { sizeDelta = value; RectEpoch++; } } }
-        public UnityEngine.Vector2 Pivot { get => pivot; set { if (!SameBits(pivot, value)) { pivot = value; RectEpoch++; } } }
+        internal UnityEngine.Vector2 AnchorMin { get => m_EngineAnchorMin; set { if (!SameBits(m_EngineAnchorMin, value)) { m_EngineAnchorMin = value; RectEpoch++; } } }
+        internal UnityEngine.Vector2 AnchorMax { get => m_EngineAnchorMax; set { if (!SameBits(m_EngineAnchorMax, value)) { m_EngineAnchorMax = value; RectEpoch++; } } }
+        internal UnityEngine.Vector2 SizeDelta { get => m_EngineSizeDelta; set { if (!SameBits(m_EngineSizeDelta, value)) { m_EngineSizeDelta = value; RectEpoch++; } } }
+        internal UnityEngine.Vector2 Pivot { get => m_EnginePivot; set { if (!SameBits(m_EnginePivot, value)) { m_EnginePivot = value; RectEpoch++; } } }
 
         static bool SameBits(UnityEngine.Vector2 a, UnityEngine.Vector2 b) =>
             System.BitConverter.SingleToInt32Bits(a.x) == System.BitConverter.SingleToInt32Bits(b.x)
             && System.BitConverter.SingleToInt32Bits(a.y) == System.BitConverter.SingleToInt32Bits(b.y);
-        public UnityEngine.Vector2 AnchoredPosition;
+        internal UnityEngine.Vector2 AnchoredPosition;
 
         /// The rect epoch: any write that can change any rect takes a new one (main thread only).
         internal static long RectEpoch = 1;
         UnityEngine.Rect epochRect;
         long epochRectAt;
-        public UnityEngine.Object DrivenByObject;
-        public UnityEngine.DrivenTransformProperties DrivenProperties;
-        public bool SendChildDimensionsChange = true;
+        // Untyped: Localization.SetFont's walk of a RectTransform would follow a field declared as
+        // UnityEngine.Object into the driving component (SetFontWalkTests).
+        object m_EngineDrivenByObject;
+        internal UnityEngine.Object DrivenByObject
+        {
+            get => System.Runtime.CompilerServices.Unsafe.As<UnityEngine.Object>(m_EngineDrivenByObject);
+            set => m_EngineDrivenByObject = value;
+        }
+        internal UnityEngine.DrivenTransformProperties DrivenProperties;
+        internal bool SendChildDimensionsChange;
 
         UnityEngine.Rect lastRect;
         bool hasLastRect;
 
-        public override void CopyStateFrom(NativeObject source)
+        internal override void CopyStateFrom(Transform source)
         {
             base.CopyStateFrom(source);
-            if (source is not RectTransformNative r) return;
+            if (source is not RectTransform r) return;
             AnchorMin = r.AnchorMin;
             AnchorMax = r.AnchorMax;
             AnchoredPosition = r.AnchoredPosition;
@@ -221,19 +238,19 @@ namespace OniMoono.Engine
         }
 
         /// Size of the parent's rect; zero when the parent is not a RectTransform.
-        public UnityEngine.Vector2 ParentSize() => Parent is RectTransformNative p ? p.ComputeRect().size : UnityEngine.Vector2.zero;
+        internal UnityEngine.Vector2 ParentSize() => Parent is RectTransform p ? p.ComputeRect().size : UnityEngine.Vector2.zero;
 
-        UnityEngine.Rect ParentRect() => Parent is RectTransformNative p ? p.ComputeRect() : default;
+        UnityEngine.Rect ParentRect() => Parent is RectTransform p ? p.ComputeRect() : default;
 
         /// The rect from the parent's size, the anchors, sizeDelta and the pivot: computed once in
         /// a rect epoch (a mask's pass reads the rect of every graphic it clips each frame, and a
         /// rect's computation walks every parent up to the canvas: about 2 ms a frame on a
         /// table screen with 50 rows), the same value as computed afresh.
-        public UnityEngine.Rect ComputeRect()
+        internal UnityEngine.Rect ComputeRect()
         {
             if (epochRectAt == RectEpoch)
             {
-                if (UI.UiCacheVerify.On) UI.UiCacheVerify.Rect(this, epochRect, RectFrom(FreshParentSize()));
+                if (OniMoono.Engine.UI.UiCacheVerify.On) OniMoono.Engine.UI.UiCacheVerify.Rect(this, epochRect, RectFrom(FreshParentSize()));
                 return epochRect;
             }
             epochRect = RectFrom(ParentSize());
@@ -243,12 +260,12 @@ namespace OniMoono.Engine
 
         UnityEngine.Rect RectFrom(UnityEngine.Vector2 parentSize)
         {
-            var size = UnityEngine.Vector2.Scale(parentSize, anchorMax - anchorMin) + sizeDelta;
-            return new UnityEngine.Rect(-pivot.x * size.x, -pivot.y * size.y, size.x, size.y);
+            var size = UnityEngine.Vector2.Scale(parentSize, m_EngineAnchorMax - m_EngineAnchorMin) + m_EngineSizeDelta;
+            return new UnityEngine.Rect(-m_EnginePivot.x * size.x, -m_EnginePivot.y * size.y, size.x, size.y);
         }
 
         /// The parent's size computed afresh up the whole chain, for the verify mode.
-        UnityEngine.Vector2 FreshParentSize() => Parent is RectTransformNative p ? p.RectFrom(p.FreshParentSize()).size : UnityEngine.Vector2.zero;
+        UnityEngine.Vector2 FreshParentSize() => Parent is RectTransform p ? p.RectFrom(p.FreshParentSize()).size : UnityEngine.Vector2.zero;
 
         /// The anchor reference point in the parent's local space: the anchors, interpolated by the
         /// pivot when they are apart.
@@ -261,7 +278,7 @@ namespace OniMoono.Engine
         }
 
         /// Recomputes localPosition and the rect, then propagates to child RectTransforms.
-        public void Resolve()
+        internal void Resolve()
         {
             var reference = AnchorReference();
             var newPos = new UnityEngine.Vector3(reference.x + AnchoredPosition.x, reference.y + AnchoredPosition.y, LocalPosition.z);
@@ -274,25 +291,25 @@ namespace OniMoono.Engine
             if (moved || rectChanged) MarkDirty(moved);
             if (!rectChanged) return;
             foreach (var child in Children)
-                if (child is RectTransformNative rc) rc.Resolve();
+                if (child is RectTransform rc) rc.Resolve();
             SendDimensionsChange();
         }
 
         /// A move of a rect with a CanvasRenderer is told to it after the canvas update when its
         /// canvas is pixel perfect (CanvasSystem.NoteMoved).
-        protected override void OnMoved() => UI.CanvasSystem.NoteMoved(this);
+        internal override void OnMoved() => OniMoono.Engine.UI.CanvasSystem.NoteMoved(this);
 
         /// OnRectTransformDimensionsChange to the object, and OnChildRectTransformDimensionsChange
         /// to its parent RectTransform's components when sendChildDimensionsChange is set (layout
         /// groups re-lay out their children on it).
-        public void SendDimensionsChange()
+        internal void SendDimensionsChange()
         {
             Messages.SendToComponents(GameObject, s => s.OnRectTransformDimensionsChange);
-            if (Parent is RectTransformNative && SendChildDimensionsChange)
+            if (Parent is RectTransform && SendChildDimensionsChange)
                 Messages.SendToComponents(Parent.GameObject, s => s.OnChildRectTransformDimensionsChange);
         }
 
-        public override void SetLocalPositionInternal(UnityEngine.Vector3 value)
+        internal override void SetLocalPositionInternal(UnityEngine.Vector3 value)
         {
             var reference = AnchorReference();
             AnchoredPosition = new UnityEngine.Vector2(value.x - reference.x, value.y - reference.y);
@@ -301,13 +318,23 @@ namespace OniMoono.Engine
             MarkDirty(moved);
         }
 
-        public override void ParentChangedInternal(bool worldPositionStays)
+        internal override void ParentChangedInternal(bool worldPositionStays)
         {
             // Keeping the world position means the new localPosition is authoritative; keeping the
             // local values means the anchoring is.
             if (worldPositionStays) SetLocalPositionInternal(LocalPosition);
             hasLastRect = false;
             Resolve();
+        }
+
+        internal override void InitTransformState()
+        {
+            base.InitTransformState();
+            m_EngineAnchorMin = new(0.5f, 0.5f);
+            m_EngineAnchorMax = new(0.5f, 0.5f);
+            m_EngineSizeDelta = new(100f, 100f);
+            m_EnginePivot = new(0.5f, 0.5f);
+            SendChildDimensionsChange = true;
         }
     }
 }

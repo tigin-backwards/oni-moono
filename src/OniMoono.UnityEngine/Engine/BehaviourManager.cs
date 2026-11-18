@@ -6,8 +6,8 @@ using UnityEngine;
 namespace OniMoono.Engine
 {
     /// Creates the record of an engine component type, the state of its subsystem. Engine
-    /// components with their own state register a factory; transforms get theirs; scripts and
-    /// plain components get none (null).
+    /// components with their own state register a factory; transforms, scripts and plain
+    /// components get none (null).
     internal static class ComponentNatives
     {
         static readonly Dictionary<Type, Func<ComponentNative>> factories = new()
@@ -61,9 +61,8 @@ namespace OniMoono.Engine
             lock (factories)
                 for (var t = type; t != null && t != typeof(Component); t = t.BaseType)
                     if (factories.TryGetValue(t, out var f)) return f;
-            if (typeof(RectTransform).IsAssignableFrom(type)) return static () => new RectTransformNative();
-            if (typeof(Transform).IsAssignableFrom(type)) return static () => new TransformNative();
-            // Scripts and plain components keep all their state on themselves: no record.
+            // Transforms, scripts and plain components keep all their state on themselves: no
+            // record.
             return static () => null;
         }
     }

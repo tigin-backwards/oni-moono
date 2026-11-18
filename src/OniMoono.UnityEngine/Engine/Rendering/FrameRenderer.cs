@@ -1539,7 +1539,7 @@ namespace OniMoono.Engine.Rendering
         static void CollectLine(LineRendererNative r, Camera camera, List<DrawItem> draws)
         {
             var mesh = lineMeshes.GetValue(r, _ => new MeshNative());
-            var view = (TransformNative)camera.transform.EngineStateOrThrow;
+            var view = camera.transform.TransformNative;
             var rotation = view.WorldRotation;
             if (!r.BuildGeometry(Hierarchy.Position(view), rotation * Vector3.forward, rotation * Vector3.right, rotation * Vector3.up, !camera.orthographic, mesh)) return;
             foreach (var material in r.Materials)

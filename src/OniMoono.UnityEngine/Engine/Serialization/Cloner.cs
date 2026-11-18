@@ -121,7 +121,7 @@ namespace OniMoono.Engine.Serialization
                 t.LocalPosition = position.Value;
                 t.LocalRotation = rotation ?? Quaternion.identity;
             }
-            TransformNative parentNative = null;
+            Transform parentNative = null;
             if (parent)
             {
                 var p = parentNative = parent.TransformNative;
@@ -149,7 +149,7 @@ namespace OniMoono.Engine.Serialization
                 }
             }
             t.MarkDirty(false);
-            if (t is RectTransformNative rt) rt.ParentChangedInternal(position.HasValue || (parent && worldPositionStays));
+            if (t is RectTransform rt) rt.ParentChangedInternal(position.HasValue || (parent && worldPositionStays));
 
             // 4. Lifecycle.
             Lifecycle.UpdateActiveInHierarchy(rootClone);
@@ -160,14 +160,14 @@ namespace OniMoono.Engine.Serialization
             return remap[original];
         }
 
-        static void AttachUnder(TransformNative child, TransformNative parent, bool keepWorld)
+        static void AttachUnder(Transform child, Transform parent, bool keepWorld)
         {
             parent.InsertChildAt(child, parent.Children.Length);
             child.Parent = parent;
             Hierarchy.Touch(parent);
         }
 
-        static GameObject CloneStructure(GameObject src, TransformNative parentClone, Dictionary<Object, Object> remap)
+        static GameObject CloneStructure(GameObject src, Transform parentClone, Dictionary<Object, Object> remap)
         {
             var go = new GameObject(default(GameObject.EngineMade))
             {
@@ -206,14 +206,16 @@ namespace OniMoono.Engine.Serialization
                     init.ExecutionOrder = init.Script.ExecutionOrder;
                 }
                 clones[i] = Object.ConstructComponent(c.GetType(), native, in init);
+                // A transform's placement (a RectTransform's anchoring too), as its record's copy.
+                if (clones[i] is Transform ct) ct.CopyStateFrom((Transform)c);
                 remap[c] = clones[i];
             }
             go.Components = clones;
-            go.Transform = (TransformNative)clones[0].EngineStateOrThrow;
+            go.Transform = (Transform)clones[0];
             go.Transform.Parent = parentClone;
 
             var srcChildren = src.Transform.Children;
-            var childClones = new TransformNative[srcChildren.Length];
+            var childClones = new Transform[srcChildren.Length];
             for (int i = 0; i < srcChildren.Length; i++)
                 childClones[i] = CloneStructure(srcChildren[i].GameObject, go.Transform, remap).Transform;
             go.Transform.SetChildren(childClones);

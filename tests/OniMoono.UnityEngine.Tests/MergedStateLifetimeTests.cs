@@ -82,7 +82,7 @@ namespace OniMoono.Tests
         }
 
         /// The first GameObject of resources.assets with a script on it, and its file and path id.
-        static (GameObject Go, long PathId) LoadPrefabWithScript()
+        internal static (GameObject Go, long PathId) LoadPrefabWithScript()
         {
             TmpTestSupport.LoadGameData();
             var file = AssetSystem.Get("resources.assets");
@@ -103,7 +103,8 @@ namespace OniMoono.Tests
             Assert.True(go.GetInstanceID() > 0);
             Assert.Null(go.Scene);
             Assert.False(go.activeInHierarchy);
-            Assert.Same(go.transform.EngineState, go.Transform);
+            Assert.Same(go.transform, go.Transform);
+            Assert.Null(go.transform.EngineState);
             foreach (var c in go.GetComponents<Component>())
             {
                 Assert.Same(go, c.EngineGameObject);

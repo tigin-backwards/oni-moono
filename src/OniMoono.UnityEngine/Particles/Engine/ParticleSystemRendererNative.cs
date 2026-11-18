@@ -149,7 +149,7 @@ namespace OniMoono.Engine.Particles
         /// Geometry for a camera; see the overload taking a ParticleView.
         internal bool BuildGeometry(Camera camera, MeshNative target, out Matrix4x4 objectToWorld)
         {
-            var t = (TransformNative)camera.transform.EngineStateOrThrow;
+            var t = camera.transform.TransformNative;
             var projection = CameraProjection != null ? CameraProjection(camera) : (Matrix4x4?)null;
             return BuildGeometry(new ParticleView(Hierarchy.Position(t), t.WorldRotation, projection), target, out objectToWorld);
         }
@@ -299,7 +299,7 @@ namespace OniMoono.Engine.Particles
                                 break;
                             case 2: // Local: the emitter's orientation.
                             {
-                                var rotation = ((TransformNative)GameObject.Transform).WorldRotation;
+                                var rotation = ((Transform)GameObject.Transform).WorldRotation;
                                 baseRight = rotation * Vector3.right;
                                 baseUp = rotation * Vector3.up;
                                 normal = rotation * Vector3.back;

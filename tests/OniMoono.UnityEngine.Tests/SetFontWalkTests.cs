@@ -62,7 +62,6 @@ namespace OniMoono.Tests
         static readonly string[] KnownCycles =
         [
             "Component: throws, a null GameObject: Component.m_GameObject",
-            "Object: Transform: Object.m_Native -> NativeObject.Managed",
             "WalkedBehaviour: throws, a null GameObject: WalkedBehaviour.other -> Component.m_GameObject",
         ];
 

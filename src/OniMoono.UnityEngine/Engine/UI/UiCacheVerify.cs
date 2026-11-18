@@ -1,10 +1,11 @@
 using System;
 using GameObject = UnityEngine.GameObject;
+using RectTransform = UnityEngine.RectTransform;
 
 namespace OniMoono.Engine.UI
 {
     /// ONI_VERIFY_UI_CACHES=1: each rect a RectTransform returns from its epoch's cache
-    /// (RectTransformNative.ComputeRect) and each nearest canvas kept for an object
+    /// (RectTransform.ComputeRect) and each nearest canvas kept for an object
     /// (CanvasSystem.NearestCanvas) is computed again and must be the same (the rect bit for bit);
     /// a line every 1,000,000 checks and one for each wrong answer.
     internal static class UiCacheVerify
@@ -12,7 +13,7 @@ namespace OniMoono.Engine.UI
         public static readonly bool On = Environment.GetEnvironmentVariable("ONI_VERIFY_UI_CACHES") == "1";
         static long rects, rectsWrong, nearest, nearestWrong;
 
-        public static void Rect(RectTransformNative r, UnityEngine.Rect kept, UnityEngine.Rect fresh)
+        public static void Rect(RectTransform r, UnityEngine.Rect kept, UnityEngine.Rect fresh)
         {
             if (!SameBits(kept, fresh))
                 EngineLog.Engine($"ui caches wrong ({++rectsWrong}): rect of {r.GameObject?.Name} kept {kept}, computed {fresh}");

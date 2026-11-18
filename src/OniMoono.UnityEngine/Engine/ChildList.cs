@@ -1,15 +1,17 @@
 using System;
 
+using Transform = UnityEngine.Transform;
+
 namespace OniMoono.Engine
 {
-    /// A transform's children as they were when read (TransformNative.Children): later changes
+    /// A transform's children as they were when read (Transform.Children): later changes
     /// to the parent do not show in it, as with the copied array it replaces.
     internal readonly struct ChildList
     {
-        readonly TransformNative[] items;
+        readonly Transform[] items;
         readonly int count;
 
-        public ChildList(TransformNative[] items, int count)
+        public ChildList(Transform[] items, int count)
         {
             this.items = items;
             this.count = Math.Min(count, items.Length);
@@ -17,11 +19,11 @@ namespace OniMoono.Engine
 
         public int Length => count;
 
-        public TransformNative this[int index] => (uint)index < (uint)count ? items[index] : throw new IndexOutOfRangeException();
+        public Transform this[int index] => (uint)index < (uint)count ? items[index] : throw new IndexOutOfRangeException();
 
-        /// By reference (a TransformNative is equal only to itself): Array.IndexOf would call
+        /// By reference (a Transform is equal only to itself): Array.IndexOf would call
         /// Equals on every child before it.
-        public int IndexOf(TransformNative child)
+        public int IndexOf(Transform child)
         {
             var list = items;
             for (int i = 0; i < count && i < list.Length; i++)
@@ -29,7 +31,7 @@ namespace OniMoono.Engine
             return -1;
         }
 
-        public TransformNative[] ToArray() => items.AsSpan(0, count).ToArray();
+        public Transform[] ToArray() => items.AsSpan(0, count).ToArray();
 
         public Enumerator GetEnumerator() => new(items, count);
 
@@ -39,11 +41,11 @@ namespace OniMoono.Engine
 
         public struct Enumerator
         {
-            readonly TransformNative[] items;
+            readonly Transform[] items;
             readonly int count;
             int index;
 
-            internal Enumerator(TransformNative[] items, int count)
+            internal Enumerator(Transform[] items, int count)
             {
                 this.items = items;
                 this.count = count;
@@ -52,7 +54,7 @@ namespace OniMoono.Engine
 
             public bool MoveNext() => ++index < count;
 
-            public readonly TransformNative Current => items[index];
+            public readonly Transform Current => items[index];
         }
     }
 }

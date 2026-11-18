@@ -18,7 +18,7 @@ namespace OniMoono.Engine
         static List<GameObject> Collect(bool activeOnly)
         {
             var result = new List<GameObject>();
-            var stack = new Stack<TransformNative>();
+            var stack = new Stack<Transform>();
             foreach (var scene in Scenes.WithDontDestroyOnLoad())
                 foreach (var root in scene.Roots.ToArray())
                 {
@@ -95,12 +95,13 @@ namespace OniMoono.Engine
         }
 
         /// Transform.Find semantics: each path segment names a direct child.
-        public static TransformNative FindPath(TransformNative from, string[] parts, int index)
+        public static Transform FindPath(Transform from, string[] parts, int index)
         {
             if (index == parts.Length) return from;
             foreach (var child in from.Children)
             {
-                if (child.Name != parts[index] && child.GameObject.Name != parts[index]) continue;
+                // A transform's own name was its record's, always "": its GameObject's counts.
+                if (parts[index] != "" && child.GameObject.Name != parts[index]) continue;
                 var found = FindPath(child, parts, index + 1);
                 if (found is not null) return found;
             }

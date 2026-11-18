@@ -79,7 +79,7 @@ namespace OniMoono.Tests
 
         /// A rect read again is the same until something it depends on changes, and then follows
         /// it: the parent's size, the anchors, the pivot, sizeDelta and the parent itself, at
-        /// any depth (RectTransformNative keeps a rect per rect epoch).
+        /// any depth (RectTransform keeps a rect per rect epoch).
         [Fact]
         public void KeptRectsFollowEveryChangeAbove()
         {
@@ -124,28 +124,28 @@ namespace OniMoono.Tests
             var parent = new GameObject("Parent", typeof(RectTransform)).GetComponent<RectTransform>();
             rect.SetParent(parent, false);
             rect.sizeDelta = new Vector2(10, 20);
-            long epoch = OniMoono.Engine.RectTransformNative.RectEpoch;
+            long epoch = UnityEngine.RectTransform.RectEpoch;
             rect.sizeDelta = new Vector2(10, 20);
             rect.anchorMin = rect.anchorMin;
             rect.anchorMax = rect.anchorMax;
             rect.pivot = rect.pivot;
             rect.SetParent(parent, false);
-            Assert.Equal(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            Assert.Equal(epoch, UnityEngine.RectTransform.RectEpoch);
             Assert.Equal(new Rect(-5, -10, 10, 20), rect.rect);
 
             rect.sizeDelta = new Vector2(0, 20);
-            Assert.NotEqual(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            Assert.NotEqual(epoch, UnityEngine.RectTransform.RectEpoch);
             Assert.Equal(new Rect(0, -10, 0, 20), rect.rect);
-            epoch = OniMoono.Engine.RectTransformNative.RectEpoch;
+            epoch = UnityEngine.RectTransform.RectEpoch;
             // A layout group pins a child by its edge (the anchors and the size written each time).
             rect.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 3, 7);
-            Assert.NotEqual(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
-            epoch = OniMoono.Engine.RectTransformNative.RectEpoch;
+            Assert.NotEqual(epoch, UnityEngine.RectTransform.RectEpoch);
+            epoch = UnityEngine.RectTransform.RectEpoch;
             rect.SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 3, 7);
-            Assert.Equal(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            Assert.Equal(epoch, UnityEngine.RectTransform.RectEpoch);
             Assert.Equal(7f, rect.rect.width);
             rect.pivot = new Vector2(0.5f, 1f);
-            Assert.NotEqual(epoch, OniMoono.Engine.RectTransformNative.RectEpoch);
+            Assert.NotEqual(epoch, UnityEngine.RectTransform.RectEpoch);
             Assert.Equal(-20f, rect.rect.y);
         }
     }

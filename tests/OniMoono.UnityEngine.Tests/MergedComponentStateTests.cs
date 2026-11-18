@@ -89,7 +89,8 @@ namespace OniMoono.Tests
             Assert.Same(go, camera.EngineState.GameObject);
             Assert.True(camera.enabled);
             Assert.True(((BehaviourNative)camera.EngineState).IsActiveAndEnabledState);
-            Assert.IsType<TransformNative>(go.transform.EngineState);
+            Assert.Null(go.transform.EngineState);
+            Assert.Same(go.transform, go.Transform);
             Assert.Null(plain.EngineState);
             Assert.Same(go, plain.gameObject);
         }
@@ -197,8 +198,9 @@ namespace OniMoono.Tests
             Assert.False(old);
             Assert.Same(rect, go.transform);
             Assert.Same(rect, s.transform);
-            Assert.Same(rect, rect.EngineState.Managed);
-            Assert.Same(go, rect.EngineState.GameObject);
+            Assert.Null(rect.EngineState);
+            Assert.Same(rect, go.Transform);
+            Assert.Same(go, rect.EngineGameObject);
         }
 
         [Fact]

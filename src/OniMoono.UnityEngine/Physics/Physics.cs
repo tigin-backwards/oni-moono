@@ -134,7 +134,7 @@ namespace OniMoono.Engine
         public abstract bool Raycast(Vector3 origin, Vector3 direction, out float distance, out Vector3 normal);
 
         /// The shape's world AABB (Collider.bounds of an enabled, active collider).
-        public abstract Bounds WorldBounds(TransformNative t);
+        public abstract Bounds WorldBounds(Transform t);
     }
 
     internal sealed class SphereColliderNative : ColliderNative
@@ -157,7 +157,7 @@ namespace OniMoono.Engine
         }
 
         /// PhysX scales a sphere by the largest absolute component of the lossy scale.
-        public override Bounds WorldBounds(TransformNative t)
+        public override Bounds WorldBounds(Transform t)
         {
             var scale = Hierarchy.LossyScale(t);
             float r = Radius * Math.Max(Math.Abs(scale.x), Math.Max(Math.Abs(scale.y), Math.Abs(scale.z)));
@@ -205,7 +205,7 @@ namespace OniMoono.Engine
             Center = TransformBinder.ToVector3(data.Struct("m_Center"));
         }
 
-        public override Bounds WorldBounds(TransformNative t)
+        public override Bounds WorldBounds(Transform t)
         {
             var scale = Hierarchy.LossyScale(t);
             var half = new Vector3(Math.Abs(Size.x * scale.x), Math.Abs(Size.y * scale.y), Math.Abs(Size.z * scale.z)) * 0.5f;

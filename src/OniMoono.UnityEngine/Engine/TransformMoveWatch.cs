@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+using Transform = UnityEngine.Transform;
+
 namespace OniMoono.Engine
 {
     /// The transforms whose moves something outside the engine follows (the host's
@@ -11,8 +13,8 @@ namespace OniMoono.Engine
     internal static class TransformMoveWatch
     {
         static readonly object gate = new object();
-        static readonly Dictionary<TransformNative, object> tokens = new(ReferenceEqualityComparer.Instance);
-        static readonly HashSet<TransformNative> queued = new(ReferenceEqualityComparer.Instance);
+        static readonly Dictionary<Transform, object> tokens = new(ReferenceEqualityComparer.Instance);
+        static readonly HashSet<Transform> queued = new(ReferenceEqualityComparer.Instance);
         static List<object> pending = new List<object>(), spare = new List<object>();
 
         public static int Count
@@ -20,7 +22,7 @@ namespace OniMoono.Engine
             get { lock (gate) return tokens.Count; }
         }
 
-        public static void Watch(TransformNative t, object token)
+        public static void Watch(Transform t, object token)
         {
             lock (gate)
             {
@@ -29,7 +31,7 @@ namespace OniMoono.Engine
             }
         }
 
-        public static void Unwatch(TransformNative t)
+        public static void Unwatch(Transform t)
         {
             lock (gate)
             {
@@ -39,7 +41,7 @@ namespace OniMoono.Engine
             }
         }
 
-        internal static void Note(TransformNative t)
+        internal static void Note(Transform t)
         {
             lock (gate)
             {

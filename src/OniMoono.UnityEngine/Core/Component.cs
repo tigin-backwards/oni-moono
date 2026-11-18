@@ -99,6 +99,7 @@ namespace UnityEngine
             m_EngineGameObject = init.GameObject;
             EngineHideFlags = init.HideFlags;
             if (this is Behaviour b) b.InitBehaviour(in init);
+            else if (this is Transform t) t.InitTransformState();
             BindAsComponent(state);
         }
 

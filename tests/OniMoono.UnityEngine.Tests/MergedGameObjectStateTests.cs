@@ -32,8 +32,9 @@ namespace OniMoono.Tests
             Assert.True(go.RootSlot >= 0);
             Assert.Single(go.GetComponents<Component>());
             Assert.Same(go.transform, go.Components[0]);
-            Assert.Same(go.transform.EngineState, go.Transform);
-            Assert.Same(go, go.transform.EngineState.GameObject);
+            Assert.Same(go.transform, go.Transform);
+            Assert.Null(go.transform.EngineState);
+            Assert.Same(go, go.transform.EngineGameObject);
             Assert.Same(go, ObjectTable.FindByInstanceId(go.GetInstanceID()));
             Assert.Equal("made (UnityEngine.GameObject)", go.ToString());
         }
@@ -92,7 +93,7 @@ namespace OniMoono.Tests
             Assert.Equal(HideFlags.DontSave, clone.hideFlags);
             Assert.False(clone.activeSelf);
             Assert.Same(clone, clone.GetComponent<Script>().gameObject);
-            Assert.Same(clone, clone.transform.EngineState.GameObject);
+            Assert.Same(clone, clone.transform.EngineGameObject);
             Assert.NotEqual(go.GetInstanceID(), clone.GetInstanceID());
         }
 
