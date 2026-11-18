@@ -296,6 +296,51 @@ An earlier local branch did this by checking every critter each 2 game seconds, 
 and backstops on top; the check alone cost 1.7–3.3 ms a real second, and capping critter turns
 saves nothing worth having (the section above), so only the reordering was kept.
 
+## Low frame rates at speed 3: critters that attack go first too (`critter-needs-first`, 2026-11-18)
+
+A critter notices a target only on its brain turn: ThreatMonitor's `safe.seeking` state runs
+`RefreshThreat` on the turn's pre-update, which gathers the attackable entries in a 41×41 box
+(`GatherThreats`, 50 entries a turn) and keeps those it can reach. With 500 critters the 5 turns
+a frame make a round of 3.3 game seconds at speed 1 and 30 fps, 10 at speed 3 and 30 fps, and
+20 at speed 3 at 15 fps or below. Then a Beeta's turn rarely falls while a target passes, and
+its 0–4 s wait before attacking (`waitBeforeAttack`) and its approach outlast the rest.
+
+`critter-needs-first` also asks for the turn of a critter in `safe.seeking` with a target it
+could take (the search's tests, read only) or in `threatened.creature`, once its last turn is
+older than critters / 150 game seconds, the round at speed 1 and 30 fps:
+
+- The critters in those states are tracked by their monitors' enter and exit, and each turn
+  moves a critter's time (a pre-update of the same states); a queue in due order hands them
+  out (`ThreatTurns`).
+- At most 4 tests a frame, and at most one ask in every 5 of the critter group's turns
+  (brain-rate's allowance when it runs the group), so the fixed order keeps 4 in 5.
+- A test visits that box's partitioner entries up to the first target or the 50th, a
+  `CanReach` read each. Nothing is allocated a frame (`ThreatTurnsTests`).
+
+Measured with tools/BeetaTurnsTestMod (12 Beetas, 500 other critters, a Pip visiting the
+Beetas for 8 game seconds every 30–40; Linux, counts only, one run each):
+
+| Speed, frame rate | Tweak | Game seconds | Round of turns | Stings (during visits) | Targets noticed | Turns asked |
+|---|---|---|---|---|---|---|
+| 3, held to 15 fps | off | 600 | 20.3 s | 2 (1) | 25 | 0 |
+| 3, held to 15 fps | on | 600 | 20.8 s | 19 (19) | 63 | 97 |
+| 3, held to 15 fps | on | 130 | 20.1 s | 15 (15) | – | 62 |
+| 1, 28 fps | off | 450 | 3.7 s | 33 (33) | 97 | 0 |
+| 1, 28 fps | on | 450 | 3.7 s | 23 (23) | 42 | 13 |
+
+- Nearly every sting came in the Pip's first three visits, in every run: later visits rarely
+  end in one, with or without the tweak. The Beetas stop reaching the Pip; not investigated.
+  `tests/e2e/critter-threat-turns.yaml` therefore runs 130 game seconds (the last row).
+- At speed 1 the tweak asked 13 turns, as the lane ran at 28 fps and the round was just over
+  the gap: 13 extra turns against about 1,500 the Beetas took. With one run each, the 33 and 23
+  stings, decided in the first three visits, cannot be told from chance.
+
+The study before it (a prototype in the test mod, Beetas counted per sting): 12 stings at speed
+1 and 30 fps, 0 at speed 3 and 15 fps, 12 with the prototype. On U59 a separate game bug also
+keeps Beetas from finding moving targets: a critter's attackable partitioner entry never moves,
+as `GameHashes.CellChanged` is never raised (fixed in U60-761015). The test mod raises it when it
+moves the Pip.
+
 ## `brain-rate`'s critter cap, kept with needs first (2026-11-15, issue #85)
 
 - `brain-rate` caps critters at 150 turns a second with the 15-second and game-rate floors, and

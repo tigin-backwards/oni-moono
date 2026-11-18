@@ -1,0 +1,33 @@
+# critter-needs-first's threat turns: with brain turns scarce, Beetas must still notice and sting
+# a target that passes by. Ours only (`--player ours`): the original has no such tweak.
+#
+# A critter notices a target only on its brain turn, and the game gives 5 critters a turn a
+# frame. Our test mod (tools/BeetaTurnsTestMod) builds sealed rooms in the fixture's rock: 12
+# Beetas, 500 other critters that only take turns, and a Pip that visits the Beetas for 8 game
+# seconds every 30 to 40. It holds the frame rate to 15, so at speed 3 a round of turns takes
+# about 20 game seconds; a Beeta's turn rarely falls inside a visit, and its 0-4 s wait before
+# attacking and its approach outlast the rest. With the tweak, a Beeta looking for a target with
+# one in reach gets a turn once its last is older than the round at speed 1 and 30 fps (3.5 game
+# seconds here). `RoundSeconds` is the round as measured; the spec fails when it is under 12, as
+# the run would then prove nothing.
+#
+# The run covers the Pip's first three visits. In this rig later visits rarely end in a sting,
+# with or without the tweak, at any speed: the Beetas stop reaching the Pip (not investigated).
+#
+# Measured on Linux at 120 game seconds (3 visits): with the tweak 18 stings, all during visits,
+# from 34 targets noticed; without it 2 stings (1 during a visit) from 23
+# (docs/research/brain-probes.md).
+from: early-base
+game_tweaks: [critter-needs-first]
+test_mods: [BeetaTurnsTestMod]
+env: {BEETA_FPS: "15", BEETA_FILLERS: "500"}
+steps:
+  - wait_state: {state: {"type:BeetaTurnsTestMod.Rooms::Ready": true}, seconds: 180}
+  - run: {seconds: 130, speed: 3}
+  - expect_state:
+      "type:BeetaTurnsTestMod.Rooms::Failed": false
+      "type:BeetaTurnsTestMod.Rooms::CritterBrains": ">= 500"
+      "type:BeetaTurnsTestMod.Rooms::RoundSeconds": ">= 12"
+      "type:BeetaTurnsTestMod.Rooms::Visits": ">= 3"
+      "type:BeetaTurnsTestMod.Rooms::VisitStings": ">= 6"
+      "type:OniMoono.GameTweaks.CritterNeedsFirst::ToAttack": ">= 3"
