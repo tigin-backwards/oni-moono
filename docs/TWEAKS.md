@@ -80,7 +80,8 @@ It only shows what it finds. It never turns a tweak on or off. The grades:
   `sim-step-pace` (`Game.SimEveryTick` and `UnsafeSim200ms`),
   `low-fps-timing` (each part on its own: the game time cap for `Game.SimEveryTick`, for any
   patch but a postfix; the automation ticks for `LogicCircuitManager.Refresh` and
-  `RenderEveryTick` or `Game.SimEveryTick`; see
+  `RenderEveryTick` or `Game.SimEveryTick`; leak timing for `WorldDamage.ApplyDamage` and
+  `Update`, for any patch but a postfix; see
   [Accurate timing at low FPS](#accurate-timing-at-low-fps)),
   `instant-reachability` (the reachability monitor, the Duplicants' reach table, work cells and
   offsets), `fetch-by-cell` (the fetch groups' update and lists, what makes an item pickable and
@@ -330,7 +331,7 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Instant reachability checks** (`instant-reachability`): Duplicants notice a newly opened or blocked path at once, using less CPU. Errands and items are rechecked where and when a Duplicant's reach changes, instead of all of them once a second. The answers are the same, up to 1 s sooner. Items it can't track (from some mods) are still checked every second. *On by default.*
 - **Lazy unseen conveyor items** (`off-screen-conveyors`): Items riding rails off screen are placed only when they stop or come into view. The rails carry exactly the same things, but items' positions lag while off screen.
 - **Simulation at its own pace** (`sim-step-pace`): Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU. Above 60 fps at normal speed, the game calls the simulation on every frame between its five steps a second, and each call waits for the step underway. This skips those calls, as the game does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. Off while paused, or while another mod changes these calls. *Measured: 112 → 220 fps at normal speed on a large modded colony; a large modded Spaced Out colony, Windows, 2026-11-12.*
-- **Accurate timing at low FPS** (`low-fps-timing`): Animations, timers and automation keep in step with the simulation, as at a high frame rate. Below about 15 fps at speed 3 (10 at speed 2, 5 at speed 1), animations, timers and automation run ahead of the simulation. The simulation takes at most 0.2 s of game time a frame and drops the rest, but they take all of it: up to 1 s a frame at speed 3. Duplicants and critters then finish what waits on an animation sooner, Buffer and Filter Gates switch early, and overheating buildings and scalding Duplicants take damage faster. This caps a frame's game time at the simulation's 0.2 s while a colony runs. It also runs automation ticks between the simulation's steps instead of back to back before them, so a signal that lasts one tick still reaches pumps, doors and valves; that part acts below 30 fps at speed 3, 20 at speed 2 or 10 at speed 1. The camera and menus keep real time. Each part is off while another mod changes the code it relies on.
+- **Accurate timing at low FPS** (`low-fps-timing`): At low frame rates or high speeds, animations, timers and automation keep pace with the simulation. On long frames and at high game speeds, some game timing drifts from the simulation: automation gates and one-tick signals, scalding and overheating damage, work that waits on an animation, and similar. This keeps it in step with the simulation, as at a high frame rate, while the camera and menus keep real time. Each part turns off if a mod changes the code it relies on.
 - **Cap critter and dupe brain updates** (`brain-rate`): Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps. The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food, excrete or attack goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time.
 
 ### Bug fixes (off by default but where marked)
@@ -596,8 +597,9 @@ of one run: 112 → 220 fps, frame times p50 7.4 → 3.9 ms and p99 34 → 12 ms
 
 Off by default (`low-fps-timing`, in the Changes gameplay group, not in `exact`).
 
-On long frames, parts of the game run on the frame's time instead of the simulation's. This
-tweak holds the fixes for that, in two parts so far: the game time cap and automation ticks.
+On long frames or at high game speeds, parts of the game run on the frame's time or real time
+instead of the simulation's. This tweak holds the fixes for that, in three parts so far: the game
+time cap, automation ticks and leak timing.
 Each part checks for other mods on its own, so a mod that patches what one part relies on turns
 off that part only, and the other stays on. Later fixes of this kind join this tweak as parts.
 The cases are in [research/frame-rate-dependence.md](research/frame-rate-dependence.md).
@@ -689,6 +691,23 @@ ticks followed by no sub-tick before the next one (a one-tick signal the simulat
 Speed 1 at about 220 fps, the target, hid 2 of 402 ticks (on a hitch, a frame of over 0.1 s).
 The plan costs about 70 ns a frame in the worst case (speed 3 at 5 fps, 6 ticks over 12
 sub-ticks) and allocates nothing (`LogicTicksTests`); it moves the game's work, adding none.
+
+#### Leak timing
+
+**In the game.** A solid tile damaged past 15% with more than 1 kg of liquid behind it leaks 1 kg
+into the open cell on its other side, at most once a second per cell
+(`WorldDamage.ApplyDamage` and `Update`). That second is real time (`realtimeSinceStartup`), so
+at speed 3 a damaged tile leaks a third as often per game second as at speed 1, and less again
+with mods that raise the game speed. It matters only while a tile takes damage more often than
+once a second, as when liquid pressure cracks it (digging leaks nothing).
+
+**With this part** the second is game time, read from the game clock, so a tile leaks at most
+once a game second at any speed: at speed 1 as in the game. While paused, nothing damages tiles
+and the window waits with the game clock, so paused frames are unchanged.
+
+**Other mods.** While another mod patches `WorldDamage.ApplyDamage` or `Update` other than with
+a postfix, this part is off and the game's real-time window stays
+(`low-fps-timing: leak timing off (...)` in Player.log). The other parts stay on.
 
 ### Critter turns
 

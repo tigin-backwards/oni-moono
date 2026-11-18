@@ -273,14 +273,10 @@ namespace OniMoono.Host.GameTweaks
                 + "Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. "
                 + "Off while paused, or while another mod changes these calls.", PaceGain),
             // One row for every fix of this kind (OniMoono.GameTweaks.LowFpsTiming): a new one is a part of it, not a row.
-            new(LowFpsTiming, ChangesGameplay, "Accurate timing at low FPS", "Animations, timers and automation keep in step with the simulation, as at a high frame rate.",
-                "Below about 15 fps at speed 3 (10 at speed 2, 5 at speed 1), animations, timers and automation run ahead of the simulation. "
-                + "The simulation takes at most 0.2 s of game time a frame and drops the rest, but they take all of it: up to 1 s a frame at speed 3. "
-                + "Duplicants and critters then finish what waits on an animation sooner, Buffer and Filter Gates switch early, and overheating buildings and scalding Duplicants take damage faster. "
-                + "This caps a frame's game time at the simulation's 0.2 s while a colony runs. "
-                + "It also runs automation ticks between the simulation's steps instead of back to back before them, so a signal that lasts one tick still reaches pumps, doors and valves; "
-                + "that part acts below 30 fps at speed 3, 20 at speed 2 or 10 at speed 1. The camera and menus keep real time. "
-                + "Each part is off while another mod changes the code it relies on."),
+            new(LowFpsTiming, ChangesGameplay, "Accurate timing at low FPS", "At low frame rates or high speeds, animations, timers and automation keep pace with the simulation.",
+                "On long frames and at high game speeds, some game timing drifts from the simulation: automation gates and one-tick signals, scalding and overheating damage, work that waits on an animation, and similar. "
+                + "This keeps it in step with the simulation, as at a high frame rate, while the camera and menus keep real time. "
+                + "Each part turns off if a mod changes the code it relies on."),
             new("brain-rate", ChangesGameplay, "Cap critter and dupe brain updates", "Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps.",
                 "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. "
                 + "One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food, excrete or attack goes ahead of the others, so critters act at other moments than without this. "

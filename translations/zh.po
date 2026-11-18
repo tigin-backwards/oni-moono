@@ -959,12 +959,12 @@ msgid "Accurate timing at low FPS"
 msgstr "低帧率下的准确计时"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOW_FPS_TIMING.EFFECT"
-msgid "Animations, timers and automation keep in step with the simulation, as at a high frame rate."
-msgstr "动画、计时器和自动化与模拟保持同步，与高帧率时一样。"
+msgid "At low frame rates or high speeds, animations, timers and automation keep pace with the simulation."
+msgstr "在低帧率或高游戏速度下，动画、计时器和自动化与模拟保持同步。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOW_FPS_TIMING.DETAIL"
-msgid "Below about 15 fps at speed 3 (10 at speed 2, 5 at speed 1), animations, timers and automation run ahead of the simulation. The simulation takes at most 0.2 s of game time a frame and drops the rest, but they take all of it: up to 1 s a frame at speed 3. Duplicants and critters then finish what waits on an animation sooner, Buffer and Filter Gates switch early, and overheating buildings and scalding Duplicants take damage faster. This caps a frame's game time at the simulation's 0.2 s while a colony runs. It also runs automation ticks between the simulation's steps instead of back to back before them, so a signal that lasts one tick still reaches pumps, doors and valves; that part acts below 30 fps at speed 3, 20 at speed 2 or 10 at speed 1. The camera and menus keep real time. Each part is off while another mod changes the code it relies on."
-msgstr "3 倍速下低于约 15 fps（2 倍速下 10 fps，1 倍速下 5 fps）时，动画、计时器和自动化会跑在模拟前面。模拟每帧最多取 0.2 秒游戏时间，其余的丢弃，但它们会取走全部：在 3 倍速下每帧最多 1 秒。于是复制人和小动物会更早完成要等动画结束的事情，缓冲门和过滤门会提前切换，过热的建筑和烫伤的复制人受到伤害更快。此项在殖民地运行时把每帧的游戏时间限制在模拟的 0.2 秒。它还把自动化的刻放到模拟步进之间运行，而不是在步进之前连续运行，因此只持续一刻的信号也能传到泵、门和阀门；这一部分在 3 倍速下低于 30 fps、2 倍速下低于 20 fps 或 1 倍速下低于 10 fps 时生效。镜头和菜单仍按真实时间运行。有其他模组修改某一部分所依赖的代码时，该部分不生效。"
+msgid "On long frames and at high game speeds, some game timing drifts from the simulation: automation gates and one-tick signals, scalding and overheating damage, work that waits on an animation, and similar. This keeps it in step with the simulation, as at a high frame rate, while the camera and menus keep real time. Each part turns off if a mod changes the code it relies on."
+msgstr "每帧耗时较长或游戏速度较高时，游戏的部分计时会与模拟脱节：自动化的逻辑门和只持续一刻的信号、烫伤和过热伤害、要等动画结束的工作等。此项让它们与模拟保持同步，与高帧率时一样，镜头和菜单仍按真实时间运行。有模组修改某一部分所依赖的代码时，该部分关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PACE"
 msgid "112 → 220 fps at normal speed on a large modded colony"
