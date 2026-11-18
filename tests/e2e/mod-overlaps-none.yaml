@@ -20,6 +20,10 @@ steps:
   - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
   - expect_ui:
       "**/MoonoTweaksScreen/**/OverlapIcon": {exists: false}
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -24}
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
-  - shot: rows
+  # The screen has its rows (TweaksScreen fails on an empty list), every one shown.
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Rows": [">= 10", {save_as: rows}]
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Shown": "== rows"
+  - shot: screen

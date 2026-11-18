@@ -15,20 +15,28 @@ steps:
   - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
   - ui_dump: {name: screen, root: "**/MoonoTweaksScreen"}
   - shot: screen
-  # A row's tooltip (how it works, the launch option), then the choice button's.
+  # The list's end, however long the catalog makes it: more notches than it needs, then a
+  # check that it got there. KScrollRect keeps scrolling for a few frames after the wheel (its
+  # inertia): the list settles before a shot or a hover.
+  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -400}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - wait_state: {state: {"ui:**/MoonoTweaksScreen/**/ListView/Files/Viewport::GetComponentInParent<KScrollRect>.verticalNormalizedPosition": "<= 0.001"}, seconds: 30}
+  - shot: {name: end}
+  # A row's tooltip (how it works, the launch option), then the choice button's: the search box
+  # brings each row to the top of the list, wherever the catalog puts it.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "frame-stats"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/frame-stats", cond: stable}
   - scroll: {at: "**/MoonoTweaksScreen/**/frame-stats", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~--frame-stats"}
   - shot: {name: row-tip, pointer: stay}
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "--gpu", clear: true}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/gpu/**/ManageButton", cond: stable}
+  - expect_hit: {at: "**/MoonoTweaksScreen/**/gpu/**/ManageButton", top: "~/gpu/"}
   - scroll: {at: "**/MoonoTweaksScreen/**/gpu/**/ManageButton", notches: 0}
   - shot: {name: choice-tip, pointer: stay}
-  # The list's end: the gameplay-changing section, its note, a measured gain's tooltip.
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: -200}
-  # KScrollRect keeps scrolling for a few frames after the wheel (its inertia): wait for the
-  # list to settle before a shot or a hover.
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
-  - shot: {name: end}
   # A gameplay-changing row's tooltip, then a Bug fixes row's: the search box brings each to
   # the top of the list, wherever the catalog puts it.
-  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "brain-rate"}
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "brain-rate", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/brain-rate", cond: stable}
   - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: 0}
   - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~--game-tweak brain-rate"}
