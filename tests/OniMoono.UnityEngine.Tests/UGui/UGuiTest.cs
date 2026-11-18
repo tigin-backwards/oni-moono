@@ -44,7 +44,7 @@ namespace OniMoono.Tests.UGui
         }
 
         /// What the graphic last gave its canvas renderer.
-        internal static CanvasGeometry GeometryOf(Graphic g) => ((CanvasRendererNative)g.canvasRenderer.Native).Geometry;
+        internal static CanvasGeometry GeometryOf(Graphic g) => ((CanvasRendererNative)g.canvasRenderer.EngineState).Geometry;
 
         protected static List<Vector2> Positions(Graphic g)
         {

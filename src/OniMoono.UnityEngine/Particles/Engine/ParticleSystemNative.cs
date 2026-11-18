@@ -330,8 +330,8 @@ namespace OniMoono.Engine.Particles
                     for (var t = GameObject.Transform; t is not null; t = t.Parent)
                         foreach (var comp in t.GameObject.Components)
                         {
-                            if (comp.Native is RigidbodyNative rb) return rb.LinearVelocity.magnitude;
-                            if (comp.Native is Rigidbody2DNative rb2) return rb2.LinearVelocity.magnitude;
+                            if (comp.EngineState is RigidbodyNative rb) return rb.LinearVelocity.magnitude;
+                            if (comp.EngineState is Rigidbody2DNative rb2) return rb2.LinearVelocity.magnitude;
                         }
                     break;
                 case 2:

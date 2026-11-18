@@ -43,8 +43,7 @@ namespace OniMoono.Engine
         static Transform AttachTransform(GameObjectNative go, Type transformType)
         {
             var native = (TransformNative)ComponentNatives.Create(transformType);
-            native.GameObject = go;
-            var t = Object.ConstructBound<Transform>(transformType, native);
+            var t = (Transform)Object.ConstructComponent(transformType, native, new ComponentInit(go));
             go.Transform = native;
             go.Components = [t];
             return t;
@@ -138,13 +137,13 @@ namespace OniMoono.Engine
         public static Component CreateComponent(GameObjectNative go, Type type)
         {
             var native = ComponentNatives.Create(type);
-            native.GameObject = go;
-            if (native is BehaviourNative bn && typeof(MonoBehaviour).IsAssignableFrom(type))
+            var init = new ComponentInit(go);
+            if (typeof(MonoBehaviour).IsAssignableFrom(type))
             {
-                bn.Script = ScriptInfo.Get(type);
-                bn.ExecutionOrder = bn.Script.ExecutionOrder;
+                init.Script = ScriptInfo.Get(type);
+                init.ExecutionOrder = init.Script.ExecutionOrder;
             }
-            var component = Object.ConstructBound<Component>(type, native);
+            var component = Object.ConstructComponent(type, native, in init);
             var comps = go.Components;
             var grown = new Component[comps.Length + 1];
             Array.Copy(comps, grown, comps.Length);
@@ -159,7 +158,7 @@ namespace OniMoono.Engine
         static Component ConvertTransform(GameObjectNative go, Type type)
         {
             var old = (Transform)go.Components[0];
-            var oldNative = (TransformNative)old.NativeOrThrow;
+            var oldNative = (TransformNative)old.EngineStateOrThrow;
             var native = (TransformNative)ComponentNatives.Create(type);
             native.GameObject = go;
             native.LocalPosition = oldNative.LocalPosition;
@@ -170,7 +169,7 @@ namespace OniMoono.Engine
             foreach (var child in native.Children) child.Parent = native;
             native.Parent?.ReplaceChild(oldNative, native);
             UI.TextScaleWatch.Moved(oldNative, native);
-            var transform = Object.ConstructBound<Transform>(type, native);
+            var transform = (Transform)Object.ConstructComponent(type, native, new ComponentInit(go));
             var comps = (Component[])go.Components.Clone();
             comps[0] = transform;
             go.Transform = native;
@@ -257,7 +256,7 @@ namespace OniMoono.Engine
             foreach (var child in go.Transform.Children)
                 if (child.GameObject.ActiveSelf && ReferenceEquals(child.Parent, go.Transform)) DeactivateTree(child.GameObject);
             foreach (var c in go.Components)
-                if (c.Native is not null) Disable(c);
+                if (c.Alive) Disable(c);
             StopCoroutinesOn(go);
         }
 
@@ -307,12 +306,12 @@ namespace OniMoono.Engine
             foreach (var g in activated)
                 foreach (var c in g.Components)
                 {
-                    if (c is MonoBehaviour mb) scripts.Add((mb, (mb.Native as BehaviourNative)?.ExecutionOrder ?? 0, seq++));
-                    else if (g.ActiveInHierarchy && c.Native is not null) AwakeAndEnable(c);
+                    if (c is MonoBehaviour mb) scripts.Add((mb, mb.Alive ? mb.EngineExecutionOrder : 0, seq++));
+                    else if (g.ActiveInHierarchy && c.Alive) AwakeAndEnable(c);
                 }
             scripts.Sort((a, b) => a.order != b.order ? a.order.CompareTo(b.order) : a.seq.CompareTo(b.seq));
             foreach (var (c, _, _) in scripts)
-                if (c.Native is ComponentNative cn && cn.GameObject.ActiveInHierarchy) AwakeAndEnable(c);
+                if (c.Alive && c.EngineGameObject.ActiveInHierarchy) AwakeAndEnable(c);
         }
 
         static void SetFlags(GameObjectNative go, bool active, List<GameObjectNative> changed)
@@ -336,13 +335,12 @@ namespace OniMoono.Engine
         /// destruction (the same probe).
         public static void AwakeAndEnable(Component c)
         {
-            var native = c.Native as ComponentNative;
-            if (native is null) return;
-            if (native is BehaviourNative bn)
+            if (!c.Alive) return;
+            if (c is Behaviour bn)
             {
-                if (!bn.AwakeCalled)
+                if (!bn.EngineAwakeCalled)
                 {
-                    bn.AwakeCalled = true;
+                    bn.EngineAwakeCalled = true;
                     // Start is queued when activation begins, before Awake (measured in Unity's
                     // player): objects an Awake creates start after their creator, although they
                     // are enabled first. A behaviour that Awake leaves disabled is skipped when the
@@ -350,90 +348,95 @@ namespace OniMoono.Engine
                     // Its place among the update callbacks is taken then too: a component that an
                     // Awake adds (the game's MyCmpAdd) is enabled before the component adding it,
                     // and updates after it (UnityProbe scenario 19).
-                    bool reserved = bn.Script != null && bn.Enabled && !bn.DestroyPending;
+                    bool reserved = bn.EngineScript != null && bn.EngineEnabledSelf && !bn.EngineDestroyPending;
                     if (reserved)
                     {
-                        if (!bn.StartCalled && !bn.StartPending) BehaviourManager.ScheduleStart(bn);
+                        if (!bn.EngineStartCalled && !bn.EngineStartPending) BehaviourManager.ScheduleStart(bn);
                         BehaviourManager.Register(bn);
                     }
                     c.EngineAwake();
-                    bn.InAwake = true;
+                    bn.EngineInAwake = true;
                     bool threw;
                     try
                     {
-                        threw = bn.Script?.Awake != null && !TryInvoke(bn.Script.Awake, (MonoBehaviour)c);
+                        threw = bn.EngineScript?.Awake != null && !TryInvoke(bn.EngineScript.Awake, (MonoBehaviour)c);
                     }
                     finally
                     {
-                        bn.InAwake = false;
+                        bn.EngineInAwake = false;
                     }
                     // An Awake that throws leaves its behaviour disabled, with an OnDisable although
                     // it had no OnEnable; enabling it later runs OnEnable and Start as for any
                     // (measured in Unity's player, UnityProbe's PROBE_SCENARIO=u60, AW lines).
-                    if (threw && bn.Enabled && !bn.DestroyPending && c.Native is not null)
+                    if (threw && bn.EngineEnabledSelf && !bn.EngineDestroyPending && c.Alive)
                     {
-                        bn.Enabled = false;
-                        if (bn.Script?.OnDisable != null) Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
+                        bn.EngineEnabledSelf = false;
+                        if (bn.EngineScript?.OnDisable != null) Invoke(bn.EngineScript.OnDisable, (MonoBehaviour)c);
                     }
-                    if (c.Native is null || !native.GameObject.ActiveInHierarchy)
+                    if (!c.Alive || !c.EngineGameObject.ActiveInHierarchy)
                     {
-                        if (reserved && !bn.IsActiveAndEnabledState) BehaviourManager.Unregister(bn);
+                        if (reserved && !bn.EngineActiveAndEnabled) BehaviourManager.Unregister(bn);
                         return;
                     }
-                    if (bn.Enabled && !bn.DestroyPending) Enable(c, bn);
-                    if (reserved && !bn.IsActiveAndEnabledState) BehaviourManager.Unregister(bn); // disabled or destroyed by Awake
+                    if (bn.EngineEnabledSelf && !bn.EngineDestroyPending) Enable(bn);
+                    if (reserved && !bn.EngineActiveAndEnabled) BehaviourManager.Unregister(bn); // disabled or destroyed by Awake
                     return;
                 }
-                if (bn.Enabled && !bn.DestroyPending) Enable(c, bn);
+                if (bn.EngineEnabledSelf && !bn.EngineDestroyPending) Enable(bn);
             }
             else
             {
-                if (native.DestroyPending) return;
-                if (!native.AwakeCalledForComponent)
+                if (c.EngineDestroyPending) return;
+                if (!c.EngineAwakeCalledForComponent)
                 {
-                    native.AwakeCalledForComponent = true;
+                    c.EngineAwakeCalledForComponent = true;
                     c.EngineAwake();
                 }
-                native.EngineEnabled = true;
+                c.EngineEnableRan = true;
                 c.EngineOnEnable(); // components that are not Behaviours: each activation
             }
         }
 
-        public static void Enable(Component c, BehaviourNative bn)
+        public static void Enable(Behaviour bn)
         {
-            if (bn.IsActiveAndEnabledState) return;
-            bn.IsActiveAndEnabledState = true;
-            Hierarchy.Touch(bn.GameObject.Transform);
-            c.EngineOnEnable();
-            var script = bn.Script;
+            if (bn.EngineActiveAndEnabled) return;
+            bn.EngineActiveAndEnabled = true;
+            Hierarchy.Touch(bn.EngineGameObject.Transform);
+            bn.EngineOnEnable();
+            var script = bn.EngineScript;
             if (script != null)
             {
-                if (script.OnEnable != null) Invoke(script.OnEnable, (MonoBehaviour)c);
-                if (!bn.IsActiveAndEnabledState) return; // disabled again by OnEnable
+                if (script.OnEnable != null) Invoke(script.OnEnable, (MonoBehaviour)bn);
+                if (!bn.EngineActiveAndEnabled) return; // disabled again by OnEnable
                 BehaviourManager.Register(bn);
-                if (!bn.StartCalled && !bn.StartPending) BehaviourManager.ScheduleStart(bn);
+                if (!bn.EngineStartCalled && !bn.EngineStartPending) BehaviourManager.ScheduleStart(bn);
             }
         }
 
         public static void Disable(Component c)
         {
-            if (c.Native is ComponentNative { EngineEnabled: true } cn and not BehaviourNative)
+            if (!c.Alive) return;
+            if (c is not Behaviour bn)
             {
-                cn.EngineEnabled = false;
-                c.EngineOnDisable(); // non-Behaviours: deactivation
+                if (c.EngineEnableRan)
+                {
+                    c.EngineEnableRan = false;
+                    c.EngineOnDisable(); // non-Behaviours: deactivation
+                }
+                return;
             }
-            if (c.Native is not BehaviourNative bn || !bn.IsActiveAndEnabledState) return;
-            bn.IsActiveAndEnabledState = false;
-            Hierarchy.Touch(bn.GameObject.Transform);
-            if (bn.Script != null) BehaviourManager.Unregister(bn);
+            if (!bn.EngineActiveAndEnabled) return;
+            bn.EngineActiveAndEnabled = false;
+            Hierarchy.Touch(bn.EngineGameObject.Transform);
+            if (bn.EngineScript != null) BehaviourManager.Unregister(bn);
             c.EngineOnDisable();
-            if (bn.Script?.OnDisable != null)
+            if (bn.EngineScript?.OnDisable != null)
             {
-                if (!QuitStats.On) Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
+                if (!QuitStats.On) Invoke(bn.EngineScript.OnDisable, (MonoBehaviour)c);
                 else
                 {
                     long start = QuitStats.Now;
-                    Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
+                    Invoke(bn.EngineScript.OnDisable, (MonoBehaviour)c);
                     long took = QuitStats.Now - start;
                     QuitStats.DisableTicks += took;
                     QuitStats.Disables++;
@@ -446,8 +449,8 @@ namespace OniMoono.Engine
         static void StopCoroutinesOn(GameObjectNative go)
         {
             foreach (var c in go.Components)
-                if (c is MonoBehaviour mb && c.Native is BehaviourNative bn && bn.Coroutines is { Count: > 0 })
-                    Coroutines.StopAll(mb, bn);
+                if (c is MonoBehaviour mb && mb.Alive && mb.EngineCoroutines is { Count: > 0 })
+                    Coroutines.StopAll(mb);
         }
 
         public static void Invoke(Action<MonoBehaviour> message, MonoBehaviour target)
@@ -497,15 +500,14 @@ namespace OniMoono.Engine
 
         public static void ScheduleDestroy(Object obj, float delay)
         {
-            var native = obj.Native;
-            if (native is null) return;
+            if (!obj.Alive) return;
             if (delay > 0f)
             {
                 timedDestroy.Add((obj, Time.time + delay));
                 return;
             }
-            if (native.DestroyRequested) return;
-            native.DestroyRequested = true;
+            if (obj.EngineDestroyRequested) return;
+            obj.EngineDestroyRequested = true;
             pendingDestroy.Add(obj);
             DisableForDestroy(obj);
         }
@@ -520,15 +522,15 @@ namespace OniMoono.Engine
             switch (obj)
             {
                 case GameObject go:
-                    var native = (GameObjectNative)go.Native;
+                    var native = (GameObjectNative)go.NativeRecord;
                     DisableComponentsForDestroy(native);
                     foreach (var child in native.Transform.Children) DisableComponentsForDestroy(child.GameObject);
                     break;
                 case Transform:
                     break; // refused at destruction
-                case Component c when c.Native is ComponentNative cn:
-                    cn.DestroyPending = true;
-                    if (cn is BehaviourNative) Disable(c);
+                case Component c when c.Alive:
+                    c.EngineDestroyPending = true;
+                    if (c is Behaviour) Disable(c);
                     break;
             }
         }
@@ -536,12 +538,12 @@ namespace OniMoono.Engine
         static void DisableComponentsForDestroy(GameObjectNative g)
         {
             foreach (var c in g.Components)
-                if (c.Native is ComponentNative cn)
+                if (c.Alive)
                 {
-                    cn.DestroyPending = true;
-                    if (cn is BehaviourNative bn)
+                    c.EngineDestroyPending = true;
+                    if (c is Behaviour bn)
                     {
-                        if (bn.InAwake) DisableInAwake(c, bn);
+                        if (bn.EngineInAwake) DisableInAwake(bn);
                         else Disable(c);
                     }
                 }
@@ -550,10 +552,10 @@ namespace OniMoono.Engine
         /// A behaviour whose Awake destroys its GameObject gets OnDisable then, although it had
         /// no OnEnable (measured in Unity's player, UnityProbe's PROBE_SCENARIO=awakedestroy). That
         /// a disabled one gets none is only a guard, not measured.
-        static void DisableInAwake(Component c, BehaviourNative bn)
+        static void DisableInAwake(Behaviour bn)
         {
-            if (!bn.Enabled || bn.IsActiveAndEnabledState) { Disable(c); return; }
-            if (bn.Script?.OnDisable != null) Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
+            if (!bn.EngineEnabledSelf || bn.EngineActiveAndEnabled) { Disable(bn); return; }
+            if (bn.EngineScript?.OnDisable != null) Invoke(bn.EngineScript.OnDisable, (MonoBehaviour)bn);
         }
 
         /// Carries out the Destroy requests made so far: the player loop calls it after the fixed
@@ -581,28 +583,27 @@ namespace OniMoono.Engine
         /// (not measured there), where Destroy and DestroyImmediate clear it.
         public static void DestroyNow(Object obj, bool unloading = false)
         {
-            var native = obj.Native;
-            if (native is null || native.Destroyed) return;
+            if (!obj.Alive || obj.EngineDestroyed) return;
             switch (obj)
             {
                 case GameObject go:
-                    DestroyGameObject((GameObjectNative)native, unloading);
+                    DestroyGameObject((GameObjectNative)go.NativeRecord, unloading);
                     break;
                 case Transform:
                     Debug.LogError("Destroying the transform component is not permitted. Destroy the GameObject instead.");
-                    native.DestroyRequested = false;
+                    obj.EngineDestroyRequested = false;
                     break;
                 case Component c:
-                    DestroyComponent(c, (ComponentNative)native, detach: true);
+                    DestroyComponent(c, detach: true);
                     break;
                 case ScriptableObject so:
-                    native.Destroyed = true;
+                    obj.EngineDestroyed = true;
                     ScriptableObjectLifecycle.Destroy(so);
                     obj.EngineOnDestroy();
                     obj.Unbind();
                     break;
                 default:
-                    native.Destroyed = true;
+                    obj.EngineDestroyed = true;
                     obj.EngineOnDestroy();
                     obj.Unbind();
                     break;
@@ -648,9 +649,9 @@ namespace OniMoono.Engine
                 if (go.Destroyed) return;
                 go.Destroyed = true;
                 foreach (var c in go.Components)
-                    if (c.Native is ComponentNative cn && !cn.Destroyed)
+                    if (c.Alive && !c.EngineDestroyed)
                     {
-                        DestroyComponent(c, cn, detach: false, unbind: false);
+                        DestroyComponent(c, detach: false, unbind: false);
                         released.Add(c);
                     }
                 foreach (var child in go.Transform.Children) Callbacks(child.GameObject);
@@ -664,23 +665,23 @@ namespace OniMoono.Engine
             ScratchList<Object>.Return(released);
         }
 
-        static void DestroyComponent(Component c, ComponentNative native, bool detach, bool unbind = true)
+        static void DestroyComponent(Component c, bool detach, bool unbind = true)
         {
-            native.Destroyed = true;
-            if (native is BehaviourNative bn)
+            c.EngineDestroyed = true;
+            if (c is Behaviour bn)
             {
                 Disable(c);
                 if (c is MonoBehaviour mb)
                 {
-                    if (bn.Coroutines is { Count: > 0 }) Coroutines.StopAll(mb, bn);
+                    if (mb.EngineCoroutines is { Count: > 0 }) Coroutines.StopAll(mb);
                     BehaviourManager.CancelStart(bn);
-                    if (bn.AwakeCalled && bn.Script?.OnDestroy != null)
+                    if (bn.EngineAwakeCalled && bn.EngineScript?.OnDestroy != null)
                     {
-                        if (!QuitStats.On) Invoke(bn.Script.OnDestroy, mb);
+                        if (!QuitStats.On) Invoke(bn.EngineScript.OnDestroy, mb);
                         else
                         {
                             long start = QuitStats.Now;
-                            Invoke(bn.Script.OnDestroy, mb);
+                            Invoke(bn.EngineScript.OnDestroy, mb);
                             long took = QuitStats.Now - start;
                             QuitStats.DestroyTicks += took;
                             QuitStats.Destroys++;
@@ -699,7 +700,7 @@ namespace OniMoono.Engine
             }
             if (detach)
             {
-                var go = native.GameObject;
+                var go = c.EngineGameObject;
                 var comps = go.Components;
                 int index = ByReference.IndexOf(comps, c);
                 if (index >= 0)

@@ -75,7 +75,7 @@ namespace UnityEngine
             }
         }
 
-        internal ColliderNative Native3D => (ColliderNative)NativeOrThrow;
+        internal ColliderNative Native3D => (ColliderNative)EngineStateOrThrow;
     }
 
     public partial class Rigidbody
@@ -84,8 +84,8 @@ namespace UnityEngine
         /// script sets it. Velocity is not serialized, so a loaded body starts at rest.
         public Vector3 linearVelocity
         {
-            get => ((RigidbodyNative)NativeOrThrow).LinearVelocity;
-            set => ((RigidbodyNative)NativeOrThrow).LinearVelocity = value;
+            get => ((RigidbodyNative)EngineStateOrThrow).LinearVelocity;
+            set => ((RigidbodyNative)EngineStateOrThrow).LinearVelocity = value;
         }
     }
 

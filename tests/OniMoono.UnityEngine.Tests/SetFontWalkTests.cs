@@ -48,20 +48,22 @@ namespace OniMoono.Tests
             Assert.Empty(found);
         }
 
-        /// What the walks find today, each by the declared type it starts from. The game walks
-        /// only its confirm dialog's fields (LanguageOptionsScreen), which reach none of these
-        /// (tests/e2e/translation-screen.yaml), but a field declared as one of the base types
-        /// would. All three come from fields Unity's facades do not have:
-        /// - Component.m_GameObject is filled on the first gameObject read: until then a walk
-        ///   of a component as Component (or of a field declared Component) finds it null and
-        ///   throws, and after it the walk goes round the object's components back to the start.
-        /// - Object.m_Native is the facade's record, whose Managed is the facade again: a walk of
-        ///   an object as UnityEngine.Object recurses until the stack overflows. Merged into the
-        ///   facade, the record and this cycle go away.
+        /// What the walks find, each by the declared type it starts from. The game walks only its
+        /// confirm dialog's fields (LanguageOptionsScreen), which reach neither
+        /// (tests/e2e/translation-screen.yaml), but a field declared as Component would. Both come
+        /// from a field Unity's facades do not have: Component.m_GameObject is filled on the first
+        /// gameObject read, so until then a walk of a component as Component finds it null and
+        /// throws (after it, the walk would go round the object's components back to the start).
+        /// The component's other engine fields are declared after it, so the walk meets it first.
+        /// A walk of an object that has a record (a GameObject, a transform, an engine component)
+        /// as UnityEngine.Object goes from the record (Object.m_Native) back to the object and
+        /// overflows the stack. Scripts have no record since the merge of step 2 (before it, a
+        /// script walked as Object did the same).
         static readonly string[] KnownCycles =
         [
             "Component: throws, a null GameObject: Component.m_GameObject",
-            "Object: WalkedBehaviour: Object.m_Native -> NativeObject.Managed",
+            "Object: GameObject: Object.m_Native -> NativeObject.Managed",
+            "Object: Transform: Object.m_Native -> NativeObject.Managed",
             "WalkedBehaviour: throws, a null GameObject: WalkedBehaviour.other -> Component.m_GameObject",
         ];
 
@@ -90,12 +92,22 @@ namespace OniMoono.Tests
             // The base types a game field may be declared as.
             foreach (var declared in new[] { typeof(Object), typeof(Component), typeof(Behaviour), typeof(MonoBehaviour), typeof(WalkedBehaviour) })
                 roots.Add((declared, behaviour));
+            // Objects with a record, as UnityEngine.Object.
+            roots.Add((typeof(Object), go));
+            roots.Add((typeof(Object), child.transform));
 
             var cycles = new SortedSet<string>(StringComparer.Ordinal);
             foreach (var (declared, value) in roots)
             {
                 var walk = new Walk();
-                walk.Run(declared, value, []);
+                try
+                {
+                    walk.Run(declared, value, []);
+                }
+                catch (Thrown)
+                {
+                    // SetFont throws out of the whole walk there.
+                }
                 foreach (var cycle in walk.Cycles) cycles.Add($"{declared.Name}: {cycle}");
                 Assert.True(walk.Visits < Walk.MaxVisits, $"the walk from {declared.Name} visited {walk.Visits} objects");
             }
@@ -109,7 +121,10 @@ namespace OniMoono.Tests
             void Awake() => other = transform;
         }
 
-        /// SetFont's walk, recording instead of recursing where it would never end.
+        sealed class Thrown : Exception { }
+
+        /// SetFont's walk, recording instead of recursing where it would never end, and ending
+        /// where SetFont throws.
         sealed class Walk
         {
             public const int MaxVisits = 200_000;
@@ -144,7 +159,7 @@ namespace OniMoono.Tests
                             if (!go)
                             {
                                 Cycles.Add($"throws, a null GameObject: {string.Join(" -> ", step)}");
-                                continue;
+                                throw new Thrown();
                             }
                             foreach (var c in go.GetComponents<Component>()) Run(c.GetType(), c, step);
                         }

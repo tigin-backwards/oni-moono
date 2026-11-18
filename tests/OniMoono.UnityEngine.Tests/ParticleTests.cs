@@ -52,7 +52,7 @@ namespace OniMoono.Tests
             var ps = go.AddComponent<ParticleSystem>();
             var resolver = new FileResolver(file);
             ps.Data.Bind(data.System, resolver);
-            ps.GetComponent<ParticleSystemRenderer>().Native.Bind(data.Renderer, resolver);
+            ps.GetComponent<ParticleSystemRenderer>().EngineState.Bind(data.Renderer, resolver);
             go.SetActive(true);
             return ps;
         }
@@ -379,7 +379,7 @@ namespace OniMoono.Tests
             Frames(30);
             int n = ps.particleCount;
             Assert.True(n > 0);
-            var renderer = (ParticleSystemRendererNative)ps.GetComponent<ParticleSystemRenderer>().Native;
+            var renderer = (ParticleSystemRendererNative)ps.GetComponent<ParticleSystemRenderer>().EngineState;
             var mesh = new MeshNative();
             var view = new ParticleView(new Vector3(0f, 0f, -10f), Quaternion.identity, null);
             Assert.True(renderer.BuildGeometry(view, mesh, out var objectToWorld));
@@ -416,7 +416,7 @@ namespace OniMoono.Tests
                     Frame();
                 }
                 Assert.True(ps.particleCount > 0, $"effect {id} emitted nothing");
-                var renderer = (ParticleSystemRendererNative)ps.GetComponent<ParticleSystemRenderer>().Native;
+                var renderer = (ParticleSystemRendererNative)ps.GetComponent<ParticleSystemRenderer>().EngineState;
                 var mesh = new MeshNative();
                 Assert.True(renderer.BuildGeometry(new ParticleView(new Vector3(0f, 0f, -20f), Quaternion.identity, null), mesh, out _));
                 Assert.True(mesh.VertexCount >= ps.particleCount * 4);
@@ -430,7 +430,7 @@ namespace OniMoono.Tests
         {
             var ps = FromGame(11829);
             Frames(60);
-            var renderer = (ParticleSystemRendererNative)ps.GetComponent<ParticleSystemRenderer>().Native;
+            var renderer = (ParticleSystemRendererNative)ps.GetComponent<ParticleSystemRenderer>().EngineState;
             var mesh = new MeshNative();
             Assert.True(renderer.BuildGeometry(new ParticleView(new Vector3(0f, 10f, 0f), Quaternion.Euler(90f, 0f, 0f), null), mesh, out _));
             Assert.Equal(2, mesh.SubMeshes.Count);

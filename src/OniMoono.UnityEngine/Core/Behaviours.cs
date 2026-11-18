@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using OniMoono.Engine;
@@ -8,45 +9,103 @@ namespace UnityEngine
 {
     public partial class Behaviour
     {
-        internal BehaviourNative BehaviourNative => (BehaviourNative)NativeOrThrow;
+        // The behaviour's engine state, kept on the behaviour itself (docs/research/facade-merge.md,
+        // step 2): private, so no derived type's reflected fields include them, and named apart
+        // from Unity's members. Set before the constructor body runs (InitBehaviour).
+        bool m_EngineEnabledSelf;
+        bool m_EngineActiveAndEnabled;
+        bool m_EngineAwakeCalled;
+        bool m_EngineInAwake;
+        bool m_EngineStartCalled;
+        bool m_EngineStartPending;
+        bool m_EngineUseGUILayout;
+        int m_EngineExecutionOrder;
+        ScriptInfo m_EngineScript;
+        List<CoroutineState> m_EngineCoroutines;
+
+        /// Behaviour.enabled as set (Unity's m_Enabled).
+        internal bool EngineEnabledSelf { get => m_EngineEnabledSelf; set => m_EngineEnabledSelf = value; }
+        /// OnEnable has run and OnDisable has not run since (Unity's "is in enabled state").
+        internal bool EngineActiveAndEnabled { get => m_EngineActiveAndEnabled; set => m_EngineActiveAndEnabled = value; }
+        internal bool EngineAwakeCalled { get => m_EngineAwakeCalled; set => m_EngineAwakeCalled = value; }
+        /// Its Awake is running, while its GameObject activates (Lifecycle.AwakeAndEnable).
+        internal bool EngineInAwake { get => m_EngineInAwake; set => m_EngineInAwake = value; }
+        internal bool EngineStartCalled { get => m_EngineStartCalled; set => m_EngineStartCalled = value; }
+        /// Scheduled for Start in the next Start phase.
+        internal bool EngineStartPending { get => m_EngineStartPending; set => m_EngineStartPending = value; }
+        /// MonoBehaviour.useGUILayout: OnGUI gets Layout events and may use GUILayout.
+        internal bool EngineUseGUILayout { get => m_EngineUseGUILayout; set => m_EngineUseGUILayout = value; }
+        internal int EngineExecutionOrder { get => m_EngineExecutionOrder; set => m_EngineExecutionOrder = value; }
+        /// The script's messages (MonoBehaviours only).
+        internal ScriptInfo EngineScript { get => m_EngineScript; set => m_EngineScript = value; }
+        /// Its coroutines (MonoBehaviours only).
+        internal List<CoroutineState> EngineCoroutines { get => m_EngineCoroutines; set => m_EngineCoroutines = value; }
+
+        /// The state a behaviour starts with, as its record started (enabled, using GUILayout).
+        internal void InitBehaviour(in ComponentInit init)
+        {
+            m_EngineEnabledSelf = !init.Disabled;
+            m_EngineUseGUILayout = !init.NoGUILayout;
+            m_EngineScript = init.Script;
+            m_EngineExecutionOrder = init.ExecutionOrder;
+        }
 
         public bool enabled
         {
-            get => BehaviourNative is { DestroyPending: false } bn && bn.Enabled;
+            get
+            {
+                _ = EngineGameObjectOrThrow;
+                return !EngineDestroyPending && m_EngineEnabledSelf;
+            }
             set
             {
                 Threads.AssertMainThread("set_enabled");
-                var bn = BehaviourNative;
-                if (bn.DestroyPending || bn.Enabled == value) return;
-                bn.Enabled = value;
-                if (!bn.GameObject.ActiveInHierarchy) return;
+                var go = EngineGameObjectOrThrow;
+                if (EngineDestroyPending || m_EngineEnabledSelf == value) return;
+                m_EngineEnabledSelf = value;
+                if (!go.ActiveInHierarchy) return;
                 if (value) Lifecycle.AwakeAndEnable(this);
                 else Lifecycle.Disable(this);
             }
         }
 
-        public bool isActiveAndEnabled
-        {
-            get
-            {
-                var bn = Native as BehaviourNative;
-                return bn is not null && bn.IsActiveAndEnabledState;
-            }
-        }
+        public bool isActiveAndEnabled => Alive && m_EngineActiveAndEnabled;
     }
 
     public partial class MonoBehaviour
     {
-        public bool didAwake => BehaviourNative.AwakeCalled;
+        public bool didAwake
+        {
+            get
+            {
+                _ = EngineGameObjectOrThrow;
+                return EngineAwakeCalled;
+            }
+        }
 
         /// Whether OnGUI gets Layout events. Turned off, OnGUI skips the layout pass and may not
         /// use GUILayout.
         public bool useGUILayout
         {
-            get => BehaviourNative.UseGUILayout;
-            set => BehaviourNative.UseGUILayout = value;
+            get
+            {
+                _ = EngineGameObjectOrThrow;
+                return EngineUseGUILayout;
+            }
+            set
+            {
+                _ = EngineGameObjectOrThrow;
+                EngineUseGUILayout = value;
+            }
         }
-        public bool didStart => BehaviourNative.StartCalled;
+        public bool didStart
+        {
+            get
+            {
+                _ = EngineGameObjectOrThrow;
+                return EngineStartCalled;
+            }
+        }
 
         // The StartCoroutine overloads are not inlined: their frames are in logged traces (LogTraces).
         [MethodImpl(MethodImplOptions.NoInlining)]
@@ -103,7 +162,7 @@ namespace UnityEngine
         public void StopCoroutine(IEnumerator routine)
         {
             if (routine == null) throw new NullReferenceException("routine is null");
-            Coroutines.StopByEnumerator(BehaviourNative, routine);
+            Coroutines.StopByEnumerator(this.AliveOrThrow(), routine);
         }
 
         public void StopCoroutine(Coroutine routine)
@@ -112,9 +171,9 @@ namespace UnityEngine
             Coroutines.Stop(routine.State);
         }
 
-        public void StopCoroutine(string methodName) => Coroutines.StopByName(BehaviourNative, methodName);
+        public void StopCoroutine(string methodName) => Coroutines.StopByName(this.AliveOrThrow(), methodName);
 
-        public void StopAllCoroutines() => Coroutines.StopAll(this, BehaviourNative);
+        public void StopAllCoroutines() => Coroutines.StopAll(this.AliveOrThrow());
 
         public static void print(object message) => Debug.Log(message);
     }

@@ -202,7 +202,7 @@ namespace OniMoono.Tests
             var camera = new GameObject("Camera").AddComponent<Camera>();
             camera.targetTexture = target;
             var during = new List<(int, int, Vector2, int)>();
-            device.OnReadPixels = (_, _, _, _, _) => during.Add((native.Width, native.Height, ((CameraNative)camera.NativeOrThrow).TargetSize, other.width));
+            device.OnReadPixels = (_, _, _, _, _) => during.Add((native.Width, native.Height, ((CameraNative)camera.EngineStateOrThrow).TargetSize, other.width));
             ScreenCapture.CaptureScreenshot(Path.Combine(folder, "sized.png"), 3);
             Frame();
 

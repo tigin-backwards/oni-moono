@@ -11,7 +11,6 @@ namespace OniMoono.Engine
     internal sealed class CoroutineState
     {
         public MonoBehaviour Owner;
-        public BehaviourNative OwnerNative;
         public IEnumerator Root;
         public string MethodName; // when started by name
         public readonly Stack<IEnumerator> Stack = new();
@@ -46,16 +45,16 @@ namespace OniMoono.Engine
         public static Coroutine Start(MonoBehaviour owner, IEnumerator routine, string methodName = null)
         {
             if (routine == null) throw new NullReferenceException("routine is null");
-            var bn = (BehaviourNative)owner.NativeOrThrow;
-            if (!bn.GameObject.ActiveInHierarchy)
+            var go = owner.EngineGameObjectOrThrow;
+            if (!go.ActiveInHierarchy)
             {
-                Debug.LogError($"Coroutine couldn't be started because the the game object '{bn.GameObject.Name}' is inactive!", owner);
+                Debug.LogError($"Coroutine couldn't be started because the the game object '{go.Name}' is inactive!", owner);
                 return null;
             }
-            var state = new CoroutineState { Owner = owner, OwnerNative = bn, Root = routine, MethodName = methodName };
+            var state = new CoroutineState { Owner = owner, Root = routine, MethodName = methodName };
             state.Stack.Push(routine);
             state.Handle = new Coroutine(state);
-            (bn.Coroutines ??= new List<CoroutineState>()).Add(state);
+            (owner.EngineCoroutines ??= new List<CoroutineState>()).Add(state);
             Advance(state);
             return state.Handle;
         }
@@ -65,7 +64,7 @@ namespace OniMoono.Engine
         {
             while (!state.Done)
             {
-                if (state.Owner.Native is null) { Finish(state); return; }
+                if (!state.Owner.Alive) { Finish(state); return; }
                 var top = state.Stack.Peek();
                 bool moved;
                 try
@@ -138,7 +137,7 @@ namespace OniMoono.Engine
             if (state.Done) return;
             state.Done = true;
             state.Wait = CoroutineWait.None;
-            state.OwnerNative.Coroutines?.Remove(state);
+            state.Owner.EngineCoroutines?.Remove(state);
             var waiters = state.Waiters;
             state.Waiters = null;
             if (waiters == null) return;
@@ -156,23 +155,23 @@ namespace OniMoono.Engine
             Finish(state);
         }
 
-        public static void StopAll(MonoBehaviour owner, BehaviourNative bn)
+        public static void StopAll(MonoBehaviour owner)
         {
-            if (bn.Coroutines == null) return;
-            foreach (var s in bn.Coroutines.ToArray()) Finish(s);
+            if (owner.EngineCoroutines == null) return;
+            foreach (var s in owner.EngineCoroutines.ToArray()) Finish(s);
         }
 
-        public static void StopByEnumerator(BehaviourNative bn, IEnumerator routine)
+        public static void StopByEnumerator(MonoBehaviour owner, IEnumerator routine)
         {
-            if (bn.Coroutines == null) return;
-            foreach (var s in bn.Coroutines.ToArray())
+            if (owner.EngineCoroutines == null) return;
+            foreach (var s in owner.EngineCoroutines.ToArray())
                 if (ReferenceEquals(s.Root, routine)) Finish(s);
         }
 
-        public static void StopByName(BehaviourNative bn, string methodName)
+        public static void StopByName(MonoBehaviour owner, string methodName)
         {
-            if (bn.Coroutines == null) return;
-            foreach (var s in bn.Coroutines.ToArray())
+            if (owner.EngineCoroutines == null) return;
+            foreach (var s in owner.EngineCoroutines.ToArray())
                 if (s.MethodName == methodName) Finish(s);
         }
 

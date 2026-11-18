@@ -208,8 +208,8 @@ namespace UnityEngine
         /// Mesh particles are not drawn (as a bundle's are read: ParticleSystemRendererNative).
         public ParticleSystemRenderMode renderMode
         {
-            get => (ParticleSystemRenderMode)((ParticleSystemRendererNative)NativeOrThrow).RenderMode;
-            set => ((ParticleSystemRendererNative)NativeOrThrow).RenderMode = (int)value;
+            get => (ParticleSystemRenderMode)((ParticleSystemRendererNative)EngineStateOrThrow).RenderMode;
+            set => ((ParticleSystemRendererNative)EngineStateOrThrow).RenderMode = (int)value;
         }
     }
 }

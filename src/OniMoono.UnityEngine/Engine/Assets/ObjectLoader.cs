@@ -89,15 +89,16 @@ namespace OniMoono.Engine.Assets
             depth++;
             try
             {
-                var obj = binder.Create(request);
-                var native = obj.NativeOrThrow;
+                var obj = binder.Create(request).AliveOrThrow();
+                // A component's record is its engine state (none for scripts): its name is "".
+                var native = obj.NativeRecord;
                 // Objects loaded from files have positive instance ids; an asset keeps its id.
                 int id;
                 if (!request.Persistent) id = ObjectTable.NewInstanceId(true);
                 else if (!assetIds.TryGetValue(key, out id)) assetIds[key] = id = ObjectTable.NewInstanceId(true);
                 ObjectTable.SetInstanceId(obj, id);
-                native.IsPersistent = request.Persistent;
-                native.Source = new AssetSource(key.File, pathId);
+                obj.EngineIsPersistent = request.Persistent;
+                obj.EngineSource = new AssetSource(key.File, pathId);
                 // Cached before filling: the object's own references can lead back to it.
                 loaded[key] = obj.Handle;
                 try
@@ -111,7 +112,7 @@ namespace OniMoono.Engine.Assets
                     throw;
                 }
                 if (key.File.StartsWith("Resources/", StringComparison.Ordinal))
-                    lock (builtinLoads) builtinLoads.Add((key.File, pathId, type.ClassId, obj.GetType().Name, native is Rendering.ShaderNative shader ? shader.ShaderName : native.Name));
+                    lock (builtinLoads) builtinLoads.Add((key.File, pathId, type.ClassId, obj.GetType().Name, native is Rendering.ShaderNative shader ? shader.ShaderName : obj is Component ? "" : native.Name));
                 return obj;
             }
             finally
@@ -197,6 +198,15 @@ namespace OniMoono.Engine.Assets
         {
             var obj = (T)RuntimeHelpers.GetUninitializedObject(type);
             obj.Bind(native);
+            return obj;
+        }
+
+        /// CreateNative for a component: bound to its engine state (null for those without one),
+        /// starting as INIT says. Its GameObject is set when the component is filled.
+        public static Component CreateComponent(Type type, ComponentNative state, in ComponentInit init)
+        {
+            var obj = (Component)RuntimeHelpers.GetUninitializedObject(type);
+            obj.BindComponent(state, in init);
             return obj;
         }
     }

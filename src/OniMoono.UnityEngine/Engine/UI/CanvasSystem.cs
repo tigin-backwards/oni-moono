@@ -188,26 +188,26 @@ namespace OniMoono.Engine.UI
             parts = new UiParts { Source = components };
             List<CanvasGroupNative> groups = null;
             List<CanvasRendererNative> renderers = null;
-            List<BehaviourNative> raycasters = null;
+            List<Behaviour> raycasters = null;
             foreach (var comp in components)
                 switch (comp)
                 {
-                    case Behaviour when comp.Native is BehaviourNative b && IsRaycaster(comp.GetType()):
+                    case Behaviour b when b.Alive && IsRaycaster(comp.GetType()):
                         (raycasters ??= new()).Add(b);
                         break;
-                    case Canvas when comp.Native is CanvasNative c:
+                    case Canvas when comp.EngineState is CanvasNative c:
                         parts.Canvas ??= c;
                         break;
-                    case CanvasGroup when comp.Native is CanvasGroupNative g:
+                    case CanvasGroup when comp.EngineState is CanvasGroupNative g:
                         (groups ??= new()).Add(g);
                         break;
-                    case CanvasRenderer when comp.Native is CanvasRendererNative r:
+                    case CanvasRenderer when comp.EngineState is CanvasRendererNative r:
                         (renderers ??= new()).Add(r);
                         break;
                 }
             parts.Groups = groups?.ToArray() ?? Array.Empty<CanvasGroupNative>();
             parts.Renderers = renderers?.ToArray() ?? Array.Empty<CanvasRendererNative>();
-            parts.Raycasters = raycasters?.ToArray() ?? Array.Empty<BehaviourNative>();
+            parts.Raycasters = raycasters?.ToArray() ?? Array.Empty<Behaviour>();
             go.UiParts = parts;
             return parts;
         }
@@ -232,7 +232,7 @@ namespace OniMoono.Engine.UI
         {
             int n = 0;
             foreach (var r in parts.Raycasters)
-                if (r.IsActiveAndEnabledState) n++;
+                if (r.EngineActiveAndEnabled) n++;
             return n;
         }
 
@@ -417,7 +417,7 @@ namespace OniMoono.Engine.UI
         {
             if (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera)
             {
-                var cam = (CameraNative)root.WorldCamera.NativeOrThrow;
+                var cam = (CameraNative)root.WorldCamera.EngineStateOrThrow;
                 return new Vector2(cam.PixelWidth, cam.PixelHeight);
             }
             return ScreenSize;
@@ -446,7 +446,7 @@ namespace OniMoono.Engine.UI
             Vector3 localScale;
             if (canvas.RenderMode == RenderMode.ScreenSpaceCamera && canvas.WorldCamera)
             {
-                var cam = (CameraNative)canvas.WorldCamera.NativeOrThrow;
+                var cam = (CameraNative)canvas.WorldCamera.EngineStateOrThrow;
                 var camTransform = cam.GameObject.Transform;
                 float distance = canvas.PlaneDistance;
                 rotation = camTransform.WorldRotation;
@@ -2180,7 +2180,7 @@ namespace OniMoono.Engine.UI
         public CanvasGroupNative[] Groups;
         public CanvasRendererNative[] Renderers;
         /// Its raycasters (EventSystems.BaseRaycaster), enabled or not.
-        public BehaviourNative[] Raycasters;
+        public Behaviour[] Raycasters;
         /// The object's placement in its nested canvas's space, kept (CanvasSystem.ToNearest).
         public Matrix4x4 ToNearest;
         public long ToNearestStamp, ToNearestParent;

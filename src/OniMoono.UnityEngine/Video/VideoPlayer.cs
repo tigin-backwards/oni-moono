@@ -20,7 +20,7 @@ namespace UnityEngine.Video
 
         public event EventHandler seekCompleted;
 
-        VideoPlayerNative Data => (VideoPlayerNative)NativeOrThrow;
+        VideoPlayerNative Data => (VideoPlayerNative)EngineStateOrThrow;
 
         // ---- content and targets ----
 
@@ -203,7 +203,7 @@ namespace UnityEngine.Video
 
         internal override void EngineOnDestroy()
         {
-            if (Native is VideoPlayerNative d) d.OnDestroy();
+            if (EngineState is VideoPlayerNative d) d.OnDestroy();
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using OniMoono.Engine;
 
 namespace UnityEngine
@@ -12,7 +13,89 @@ namespace UnityEngine
 
     public partial class Component
     {
-        internal ComponentNative ComponentNative => (ComponentNative)NativeOrThrow;
+        // The component's engine state, kept on the component itself (docs/research/facade-merge.md,
+        // step 2): private, so no derived type's reflected fields include them, and named apart
+        // from Unity's members. Engine components (transforms, renderers, cameras…) keep the
+        // state of their subsystem in their record, the object's m_Native; scripts and plain
+        // components have none.
+        // (Declared after m_GameObject and m_Transform, below: Localization.SetFont's walk of a
+        // field declared as Component meets those first, as before.)
+
+        /// Its GameObject's record. Set before the constructor body runs, cleared when the
+        /// component is destroyed (so a destroyed component the game keeps holds nothing of its
+        /// object's hierarchy).
+        internal GameObjectNative EngineGameObject => m_EngineGameObject;
+
+        /// EngineGameObject of a component that must be alive; throws Unity's error otherwise.
+        internal GameObjectNative EngineGameObjectOrThrow
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                if (!Alive) ThrowDestroyed();
+                return m_EngineGameObject;
+            }
+        }
+
+        /// EngineAwake has run (components that are not Behaviours).
+        internal bool EngineAwakeCalledForComponent { get => m_EngineAwakeCalledForComponent; set => m_EngineAwakeCalledForComponent = value; }
+        /// EngineOnEnable has run and EngineOnDisable has not run since (components that are not
+        /// Behaviours).
+        internal bool EngineEnableRan { get => m_EngineEnableRan; set => m_EngineEnableRan = value; }
+        /// Destroy was called on the component or its GameObject (or an ancestor) and it awaits
+        /// destruction: as in Unity it is disabled at once and is not enabled again.
+        internal bool EngineDestroyPending { get => m_EngineDestroyPending; set => m_EngineDestroyPending = value; }
+
+        /// The engine component's record (its subsystem's state) while alive, else null; null for
+        /// scripts and plain components.
+        internal ComponentNative EngineState
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Alive ? Unsafe.As<ComponentNative>(NativeRecord) : null;
+        }
+
+        /// EngineState of a component that must be alive; throws Unity's error otherwise.
+        internal ComponentNative EngineStateOrThrow
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                if (!Alive) ThrowDestroyed();
+                return Unsafe.As<ComponentNative>(NativeRecord);
+            }
+        }
+
+        static void ThrowDestroyed() => throw new NullReferenceException();
+
+        /// A component has no record of its own; these say so at compile time.
+        [Obsolete("A component's state is on the component: Alive, EngineState, EngineGameObject.", true)]
+        internal new NativeObject Native => throw new InvalidOperationException();
+        [Obsolete("A component's state is on the component: EngineStateOrThrow, EngineGameObjectOrThrow.", true)]
+        internal new NativeObject NativeOrThrow => throw new InvalidOperationException();
+
+        /// A loaded component's GameObject, known once the component is filled (ObjectLoader).
+        internal void SetEngineGameObject(GameObjectNative go)
+        {
+            m_EngineGameObject = go;
+            if (NativeRecord is ComponentNative state) state.GameObject = go;
+        }
+
+        /// Binds a component being constructed (Object's constructor, or a class without a
+        /// parameterless constructor): its state, then its slot.
+        internal void BindComponent(ComponentNative state, in ComponentInit init)
+        {
+            m_EngineGameObject = init.GameObject;
+            if (state is not null) state.GameObject = init.GameObject;
+            EngineHideFlags = init.HideFlags;
+            if (this is Behaviour b) b.InitBehaviour(in init);
+            BindAsComponent(state);
+        }
+
+        internal override void Unbind()
+        {
+            base.Unbind();
+            m_EngineGameObject = null;
+        }
 
         /// Engine hooks for engine-implemented components (cameras, renderers, canvases…).
         internal virtual void EngineAwake() { }
@@ -28,6 +111,10 @@ namespace UnityEngine
         // (Lifecycle clears the cache). A destroyed component still throws, as before.
         GameObject m_GameObject;
         Transform m_Transform;
+        GameObjectNative m_EngineGameObject;
+        bool m_EngineAwakeCalledForComponent;
+        bool m_EngineEnableRan;
+        bool m_EngineDestroyPending;
 
         public GameObject gameObject
         {
@@ -35,7 +122,7 @@ namespace UnityEngine
             {
                 var go = m_GameObject;
                 if (go is not null && Handle != IntPtr.Zero) return go;
-                return m_GameObject = (GameObject)ComponentNative.GameObject.Managed;
+                return m_GameObject = (GameObject)EngineGameObjectOrThrow.Managed;
             }
         }
 
@@ -45,7 +132,7 @@ namespace UnityEngine
             {
                 var t = m_Transform;
                 if (t is not null && Handle != IntPtr.Zero) return t;
-                return m_Transform = (Transform)ComponentNative.GameObject.Components[0];
+                return m_Transform = (Transform)EngineGameObjectOrThrow.Components[0];
             }
         }
 
@@ -61,7 +148,7 @@ namespace UnityEngine
         public bool CompareTag(string tag) => gameObject.CompareTag(tag);
 
         public Component GetComponent(Type type) => gameObject.GetComponent(type);
-        public T GetComponent<T>() => Components.First<T>(ComponentNative.GameObject);
+        public T GetComponent<T>() => Components.First<T>(EngineGameObjectOrThrow);
         public Component GetComponent(string type) => gameObject.GetComponent(type);
 
         public bool TryGetComponent(Type type, out Component component) => gameObject.TryGetComponent(type, out component);

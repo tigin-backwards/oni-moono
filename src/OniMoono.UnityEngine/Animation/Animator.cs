@@ -7,7 +7,7 @@ namespace UnityEngine
     {
         public Animator() { }
 
-        internal AnimatorNative AnimatorData => (AnimatorNative)NativeOrThrow;
+        internal AnimatorNative AnimatorData => (AnimatorNative)EngineStateOrThrow;
 
         /// CRC32 of the name's UTF-8 bytes: the IDs of states, parameters, layers and tags.
         public static int StringToHash(string name) => unchecked((int)Crc32.Of(name));

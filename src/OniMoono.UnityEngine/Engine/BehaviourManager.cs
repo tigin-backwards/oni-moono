@@ -5,8 +5,9 @@ using UnityEngine;
 
 namespace OniMoono.Engine
 {
-    /// Creates the native record for a component type. Engine components with their own
-    /// native state register a factory; everything else gets the record for its category.
+    /// Creates the record of an engine component type, the state of its subsystem. Engine
+    /// components with their own state register a factory; transforms get theirs; scripts and
+    /// plain components get none (null).
     internal static class ComponentNatives
     {
         static readonly Dictionary<Type, Func<ComponentNative>> factories = new()
@@ -62,8 +63,8 @@ namespace OniMoono.Engine
                     if (factories.TryGetValue(t, out var f)) return f;
             if (typeof(RectTransform).IsAssignableFrom(type)) return static () => new RectTransformNative();
             if (typeof(Transform).IsAssignableFrom(type)) return static () => new TransformNative();
-            if (typeof(Behaviour).IsAssignableFrom(type)) return static () => new BehaviourNative();
-            return static () => new ComponentNative();
+            // Scripts and plain components keep all their state on themselves: no record.
+            return static () => null;
         }
     }
 
@@ -88,31 +89,31 @@ namespace OniMoono.Engine
             public readonly string Name = name;
             /// With frame stats on: each script's wall time in this phase since the last report.
             public readonly Dictionary<ScriptInfo, long> Times = new();
-            readonly SortedDictionary<int, List<BehaviourNative>> byOrder = new();
+            readonly SortedDictionary<int, List<Behaviour>> byOrder = new();
             /// byOrder's lists in key order, remade when an order is added (iterating the
             /// sorted dictionary allocated its enumerator's stack every phase).
-            List<BehaviourNative>[] ordered = [];
-            Predicate<BehaviourNative> removing;
+            List<Behaviour>[] ordered = [];
+            Predicate<Behaviour> removing;
             /// The behaviours added since the last Integrate, in order; a null is one removed
             /// again before it (a table screen's rows enable and then disable thousands of
             /// widgets' parts in the frame that builds them, and a search of this list for each
             /// took 113 ms of that frame on a colony of 200 Duplicants).
-            readonly List<BehaviourNative> pendingAdd = new();
+            readonly List<Behaviour> pendingAdd = new();
             /// Each pending behaviour's place in pendingAdd.
-            readonly Dictionary<BehaviourNative, int> pendingAddAt = new(ReferenceEqualityComparer.Instance);
-            readonly HashSet<BehaviourNative> members = new(ReferenceEqualityComparer.Instance);
-            readonly HashSet<BehaviourNative> pendingRemove = new(ReferenceEqualityComparer.Instance);
-            readonly List<List<BehaviourNative>> touched = new();
+            readonly Dictionary<Behaviour, int> pendingAddAt = new(ReferenceEqualityComparer.Instance);
+            readonly HashSet<Behaviour> members = new(ReferenceEqualityComparer.Instance);
+            readonly HashSet<Behaviour> pendingRemove = new(ReferenceEqualityComparer.Instance);
+            readonly List<List<Behaviour>> touched = new();
 
-            public void Add(BehaviourNative b)
+            public void Add(Behaviour b)
             {
-                if (MessageOf(b.Script) == null) return;
+                if (MessageOf(b.EngineScript) == null) return;
                 pendingRemove.Remove(b);
                 if (members.Contains(b) || !pendingAddAt.TryAdd(b, pendingAdd.Count)) return;
                 pendingAdd.Add(b);
             }
 
-            public void Remove(BehaviourNative b)
+            public void Remove(Behaviour b)
             {
                 if (pendingAddAt.Remove(b, out int at))
                 {
@@ -129,7 +130,7 @@ namespace OniMoono.Engine
                     // A behaviour's execution order is set when it is created, before it is
                     // added: only the lists of the removed behaviours' orders hold them.
                     foreach (var b in pendingRemove)
-                        if (byOrder.TryGetValue(b.ExecutionOrder, out var list) && !touched.Contains(list))
+                        if (byOrder.TryGetValue(b.EngineExecutionOrder, out var list) && !touched.Contains(list))
                         {
                             touched.Add(list);
                             list.RemoveAll(removing ??= pendingRemove.Contains);
@@ -141,9 +142,9 @@ namespace OniMoono.Engine
                 foreach (var b in pendingAdd)
                 {
                     if (b is null) continue;
-                    if (!byOrder.TryGetValue(b.ExecutionOrder, out var list))
+                    if (!byOrder.TryGetValue(b.EngineExecutionOrder, out var list))
                     {
-                        byOrder[b.ExecutionOrder] = list = new();
+                        byOrder[b.EngineExecutionOrder] = list = new();
                         ordered = [.. byOrder.Values];
                     }
                     list.Add(b);
@@ -169,25 +170,25 @@ namespace OniMoono.Engine
                         {
                             var b = list[i];
                             // Disabled or destroyed earlier in this phase: skip.
-                            if (!b.IsActiveAndEnabledState || (pendingRemove.Count != 0 && pendingRemove.Contains(b))) continue;
-                            if (!b.StartCalled)
+                            if (!b.EngineActiveAndEnabled || (pendingRemove.Count != 0 && pendingRemove.Contains(b))) continue;
+                            if (!b.EngineStartCalled)
                             {
                                 // A member whose Start is still pending starts here, just before
                                 // its first callback of this phase, ahead of the pending Starts of
                                 // behaviours without this callback (measured in the original,
                                 // UnityProbe scenarios 13, 17, 18).
-                                if (!b.StartPending) continue;
+                                if (!b.EngineStartPending) continue;
                                 RunStart(b);
-                                if (!b.IsActiveAndEnabledState || b.Destroyed) continue;
+                                if (!b.EngineActiveAndEnabled || b.EngineDestroyed) continue;
                             }
                             if (!PlayerLoop.FrameStats)
                             {
-                                Lifecycle.Invoke(MessageOf(b.Script), (MonoBehaviour)b.Managed);
+                                Lifecycle.Invoke(MessageOf(b.EngineScript), (MonoBehaviour)b);
                                 continue;
                             }
                             long start = System.Diagnostics.Stopwatch.GetTimestamp();
-                            Lifecycle.Invoke(MessageOf(b.Script), (MonoBehaviour)b.Managed);
-                            Times[b.Script] = Times.GetValueOrDefault(b.Script) + System.Diagnostics.Stopwatch.GetTimestamp() - start;
+                            Lifecycle.Invoke(MessageOf(b.EngineScript), (MonoBehaviour)b);
+                            Times[b.EngineScript] = Times.GetValueOrDefault(b.EngineScript) + System.Diagnostics.Stopwatch.GetTimestamp() - start;
                         }
                 }
                 finally
@@ -200,10 +201,10 @@ namespace OniMoono.Engine
         static readonly PhaseList update = new("Update", Phase.Update);
         static readonly PhaseList lateUpdate = new("LateUpdate", Phase.LateUpdate);
         static readonly PhaseList fixedUpdate = new("FixedUpdate", Phase.FixedUpdate);
-        static readonly List<BehaviourNative> startQueue = new();
-        static readonly ListSnapshot<BehaviourNative> startSnapshot = new();
+        static readonly List<Behaviour> startQueue = new();
+        static readonly ListSnapshot<Behaviour> startSnapshot = new();
 
-        public static void Register(BehaviourNative b)
+        public static void Register(Behaviour b)
         {
             update.Add(b);
             lateUpdate.Add(b);
@@ -211,7 +212,7 @@ namespace OniMoono.Engine
             IMGUI.GUIManager.Register(b); // OnGUI behaviours
         }
 
-        public static void Unregister(BehaviourNative b)
+        public static void Unregister(Behaviour b)
         {
             update.Remove(b);
             lateUpdate.Remove(b);
@@ -219,16 +220,16 @@ namespace OniMoono.Engine
             IMGUI.GUIManager.Unregister(b);
         }
 
-        public static void ScheduleStart(BehaviourNative b)
+        public static void ScheduleStart(Behaviour b)
         {
-            b.StartPending = true;
+            b.EngineStartPending = true;
             startQueue.Add(b);
         }
 
-        public static void CancelStart(BehaviourNative b)
+        public static void CancelStart(Behaviour b)
         {
-            if (!b.StartPending) return;
-            b.StartPending = false;
+            if (!b.EngineStartPending) return;
+            b.EngineStartPending = false;
             ByReference.Remove(startQueue, b);
         }
 
@@ -262,26 +263,26 @@ namespace OniMoono.Engine
                 var b = items[i];
                 if (counted) LoadProgress.Started(i);
                 // Started since it was queued (by its first update callback): nothing to do.
-                if (b.StartCalled || b.Destroyed) continue;
-                b.StartPending = false;
-                if (!b.IsActiveAndEnabledState) continue; // rescheduled on the next OnEnable
+                if (b.EngineStartCalled || b.EngineDestroyed) continue;
+                b.EngineStartPending = false;
+                if (!b.EngineActiveAndEnabled) continue; // rescheduled on the next OnEnable
                 RunStart(b);
             }
         }
 
         /// Start for one behaviour, active and enabled, whose Start has not run. A queue entry it
         /// leaves behind is skipped by the pass that reaches it.
-        static void RunStart(BehaviourNative b)
+        static void RunStart(Behaviour b)
         {
-            b.StartPending = false;
-            b.StartCalled = true;
-            var mb = (MonoBehaviour)b.Managed;
-            if (b.Script.Start != null) Lifecycle.Invoke(b.Script.Start, mb);
-            else if (b.Script.StartCoroutine != null)
+            b.EngineStartPending = false;
+            b.EngineStartCalled = true;
+            var mb = (MonoBehaviour)b;
+            if (b.EngineScript.Start != null) Lifecycle.Invoke(b.EngineScript.Start, mb);
+            else if (b.EngineScript.StartCoroutine != null)
             {
                 try
                 {
-                    var routine = b.Script.StartCoroutine(mb);
+                    var routine = b.EngineScript.StartCoroutine(mb);
                     if (routine != null) Coroutines.Start(mb, routine);
                 }
                 catch (Exception e)

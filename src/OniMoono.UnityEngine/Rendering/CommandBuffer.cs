@@ -259,7 +259,7 @@ namespace OniMoono.Engine.Rendering
     {
         public override void Execute(Camera camera)
         {
-            if (!renderer || !material || renderer.Native is not RendererNative r) return;
+            if (!renderer || !material || renderer.EngineState is not RendererNative r) return;
             var draws = new List<DrawItem>();
             RendererDraws.Collect(r, camera, draws);
             foreach (var d in draws)

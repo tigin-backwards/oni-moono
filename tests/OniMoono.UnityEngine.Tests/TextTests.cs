@@ -485,7 +485,7 @@ namespace OniMoono.Tests
             tm.anchor = TextAnchor.MiddleCenter;
             tm.characterSize = 0.5f;
 
-            var native = (OniMoono.Engine.Text.TextMeshNative)tm.Native;
+            var native = (OniMoono.Engine.Text.TextMeshNative)tm.EngineState;
             var mesh = native.Geometry();
             Assert.Equal(16, mesh.VertexCount);
             Assert.Equal(24, mesh.SubMeshes[0].Indices.Length);

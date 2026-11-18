@@ -32,7 +32,7 @@ namespace UnityEngine
 
         public Canvas() { }
 
-        internal CanvasNative Data => (CanvasNative)NativeOrThrow;
+        internal CanvasNative Data => (CanvasNative)EngineStateOrThrow;
 
         internal override void EngineOnEnable() => CanvasSystem.Enable(this);
         internal override void EngineOnDisable() => CanvasSystem.Disable(this);
@@ -253,7 +253,7 @@ namespace UnityEngine
     {
         public CanvasRenderer() { }
 
-        CanvasRendererNative Data => (CanvasRendererNative)NativeOrThrow;
+        CanvasRendererNative Data => (CanvasRendererNative)EngineStateOrThrow;
 
         /// Becoming active, or being added to an active object, renumbers its canvas.
         internal override void EngineOnEnable() => CanvasSystem.Restructured(Data.GameObject.Transform);

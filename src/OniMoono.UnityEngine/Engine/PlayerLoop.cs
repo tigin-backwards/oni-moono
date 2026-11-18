@@ -294,10 +294,10 @@ namespace OniMoono.Engine
                 if (!go.ActiveInHierarchy) continue;
                 foreach (var c in go.Components)
                 {
-                    if (c is not MonoBehaviour mb || c.Native is not BehaviourNative bn || bn.Script?.OnApplicationFocus == null) continue;
+                    if (c is not MonoBehaviour mb || !mb.Alive || mb.EngineScript?.OnApplicationFocus == null) continue;
                     try
                     {
-                        bn.Script.OnApplicationFocus(mb, focus);
+                        mb.EngineScript.OnApplicationFocus(mb, focus);
                     }
                     catch (Exception e)
                     {

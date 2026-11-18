@@ -16,7 +16,7 @@ namespace UnityEngine.Playables
 
         public event Action<PlayableDirector> stopped;
 
-        PlayableDirectorNative Data => (PlayableDirectorNative)NativeOrThrow;
+        PlayableDirectorNative Data => (PlayableDirectorNative)EngineStateOrThrow;
 
         public PlayState state => Data.State;
 
@@ -174,7 +174,7 @@ namespace UnityEngine.Playables
 
         internal override void EngineOnDestroy()
         {
-            if (Native is PlayableDirectorNative d) d.OnDestroy();
+            if (EngineState is PlayableDirectorNative d) d.OnDestroy();
         }
     }
 }

@@ -75,7 +75,7 @@ namespace OniMoono.Engine.Particles
         {
             foreach (var c in go.Components)
             {
-                if (c is not MonoBehaviour mb || c.Native is not BehaviourNative { IsActiveAndEnabledState: true }) continue;
+                if (c is not MonoBehaviour mb || !mb.Alive || !mb.EngineActiveAndEnabled) continue;
                 var message = stoppedMessages.GetOrAdd(mb.GetType(), FindStopped);
                 if (message != null) Lifecycle.Invoke(message, mb);
             }

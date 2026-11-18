@@ -111,7 +111,7 @@ namespace OniMoono.Engine.Serialization
             foreach (var (src, dst) in remap)
                 if (src is MonoBehaviour && dst is MonoBehaviour) CopyScript(src, dst, remap);
             foreach (var dst in remap.Values)
-                if (dst is Component && dst is not MonoBehaviour) dst.NativeOrThrow.RemapReferences(context.Map);
+                if (dst is Component component && dst is not MonoBehaviour) component.EngineStateOrThrow?.RemapReferences(context.Map);
 
             // 3. Placement.
             var t = rootClone.Transform;
@@ -185,22 +185,32 @@ namespace OniMoono.Engine.Serialization
             var clones = new Component[components.Length];
             for (int i = 0; i < components.Length; i++)
             {
-                var c = components[i];
-                var srcNative = (ComponentNative)c.NativeOrThrow;
+                var c = components[i].AliveOrThrow();
                 var native = ComponentNatives.Create(c.GetType());
-                native.GameObject = go;
-                native.HideFlags = srcNative.HideFlags;
-                native.CopyStateFrom(srcNative);
-                if (native is BehaviourNative bn && c is MonoBehaviour)
+                var init = new ComponentInit(go) { HideFlags = c.EngineHideFlags };
+                if (c is Behaviour b)
                 {
-                    bn.Script = ScriptInfo.Get(c.GetType());
-                    bn.ExecutionOrder = bn.Script.ExecutionOrder;
+                    // Instantiate copies a behaviour awaiting destruction, and copies it disabled, as
+                    // observed in Unity's player: the clone keeps the enabled = false its source
+                    // reports and lives on after the source's destruction.
+                    init.Disabled = !(b.EngineEnabledSelf && !b.EngineDestroyPending);
+                    init.NoGUILayout = !b.EngineUseGUILayout;
                 }
-                clones[i] = Object.ConstructBound<Component>(c.GetType(), native);
+                if (native is not null)
+                {
+                    native.GameObject = go;
+                    native.CopyStateFrom(c.EngineState);
+                }
+                if (c is MonoBehaviour)
+                {
+                    init.Script = ScriptInfo.Get(c.GetType());
+                    init.ExecutionOrder = init.Script.ExecutionOrder;
+                }
+                clones[i] = Object.ConstructComponent(c.GetType(), native, in init);
                 remap[c] = clones[i];
             }
             go.Components = clones;
-            go.Transform = (TransformNative)clones[0].NativeOrThrow;
+            go.Transform = (TransformNative)clones[0].EngineStateOrThrow;
             go.Transform.Parent = parentClone;
 
             var srcChildren = src.Transform.Children;

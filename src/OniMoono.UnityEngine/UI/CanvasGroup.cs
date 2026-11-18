@@ -8,7 +8,7 @@ namespace UnityEngine
     {
         public CanvasGroup() { }
 
-        internal CanvasGroupNative Group => (CanvasGroupNative)NativeOrThrow;
+        internal CanvasGroupNative Group => (CanvasGroupNative)EngineStateOrThrow;
 
         public float alpha
         {

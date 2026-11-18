@@ -233,7 +233,7 @@ namespace OniMoono.Engine.Mecanim
                 if (t.Notify) notify.Add(t.Notify);
             }
             foreach (var mb in notify)
-                if (mb && mb.Native is BehaviourNative { Script.OnDidApplyAnimationProperties: { } message })
+                if (mb && mb.EngineScript is { OnDidApplyAnimationProperties: { } message })
                     Lifecycle.Invoke(message, mb);
         }
 

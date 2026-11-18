@@ -7,7 +7,7 @@ namespace UnityEngine
 {
     public partial class ParticleSystem
     {
-        internal ParticleSystemNative Data => (ParticleSystemNative)NativeOrThrow;
+        internal ParticleSystemNative Data => (ParticleSystemNative)EngineStateOrThrow;
 
         public MainModule main => new(this);
         public EmissionModule emission => new(this);
@@ -52,7 +52,7 @@ namespace UnityEngine
         {
             foreach (var child in go.Transform.Children)
                 foreach (var c in child.GameObject.Components)
-                    if (c is ParticleSystem && c.Native is ParticleSystemNative ps)
+                    if (c is ParticleSystem && c.EngineState is ParticleSystemNative ps)
                     {
                         list.Add(ps);
                         AddChildren(child.GameObject, list);

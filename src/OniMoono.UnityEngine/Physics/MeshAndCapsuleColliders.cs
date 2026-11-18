@@ -9,7 +9,7 @@ namespace UnityEngine
 {
     public partial class CapsuleCollider
     {
-        CapsuleColliderNative Data => (CapsuleColliderNative)NativeOrThrow;
+        CapsuleColliderNative Data => (CapsuleColliderNative)EngineStateOrThrow;
 
         public Vector3 center { get => Data.Center; set => Data.Center = value; }
         public float radius { get => Data.Radius; set => Data.Radius = value; }
@@ -21,7 +21,7 @@ namespace UnityEngine
 
     public partial class MeshCollider
     {
-        MeshColliderNative Data => (MeshColliderNative)NativeOrThrow;
+        MeshColliderNative Data => (MeshColliderNative)EngineStateOrThrow;
 
         public Mesh sharedMesh { get => Data.Mesh; set => Data.Mesh = value; }
         public bool convex { get => Data.Convex; set => Data.Convex = value; }

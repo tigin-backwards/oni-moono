@@ -46,7 +46,7 @@ namespace OniMoono.Engine
             var candidates = new List<UnityEngine.Object>();
             string managers = ProjectSettings.Managers != null ? AssetSystem.KeyOf(ProjectSettings.Managers) : null;
             foreach (var o in ObjectTable.Objects())
-                if (o.NativeRecord is { } native && IsCandidate(native, managers)) candidates.Add(o);
+                if (IsCandidate(o, managers)) candidates.Add(o);
             return ObjectTable.Weaken(candidates);
         }
 
@@ -54,21 +54,22 @@ namespace OniMoono.Engine
         /// at runtime that are not GameObjects or components. Excluded: DontUnloadUnusedAsset,
         /// the project managers, asset bundles (unloaded only by AssetBundle.Unload) and
         /// ScriptableObjects with OnDisable/OnDestroy (see ARCHITECTURE D9).
-        static bool IsCandidate(NativeObject native, string managers)
+        static bool IsCandidate(UnityEngine.Object o, string managers)
         {
-            if (native.Destroyed || native.DestroyRequested) return false;
-            if ((native.HideFlags & HideFlags.DontUnloadUnusedAsset) != 0) return false;
-            switch (native)
+            if (o.EngineDestroyed || o.EngineDestroyRequested) return false;
+            if ((o.EngineHideFlags & HideFlags.DontUnloadUnusedAsset) != 0) return false;
+            if (o is Component c) return c.EngineIsPersistent && c.EngineGameObject is { Scene: null };
+            switch (o.NativeRecord)
             {
                 case GameObjectNative go:
                     return go.IsPersistent && go.Scene == null;
-                case ComponentNative c:
-                    return c.IsPersistent && c.GameObject is { Scene: null };
                 case AssetBundleNative:
                     return false;
+                case null:
+                    return false;
             }
-            if (native.IsPersistent && native.Source.File == managers) return false;
-            if (native.Managed is ScriptableObject so && HasUnloadCallbacks(so.GetType())) return false;
+            if (o.EngineIsPersistent && o.EngineSource.File == managers) return false;
+            if (o is ScriptableObject so && HasUnloadCallbacks(so.GetType())) return false;
             return true;
         }
 
