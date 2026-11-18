@@ -670,7 +670,26 @@ namespace OniMoono.Engine
                 if (QuitStats.On) QuitStats.GameObjects++;
             }
             Callbacks(root);
+            // A component an OnDestroy added to an object of the subtree goes with it, released
+            // before its object (not measured in the original; an object left alive on a
+            // destroyed GameObject would have no transform once that is released).
+            var added = ScratchList<Object>.Rent();
+            for (bool more = true; more;)
+            {
+                more = false;
+                foreach (var o in released)
+                    if (o is GameObject go)
+                        foreach (var c in go.Components)
+                            if (c.Alive && !c.EngineDestroyed)
+                            {
+                                DestroyComponent(c, detach: false, unbind: false);
+                                added.Add(c);
+                                more = true;
+                            }
+            }
             long releasing = QuitStats.On ? QuitStats.Now : 0;
+            foreach (var o in added) o.Unbind();
+            ScratchList<Object>.Return(added);
             foreach (var o in released) o.Unbind();
             if (QuitStats.On) QuitStats.ReleaseTicks += QuitStats.Now - releasing;
             ScratchList<Object>.Return(released);
