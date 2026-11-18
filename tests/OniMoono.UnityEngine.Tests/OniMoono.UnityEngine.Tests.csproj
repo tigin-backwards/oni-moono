@@ -18,6 +18,8 @@
     <PackageReference Include="Mono.Cecil" />
     <!-- IdentityAnalyzerTests runs the engine's analyzer on samples. -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <!-- SaveTemplateTests reads Unity's CoreModule from the game install. -->
+    <PackageReference Include="System.Reflection.MetadataLoadContext" />
   </ItemGroup>
   <ItemGroup>
     <!-- What the tests need of the game install, and the skips without it (GameInstall). -->
