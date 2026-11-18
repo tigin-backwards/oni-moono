@@ -172,6 +172,7 @@ TEST_MODS = (
     'ReachStressTestMod',
     'RailLoopTestMod',
     'CritterTurnsTestMod',
+    'BeetaTurnsTestMod',
     'GeoVentProbeTestMod',
     'TimelapseProbeTestMod',
     'FrameRateProbeTestMod',

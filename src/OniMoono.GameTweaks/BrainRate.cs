@@ -29,9 +29,9 @@ namespace OniMoono.GameTweaks
     /// allows it. Without the floors, 2,400 critters at speed 3 got a turn every 48 game seconds:
     /// Slicksters stayed hungry and none excreted.
     ///
-    /// Within the capped turns a critter ready to inhale its food or to excrete goes first: the
-    /// tweak installs CritterNeedsFirst's hooks, whether or not that tweak is on. With the cap
-    /// alone a gas-eater in a large colony got too few turns to stay fed (issue #85).
+    /// Within the capped turns a critter ready to inhale its food, to excrete or to attack goes
+    /// first: the tweak installs CritterNeedsFirst's hooks, whether or not that tweak is on. With
+    /// the cap alone a gas-eater in a large colony got too few turns to stay fed (issue #85).
     ///
     /// What differs: above 30 fps a Duplicant re-evaluates its errands, and a critter its
     /// behaviours, as often per real second as the game would at 30 fps; critters ready to inhale
@@ -49,6 +49,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "System.Void CreatureCalorieMonitor/Instance::OnCaloriesConsumed(System.Object)")]
     [GameMember(GameUse.Postfix, "System.Void CreatureCalorieMonitor/Instance::Poop(PoopData)")]
     [GameMember(GameUse.Postfix, "System.Void CreatureCalorieMonitor/Instance::StartSM()")]
+    [GameMember(GameUse.Postfix, "System.Void ThreatMonitor::InitializeStates(StateMachine/BaseState&)")]
     [GameMember(GameUse.Postfix, "System.Void Brain::UpdateBrain()", Conditional = true)]
     [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Void BrainScheduler::RenderEveryTick(System.Single)", "6014ab20d776bb7b linux-744825 win-744825")]
     public static class BrainRate
@@ -64,6 +65,10 @@ namespace OniMoono.GameTweaks
         /// The running group's allowance this frame, while it runs (InitialProbeCount's answer).
         static int current = -1;
         static BrainScheduler scheduler;
+
+        /// The critter group's allowance and the frame it was for (CritterNeedsFirst's bound on
+        /// threat turns counts the turns the group was given).
+        public static int CritterTurns, CritterTurnsFrame = -1;
 
         public static void Install(Harmony harmony)
         {
@@ -96,6 +101,7 @@ namespace OniMoono.GameTweaks
                     if (!allowances.TryGetValue(group, out var allowance))
                         allowances[group] = allowance = new BrainRateAllowance(type == dupeGroup ? DuplicantRate : CritterRate);
                     allowed = allowance.Take(real, probeCount(group), group.BrainCount, Time.timeScale);
+                    if (type == critterGroup) { CritterTurns = allowed; CritterTurnsFrame = Time.frameCount; }
                     if (allowed == 0) continue;
                 }
                 current = allowed;

@@ -1047,7 +1047,7 @@ msgstr ""
 
 #. Tooltip: how it works (brain-rate)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
-msgid "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food or excrete goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time."
+msgid "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food, excrete or attack goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time."
 msgstr ""
 
 #. Section heading (shown in capitals)
@@ -1057,17 +1057,17 @@ msgstr ""
 
 #. Row title (critter-needs-first)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.TITLE"
-msgid "Critters ready to eat or excrete get the next turn"
+msgid "Critters ready to eat, excrete or attack get the next turn"
 msgstr ""
 
 #. The line under the title (critter-needs-first)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.EFFECT"
-msgid "In huge colonies, Slicksters and Pufts no longer stop excreting at low frame rates."
+msgid "In big colonies at low frame rates, Slicksters and Pufts keep excreting and Beetas still attack."
 msgstr ""
 
 #. Tooltip: how it works (critter-needs-first)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.DETAIL"
-msgid "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: its stomach fills for cycles and empties all at once after a load. This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others. No turns are added, so other critters wait slightly longer."
+msgid "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: its stomach fills for cycles and empties all at once after a load. A critter also notices a target only on its turn, so at speed 3 Beetas and other critters that attack often miss what passes by. This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others, and a critter with a target in reach a turn as often as at normal speed and 30 fps. No turns are added, so other critters wait slightly longer."
 msgstr ""
 
 #. Row title (off-world-fallers)

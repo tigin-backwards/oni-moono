@@ -647,16 +647,16 @@ msgid "The item only changes rail tile. What the rails carry and when, heat, ger
 msgstr "物品只是换到另一格轨道。轨道运送的东西和时间、热量、病菌、新鲜度、蛋的状态以及轨道计量器的计数都不变。有两点不同：运输概览中两个重叠的物品可能以相反的顺序绘制；物品过桥的瞬间不再被列为可搬运。尚未发现的物品种类、小动物以及被模组加了组件的物品仍按游戏的方式过桥。有其他模组改变物品在轨道上的存放方式时，此项关闭。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.TITLE"
-msgid "Critters ready to eat or excrete get the next turn"
-msgstr "准备进食或排泄的小动物优先"
+msgid "Critters ready to eat, excrete or attack get the next turn"
+msgstr "准备进食、排泄或攻击的小动物优先"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.EFFECT"
-msgid "In huge colonies, Slicksters and Pufts no longer stop excreting at low frame rates."
-msgstr "在超大型殖民地里，帧率较低时浮油生物和喷浮飞鱼不再停止排泄。"
+msgid "In big colonies at low frame rates, Slicksters and Pufts keep excreting and Beetas still attack."
+msgstr "在大型殖民地里帧率较低时，浮油生物和喷浮飞鱼会继续排泄，辐射蜂也照常攻击。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.DETAIL"
-msgid "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: its stomach fills for cycles and empties all at once after a load. This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others. No turns are added, so other critters wait slightly longer."
-msgstr "游戏每帧按固定顺序让 5 只小动物决定要做什么。小动物有数千只而帧率又低时，靠吸入进食的小动物轮到的次数太少，吃不饱，也就从不排泄：它的胃连续多个周期越积越多，读档后一次全部排出。此项让准备吸入食物或排泄的小动物在这一帧的名额里排到前面。总名额不变，其他小动物会稍微多等一会儿。"
+msgid "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: its stomach fills for cycles and empties all at once after a load. A critter also notices a target only on its turn, so at speed 3 Beetas and other critters that attack often miss what passes by. This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others, and a critter with a target in reach a turn as often as at normal speed and 30 fps. No turns are added, so other critters wait slightly longer."
+msgstr "游戏每帧按固定顺序让 5 只小动物决定要做什么。小动物有数千只而帧率又低时，靠吸入进食的小动物轮到的次数太少，吃不饱，也就从不排泄：它的胃连续多个周期越积越多，读档后一次全部排出。小动物也只在轮到自己时才会发现目标，所以在快速下，辐射蜂和其他会攻击的小动物常常错过经过的目标。此项让准备吸入食物或排泄的小动物在这一帧的名额里排到前面，并让附近有可攻击目标的小动物轮到的频率与正常速度、30 fps 时相同。总名额不变，其他小动物会稍微多等一会儿。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.TITLE"
 msgid "Land items lost below a world"
@@ -679,8 +679,8 @@ msgid "Above 30 fps, critters and Duplicants decide what to do only as often as 
 msgstr "超过 30 fps 时，小动物和复制人做决定的频率与 30 fps 时相同。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
-msgid "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food or excrete goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time."
-msgstr "游戏每帧更新 1 个复制人和 5 只小动物的脑；此项将其限制为每秒 30 次和 150 次。刚完成任务或受到威胁的个体仍会得到下一次更新，准备吸入食物或排泄的小动物排在其他小动物前面，因此小动物行动的时刻与不开启时不同。小动物或复制人很多时，上限随游戏速度提高，每个个体都能在 15 秒游戏时间内更新一次。"
+msgid "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food, excrete or attack goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time."
+msgstr "游戏每帧更新 1 个复制人和 5 只小动物的脑；此项将其限制为每秒 30 次和 150 次。刚完成任务或受到威胁的个体仍会得到下一次更新，准备吸入食物、排泄或攻击的小动物排在其他小动物前面，因此小动物行动的时刻与不开启时不同。小动物或复制人很多时，上限随游戏速度提高，每个个体都能在 15 秒游戏时间内更新一次。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.TITLE"
 msgid "Faster Load screen"

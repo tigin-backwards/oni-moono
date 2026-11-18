@@ -325,11 +325,11 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Simulation at its own pace** (`sim-step-pace`): Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU. Above 60 fps at normal speed, the game calls the simulation on every frame between its five steps a second, and each call waits for the step underway. This skips those calls, as the game does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. Off while paused, or while another mod changes these calls. *Measured: 112 → 220 fps at normal speed on a large modded colony; a large modded Spaced Out colony, Windows, 2026-11-12.*
 - **Game time at the simulation's pace** (`frame-time-cap`): At low frame rates, animations, automation and timers no longer run ahead of the simulation. The game's simulation takes at most 0.2 s of game time a frame and drops the rest, but animations, the automation clock and the game's timers take all of it: up to 1 s a frame at speed 3. Duplicants and critters then finish what waits on an animation sooner, Buffer and Filter Gates switch early, and overheating buildings and scalding Duplicants take damage faster. This caps a frame's game time at the simulation's 0.2 s while a colony runs. Nothing changes above 15 fps at speed 3, 10 fps at speed 2 or 5 fps at speed 1. The camera and menus keep real time. Off while another mod changes the simulation's frame.
 - **Automation between simulation steps** (`logic-in-sim-steps`): At low frame rates, an automation signal that lasts one tick still reaches pumps, doors and valves. Automation ticks every 0.1 s of game time. When a frame holds several ticks, the game runs them back to back before the frame's simulation steps, so a signal that lasts one tick can switch a building on and off with no step in between. This runs each later tick before the step it falls on. The number of ticks is the same. Nothing changes above 30 fps at speed 3, 20 fps at speed 2 or 10 fps at speed 1. Off while another mod changes the automation clock or the simulation's frame.
-- **Cap critter and dupe brain updates** (`brain-rate`): Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps. The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food or excrete goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time.
+- **Cap critter and dupe brain updates** (`brain-rate`): Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps. The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food, excrete or attack goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time.
 
 ### Bug fixes (off by default but where marked)
 
-- **Critters ready to eat or excrete get the next turn** (`critter-needs-first`): In huge colonies, Slicksters and Pufts no longer stop excreting at low frame rates. The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: its stomach fills for cycles and empties all at once after a load. This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others. No turns are added, so other critters wait slightly longer.
+- **Critters ready to eat, excrete or attack get the next turn** (`critter-needs-first`): In big colonies at low frame rates, Slicksters and Pufts keep excreting and Beetas still attack. The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: its stomach fills for cycles and empties all at once after a load. A critter also notices a target only on its turn, so at speed 3 Beetas and other critters that attack often miss what passes by. This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others, and a critter with a target in reach a turn as often as at normal speed and 30 fps. No turns are added, so other critters wait slightly longer.
 - **Land items lost below a world** (`off-world-fallers`): Items that fall out the bottom of a world (a rocket's chute) stop falling forever. A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang.
 - **Open a colony once on the Load screen** (`fix-load-screen-clicks`): After Load more, a click on a colony no longer builds its list of saves again for every refresh. A bug in the game: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh. This builds it once and logs once; the screen ends up the same. *On by default.*
 - **Stop sounds that never end** (`fix-endless-sounds`): An eating Pip no longer leaves sounds playing forever, which in time froze the game. A bug in the game's sound data: the adult Pip's eating loop, and the debris left by a self-destructed rocket, start a new copy of a looping sound on every loop and never stop one. This plays them as the Pipsqueak's: one copy while the animation runs, stopped when it ends. *On by default.*
@@ -647,6 +647,47 @@ next one (a one-tick signal the simulation never sees), 2026-11-18.
 Speed 1 at about 220 fps, the target, hid 2 of 402 ticks (on a hitch, a frame of over 0.1 s).
 The plan costs about 70 ns a frame in the worst case (speed 3 at 5 fps, 6 ticks over 12
 sub-ticks) and allocates nothing (`LogicTicksTests`); it moves the game's work, adding none.
+
+### Critter turns
+
+Off by default (`critter-needs-first`, in the Bug fixes group, not in `exact`). `brain-rate`
+installs the same hooks for its critter cap.
+
+**In the game.** Critters take turns deciding what to do, 5 a frame in a fixed order, so with
+N critters each gets a turn every N / 5 frames: with 500 critters every 3.3 game seconds at
+normal speed and 30 fps, but every 10 at speed 3 and every 20 at speed 3 below 15 fps. Two
+things need turns more often than that:
+
+- A critter that inhales its food (Slicksters, Pufts) starts one meal a turn. With thousands
+  of critters at a low frame rate it stays hungry, so it never excretes.
+- A critter that attacks on its own (Beetas, Pokeshells guarding their eggs, critters that
+  hunt) looks for a target only on its turn. By the time it notices one, waits its 0–4 s and
+  sets off, a Duplicant or critter passing by has gone.
+
+**With the tweak,** such a critter is put in the game's own queue for the next turn, which the
+game serves before the fixed order. No turn is added; the others wait that much longer.
+
+- Ready to inhale or excrete: when its wait after a meal ends and it is hungry, and when it can
+  first excrete.
+- Ready to attack: a critter looking for a target with one it could take in its search box
+  (41×41 cells, the game's own tests), or one under threat, once its last turn is older than
+  it would be at normal speed and 30 fps (critters / 150 game seconds). Where turns come that
+  often anyway, none is asked for.
+
+At most 4 such critters are tested a frame, and at most one is asked for in every 5 of the
+critter group's turns, so the fixed order keeps at least 4 in 5 of them. A test reads the
+partitioner and the path cache, up to 50 entries, and allocates nothing.
+
+**Measured** on Linux with 12 Beetas, 500 other critters and a Pip that visits the Beetas for 8
+game seconds every 30–40 (`tests/e2e/critter-threat-turns.yaml`), counts only:
+
+- Speed 3, frames held to 15 a second (a turn every 20 game seconds): 2 stings (1 during a
+  visit) without the tweak, 19 with it, from 97 turns asked in 600 game seconds.
+- Normal speed at 28 fps (a turn every 3.5–3.7 game seconds): 33 stings without, 23 with; the
+  tweak asked 13 turns in 450 game seconds, as the round was just over its gap.
+
+In both, nearly every sting came in the Pip's first three visits: in this test later visits
+rarely end in one, with or without the tweak.
 
 ### Items lost below a world
 

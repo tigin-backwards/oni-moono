@@ -278,13 +278,15 @@ namespace OniMoono.Host.GameTweaks
                 + "Off while another mod changes the automation clock or the simulation's frame."),
             new("brain-rate", ChangesGameplay, "Cap critter and dupe brain updates", "Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps.",
                 "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. "
-                + "One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food or excrete goes ahead of the others, so critters act at other moments than without this. "
+                + "One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food, excrete or attack goes ahead of the others, so critters act at other moments than without this. "
                 + "With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time."),
-            new("critter-needs-first", BugFixes, "Critters ready to eat or excrete get the next turn", "In huge colonies, Slicksters and Pufts no longer stop excreting at low frame rates.",
+            new("critter-needs-first", BugFixes, "Critters ready to eat, excrete or attack get the next turn", "In big colonies at low frame rates, Slicksters and Pufts keep excreting and Beetas still attack.",
                 "The game lets 5 critters decide what to do each frame, in a fixed order. "
                 + "With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: "
                 + "its stomach fills for cycles and empties all at once after a load. "
-                + "This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others. "
+                + "A critter also notices a target only on its turn, so at speed 3 Beetas and other critters that attack often miss what passes by. "
+                + "This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others, "
+                + "and a critter with a target in reach a turn as often as at normal speed and 30 fps. "
                 + "No turns are added, so other critters wait slightly longer."),
             new("off-world-fallers", BugFixes, "Land items lost below a world", "Items that fall out the bottom of a world (a rocket's chute) stop falling forever.",
                 "A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang."),
