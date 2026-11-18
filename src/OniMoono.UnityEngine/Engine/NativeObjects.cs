@@ -6,23 +6,95 @@ using Object = UnityEngine.Object;
 
 namespace OniMoono.Engine
 {
-    /// Engine-side record of a UnityEngine.Object (what Unity keeps in native memory).
+    /// Engine-side record of a UnityEngine.Object (what Unity keeps in native memory). The
+    /// object's identity and lifetime (instance id, hide flags, where it was loaded from, its
+    /// destruction flags) are kept on the object itself once the record is bound to it
+    /// (Object.Bind); the record reads them there. A record without an object (the engine's own
+    /// meshes and textures, or one not bound yet) keeps them itself, and binding hands them over.
     internal class NativeObject
     {
-        public int Slot;
-        public int Generation;
-        public int InstanceId;
         public Object Managed;
         public string Name = "";
-        public HideFlags HideFlags;
+
+        int instanceId;
+        HideFlags hideFlags;
+        bool isPersistent, destroyRequested, destroyed;
+        AssetSource source;
+
+        public int InstanceId
+        {
+            get => Managed is { } m ? m.EngineInstanceId : instanceId;
+            set
+            {
+                if (Managed is { } m) m.EngineInstanceId = value;
+                else instanceId = value;
+            }
+        }
+
+        public HideFlags HideFlags
+        {
+            get => Managed is { } m ? m.EngineHideFlags : hideFlags;
+            set
+            {
+                if (Managed is { } m) m.EngineHideFlags = value;
+                else hideFlags = value;
+            }
+        }
+
         /// Loaded from an asset file (scene objects excluded). Persistent objects are never
         /// Awakened and are released only by Resources.UnloadUnusedAssets / bundle unload.
-        public bool IsPersistent;
+        public bool IsPersistent
+        {
+            get => Managed is { } m ? m.EngineIsPersistent : isPersistent;
+            set
+            {
+                if (Managed is { } m) m.EngineIsPersistent = value;
+                else isPersistent = value;
+            }
+        }
+
         /// Where the object was loaded from, when it was.
-        public AssetSource Source;
+        public AssetSource Source
+        {
+            get => Managed is { } m ? m.EngineSource : source;
+            set
+            {
+                if (Managed is { } m) m.EngineSource = value;
+                else source = value;
+            }
+        }
+
         /// Destroy has been requested (deferred destruction pending) or performed.
-        public bool DestroyRequested;
-        public bool Destroyed;
+        public bool DestroyRequested
+        {
+            get => Managed is { } m ? m.EngineDestroyRequested : destroyRequested;
+            set
+            {
+                if (Managed is { } m) m.EngineDestroyRequested = value;
+                else destroyRequested = value;
+            }
+        }
+
+        public bool Destroyed
+        {
+            get => Managed is { } m ? m.EngineDestroyed : destroyed;
+            set
+            {
+                if (Managed is { } m) m.EngineDestroyed = value;
+                else destroyed = value;
+            }
+        }
+
+        /// Object.Bind: what the record kept before it had its object.
+        public void HandOver(Object to)
+        {
+            to.EngineInstanceId = instanceId;
+            to.EngineHideFlags = hideFlags;
+            to.EngineIsPersistent = isPersistent;
+            to.EngineSource = source;
+            to.EngineDestroyRequested = destroyRequested;
+            to.EngineDestroyed = destroyed;
+        }
 
         /// Copies engine-side state for Instantiate (each record type adds its own state).
         public virtual void CopyStateFrom(NativeObject source) { }

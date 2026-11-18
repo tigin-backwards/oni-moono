@@ -71,7 +71,7 @@ namespace OniMoono.Engine.Assets
             var key = new Key(AssetSystem.KeyOf(file), pathId);
             if (loaded.TryGetValue(key, out var handle))
             {
-                if (ObjectTable.Resolve(handle)?.Managed is { } existing) return existing;
+                if (ObjectTable.Resolve(handle) is { } existing) return existing;
                 loaded.Remove(key);
             }
             if (!file.ObjectsById.TryGetValue(pathId, out var info)) return null; // missing reference
@@ -95,7 +95,7 @@ namespace OniMoono.Engine.Assets
                 int id;
                 if (!request.Persistent) id = ObjectTable.NewInstanceId(true);
                 else if (!assetIds.TryGetValue(key, out id)) assetIds[key] = id = ObjectTable.NewInstanceId(true);
-                ObjectTable.SetInstanceId(native, id);
+                ObjectTable.SetInstanceId(obj, id);
                 native.IsPersistent = request.Persistent;
                 native.Source = new AssetSource(key.File, pathId);
                 // Cached before filling: the object's own references can lead back to it.
@@ -182,7 +182,7 @@ namespace OniMoono.Engine.Assets
         {
             var result = new List<Object>();
             foreach (var (key, handle) in loaded)
-                if (fileKeys.Contains(key.File) && ObjectTable.Resolve(handle)?.Managed is { } obj && obj) result.Add(obj);
+                if (fileKeys.Contains(key.File) && ObjectTable.Resolve(handle) is { } obj && obj) result.Add(obj);
             return result;
         }
 

@@ -114,8 +114,8 @@ namespace UnityEngine
         public static Object[] FindObjectsOfTypeAll(Type type)
         {
             var result = new List<Object>();
-            foreach (var native in ObjectTable.Snapshot())
-                if (native.Managed != null && type.IsInstanceOfType(native.Managed)) result.Add(native.Managed);
+            foreach (var o in ObjectTable.Objects())
+                if (o && type.IsInstanceOfType(o)) result.Add(o);
             result.Sort((a, b) => a.GetInstanceID().CompareTo(b.GetInstanceID()));
             var typed = (Object[])Array.CreateInstance(type, result.Count);
             for (int i = 0; i < result.Count; i++) typed.SetValue(result[i], i);

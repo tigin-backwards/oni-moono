@@ -152,7 +152,7 @@ namespace UnityEngine.Rendering
             switch (m_Type)
             {
                 case RenderTextureType or BindableTextureType or BufferPtrType:
-                    return ObjectTable.FindByInstanceId(m_InstanceID)?.Managed as Texture;
+                    return ObjectTable.FindByInstanceId(m_InstanceID) as Texture;
                 case PropertyNameType:
                     return ShaderGlobals.Properties.Textures.TryGetValue(m_NameID, out var b) ? b.Texture : null;
                 default:

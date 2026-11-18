@@ -20,6 +20,27 @@ namespace UnityEngine
         /// the handle.
         private NativeObject m_Native;
 
+        // The object's engine identity and lifetime (NativeObject reads them here). Private, so
+        // no derived type's reflected fields include them, and named apart from Unity's members.
+        private int m_EngineInstanceId;
+        private int m_EngineSlot;
+        private int m_EngineGeneration;
+        private HideFlags m_EngineHideFlags;
+        private bool m_EngineIsPersistent;
+        private bool m_EngineDestroyRequested;
+        private bool m_EngineDestroyed;
+        private AssetSource m_EngineSource;
+
+        internal int EngineInstanceId { get => m_EngineInstanceId; set => m_EngineInstanceId = value; }
+        /// Its slot in ObjectTable while registered, else 0.
+        internal int EngineSlot { get => m_EngineSlot; set => m_EngineSlot = value; }
+        internal int EngineGeneration { get => m_EngineGeneration; set => m_EngineGeneration = value; }
+        internal HideFlags EngineHideFlags { get => m_EngineHideFlags; set => m_EngineHideFlags = value; }
+        internal bool EngineIsPersistent { get => m_EngineIsPersistent; set => m_EngineIsPersistent = value; }
+        internal bool EngineDestroyRequested { get => m_EngineDestroyRequested; set => m_EngineDestroyRequested = value; }
+        internal bool EngineDestroyed { get => m_EngineDestroyed; set => m_EngineDestroyed = value; }
+        internal AssetSource EngineSource { get => m_EngineSource; set => m_EngineSource = value; }
+
         /// Set by the engine around construction of a component or ScriptableObject so that the
         /// base constructor binds the managed object to its native record (Unity creates the
         /// native object first and then runs the managed constructor).
@@ -78,10 +99,11 @@ namespace UnityEngine
         /// Attaches a fresh native record to this managed object.
         internal void Bind(NativeObject native)
         {
-            if (native.InstanceId == 0) native.InstanceId = ObjectTable.NewInstanceId(native.IsPersistent);
+            native.HandOver(this);
+            if (m_EngineInstanceId == 0) m_EngineInstanceId = ObjectTable.NewInstanceId(m_EngineIsPersistent);
             native.Managed = this;
             m_Native = native;
-            Volatile.Write(ref m_CachedPtr, ObjectTable.Register(native));
+            Volatile.Write(ref m_CachedPtr, ObjectTable.Register(this));
             if (ObjectCensus.Sites) ObjectCensus.Created(native);
         }
 
@@ -91,8 +113,11 @@ namespace UnityEngine
             var native = Native;
             Volatile.Write(ref m_CachedPtr, IntPtr.Zero);
             m_Native = null;
-            if (native is not null) ObjectTable.Unregister(native);
+            if (native is not null) ObjectTable.Unregister(this);
         }
+
+        /// The record, alive or not (the object table's snapshot of its live objects).
+        internal NativeObject NativeRecord => m_Native;
 
         /// The table handle (zero once destroyed).
         internal IntPtr Handle => Volatile.Read(ref m_CachedPtr);
@@ -121,12 +146,12 @@ namespace UnityEngine
         static void ThrowNullReference(Object obj) => throw new NullReferenceException();
 
         /// 0 once the object is destroyed, as in Unity 6.
-        public int GetInstanceID() => Native?.InstanceId ?? 0;
+        public int GetInstanceID() => Native is null ? 0 : m_EngineInstanceId;
 
         public EntityId GetEntityId()
         {
             var n = Native;
-            return n is null ? EntityId.None : EntityId.From(n.InstanceId);
+            return n is null ? EntityId.None : EntityId.From(m_EngineInstanceId);
         }
 
         public override int GetHashCode() => base.GetHashCode();
@@ -149,8 +174,16 @@ namespace UnityEngine
 
         public HideFlags hideFlags
         {
-            get => NativeOrThrow.HideFlags;
-            set => NativeOrThrow.HideFlags = value;
+            get
+            {
+                _ = NativeOrThrow;
+                return m_EngineHideFlags;
+            }
+            set
+            {
+                _ = NativeOrThrow;
+                m_EngineHideFlags = value;
+            }
         }
 
         public override string ToString()

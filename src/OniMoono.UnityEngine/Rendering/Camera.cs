@@ -313,7 +313,7 @@ namespace OniMoono.Engine.Rendering
                         ? resized.CaptureLogicalSize
                         : new Vector2(TargetTexture.width, TargetTexture.height);
                 if (TargetColorBuffers is { Length: > 0 }
-                    && OniMoono.Engine.ObjectTable.FindByInstanceId(TargetColorBuffers[0].m_RenderTextureInstanceID) is OniMoono.Engine.Rendering.RenderTextureNative rt)
+                    && OniMoono.Engine.ObjectTable.FindByInstanceId(TargetColorBuffers[0].m_RenderTextureInstanceID)?.NativeRecord is OniMoono.Engine.Rendering.RenderTextureNative rt)
                     return rt.CaptureLogicalSize.x > 0 ? rt.CaptureLogicalSize : new Vector2(rt.Width, rt.Height);
                 var p = PlatformServices.Current;
                 return new Vector2(p.FramebufferWidth, p.FramebufferHeight);

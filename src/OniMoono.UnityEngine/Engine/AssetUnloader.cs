@@ -43,10 +43,10 @@ namespace OniMoono.Engine
         [MethodImpl(MethodImplOptions.NoInlining)]
         static List<ObjectTable.Probe> WeakenCandidates()
         {
-            var candidates = new List<NativeObject>();
+            var candidates = new List<UnityEngine.Object>();
             string managers = ProjectSettings.Managers != null ? AssetSystem.KeyOf(ProjectSettings.Managers) : null;
-            foreach (var native in ObjectTable.Snapshot())
-                if (IsCandidate(native, managers)) candidates.Add(native);
+            foreach (var o in ObjectTable.Objects())
+                if (o.NativeRecord is { } native && IsCandidate(native, managers)) candidates.Add(o);
             return ObjectTable.Weaken(candidates);
         }
 
