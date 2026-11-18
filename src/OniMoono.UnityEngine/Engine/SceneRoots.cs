@@ -28,7 +28,7 @@ namespace OniMoono.Engine
         public void Remove(GameObjectNative go)
         {
             int slot = go.RootSlot;
-            if (slot < 0 || slot >= used || slots[slot] != go) return;
+            if (slot < 0 || slot >= used || !ReferenceEquals(slots[slot], go)) return;
             slots[slot] = null;
             go.RootSlot = -1;
             count--;
@@ -39,10 +39,10 @@ namespace OniMoono.Engine
         public int IndexOf(GameObjectNative go)
         {
             int slot = go.RootSlot;
-            if (slot < 0 || slot >= used || slots[slot] != go) return -1;
+            if (slot < 0 || slot >= used || !ReferenceEquals(slots[slot], go)) return -1;
             int index = 0;
             for (int i = 0; i < slot; i++)
-                if (slots[i] != null) index++;
+                if (slots[i] is not null) index++;
             return index;
         }
 
@@ -62,7 +62,7 @@ namespace OniMoono.Engine
             var result = new GameObjectNative[count];
             int n = 0;
             for (int i = 0; i < used; i++)
-                if (slots[i] != null) result[n++] = slots[i];
+                if (slots[i] is not null) result[n++] = slots[i];
             return result;
         }
 
@@ -77,7 +77,7 @@ namespace OniMoono.Engine
             for (int i = 0; i < used; i++)
             {
                 var go = slots[i];
-                if (go == null) continue;
+                if (go is null) continue;
                 go.RootSlot = n;
                 next[n++] = go;
             }
@@ -106,7 +106,7 @@ namespace OniMoono.Engine
                 while (++i < end)
                 {
                     var go = slots[i];
-                    if (go != null && go.RootSlot >= 0)
+                    if (go is not null && go.RootSlot >= 0)
                     {
                         Current = go;
                         return true;

@@ -143,9 +143,9 @@ namespace UnityEngine
         {
             get
             {
-                if (m_Font != null) return m_Font;
+                if (m_Font) return m_Font;
                 var skinFont = GUIStateData.CurrentSkin?.font;
-                return skinFont != null ? skinFont : GUIText.BuiltinFont;
+                return skinFont ? skinFont : GUIText.BuiltinFont;
             }
         }
 
@@ -155,7 +155,7 @@ namespace UnityEngine
 
         bool ShowsText(GUIContent content) => m_ImagePosition != ImagePosition.ImageOnly && !string.IsNullOrEmpty(content.text);
 
-        bool ShowsImage(GUIContent content) => m_ImagePosition != ImagePosition.TextOnly && content.image != null;
+        bool ShowsImage(GUIContent content) => m_ImagePosition != ImagePosition.TextOnly && content.image;
 
         /// The content's size without padding: text unwrapped (wrapWidth ≤ 0) or wrapped.
         Vector2 ContentSize(GUIContent content, float wrapWidth)

@@ -180,7 +180,7 @@ namespace OniMoono.Engine
         /// This object, then its ancestors.
         public static object InParent(GameObjectNative go, Type type, bool includeInactive)
         {
-            for (var t = go.Transform; t != null; t = t.Parent)
+            for (var t = go.Transform; t is not null; t = t.Parent)
             {
                 var g = t.GameObject;
                 if (!includeInactive && !g.ActiveInHierarchy) continue;
@@ -192,7 +192,7 @@ namespace OniMoono.Engine
 
         public static void AllInParent(GameObjectNative go, Type type, bool includeInactive, IList results)
         {
-            for (var t = go.Transform; t != null; t = t.Parent)
+            for (var t = go.Transform; t is not null; t = t.Parent)
             {
                 var g = t.GameObject;
                 if (!includeInactive && !g.ActiveInHierarchy) continue;

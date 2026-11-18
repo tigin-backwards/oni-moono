@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/OniMoono.Analyzers/OniMoono.Analyzers.csproj" />
     <Project Path="src/OniMoono.Assets/OniMoono.Assets.csproj" />
     <Project Path="src/OniMoono.Desktop/OniMoono.Desktop.csproj" />
     <Project Path="src/OniMoono.GameTweaks/OniMoono.GameTweaks.csproj" />

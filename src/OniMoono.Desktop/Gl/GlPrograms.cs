@@ -920,7 +920,7 @@ namespace OniMoono.Desktop.Gl
                 case UniformSource.TextureTexelSize:
                 {
                     var tex = d.TryTexture(u.PropertyId, out var tb2) ? tb2.Texture : null;
-                    v = tex != null ? new Vector4(1f / tex.width, 1f / tex.height, tex.width, tex.height) : new Vector4(1f / 4f, 1f / 4f, 4f, 4f);
+                    v = tex ? new Vector4(1f / tex.width, 1f / tex.height, tex.width, tex.height) : new Vector4(1f / 4f, 1f / 4f, 4f, 4f);
                     break;
                 }
                 case UniformSource.TextureHdr:

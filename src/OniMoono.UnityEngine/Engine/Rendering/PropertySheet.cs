@@ -314,7 +314,7 @@ namespace OniMoono.Engine.Rendering
                 {
                     var t = Textures[id];
                     w.Write(id);
-                    w.Write(t.Texture != null ? t.Texture.GetInstanceID() : 0);
+                    w.Write(t.Texture ? t.Texture.GetInstanceID() : 0);
                     V(t.ScaleOffset);
                 }
                 foreach (var id in Sorted(FloatArrays.Keys)) { w.Write(id); foreach (var f in FloatArrays[id]) w.Write(f); }

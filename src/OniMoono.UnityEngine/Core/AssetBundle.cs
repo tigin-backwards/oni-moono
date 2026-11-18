@@ -257,13 +257,13 @@ namespace OniMoono.Engine.Assets
             {
                 // Components go with their GameObjects (destroying one directly is refused).
                 foreach (var obj in ObjectLoader.LoadedFrom(files))
-                    if (obj != bundle && obj is not Component && obj != null) Object.DestroyImmediate(obj, true);
+                    if (!ReferenceEquals(obj, bundle) && obj is not Component && obj) Object.DestroyImmediate(obj, true);
             }
             // Objects kept past an Unload(false) keep their data: a texture's texels still to be
             // read hold the bundle's resource node (TexelSource.Node).
             foreach (var key in native.NodeKeys) ObjectLoader.ForgetFile(key);
             AssetSystem.UnmountBundle(native.NodeKeys);
-            Loaded.Remove(bundle);
+            ByReference.Remove(Loaded, bundle);
             Object.DestroyImmediate(bundle, true);
         }
     }

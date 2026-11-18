@@ -99,9 +99,9 @@ namespace OniMoono.Engine
             /// took 113 ms of that frame on a colony of 200 Duplicants).
             readonly List<BehaviourNative> pendingAdd = new();
             /// Each pending behaviour's place in pendingAdd.
-            readonly Dictionary<BehaviourNative, int> pendingAddAt = new();
-            readonly HashSet<BehaviourNative> members = new();
-            readonly HashSet<BehaviourNative> pendingRemove = new();
+            readonly Dictionary<BehaviourNative, int> pendingAddAt = new(ReferenceEqualityComparer.Instance);
+            readonly HashSet<BehaviourNative> members = new(ReferenceEqualityComparer.Instance);
+            readonly HashSet<BehaviourNative> pendingRemove = new(ReferenceEqualityComparer.Instance);
             readonly List<List<BehaviourNative>> touched = new();
 
             public void Add(BehaviourNative b)
@@ -140,7 +140,7 @@ namespace OniMoono.Engine
                 }
                 foreach (var b in pendingAdd)
                 {
-                    if (b == null) continue;
+                    if (b is null) continue;
                     if (!byOrder.TryGetValue(b.ExecutionOrder, out var list))
                     {
                         byOrder[b.ExecutionOrder] = list = new();
@@ -229,7 +229,7 @@ namespace OniMoono.Engine
         {
             if (!b.StartPending) return;
             b.StartPending = false;
-            startQueue.Remove(b);
+            ByReference.Remove(startQueue, b);
         }
 
         /// Runs Start for behaviours scheduled before this call, in the order they were scheduled

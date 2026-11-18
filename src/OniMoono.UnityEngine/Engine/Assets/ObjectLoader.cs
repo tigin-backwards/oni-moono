@@ -182,7 +182,7 @@ namespace OniMoono.Engine.Assets
         {
             var result = new List<Object>();
             foreach (var (key, handle) in loaded)
-                if (fileKeys.Contains(key.File) && ObjectTable.Resolve(handle)?.Managed is { } obj && obj != null) result.Add(obj);
+                if (fileKeys.Contains(key.File) && ObjectTable.Resolve(handle)?.Managed is { } obj && obj) result.Add(obj);
             return result;
         }
 
@@ -191,7 +191,7 @@ namespace OniMoono.Engine.Assets
         {
             var dead = new List<Key>();
             foreach (var (key, handle) in loaded)
-                if (ObjectTable.Resolve(handle) == null) dead.Add(key);
+                if (ObjectTable.Resolve(handle) is null) dead.Add(key);
             foreach (var key in dead) loaded.Remove(key);
         }
 

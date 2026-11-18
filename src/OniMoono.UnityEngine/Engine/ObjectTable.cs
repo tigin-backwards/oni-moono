@@ -135,7 +135,7 @@ namespace OniMoono.Engine
             var table = Volatile.Read(ref slots);
             if ((uint)index >= (uint)table.Length) return null;
             var obj = At(Volatile.Read(ref table[index]));
-            return obj != null && obj.Generation == generation ? obj : null;
+            return obj is not null && obj.Generation == generation ? obj : null;
         }
 
         /// The live object with this instance id, if any.
@@ -158,7 +158,7 @@ namespace OniMoono.Engine
                 for (int i = 1; i < highWater; i++)
                 {
                     var o = At(slots[i]);
-                    if (o != null) result.Add(o);
+                    if (o is not null) result.Add(o);
                 }
                 return result.ToArray();
             }

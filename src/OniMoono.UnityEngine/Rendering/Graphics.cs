@@ -260,7 +260,7 @@ namespace OniMoono.Engine.Rendering
             get
             {
                 var rt = RenderTexture.active;
-                if (rt != null) return new Vector2(rt.width, rt.height);
+                if (rt) return new Vector2(rt.width, rt.height);
                 return FrameRenderer.ScreenPixelSize;
             }
         }
@@ -344,8 +344,8 @@ namespace OniMoono.Engine.Rendering
         static Material blitCopy, guiTexture;
         static MeshNative quad;
 
-        static Material BlitCopy => blitCopy != null ? blitCopy : blitCopy = new Material(Shader.Find("Hidden/BlitCopy"));
-        static Material GuiTexture => guiTexture != null ? guiTexture : guiTexture = new Material(Shader.Find("Hidden/Internal-GUITexture"));
+        static Material BlitCopy => blitCopy ? blitCopy : blitCopy = new Material(Shader.Find("Hidden/BlitCopy"));
+        static Material GuiTexture => guiTexture ? guiTexture : guiTexture = new Material(Shader.Find("Hidden/Internal-GUITexture"));
 
         /// The unit quad (0,0)-(1,1) with matching UVs.
         static MeshNative Quad
@@ -379,7 +379,7 @@ namespace OniMoono.Engine.Rendering
         internal static void Bind(RenderTexture dest)
         {
             var device = GraphicsDevice.Current;
-            FrameRenderer.Bind(device, dest == null ? FrameRenderer.ScreenBinding : RenderTargetBinding.Of((RenderTextureNative)dest.NativeOrThrow));
+            FrameRenderer.Bind(device, !dest ? FrameRenderer.ScreenBinding : RenderTargetBinding.Of((RenderTextureNative)dest.NativeOrThrow));
             var size = GLState.TargetSize;
             device.SetViewport(new Rect(0f, 0f, size.x, size.y));
         }
@@ -397,7 +397,7 @@ namespace OniMoono.Engine.Rendering
             BeginFullTarget(dest);
             // The sheet is this draw's only (PropertySheet.RentForFrame).
             var props = PropertySheet.RentForFrame();
-            if (source != null)
+            if (source)
             {
                 props.SetTexture(MainTex, source);
                 props.SetTextureScaleOffset(MainTex, new Vector4(scale.x, scale.y, offset.x, offset.y));
@@ -416,7 +416,7 @@ namespace OniMoono.Engine.Rendering
             // which is _BlurOffsets = offsets[0] with the first texcoord offset by it as below.
             Shader.SetGlobalVector(BlurOffsets, new Vector4(offsets[0].x, offsets[0].y, 0f, 0f));
             if (!mat.SetPass(0)) return;
-            var texel = source != null ? new Vector2(1f / source.width, 1f / source.height) : Vector2.zero;
+            var texel = source ? new Vector2(1f / source.width, 1f / source.height) : Vector2.zero;
             Span<ImmediateVertex> v = stackalloc ImmediateVertex[4];
             Vector2[] corners = [new(0f, 0f), new(0f, 1f), new(1f, 1f), new(1f, 0f)];
             for (int i = 0; i < 4; i++)

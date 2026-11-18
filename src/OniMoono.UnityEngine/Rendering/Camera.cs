@@ -308,7 +308,7 @@ namespace OniMoono.Engine.Rendering
             get
             {
                 // A super-sized capture's window does not change what the camera sees (FrameRenderer).
-                if (TargetTexture != null)
+                if (TargetTexture)
                     return TargetTexture.Native is OniMoono.Engine.Rendering.RenderTextureNative { CaptureLogicalSize.x: > 0 } resized
                         ? resized.CaptureLogicalSize
                         : new Vector2(TargetTexture.width, TargetTexture.height);
@@ -651,10 +651,10 @@ namespace OniMoono.Engine.Rendering
 
         public static void Add(Camera c)
         {
-            if (!Enabled.Contains(c)) Enabled.Add(c);
+            if (!ByReference.Contains(Enabled, c)) Enabled.Add(c);
         }
 
-        public static void Remove(Camera c) => Enabled.Remove(c);
+        public static void Remove(Camera c) => ByReference.Remove(Enabled, c);
 
         public static Camera Main
         {

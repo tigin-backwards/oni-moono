@@ -111,7 +111,7 @@ namespace OniMoono.Engine
         {
             if (!Enabled || armedFrame != Time.frameCount) return false;
             var device = GraphicsDevice.Current;
-            if (device == null || !device.RendersFrames || !device.AnimatesLoading || instanceData == null || count < 2) return false;
+            if (device == null || !device.RendersFrames || !device.AnimatesLoading || !instanceData || count < 2) return false;
             var native = instanceData.Native as Texture2DNative;
             if (native == null || native.Format != TextureFormat.RGBAFloat || frameOffset < 0 || frameOffset + 4 > native.Width * native.Height * 16) return false;
             int screenW = Platform.PlatformServices.Current.FramebufferWidth, screenH = Platform.PlatformServices.Current.FramebufferHeight;

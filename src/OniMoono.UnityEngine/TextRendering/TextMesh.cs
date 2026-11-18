@@ -165,7 +165,7 @@ namespace OniMoono.Engine.Text
         /// texture change.
         public MeshNative Geometry()
         {
-            if (Font == null)
+            if (!Font)
             {
                 if (built || mesh.VertexCount != 0) Reset();
                 return mesh;

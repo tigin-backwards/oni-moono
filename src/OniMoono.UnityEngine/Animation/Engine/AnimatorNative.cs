@@ -60,7 +60,7 @@ namespace OniMoono.Engine.Mecanim
             Speed = a.Speed;
         }
 
-        ControllerData ControllerData => Controller != null && Controller.Native is AnimatorControllerNative c ? c.Data : null;
+        ControllerData ControllerData => Controller && Controller.Native is AnimatorControllerNative c ? c.Data : null;
 
         /// Binds the controller if the Animator is active and enabled and has one.
         public void Initialize()
@@ -117,10 +117,10 @@ namespace OniMoono.Engine.Mecanim
 
         public static void Add(AnimatorNative a)
         {
-            if (!animators.Contains(a)) animators.Add(a);
+            if (!ByReference.Contains(animators, a)) animators.Add(a);
         }
 
-        public static void Remove(AnimatorNative a) => animators.Remove(a);
+        public static void Remove(AnimatorNative a) => ByReference.Remove(animators, a);
 
         const int FixedMode = 1, UnscaledTimeMode = 2;
 

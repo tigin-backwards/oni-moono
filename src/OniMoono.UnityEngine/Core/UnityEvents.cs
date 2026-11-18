@@ -95,7 +95,7 @@ namespace UnityEngine.Events
             listener = default;
             var method = FindMethod(owner);
             if (method == null) return false;
-            if (!method.IsStatic && m_Target == null) return false;
+            if (!method.IsStatic && !m_Target) return false;
             object target = method.IsStatic ? null : m_Target;
             var args = m_Arguments;
             Delegate callback = m_Mode switch
@@ -363,7 +363,7 @@ namespace OniMoono.Engine
 
         public static EventListener ForRuntime(Delegate call) => new(call, call.Method.IsStatic ? null : call.Target as Object);
 
-        public bool IsAlive => owner is null || owner != null;
+        public bool IsAlive => owner is null || owner;
     }
 
     /// Delegates for persistent calls.

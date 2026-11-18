@@ -232,7 +232,7 @@ namespace OniMoono.Engine.Rendering
     {
         public override void Execute(Camera camera)
         {
-            if (mesh == null || material == null) return;
+            if (!mesh || !material) return;
             var m = (MeshNative)mesh.NativeOrThrow;
             if (subMesh >= m.SubMeshes.Count) return;
             GraphicsDevice.Current.Draw(new DrawRequest(m, subMesh, matrix, material, pass, properties));
@@ -259,7 +259,7 @@ namespace OniMoono.Engine.Rendering
     {
         public override void Execute(Camera camera)
         {
-            if (renderer == null || material == null || renderer.Native is not RendererNative r) return;
+            if (!renderer || !material || renderer.Native is not RendererNative r) return;
             var draws = new List<DrawItem>();
             RendererDraws.Collect(r, camera, draws);
             foreach (var d in draws)

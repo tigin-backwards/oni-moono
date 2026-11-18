@@ -17,7 +17,7 @@ namespace OniMoono.Engine.Rendering
         static Material composite;
         static MeshNative quad;
 
-        static Material Composite => composite != null ? composite : composite = new Material(Shader.Find("Hidden/VideoComposite"));
+        static Material Composite => composite ? composite : composite = new Material(Shader.Find("Hidden/VideoComposite"));
 
         /// Copies each RenderTexture-mode player's newly presented frame into its target, fitted
         /// per its aspect mode over a black background.
@@ -25,9 +25,9 @@ namespace OniMoono.Engine.Rendering
         {
             foreach (var p in VideoSystem.Players)
             {
-                if (p.RenderMode != VideoRenderTarget.RenderTexture || p.TargetTexture == null) continue;
+                if (p.RenderMode != VideoRenderTarget.RenderTexture || !p.TargetTexture) continue;
                 var frame = VideoOutputs.RenderTextureContent(p.TargetTexture, out var aspect);
-                if (frame == null) continue;
+                if (!frame) continue;
                 var copiedUpdate = copied.GetValue(frame, _ => new System.Runtime.CompilerServices.StrongBox<uint>(uint.MaxValue));
                 if (copiedUpdate.Value == frame.updateCount) continue;
                 copiedUpdate.Value = frame.updateCount;
@@ -55,7 +55,7 @@ namespace OniMoono.Engine.Rendering
         {
             foreach (var v in VideoOutputs.CameraVideos(camera, cameraVideos))
             {
-                if (v.NearPlane != nearPlane || v.Texture == null) continue;
+                if (v.NearPlane != nearPlane || !v.Texture) continue;
                 var r = Fit(new Vector2(v.Texture.width, v.Texture.height), new Rect(0f, 0f, cam.PixelRect.width, cam.PixelRect.height), v.Aspect);
                 float depth = nearPlane ? cam.Near * 1.001f : cam.Far * 0.999f;
                 // Viewport-space rectangle → world corners at that distance.

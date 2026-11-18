@@ -45,7 +45,7 @@ namespace OniMoono.Engine
         /// From Object.Bind: the creation site of a run-time object of a tracked type.
         public static void Created(NativeObject native)
         {
-            if (native.IsPersistent || native.Managed == null || !Tracked(native.Managed.GetType())) return;
+            if (native.IsPersistent || !native.Managed || !Tracked(native.Managed.GetType())) return;
             var trace = new System.Diagnostics.StackTrace(2, false);
             var parts = new List<string>(3);
             string engine = null;
@@ -77,7 +77,7 @@ namespace OniMoono.Engine
             var live = new Dictionary<string, int>();
             foreach (var native in ObjectTable.Snapshot())
             {
-                if (native.Destroyed || native.Managed == null) continue;
+                if (native.Destroyed || !native.Managed) continue;
                 var type = native.Managed.GetType();
                 if (!Tracked(type)) continue;
                 string key = native is RenderTextureNative ? "RenderTexture" : typeof(Texture).IsAssignableFrom(type) ? "Texture" : typeof(Material).IsAssignableFrom(type) ? "Material" : type.Name;

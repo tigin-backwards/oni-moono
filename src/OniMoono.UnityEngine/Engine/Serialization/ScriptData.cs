@@ -168,7 +168,7 @@ namespace OniMoono.Engine.Serialization
                 {
                     var target = resolver.Resolve(new PPtr(r.ReadInt32(), r.ReadInt64()));
                     // A reference whose target is not of the field's type deserializes as null.
-                    return target != null && shape.Type.IsInstanceOfType(target) ? target : null;
+                    return target && shape.Type.IsInstanceOfType(target) ? target : null;
                 }
                 case ValueKind.BuiltinStruct: return ReadBuiltinStruct(shape.Type, r);
                 case ValueKind.BuiltinClass: return ReadBuiltinClass(shape.Type, r, resolver);

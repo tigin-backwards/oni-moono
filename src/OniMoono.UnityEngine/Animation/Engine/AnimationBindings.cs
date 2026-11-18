@@ -31,7 +31,7 @@ namespace OniMoono.Engine.Mecanim
             Notify = notify;
         }
 
-        public bool Alive => Owner != null;
+        public bool Alive => (bool)Owner;
 
         public float Read(int component) => read()[component];
 
@@ -51,7 +51,7 @@ namespace OniMoono.Engine.Mecanim
         public void Commit()
         {
             isStaged = false;
-            if (Owner != null) write(staged);
+            if (Owner) write(staged);
         }
     }
 
@@ -65,7 +65,7 @@ namespace OniMoono.Engine.Mecanim
         readonly Dictionary<uint, Transform> paths = new();
         readonly Dictionary<(uint path, int classId, uint attribute, byte custom, Type script), PropertyTarget> resolved = new();
         /// One target per property of an object, whichever bindings name its components.
-        readonly Dictionary<(Object owner, string property), PropertyTarget> shared = new();
+        readonly Dictionary<(Object owner, string property), PropertyTarget> shared = new(ByReference.FirstOfPair<Object, string>.Comparer);
 
         public AnimationBinder(Transform root) => Collect(root, "");
 
@@ -121,7 +121,7 @@ namespace OniMoono.Engine.Mecanim
                             target = c;
                             break;
                         }
-                    return target == null ? null : BindScriptProperty(target, b.Attribute);
+                    return !target ? null : BindScriptProperty(target, b.Attribute);
                 }
             }
             if (b.ClassId == RectTransformClassId && b.CustomType == RectTransformCustomType)
@@ -139,7 +139,7 @@ namespace OniMoono.Engine.Mecanim
                     component = c;
                     break;
                 }
-            if (component == null) return null;
+            if (!component) return null;
             if (b.ClassId == CanvasGroupClassId) return BindCanvasGroup((CanvasGroup)component, b.Attribute);
             if (component is Behaviour behaviour && b.Attribute == mEnabled) return BindEnabled(behaviour);
             return null;

@@ -55,7 +55,7 @@ namespace OniMoono.Engine
             foreach (var c in due)
             {
                 if (c.Cancelled) continue;
-                if (c.Target == null) { c.Cancelled = true; continue; }
+                if (!c.Target) { c.Cancelled = true; continue; }
                 if (c.Rate < 0f) c.Cancelled = true;
                 else c.Due += Math.Max(c.Rate, 1e-5f);
                 var method = ScriptInfo.FindByName(c.Target.GetType(), c.Method, null, false);
@@ -69,7 +69,7 @@ namespace OniMoono.Engine
                     Debug.LogException(e.InnerException ?? e, c.Target);
                 }
             }
-            calls.RemoveAll(c => c.Cancelled || (object)c.Target == null || c.Target == null);
+            calls.RemoveAll(c => c.Cancelled || (object)c.Target == null || !c.Target);
         }
     }
 }

@@ -524,7 +524,7 @@ namespace OniMoono.Engine.Rendering
         public Material InstanceAt(int index)
         {
             var m = Materials[index];
-            if (m == null || Instanced[index]) return m;
+            if (!m || Instanced[index]) return m;
             var copy = new Material(m) { name = m.name + " (Instance)" };
             Materials[index] = copy;
             Instanced[index] = true;
@@ -654,7 +654,7 @@ namespace OniMoono.Engine.Rendering
         MeshNative FilterMesh()
         {
             foreach (var c in GameObject.Components)
-                if (c is MeshFilter && c.Native is MeshFilterNative { Mesh: { } mesh } && mesh != null)
+                if (c is MeshFilter && c.Native is MeshFilterNative { Mesh: { } mesh } && mesh)
                     return (MeshNative)mesh.NativeOrThrow;
             return null;
         }
@@ -671,7 +671,7 @@ namespace OniMoono.Engine.Rendering
                 return mesh.Bounds;
             }
             var text = TextMesh(GameObject);
-            keep = text == null;
+            keep = text is null;
             return text?.Geometry().Bounds ?? default;
         }
 
@@ -718,7 +718,7 @@ namespace OniMoono.Engine.Rendering
         {
             get
             {
-                if (Sprite == null) return default;
+                if (!Sprite) return default;
                 Bounds b;
                 if (DrawMode == SpriteDrawKind.Simple) b = Sprite.bounds;
                 else
@@ -743,7 +743,10 @@ namespace OniMoono.Engine.Rendering
         public MeshNative GeometryMesh(SpriteNative s)
         {
             var key = (Sprite, Color, FlipX, FlipY, DrawMode, Size, s.Render);
+            // The sprite is alive (s is its record), so the tuple's Equals compares it by reference.
+#pragma warning disable MOONO003
             if (geometry != null && key.Equals(geometryKey)) return geometry;
+#pragma warning restore MOONO003
             geometryKey = key;
             geometry ??= new MeshNative();
             Vector2[] positions, uvs;
@@ -931,10 +934,10 @@ namespace OniMoono.Engine.Rendering
 
         public static void Add(SortingGroup g)
         {
-            if (!active.Contains(g)) active.Add(g);
+            if (!ByReference.Contains(active, g)) active.Add(g);
         }
 
-        public static void Remove(SortingGroup g) => active.Remove(g);
+        public static void Remove(SortingGroup g) => ByReference.Remove(active, g);
 
         public static SortingGroup ByIndex(int index) => index >= 0 && index < active.Count ? active[index] : null;
 
@@ -951,7 +954,7 @@ namespace OniMoono.Engine.Rendering
                     foreach (var c in go.Components)
                         if (c.Native is RendererNative r)
                         {
-                            if (r == renderer) found = order;
+                            if (ReferenceEquals(r, renderer)) found = order;
                             order++;
                         }
                     foreach (var child in go.Transform.Children) Visit(child.GameObject);
@@ -963,11 +966,11 @@ namespace OniMoono.Engine.Rendering
 
         public static Membership? GroupOf(RendererNative renderer)
         {
-            for (var t = renderer.GameObject.Transform; t != null; t = t.Parent)
+            for (var t = renderer.GameObject.Transform; t is not null; t = t.Parent)
                 foreach (var c in t.GameObject.Components)
                     if (c is SortingGroup g && c.Native is SortingGroupNative { IsActiveAndEnabledState: true })
                     {
-                        int index = active.IndexOf(g);
+                        int index = ByReference.IndexOf(active, g);
                         if (index >= 0) return new Membership(index, g);
                     }
             return null;

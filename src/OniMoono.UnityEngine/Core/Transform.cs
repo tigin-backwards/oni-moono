@@ -10,7 +10,7 @@ namespace UnityEngine
 
         internal TransformNative TransformNative => (TransformNative)NativeOrThrow;
 
-        static Transform Wrap(TransformNative t) => t == null ? null : (Transform)t.GameObject.Components[0];
+        static Transform Wrap(TransformNative t) => t is null ? null : (Transform)t.GameObject.Components[0];
 
         // ---- Local and world TRS ----
 
@@ -57,7 +57,7 @@ namespace UnityEngine
             set
             {
                 var t = TransformNative;
-                if (t.Parent == null) t.SetLocalPositionInternal(value);
+                if (t.Parent is null) t.SetLocalPositionInternal(value);
                 else if (Hierarchy.TryInverseTransformPoint(t.Parent, value, out var local)) t.SetLocalPositionInternal(local);
                 else t.SetLocalPositionInternal(t.Parent.LocalToWorld.inverse.MultiplyPoint3x4(value));
             }
@@ -69,7 +69,7 @@ namespace UnityEngine
             set
             {
                 var t = TransformNative;
-                var rotation = Quaternion.Normalize(t.Parent == null ? value : Quaternion.Inverse(t.Parent.WorldRotation) * value);
+                var rotation = Quaternion.Normalize(t.Parent is null ? value : Quaternion.Inverse(t.Parent.WorldRotation) * value);
                 if (t.KeepsEqual(rotation)) return;
                 bool moved = rotation != t.LocalRotation;
                 t.LocalRotation = rotation;
@@ -244,7 +244,7 @@ namespace UnityEngine
             get
             {
                 var t = TransformNative;
-                while (t.Parent != null) t = t.Parent;
+                while (t.Parent is not null) t = t.Parent;
                 return Wrap(t);
             }
         }
@@ -294,7 +294,7 @@ namespace UnityEngine
             get
             {
                 var t = TransformNative;
-                while (t.Parent != null) t = t.Parent;
+                while (t.Parent is not null) t = t.Parent;
                 return Count(t);
                 static int Count(TransformNative x)
                 {

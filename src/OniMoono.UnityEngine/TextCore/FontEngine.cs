@@ -67,7 +67,7 @@ namespace UnityEngine.TextCore.LowLevel
 
         static FontEngineError LoadFromFont(Font font, int pointSize, int faceIndex)
         {
-            if (font == null) return FontEngineError.Invalid_File;
+            if (!font) return FontEngineError.Invalid_File;
             var native = (FontNative)font.NativeOrThrow;
             var data = native.FaceData;
             if (data == null || data.Length == 0) return FontEngineError.Invalid_File;
@@ -346,7 +346,7 @@ namespace UnityEngine.TextCore.LowLevel
 
         static Texture2DNative AtlasOf(Texture2D texture)
         {
-            if (texture == null) return null;
+            if (!texture) return null;
             var t = (Texture2DNative)texture.NativeOrThrow;
             if (!t.Readable || t.Width <= 0 || t.Height <= 0) return null;
             if (t.Memory == null) t.Allocate(t.SliceSize, 0);

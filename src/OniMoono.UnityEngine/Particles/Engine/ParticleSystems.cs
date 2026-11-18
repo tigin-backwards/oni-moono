@@ -21,10 +21,10 @@ namespace OniMoono.Engine.Particles
 
         public static void Add(ParticleSystemNative ps)
         {
-            if (!systems.Contains(ps)) systems.Add(ps);
+            if (!ByReference.Contains(systems, ps)) systems.Add(ps);
         }
 
-        public static void Remove(ParticleSystemNative ps) => systems.Remove(ps);
+        public static void Remove(ParticleSystemNative ps) => ByReference.Remove(systems, ps);
 
         static readonly ListSnapshot<ParticleSystemNative> runSnapshot = new();
 

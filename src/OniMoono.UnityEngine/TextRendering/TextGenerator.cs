@@ -146,7 +146,7 @@ namespace UnityEngine
             widestLine = 0f;
 
             var font = settings.font;
-            if (font == null)
+            if (!font)
                 return TextGenerationError.NoFont;
             var native = (FontNative)font.NativeOrThrow;
 

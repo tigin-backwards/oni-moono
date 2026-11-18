@@ -21,13 +21,13 @@ namespace OniMoono.Engine.UI
 
         static Material defaultMaterial, etc1Material;
 
-        public static Material DefaultMaterial => defaultMaterial != null ? defaultMaterial : defaultMaterial = DefaultFor("UI/Default", "Default UI Material");
-        public static Material Etc1Material => etc1Material != null ? etc1Material : etc1Material = DefaultFor("UI/DefaultETC1", "ETC1 Supported UI Material");
+        public static Material DefaultMaterial => defaultMaterial ? defaultMaterial : defaultMaterial = DefaultFor("UI/Default", "Default UI Material");
+        public static Material Etc1Material => etc1Material ? etc1Material : etc1Material = DefaultFor("UI/DefaultETC1", "ETC1 Supported UI Material");
 
         static Material DefaultFor(string shader, string name)
         {
             var s = Shader.Find(shader);
-            return s == null ? null : new Material(s) { name = name, hideFlags = HideFlags.HideAndDontSave };
+            return !s ? null : new Material(s) { name = name, hideFlags = HideFlags.HideAndDontSave };
         }
 
         /// The sort roots built last, in render order.
@@ -46,7 +46,7 @@ namespace OniMoono.Engine.UI
         public static void Enable(Canvas canvas)
         {
             var c = canvas.Data;
-            if (!enabled.Contains(c)) enabled.Add(c);
+            if (!ByReference.Contains(enabled, c)) enabled.Add(c);
             c.EnableSequence = ++sequence;
             // A root screen-space canvas is laid out the moment it becomes enabled (activation,
             // the component's enable, an instantiated active copy), as measured in the original
@@ -93,8 +93,8 @@ namespace OniMoono.Engine.UI
         /// not: a canvas made on an inactive object under a canvas does not count as a root here.
         static bool UnderACanvas(CanvasNative c)
         {
-            for (var t = c.GameObject?.Transform?.Parent; t != null; t = t.Parent)
-                if (AnyCanvasOn(t.GameObject) != null) return true;
+            for (var t = c.GameObject?.Transform?.Parent; t is not null; t = t.Parent)
+                if (AnyCanvasOn(t.GameObject) is not null) return true;
             return false;
         }
 
@@ -114,7 +114,7 @@ namespace OniMoono.Engine.UI
 
         public static void Disable(Canvas canvas)
         {
-            enabled.Remove(canvas.Data);
+            ByReference.Remove(enabled, canvas.Data);
             Rehomed(canvas.Data);
             HierarchyChanged(canvas.Data);
         }
@@ -138,7 +138,7 @@ namespace OniMoono.Engine.UI
         /// change; a nested canvas that sorts with its parent passes it up.
         public static void Restructured(TransformNative t)
         {
-            for (; t != null; t = t.Parent)
+            for (; t is not null; t = t.Parent)
             {
                 if (PartsOf(t.GameObject).Canvas is not { Destroyed: false } c) continue;
                 c.DepthDirty = true;
@@ -242,8 +242,8 @@ namespace OniMoono.Engine.UI
         /// of its own canvas). False when the object has a live canvas of its own.
         static bool RaycasterAbove(GameObjectNative go)
         {
-            if (CanvasOn(go) != null) return false;
-            for (var t = go.Transform.Parent; t != null; t = t.Parent)
+            if (CanvasOn(go) is not null) return false;
+            for (var t = go.Transform.Parent; t is not null; t = t.Parent)
             {
                 var parts = PartsOf(t.GameObject);
                 if (EnabledRaycasters(parts) > 0) return true;
@@ -262,7 +262,7 @@ namespace OniMoono.Engine.UI
         {
             var root = canvas;
             if (!IsLive(canvas)) return root;
-            for (var t = canvas.GameObject.Transform.Parent; t != null; t = t.Parent)
+            for (var t = canvas.GameObject.Transform.Parent; t is not null; t = t.Parent)
                 if (AnyCanvasOn(t.GameObject) is { } c)
                 {
                     root = c;
@@ -277,7 +277,7 @@ namespace OniMoono.Engine.UI
         {
             if (canvas.OverrideSorting || !IsLive(canvas)) return canvas;
             var result = canvas;
-            for (var t = canvas.GameObject.Transform.Parent; t != null; t = t.Parent)
+            for (var t = canvas.GameObject.Transform.Parent; t is not null; t = t.Parent)
                 if (AnyCanvasOn(t.GameObject) is { } c)
                 {
                     result = c;
@@ -292,7 +292,7 @@ namespace OniMoono.Engine.UI
         /// every graphic it clips each frame (CanvasRenderer.hasMoved), walks each object once.
         public static CanvasNative NearestCanvas(GameObjectNative go)
         {
-            if (go == null) return null;
+            if (go is null) return null;
             long touches = Hierarchy.Touches + 1; // never 0, the mark of none kept
             if (go.NearestCanvasAt == touches)
             {
@@ -308,7 +308,7 @@ namespace OniMoono.Engine.UI
         /// The nearest live canvas found by walking up, for the verify mode.
         static CanvasNative WalkNearestCanvas(GameObjectNative go)
         {
-            for (var t = go.Transform; t != null; t = t.Parent)
+            for (var t = go.Transform; t is not null; t = t.Parent)
                 if (CanvasOn(t.GameObject) is { } c) return c;
             return null;
         }
@@ -316,7 +316,7 @@ namespace OniMoono.Engine.UI
         public static Matrix4x4 ToCanvas(CanvasRendererNative r)
         {
             var canvas = NearestCanvas(r.GameObject);
-            if (canvas == null) return r.GameObject.Transform.LocalToWorld;
+            if (canvas is null) return r.GameObject.Transform.LocalToWorld;
             var space = canvas.GameObject.Transform;
             long spaceStamp = space.WorldStamp;
             return Relative(ref r.ToCanvasCache, default, spaceStamp, r.GameObject.Transform, lazySpace: space);
@@ -347,10 +347,10 @@ namespace OniMoono.Engine.UI
             long stamp = t.WorldStamp;
             if (cache.Stamp == stamp && cache.SpaceStamp == spaceStamp && keepProducts)
             {
-                if (verifyProducts) VerifyProduct(cache.Value, (lazySpace != null ? lazySpace.LocalToWorld.inverse : worldToSpace) * t.LocalToWorld, t);
+                if (verifyProducts) VerifyProduct(cache.Value, (lazySpace is not null ? lazySpace.LocalToWorld.inverse : worldToSpace) * t.LocalToWorld, t);
                 return cache.Value;
             }
-            cache.Value = (lazySpace != null ? lazySpace.LocalToWorld.inverse : worldToSpace) * t.LocalToWorld;
+            cache.Value = (lazySpace is not null ? lazySpace.LocalToWorld.inverse : worldToSpace) * t.LocalToWorld;
             cache.Stamp = stamp;
             cache.SpaceStamp = spaceStamp;
             return cache.Value;
@@ -415,7 +415,7 @@ namespace OniMoono.Engine.UI
 
         public static Vector2 DisplaySize(CanvasNative root)
         {
-            if (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera != null)
+            if (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera)
             {
                 var cam = (CameraNative)root.WorldCamera.NativeOrThrow;
                 return new Vector2(cam.PixelWidth, cam.PixelHeight);
@@ -425,7 +425,7 @@ namespace OniMoono.Engine.UI
 
         public static Rect PixelRect(CanvasNative root)
         {
-            if (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera != null)
+            if (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera)
                 return root.WorldCamera.pixelRect;
             var size = ScreenSize;
             return new Rect(0f, 0f, size.x, size.y);
@@ -435,7 +435,7 @@ namespace OniMoono.Engine.UI
         /// size = screen / scaleFactor, scale = scaleFactor (overlay), anchored at the centre.
         public static void UpdateRootTransform(CanvasNative canvas)
         {
-            if (!IsLive(canvas) || RootOf(canvas) != canvas) return;
+            if (!IsLive(canvas) || !ReferenceEquals(RootOf(canvas), canvas)) return;
             if (canvas.GameObject.Transform is not RectTransformNative rt) return;
             if (canvas.RenderMode == RenderMode.WorldSpace) return;
             var size = DisplaySize(canvas);
@@ -444,7 +444,7 @@ namespace OniMoono.Engine.UI
             Vector3 position;
             Quaternion rotation;
             Vector3 localScale;
-            if (canvas.RenderMode == RenderMode.ScreenSpaceCamera && canvas.WorldCamera != null)
+            if (canvas.RenderMode == RenderMode.ScreenSpaceCamera && canvas.WorldCamera)
             {
                 var cam = (CameraNative)canvas.WorldCamera.NativeOrThrow;
                 var camTransform = cam.GameObject.Transform;
@@ -482,7 +482,7 @@ namespace OniMoono.Engine.UI
         public static bool SnapsToPixels(Canvas canvas, out Camera camera)
         {
             camera = null;
-            if (canvas == null || !canvas.pixelPerfect) return false;
+            if (!canvas || !canvas.pixelPerfect) return false;
             var root = RootOf(canvas.Data);
             if (root.RenderMode == RenderMode.WorldSpace) return false;
             if (root.RenderMode == RenderMode.ScreenSpaceCamera) camera = root.WorldCamera;
@@ -504,7 +504,7 @@ namespace OniMoono.Engine.UI
         }
 
         static readonly List<RectTransformNative> movedRects = new();
-        static readonly HashSet<RectTransformNative> movedSet = new();
+        static readonly HashSet<RectTransformNative> movedSet = new(ReferenceEqualityComparer.Instance);
 
         /// A RectTransform's place in the world changed (a position, rotation, scale or parent
         /// set, its own or an ancestor's). Kept for the next pass when the object is active and
@@ -514,7 +514,7 @@ namespace OniMoono.Engine.UI
         public static void NoteMoved(RectTransformNative rect)
         {
             var go = rect.GameObject;
-            if (go == null || go.Components.Length < 2 || !go.ActiveInHierarchy || PartsOf(go).Renderers.Length == 0) return;
+            if (go is null || go.Components.Length < 2 || !go.ActiveInHierarchy || PartsOf(go).Renderers.Length == 0) return;
             if (movedSet.Add(rect)) movedRects.Add(rect);
         }
 
@@ -537,7 +537,7 @@ namespace OniMoono.Engine.UI
             foreach (var rect in snapshot.Items)
             {
                 var go = rect.GameObject;
-                if (rect.Destroyed || go == null || go.Destroyed || !go.ActiveInHierarchy) continue;
+                if (rect.Destroyed || go is null || go.Destroyed || !go.ActiveInHierarchy) continue;
                 if (NearestCanvas(go) is not { } canvas || !IsPixelPerfect(canvas)) continue;
                 Messages.SendToComponents(go, s => s.OnRectTransformDimensionsChange);
             }
@@ -549,7 +549,7 @@ namespace OniMoono.Engine.UI
         {
             var root = RootOf(canvas);
             if (root.RenderMode == RenderMode.WorldSpace) return false;
-            return canvas.OverridePixelPerfect || root == canvas ? canvas.PixelPerfect : root.PixelPerfect;
+            return canvas.OverridePixelPerfect || ReferenceEquals(root, canvas) ? canvas.PixelPerfect : root.PixelPerfect;
         }
 
         static void Update()
@@ -647,12 +647,12 @@ namespace OniMoono.Engine.UI
 
         /// The nested canvas a draw's geometry is baked in, or null for the root canvas's space.
         static CanvasNative NestedSpace(in CanvasDraw d)
-            => d.Nearest != null && d.Renderer.ClipRect == null && !d.Nearest.Destroyed && ReadsVertexPosition(d.Material) ? d.Nearest : null;
+            => d.Nearest is not null && d.Renderer.ClipRect == null && !d.Nearest.Destroyed && ReadsVertexPosition(d.Material) ? d.Nearest : null;
 
         static bool ReadsVertexPosition(Material material)
         {
-            var shader = material == null ? null : material.shader;
-            return shader == null || shader.Native is not ShaderNative native || native.ReadsVertexPosition;
+            var shader = !material ? null : material.shader;
+            return !shader || shader.Native is not ShaderNative native || native.ReadsVertexPosition;
         }
 
         /// Objects the last build walked (tests).
@@ -667,7 +667,7 @@ namespace OniMoono.Engine.UI
             batches.Clear();
             int reused = 0;
             foreach (var c in enabled)
-                if (IsLive(c) && c.GameObject.ActiveInHierarchy && (RootOf(c) == c || c.OverrideSorting))
+                if (IsLive(c) && c.GameObject.ActiveInHierarchy && (ReferenceEquals(RootOf(c), c) || c.OverrideSorting))
                 {
                     // Batch objects (and their draw lists) are reused from build to build.
                     CanvasBatch batch;
@@ -687,7 +687,7 @@ namespace OniMoono.Engine.UI
                 b.SpaceStamp = b.Root.GameObject.Transform.WorldStamp;
                 b.WorldToSpace = b.SpaceToWorld.inverse;
                 var above = b.Canvas.GameObject.Transform.Parent;
-                var (alpha, blocks) = above == null ? (1f, true) : InheritedGroups(above.GameObject);
+                var (alpha, blocks) = above is null ? (1f, true) : InheritedGroups(above.GameObject);
                 var c = b.Canvas;
                 var depth = counter;
                 depth.Value = 0;
@@ -732,7 +732,7 @@ namespace OniMoono.Engine.UI
         static readonly List<CanvasNative> lastSortRoots = new();
         static int buildNumber;
 
-        static CanvasNative SortingOf(CanvasBatch b) => b.Canvas.OverrideSorting || b.Canvas == b.Root ? b.Canvas : b.Root;
+        static CanvasNative SortingOf(CanvasBatch b) => b.Canvas.OverrideSorting || ReferenceEquals(b.Canvas, b.Root) ? b.Canvas : b.Root;
 
         sealed class Counter
         {
@@ -787,7 +787,7 @@ namespace OniMoono.Engine.UI
             var canvasHere = parts.Canvas is { } here && !here.Destroyed ? here : null;
             // A nested sort root is a batch of its own; a disabled canvas draws nothing (its
             // override-sorting descendants are batches rooted at it).
-            if (!isBatchRoot && canvasHere != null && (canvasHere.OverrideSorting || !IsLive(canvasHere))) return;
+            if (!isBatchRoot && canvasHere is not null && (canvasHere.OverrideSorting || !IsLive(canvasHere))) return;
             // CanvasGroups multiply down the hierarchy; one that ignores its parents restarts it.
             bool skippedAbove = groupAlpha <= 0f && !blocksRaycasts;
             bool hiddenAbove = groupAlpha <= 0f;
@@ -820,7 +820,7 @@ namespace OniMoono.Engine.UI
             int raycastersBefore = depth.Raycasters;
             depth.Raycasters += EnabledRaycasters(parts);
             int relativeBefore = depth.RelativeBase;
-            if (canvasHere != null && canvasHere != nearest)
+            if (canvasHere is not null && !ReferenceEquals(canvasHere, nearest))
             {
                 nearest = canvasHere;
                 worldToNearest = go.Transform.LocalToWorld.inverse;
@@ -830,9 +830,9 @@ namespace OniMoono.Engine.UI
             // Below a canvas other than the root, the object's placement in that canvas's space:
             // the product of the local transforms from the canvas down, so it stays exactly the
             // same while the canvas itself moves or scales (SpaceOf).
-            var own = nearest != space ? nearest : null;
+            var own = !ReferenceEquals(nearest, space) ? nearest : null;
             long toNearestStamp = 0;
-            var toNearest = own == null || go == own.GameObject ? Matrix4x4.identity
+            var toNearest = own is null || ReferenceEquals(go, own.GameObject) ? Matrix4x4.identity
                 : ToNearest(parts, parentToNearest, parentStamp, go.Transform, out toNearestStamp);
             // The renderers whose pop materials draw after the children: this call's stretch of
             // one list (each call removes its own before it returns).
@@ -846,7 +846,7 @@ namespace OniMoono.Engine.UI
                     // Numbered by another sort root before and still so: whether it had a depth
                     // followed that one's numbering, which a raycast here does not read (it reads
                     // the numbering of the sort roots above it).
-                    if (r.DepthBatch != null && r.DepthBatch != batch.Canvas && r.HasDepth) RaycastInputs.Changed();
+                    if (r.DepthBatch is not null && !ReferenceEquals(r.DepthBatch, batch.Canvas) && r.HasDepth) RaycastInputs.Changed();
                     r.DepthBatch = batch.Canvas;
                     r.DepthEpoch = batch.Canvas.DepthEpoch;
                     r.AbsoluteDepth = depth.Value;
@@ -942,8 +942,8 @@ namespace OniMoono.Engine.UI
         /// would not stop the raycast).
         internal static bool OutOfSight(GameObject gameObject)
         {
-            if (!clipOutOfSight || gameObject == null || gameObject.Native is not GameObjectNative go) return false;
-            for (var t = go.Transform; t != null; t = t.Parent)
+            if (!clipOutOfSight || !gameObject || gameObject.Native is not GameObjectNative go) return false;
+            for (var t = go.Transform; t is not null; t = t.Parent)
             {
                 var o = t.GameObject;
                 if (o.CanvasHiddenAt >= 0 && o.CanvasHiddenAt == o.SubtreeVersion) return HiddenTop(o);
@@ -967,7 +967,7 @@ namespace OniMoono.Engine.UI
         /// nothing once a group has, are not asked.
         internal static bool Unreachable(GameObject gameObject)
         {
-            if (!raycastOutOfSight || gameObject == null || gameObject.Native is not GameObjectNative go) return false;
+            if (!raycastOutOfSight || !gameObject || gameObject.Native is not GameObjectNative go) return false;
             if (unreachableTouches != Hierarchy.Touches)
             {
                 unreachableTouches = Hierarchy.Touches;
@@ -1014,7 +1014,7 @@ namespace OniMoono.Engine.UI
         /// its own and any group that ignores its parents).
         internal static void VerifyOutOfSight(GameObject gameObject)
         {
-            if (gameObject == null || gameObject.Native is not GameObjectNative go) return;
+            if (!gameObject || gameObject.Native is not GameObjectNative go) return;
             if (InheritedGroups(go).Alpha > 0f || Reachable(go))
                 EngineLog.Engine($"canvas skip wrong ({++clipSkipsWrong}): {go.Name}, clipped out of sight, can be drawn or hit");
             if (++clipSkipsVerified % 100000 == 0) EngineLog.Engine($"canvas skips: {clipSkipsVerified} graphics skipped by masks, {clipSkipsWrong} wrong");
@@ -1023,7 +1023,7 @@ namespace OniMoono.Engine.UI
         static bool Reachable(GameObjectNative go)
         {
             bool groupsIgnored = false;
-            for (var t = go.Transform; t != null; t = t.Parent)
+            for (var t = go.Transform; t is not null; t = t.Parent)
             {
                 var parts = PartsOf(t.GameObject);
                 foreach (var g in parts.Groups)
@@ -1072,7 +1072,7 @@ namespace OniMoono.Engine.UI
                 foreach (var g in parts.Groups)
                     if (g.IsActiveAndEnabledState && g.IgnoreParentGroups) why = "a group ignores its parents";
             foreach (var r in parts.Renderers)
-                if (!r.Destroyed && (r.DepthBatch != batch || !r.HasDepth)) why = "an element without its depth";
+                if (!r.Destroyed && (!ReferenceEquals(r.DepthBatch, batch) || !r.HasDepth)) why = "an element without its depth";
             // Skipped for want of raycasters: none enabled in it, or above it to its canvas.
             if (raycasters && EnabledRaycasters(parts) > 0) why = "an enabled raycaster";
             if (raycasters && isTop && RaycasterAbove(go)) why = "an enabled raycaster above";
@@ -1096,10 +1096,10 @@ namespace OniMoono.Engine.UI
                     var bounds = mesh.Bounds;
                     if (p.x < bounds.min.x || p.x > bounds.max.x || p.y < bounds.min.y || p.y > bounds.max.y) continue;
                     var path = new System.Text.StringBuilder();
-                    for (var t = d.Renderer.GameObject.Transform; t != null; t = t.Parent) path.Insert(0, "/" + t.GameObject.Name);
+                    for (var t = d.Renderer.GameObject.Transform; t is not null; t = t.Parent) path.Insert(0, "/" + t.GameObject.Name);
                     var texture = d.Renderer.Texture ?? d.Material?.MainTextureQuiet;
-                    var tnat = texture == null ? null : texture.Native as TextureNative;
-                    text.Append($"\n  {path} depth {d.Renderer.AbsoluteDepth} material {d.Material?.name} ({d.Material?.shader?.name}) texture {texture?.name ?? "none"}{(texture == null ? "" : $" [native {(tnat == null ? "null" : $"#{tnat.InstanceId} v{tnat.ContentVersion} gpu {tnat.Gpu?.GetType().Name ?? "none"}")}]")} colour {d.Renderer.Color} group alpha {d.GroupAlpha}{(d.Pop ? " pop" : "")}");
+                    var tnat = !texture ? null : texture.Native as TextureNative;
+                    text.Append($"\n  {path} depth {d.Renderer.AbsoluteDepth} material {d.Material?.name} ({d.Material?.shader?.name}) texture {texture?.name ?? "none"}{(!texture ? "" : $" [native {(tnat == null ? "null" : $"#{tnat.InstanceId} v{tnat.ContentVersion} gpu {tnat.Gpu?.GetType().Name ?? "none"}")}]")} colour {d.Renderer.Color} group alpha {d.GroupAlpha}{(d.Pop ? " pop" : "")}");
                 }
             }
             return text.ToString();
@@ -1124,7 +1124,7 @@ namespace OniMoono.Engine.UI
         {
             float alpha = 1f;
             bool blocks = true;
-            for (var t = go.Transform; t != null; t = t.Parent)
+            for (var t = go.Transform; t is not null; t = t.Parent)
                 foreach (var g in PartsOf(t.GameObject).Groups)
                     if (g.IsActiveAndEnabledState)
                     {
@@ -1146,7 +1146,7 @@ namespace OniMoono.Engine.UI
             float alpha = r.Color.a * d.GroupAlpha;
             // An element whose inherited alpha (renderer alpha × CanvasGroups) is zero is not
             // drawn, as in Unity (screens hidden through a CanvasGroup stay active).
-            if (d.Material == null || alpha <= 0f) return null;
+            if (!d.Material || alpha <= 0f) return null;
             var (toSpace, spaceToWorld) = SpaceOf(b, d);
             var mesh = BuildMesh(r, toSpace, new Color(r.Color.r, r.Color.g, r.Color.b, alpha));
             var texture = r.Texture ?? d.Material.MainTextureQuiet;
@@ -1180,8 +1180,8 @@ namespace OniMoono.Engine.UI
             public void Fill(PropertySheet props)
             {
                 props.Clear();
-                if (MainTexture != null) props.SetTexture(MainTex, MainTexture);
-                if (AlphaTexture != null) props.SetTexture(AlphaTex, AlphaTexture);
+                if (MainTexture) props.SetTexture(MainTex, MainTexture);
+                if (AlphaTexture) props.SetTexture(AlphaTex, AlphaTexture);
                 foreach (var (name, tex) in Secondary)
                     if (name != null) props.SetTexture(ShaderPropertyIds.Get(name), tex);
                 props.SetVector(TextureSampleAdd, SampleAdd);
@@ -1259,7 +1259,7 @@ namespace OniMoono.Engine.UI
                 if (run.Count == 0) return;
                 var item = run.Count == 1 ? run[0].Item : Merge(run);
                 items.Add(item);
-                if (runSpace != null) nestedDraws.Add((runSpace, item));
+                if (runSpace is not null) nestedDraws.Add((runSpace, item));
                 run.Clear();
             }
             for (int k = 0; k < n; k++)
@@ -1269,7 +1269,7 @@ namespace OniMoono.Engine.UI
                 ref readonly var state = ref g.States[i];
                 var space = g.Spaces[i];
                 // Elements baked in different spaces (a nested canvas's, the root's) draw apart.
-                if (run.Count > 0 && (!SameState(run[0].Item, runState, item, state) || runSpace != space)) Flush();
+                if (run.Count > 0 && (!SameState(run[0].Item, runState, item, state) || !ReferenceEquals(runSpace, space))) Flush();
                 if (run.Count == 0)
                 {
                     runState = state;
@@ -1545,10 +1545,10 @@ namespace OniMoono.Engine.UI
                 // make different states the same sheet).
                 ref readonly var state = ref g.States[i];
                 int hash = HashCode.Combine(RuntimeHelpers.GetHashCode(item.Material), item.Keywords == null ? 0 : RuntimeHelpers.GetHashCode(item.Keywords),
-                    g.Spaces[i] == null ? 0 : RuntimeHelpers.GetHashCode(g.Spaces[i]));
+                    g.Spaces[i] is null ? 0 : RuntimeHelpers.GetHashCode(g.Spaces[i]));
                 if (state.Secondary.Length == 0)
-                    hash = HashCode.Combine(hash, state.MainTexture == null ? 0 : RuntimeHelpers.GetHashCode(state.MainTexture),
-                        state.AlphaTexture == null ? 0 : RuntimeHelpers.GetHashCode(state.AlphaTexture), state.Clip, state.ZTest, state.SampleAdd);
+                    hash = HashCode.Combine(hash, !state.MainTexture ? 0 : RuntimeHelpers.GetHashCode(state.MainTexture),
+                        !state.AlphaTexture ? 0 : RuntimeHelpers.GetHashCode(state.AlphaTexture), state.Clip, state.ZTest, state.SampleAdd);
                 int bucket = hash & (buckets - 1), id = -1;
                 for (int s = stateBuckets[bucket]; s >= 0; s = stateNext[s])
                 {
@@ -1699,7 +1699,7 @@ namespace OniMoono.Engine.UI
                 for (int i = 0; i < nestedDraws.Count; i++)
                 {
                     var e = nestedDraws[i];
-                    if (e.Space == space) group.Add(e.Item);
+                    if (ReferenceEquals(e.Space, space)) group.Add(e.Item);
                     else nestedDraws[kept++] = e;
                 }
                 nestedDraws.RemoveRange(kept, nestedDraws.Count - kept);
@@ -1774,7 +1774,7 @@ namespace OniMoono.Engine.UI
         static DrawItem Merge(List<(DrawItem Item, CanvasRendererNative Renderer)> run)
         {
             var first = run[0];
-            var runs = merged.GetValue(first.Renderer, _ => new Dictionary<Material, MergedRun>());
+            var runs = merged.GetValue(first.Renderer, _ => new Dictionary<Material, MergedRun>(ReferenceEqualityComparer.Instance));
             MergedRun m;
             if (freshMeshes) m = new MergedRun();
             else if (!runs.TryGetValue(first.Item.Material, out m)) runs[first.Item.Material] = m = new MergedRun();
@@ -1964,7 +1964,7 @@ namespace OniMoono.Engine.UI
         }
 
         static bool IsOverlay(CanvasNative root) => root.RenderMode == RenderMode.ScreenSpaceOverlay
-                                                     || (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera == null);
+                                                     || (root.RenderMode == RenderMode.ScreenSpaceCamera && !root.WorldCamera);
 
         /// The camera an overlay canvas draws with, for `projection` (screen pixels to clip
         /// space): the projection takes the canvas's units, a pixel over its scale factor, and
@@ -2120,9 +2120,9 @@ namespace OniMoono.Engine.UI
         {
             int w = (int)size.x, h = (int)size.y;
             if (w <= 0 || h <= 0) return;
-            if (pixelTarget == null || pixelTarget.width != w || pixelTarget.height != h)
+            if (!pixelTarget || pixelTarget.width != w || pixelTarget.height != h)
             {
-                if (pixelTarget != null) UnityEngine.Object.DestroyImmediate(pixelTarget);
+                if (pixelTarget) UnityEngine.Object.DestroyImmediate(pixelTarget);
                 pixelTarget = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { hideFlags = HideFlags.HideAndDontSave };
                 pixelsOff = new byte[w * h * 4];
                 pixelsOn = new byte[w * h * 4];
@@ -2184,7 +2184,7 @@ namespace OniMoono.Engine.UI
             {
                 var root = b.Root;
                 if (IsOverlay(root)) continue;
-                if (root.RenderMode == RenderMode.ScreenSpaceCamera && root.WorldCamera != camera) continue;
+                if (root.RenderMode == RenderMode.ScreenSpaceCamera && !ReferenceEquals(root.WorldCamera, camera)) continue;
                 if (root.RenderMode == RenderMode.WorldSpace && (cam.CullingMask & (1 << b.Canvas.GameObject.Layer)) == 0) continue;
                 var sorting = SortingOf(b);
                 var center = Hierarchy.Position(b.Canvas.GameObject.Transform);

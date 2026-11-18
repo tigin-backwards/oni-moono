@@ -297,7 +297,7 @@ namespace UnityEngine
         /// ArgumentException; a compressed format logs an error (false).
         static bool Level0(Texture2D tex, out TextureFormat format, out ReadOnlySpan<byte> mip, out int width, out int height)
         {
-            if (tex == null) throw new ArgumentNullException(nameof(tex));
+            if (!tex) throw new ArgumentNullException(nameof(tex));
             var native = (Texture2DNative)tex.NativeOrThrow;
             if (!native.Readable)
                 throw new ArgumentException($"Texture '{tex.name}' is not readable. For this reason, scripts cannot access the memory allocated to it. You can make this texture readable in the Texture Import Settings.");

@@ -212,7 +212,7 @@ namespace UnityEngine
         int MainProperty(ShaderPropertyAttributes attribute, int fallback)
         {
             var s = Data.Shader;
-            var p = s != null ? ((ShaderNative)s.NativeOrThrow).FirstWith(attribute) : null;
+            var p = s ? ((ShaderNative)s.NativeOrThrow).FirstWith(attribute) : null;
             return p?.Id ?? fallback;
         }
 
@@ -382,9 +382,9 @@ namespace UnityEngine
             {
                 int id = MainProperty(ShaderPropertyAttributes.MainTexture, k_MainTexId);
                 var shader = Data.Shader;
-                if (shader != null && !(((ShaderNative)shader.NativeOrThrow).PropertiesById.TryGetValue(id, out var p) && p.Kind == ShaderPropertyKind.Texture))
+                if (shader && !(((ShaderNative)shader.NativeOrThrow).PropertiesById.TryGetValue(id, out var p) && p.Kind == ShaderPropertyKind.Texture))
                     return null;
-                return Sheet.Textures.TryGetValue(id, out var t) && t.Texture != null ? t.Texture : null;
+                return Sheet.Textures.TryGetValue(id, out var t) && t.Texture ? t.Texture : null;
             }
         }
 
@@ -512,14 +512,14 @@ namespace OniMoono.Engine.Rendering
             get
             {
                 if (CustomRenderQueue >= 0) return CustomRenderQueue;
-                return Shader != null ? ((ShaderNative)Shader.NativeOrThrow).RenderQueue : 2000;
+                return Shader ? ((ShaderNative)Shader.NativeOrThrow).RenderQueue : 2000;
             }
         }
 
         public void AssignShader(Shader shader)
         {
             Shader = shader;
-            if (shader != null) AddShaderDefaults((ShaderNative)shader.NativeOrThrow);
+            if (shader) AddShaderDefaults((ShaderNative)shader.NativeOrThrow);
             Changed();
         }
 
@@ -565,7 +565,7 @@ namespace OniMoono.Engine.Rendering
             Keywords.Set(other.Keywords.Items);
             CustomRenderQueue = other.CustomRenderQueue;
             GlobalIlluminationFlags = other.GlobalIlluminationFlags;
-            if (!includeShader && Shader != null) AddShaderDefaults((ShaderNative)Shader.NativeOrThrow);
+            if (!includeShader && Shader) AddShaderDefaults((ShaderNative)Shader.NativeOrThrow);
             Changed();
         }
 
@@ -573,7 +573,7 @@ namespace OniMoono.Engine.Rendering
         {
             var crc = new Crc32();
             Span<byte> buffer = stackalloc byte[4];
-            BitConverter.TryWriteBytes(buffer, Shader != null ? Shader.GetInstanceID() : 0);
+            BitConverter.TryWriteBytes(buffer, Shader ? Shader.GetInstanceID() : 0);
             crc.Append(buffer);
             BitConverter.TryWriteBytes(buffer, RenderQueue);
             crc.Append(buffer);
@@ -623,7 +623,7 @@ namespace OniMoono.Engine.Rendering
                 var c = pair.Struct("second");
                 Properties.VectorsToWrite[ShaderPropertyIds.Get(pair.String("first"))] = new Vector4(c.Float("r"), c.Float("g"), c.Float("b"), c.Float("a"));
             }
-            if (Shader != null) AddShaderDefaults((ShaderNative)Shader.NativeOrThrow);
+            if (Shader) AddShaderDefaults((ShaderNative)Shader.NativeOrThrow);
             Changed();
         }
     }

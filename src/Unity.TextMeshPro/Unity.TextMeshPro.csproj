@@ -11,6 +11,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OniMoono.UnityEngine/OniMoono.UnityEngine.csproj" />
+    <!-- Comparisons of engine records and facades by reference (IdentityAnalyzer). -->
+    <ProjectReference Include="../OniMoono.Analyzers/OniMoono.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../UnityEngine.UI/UnityEngine.UI.csproj" />
   </ItemGroup>
 

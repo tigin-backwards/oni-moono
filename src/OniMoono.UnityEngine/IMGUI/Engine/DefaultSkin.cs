@@ -15,9 +15,9 @@ namespace OniMoono.Engine.IMGUI
 
         public static GUISkin Get()
         {
-            if (skin != null) return skin;
+            if (skin) return skin;
             skin = Load();
-            if (skin == null)
+            if (!skin)
             {
                 skin = ScriptableObject.CreateInstance<GUISkin>();
                 skin.name = Name;

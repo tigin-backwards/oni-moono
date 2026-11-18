@@ -30,7 +30,7 @@ namespace UnityEngine
             get
             {
                 var bn = Native as BehaviourNative;
-                return bn != null && bn.IsActiveAndEnabledState;
+                return bn is not null && bn.IsActiveAndEnabledState;
             }
         }
     }

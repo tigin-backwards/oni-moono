@@ -301,7 +301,7 @@ namespace OniMoono.Engine.IMGUI
             GUIStateData.Window = w;
             GUIStateData.Scope = w.Scope;
             GUIStateData.BeginCall();
-            if (w.Skin != null) GUIStateData.Skin = w.Skin;
+            if (w.Skin) GUIStateData.Skin = w.Skin;
             GUIStateData.Color = w.Color;
             GUIStateData.BackgroundColor = w.BackgroundColor;
             GUIStateData.ContentColor = w.ContentColor;

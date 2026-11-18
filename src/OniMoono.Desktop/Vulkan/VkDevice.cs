@@ -331,9 +331,9 @@ namespace OniMoono.Desktop.Vulkan
         ProgramInputs RecordPass(Matrix4x4 objectToWorld, Matrix4x4 view, Matrix4x4 projection, out ShaderNative shader)
         {
             shader = null;
-            if (passMaterial == null) return null;
+            if (!passMaterial) return null;
             var material = (MaterialNative)passMaterial.NativeOrThrow;
-            if (material.Shader == null) return null;
+            if (!material.Shader) return null;
             shader = (ShaderNative)material.Shader.NativeOrThrow;
             var sub = shader.ActiveSubShader;
             if (sub == null || passIndex >= sub.Passes.Length) return null;

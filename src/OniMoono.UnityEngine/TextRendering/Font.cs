@@ -158,7 +158,7 @@ namespace UnityEngine
                 // No player data (no built-in resources file).
             }
             shader ??= Shader.Find("GUI/Text Shader");
-            return shader == null ? null : new Material(shader) { name = "Font Material" };
+            return !shader ? null : new Material(shader) { name = "Font Material" };
         }
 
         /// Paths of the font files installed on the system.

@@ -19,7 +19,7 @@ namespace OniMoono.Engine.Playables
 
         public override void CheckEvaluable(PlayableNode node, OutputNode output, float effectiveWeight)
         {
-            if (Clip != null && output.Kind == typeof(AnimationPlayableOutput) && output.Target != null)
+            if (Clip && output.Kind == typeof(AnimationPlayableOutput) && output.Target)
                 throw new NotSupportedException($"Playing AnimationClip '{Clip.name}' through a PlayableGraph needs Unity's animation system, which is not implemented.");
         }
     }
