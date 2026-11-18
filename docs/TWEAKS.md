@@ -1487,6 +1487,10 @@ To add a language:
    not match the English, and list the strings that are missing or were translated from older
    English (stale).
 
+`zh.po` covers the whole catalog: a string added without its Chinese fails
+`TweakTranslationTests.CompleteTranslationsCoverTheCatalog`, which names it, as
+`moono-tweaks-search-zh.yaml` expects every row in Chinese.
+
 The same files translate the Workshop loader mod's dialog (`STRINGS.MOONO.LOADER.*`,
 `src/MoonoLoader/LoaderStrings.cs`; docs/INSTALL-MODES.md), which reads them from the item.
 
