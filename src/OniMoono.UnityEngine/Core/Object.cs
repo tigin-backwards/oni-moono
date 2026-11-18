@@ -22,24 +22,26 @@ namespace UnityEngine
 
         // The object's engine identity and lifetime (NativeObject reads them here). Private, so
         // no derived type's reflected fields include them, and named apart from Unity's members.
+        // Few and small: a component's own fields follow them, and the game's components' fields
+        // after those. The table slot is the handle's (m_CachedPtr); where an object was loaded
+        // from, which few objects are, is boxed.
         private int m_EngineInstanceId;
-        private int m_EngineSlot;
-        private int m_EngineGeneration;
         private HideFlags m_EngineHideFlags;
         private bool m_EngineIsPersistent;
         private bool m_EngineDestroyRequested;
         private bool m_EngineDestroyed;
-        private AssetSource m_EngineSource;
+        private object m_EngineSource;
 
         internal int EngineInstanceId { get => m_EngineInstanceId; set => m_EngineInstanceId = value; }
-        /// Its slot in ObjectTable while registered, else 0.
-        internal int EngineSlot { get => m_EngineSlot; set => m_EngineSlot = value; }
-        internal int EngineGeneration { get => m_EngineGeneration; set => m_EngineGeneration = value; }
         internal HideFlags EngineHideFlags { get => m_EngineHideFlags; set => m_EngineHideFlags = value; }
         internal bool EngineIsPersistent { get => m_EngineIsPersistent; set => m_EngineIsPersistent = value; }
         internal bool EngineDestroyRequested { get => m_EngineDestroyRequested; set => m_EngineDestroyRequested = value; }
         internal bool EngineDestroyed { get => m_EngineDestroyed; set => m_EngineDestroyed = value; }
-        internal AssetSource EngineSource { get => m_EngineSource; set => m_EngineSource = value; }
+        internal AssetSource EngineSource
+        {
+            get => m_EngineSource is AssetSource s ? s : default;
+            set => m_EngineSource = value == default ? null : value;
+        }
 
         /// Set by the engine around construction of a component or ScriptableObject so that the
         /// base constructor binds the managed object to its native record (Unity creates the
@@ -156,10 +158,10 @@ namespace UnityEngine
         /// Detaches from the native record: from now on this object compares equal to null.
         internal virtual void Unbind()
         {
-            bool alive = Handle != IntPtr.Zero;
+            var handle = Handle;
             Volatile.Write(ref m_CachedPtr, IntPtr.Zero);
             m_Native = null;
-            if (alive) ObjectTable.Unregister(this);
+            if (handle != IntPtr.Zero) ObjectTable.Unregister(this, handle);
         }
 
         /// Whether the object is alive: bound to the engine and not destroyed (Unity's bool

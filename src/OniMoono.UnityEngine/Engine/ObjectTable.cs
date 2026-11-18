@@ -15,8 +15,8 @@ namespace OniMoono.Engine
     ///
     /// A slot holds its object strongly, except while Resources.UnloadUnusedAssets probes
     /// reachability: then the probed objects' slots hold weak references (see Weaken). The table
-    /// holds the objects themselves (UnityEngine.Object), which keep their slot, generation and
-    /// instance id; an object's record is its m_Native.
+    /// holds the objects themselves (UnityEngine.Object), whose handle (m_CachedPtr) names their
+    /// slot and generation; an object's record is its m_Native.
     internal static class ObjectTable
     {
         static readonly object gate = new();
@@ -53,32 +53,36 @@ namespace OniMoono.Engine
                         Volatile.Write(ref slots, grown);
                     }
                 }
-                obj.EngineGeneration = ++nextGeneration;
-                obj.EngineSlot = index;
+                int generation = ++nextGeneration;
                 Volatile.Write(ref slots[index], obj);
                 byInstanceId[obj.EngineInstanceId] = index;
-                return Pack(index, obj.EngineGeneration);
+                return Pack(index, generation);
             }
         }
 
-        public static void Unregister(UnityEngine.Object obj)
+        /// Frees the slot of the object that had HANDLE (Object.Unbind, which has cleared it).
+        public static void Unregister(UnityEngine.Object obj, IntPtr handle)
         {
+            int slot = SlotOf(handle);
             lock (gate)
             {
-                if (obj.EngineSlot <= 0 || !ReferenceEquals(At(slots[obj.EngineSlot]), obj)) return;
-                Free(obj.EngineSlot, obj.EngineInstanceId);
-                obj.EngineSlot = 0;
+                if (slot <= 0 || !ReferenceEquals(At(slots[slot]), obj)) return;
+                Free(slot, obj.EngineInstanceId);
             }
         }
+
+        /// The slot a handle names (0 for none).
+        static int SlotOf(IntPtr handle) => (int)((long)handle & 0xFFFFFFFF);
 
         /// Gives a registered object a different instance id (objects loaded from files).
         public static void SetInstanceId(UnityEngine.Object obj, int instanceId)
         {
             lock (gate)
             {
-                if (byInstanceId.TryGetValue(obj.EngineInstanceId, out var i) && i == obj.EngineSlot) byInstanceId.Remove(obj.EngineInstanceId);
+                int slot = SlotOf(obj.Handle);
+                if (byInstanceId.TryGetValue(obj.EngineInstanceId, out var i) && i == slot) byInstanceId.Remove(obj.EngineInstanceId);
                 obj.EngineInstanceId = instanceId;
-                if (obj.EngineSlot > 0) byInstanceId[instanceId] = obj.EngineSlot;
+                if (slot > 0) byInstanceId[instanceId] = slot;
             }
         }
 
@@ -101,9 +105,10 @@ namespace OniMoono.Engine
             lock (gate)
                 foreach (var o in objects)
                 {
-                    if (o.EngineSlot <= 0 || !ReferenceEquals(slots[o.EngineSlot], o)) continue;
-                    Volatile.Write(ref slots[o.EngineSlot], new WeakReference<UnityEngine.Object>(o));
-                    probed.Add(new Probe(o.EngineSlot, o.EngineInstanceId));
+                    int slot = SlotOf(o.Handle);
+                    if (slot <= 0 || !ReferenceEquals(slots[slot], o)) continue;
+                    Volatile.Write(ref slots[slot], new WeakReference<UnityEngine.Object>(o));
+                    probed.Add(new Probe(slot, o.EngineInstanceId));
                 }
             return probed;
         }
@@ -132,11 +137,11 @@ namespace OniMoono.Engine
             long h = (long)handle;
             if (h == 0) return null;
             int index = (int)(h & 0xFFFFFFFF);
-            int generation = (int)(h >> 32);
             var table = Volatile.Read(ref slots);
             if ((uint)index >= (uint)table.Length) return null;
             var obj = At(Volatile.Read(ref table[index]));
-            return obj is not null && obj.EngineGeneration == generation ? obj : null;
+            // The object holds the handle while it is alive: a slot reused since names another.
+            return obj is not null && obj.Handle == handle ? obj : null;
         }
 
         /// The live object with this instance id, if any.
