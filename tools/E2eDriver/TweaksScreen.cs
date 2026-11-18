@@ -59,9 +59,9 @@ namespace E2eDriver
         }
 
         /// How many rows show their title and one-liner in another text than English: in another
-        /// language, the rows the player's translation (translations/CODE.po) translates. A
-        /// translation may lag behind new rows, which the screen shows in English
-        /// (TweakTranslationTests reports them), so specs compare this with Rows loosely.
+        /// language, the rows the player's translation (translations/CODE.po) translates. A row
+        /// the translation lacks shows in English; zh.po must have every row
+        /// (TweakTranslationTests.CompleteTranslationsCoverTheCatalog), so its spec expects Rows.
         public static int Translated
         {
             get

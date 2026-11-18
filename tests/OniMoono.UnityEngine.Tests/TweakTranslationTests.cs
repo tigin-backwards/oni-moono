@@ -13,8 +13,8 @@ namespace OniMoono.Tests
 {
     /// The Moono Tweaks screen's translations (TweakStrings, translations/): the template
     /// generated from the catalog, every translation readable and matching it, and the English
-    /// fallback. A translation's stale or missing strings are reported, not failures: the screen
-    /// shows those in English.
+    /// fallback. A translation's stale strings are reported, not failures; so are missing ones,
+    /// except in the translations listed in Complete, which must cover the whole catalog.
     public class TweakTranslationTests
     {
         readonly ITestOutputHelper output;
@@ -137,6 +137,46 @@ namespace OniMoono.Tests
                 output.WriteLine($"{name}: {translated} of {english.Count} strings translated, {stale} stale, {missing.Length} missing");
             }
             Assert.True(problems.Count == 0, string.Join("\n", problems));
+        }
+
+        /// The translations that cover the whole catalog: a string added to TweakStrings (a new
+        /// row's title, one-liner, tooltip, gain or choices, a new label) needs its translation in
+        /// each of these before it lands. moono-tweaks-search-zh.yaml counts on it: it expects
+        /// every row of the screen in Chinese.
+        static readonly string[] Complete = ["zh"];
+
+        [Fact]
+        public void CompleteTranslationsCoverTheCatalog()
+        {
+            var owner = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var row in GameTweakNames.Rows)
+            {
+                owner[TweakStrings.RowKey(row, "TITLE")] = $"row {row.Id}'s title";
+                owner[TweakStrings.RowKey(row, "EFFECT")] = $"row {row.Id}'s one-liner";
+                owner[TweakStrings.RowKey(row, "DETAIL")] = $"row {row.Id}'s tooltip";
+                if (GameTweakNames.GainText(row) is { } gain) owner.TryAdd(TweakStrings.GainKey(gain.Gain), $"row {row.Id}'s gain");
+                foreach (var choice in row.Choices ?? []) owner[TweakStrings.ChoiceKey(row, choice)] = $"row {row.Id}'s choice {choice}";
+            }
+            var problems = new List<string>();
+            foreach (var code in Complete)
+            {
+                var name = code + ".po";
+                var po = Po.Parse(File.ReadAllText(Path.Combine(Translations(), name), Encoding.UTF8))
+                    .Where(e => e.Context != null).ToDictionary(e => e.Context!, e => e.Str, StringComparer.Ordinal);
+                foreach (var s in TweakStrings.All)
+                    if (!po.TryGetValue(s.Key, out var str) || str.Length == 0)
+                        problems.Add($"translations/{name} has no translation of {s.Key} ({(owner.TryGetValue(s.Key, out var what) ? what : "a label")}): \"{s.English}\"");
+                // TweaksScreen::Translated counts a row as translated when its title and its
+                // one-liner both differ from the English.
+                foreach (var row in GameTweakNames.Rows)
+                    foreach (var part in new[] { "TITLE", "EFFECT" })
+                    {
+                        var key = TweakStrings.RowKey(row, part);
+                        if (po.TryGetValue(key, out var str) && str == TweakStrings.All.First(s => s.Key == key).English)
+                            problems.Add($"translations/{name} gives {key} the English text, which the Chinese specs count as untranslated");
+                    }
+            }
+            Assert.True(problems.Count == 0, $"{problems.Count} strings lack a translation that tests/e2e/moono-tweaks-search-{Complete[0]}.yaml expects:\n" + string.Join("\n", problems));
         }
 
         static string Show(string[] markup) => markup.Length == 0 ? "no placeholders" : string.Join(" ", markup);

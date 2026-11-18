@@ -19,14 +19,14 @@ steps:
   - expect_ui:
       "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Placeholder": {active: true}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
-  # Every row shown, and the rows in Chinese: all but the few a translation may not have caught
-  # up with yet (shown in English; TweakTranslationTests lists them).
+  # Every row shown, and every row in Chinese: translations/zh.po covers the catalog, which
+  # TweakTranslationTests.CompleteTranslationsCoverTheCatalog checks.
   - expect_state:
       "type:E2eDriver.TweaksScreen::Problems": ok
       "type:E2eDriver.TweaksScreen::Rows": [">= 10", {save_as: rows}]
   - expect_state:
       "type:E2eDriver.TweaksScreen::Shown": "== rows"
-      "type:E2eDriver.TweaksScreen::Translated": ">= 0.8 * rows"
+      "type:E2eDriver.TweaksScreen::Translated": "== rows"
   - shot: {name: search-empty, crop: "**/MoonoTweaksScreen/Panel/SearchBar"}
   - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel/SearchBar"}
   # 存档 (saving): the rows about saves, by their Chinese text.

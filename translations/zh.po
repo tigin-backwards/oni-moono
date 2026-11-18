@@ -886,6 +886,22 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.REPORTS"
 msgid "~0.9 GB less memory on a late-game colony; loading ~1 s faster"
 msgstr "后期大型殖民地少用约 0.9 GB 内存，加载快约 1 秒"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_ENTRIES.TITLE"
+msgid "Compact report entries"
+msgstr "紧凑的报告条目"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_ENTRIES.EFFECT"
+msgid "Past days' report entries take less memory and fewer objects for the game's memory cleanups."
+msgstr "往日的报告条目占用更少内存，游戏清理内存时要检查的对象也更少。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_ENTRIES.DETAIL"
+msgid "The entries of every day's report but today's are kept in flat arrays instead of an object each, and made again when something reads that day. The reports screen, the colony summary and saves read the same values in the same order. Off while a mod reads past days' entries itself."
+msgstr "除今天以外，每日报告的条目都存放在紧凑的数组中，而不是每个条目各占一个对象，某一天被读取时再重新生成。报告界面、殖民地概要和存档读到的数值及其顺序完全相同。有模组自行读取往日报告条目时，此项关闭。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.ENTRIES"
+msgid "4.2 M fewer objects and 7.9 M fewer references for a full memory cleanup to trace on a late-game colony; its pause an estimated ~12% shorter (from a cost model, not timed)"
+msgstr "后期殖民地上，一次完整的内存清理要追踪的对象少 420 万个、引用少 790 万个；清理造成的卡顿估计缩短约 12%（按开销模型估算，未实测）"
+
 msgctxt "STRINGS.MOONO.LOADER.TITLE"
 msgid "Play with Moono?"
 msgstr "使用 Moono 游玩？"
