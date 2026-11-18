@@ -363,7 +363,14 @@ int wmain(int argc, wchar_t **argv)
     static wchar_t exe[LONG_PATH], dir[LONG_PATH], app[LONG_PATH], fxr[LONG_PATH];
     DWORD length = GetModuleFileNameW(NULL, exe, LONG_PATH);
     if (length == 0 || length >= LONG_PATH) return fail((int)GetLastError(), L"the executable's own path is unknown", NULL);
-    startup_stderr = crash_start(exe);
+    /* ROOT\Restarter.exe beside the versioned install's entry point is a copy of this exe
+     * (Entry.cs): the game's App.Restart starts Restarter.exe from the folder of the process's
+     * executable, which for a player started through the entry point is ROOT. It runs the
+     * Restarter of the version ROOT\state\current names (player\VERSION\Restarter.dll) with
+     * this process's arguments, as that version's Restarter.exe would, without crash records. */
+    const wchar_t *name = wcsrchr(exe, L'\\');
+    int restarter = name != NULL && _wcsicmp(name + 1, L"Restarter.exe") == 0;
+    if (!restarter) startup_stderr = crash_start(exe);
     wcscpy_s(dir, LONG_PATH, exe);
     wchar_t *slash = wcsrchr(dir, L'\\');
     if (slash == NULL) return fail(1, L"the executable's own path is unknown", exe);
@@ -372,7 +379,17 @@ int wmain(int argc, wchar_t **argv)
     /* The versioned install's entry point, or a start from a source folder (see SWITCH_EXIT). */
     static wchar_t root[LONG_PATH];
     int versioned = 0, bootstrap = 0;
-    if (!is_file(app))
+    if (restarter)
+    {
+        static wchar_t probe[LONG_PATH];
+        wchar_t version[80];
+        swprintf_s(probe, LONG_PATH, L"%ls\\player", dir);
+        if (!is_dir(probe) || !pick_version(dir, version, _countof(version))) return fail(1, L"no version of Moono is installed beside this Restarter", dir);
+        swprintf_s(probe, LONG_PATH, L"%ls\\player\\%ls", dir, version);
+        wcscpy_s(dir, LONG_PATH, probe);
+        swprintf_s(app, LONG_PATH, L"%ls\\Restarter.dll", dir);
+    }
+    else if (!is_file(app))
     {
         static wchar_t probe[LONG_PATH], source[LONG_PATH];
         swprintf_s(probe, LONG_PATH, L"%ls\\player", dir);
@@ -380,6 +397,8 @@ int wmain(int argc, wchar_t **argv)
         {
             wcscpy_s(root, LONG_PATH, dir);
             swprintf_s(probe, LONG_PATH, L"%ls\\OniMoono.exe.old", root);
+            DeleteFileW(probe);
+            swprintf_s(probe, LONG_PATH, L"%ls\\Restarter.exe.old", root);
             DeleteFileW(probe);
             wchar_t version[80];
             if (!pick_version(root, version, _countof(version))) return fail(1, L"no version of Moono is installed here; start it once from its Workshop folder", root);
@@ -461,7 +480,7 @@ int wmain(int argc, wchar_t **argv)
     }
     /* Low memory: Workstation GC over the runtimeconfig's Server GC (a DOTNET_gcServer in the
      * environment still wins, as the runtime reads it first). */
-    if (wants_workstation_gc(argc, argv))
+    if (!restarter && wants_workstation_gc(argc, argv))
     {
         rc = set_property(context, L"System.GC.Server", L"false");
         if (rc < 0)

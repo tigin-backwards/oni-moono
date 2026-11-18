@@ -746,6 +746,68 @@ namespace OniMoono.Tests
             Assert.Null(typeof(VersionedInstall).Assembly.GetType("OniMoono.Host.Install.Shortcuts"));
         }
 
+        /// What a restart starts, per install mode (RestartEntry): the entry point for a version
+        /// folder of the versioned install; the executable App.Restart names (null) for a player
+        /// started from its own folder (launch options, standalone), a bootstrap or incoming copy,
+        /// or a root without its entry point.
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ARestartStartsTheEntryPointOfAVersionedInstall(bool windows)
+        {
+            var entryName = windows ? "OniMoono.exe" : "OniMoono";
+            var version = Path.Combine(Root, "player", "2026.11.16.04-u60");
+            Directory.CreateDirectory(version);
+            // Launch options and standalone: no install root, or a player outside it.
+            var own = Path.Combine(dir, "oni-moono", "player");
+            Assert.Null(RestartEntry.For(null, own, entryName, windows));
+            Assert.Null(RestartEntry.For("", own, entryName, windows));
+            // The versioned install before its entry point is in place.
+            Assert.Null(RestartEntry.For(Root, version, entryName, windows));
+            File.WriteAllText(Path.Combine(Root, entryName), "entry");
+            var entry = Path.Combine(Root, entryName);
+            Assert.Equal(entry, RestartEntry.For(Root, version, entryName, windows));
+            Assert.Equal(entry, RestartEntry.For(Root + Path.DirectorySeparatorChar, version + Path.DirectorySeparatorChar, entryName, windows));
+            Assert.Null(RestartEntry.For(Root, own, entryName, windows));
+            Assert.Null(RestartEntry.For(Root, Root, entryName, windows));
+            Assert.Null(RestartEntry.For(Root, Path.Combine(Root, "player", ".bootstrap-42"), entryName, windows));
+            Assert.Null(RestartEntry.For(Root, Path.Combine(Root, "player", ".incoming-42"), entryName, windows));
+            // Windows paths differ in case only where the file system doesn't care.
+            var upper = Path.Combine(Path.GetDirectoryName(Root)!, "ROOT", "player", "2026.11.16.04-u60");
+            if (windows) Assert.Equal(entry, RestartEntry.For(Root, upper, entryName, windows));
+            else Assert.Null(RestartEntry.For(Root, upper, entryName, windows));
+        }
+
+        /// The Windows entry point's files (PlayerFiles.InstallWindowsEntry): the version's
+        /// OniMoono.exe as OniMoono.exe and as Restarter.exe, which App.Restart starts beside the
+        /// entry point; a changed one replaces each after renaming it to .old.
+        [Fact]
+        public void TheWindowsEntryPointHasARestarterBesideIt()
+        {
+            var v1 = Path.Combine(Root, "player", "1");
+            var v2 = Path.Combine(Root, "player", "2");
+            Directory.CreateDirectory(v1);
+            Directory.CreateDirectory(v2);
+            File.WriteAllText(Path.Combine(v1, "OniMoono.exe"), "MZ 1");
+            File.WriteAllText(Path.Combine(v2, "OniMoono.exe"), "MZ 2");
+            Assert.True(PlayerFiles.InstallWindowsEntry(Root, v1));
+            Assert.Equal("MZ 1", File.ReadAllText(Path.Combine(Root, "OniMoono.exe")));
+            Assert.Equal("MZ 1", File.ReadAllText(Path.Combine(Root, "Restarter.exe")));
+            Assert.False(PlayerFiles.InstallWindowsEntry(Root, v1));
+            // An entry point installed before Restarter.exe was: only the Restarter goes in.
+            File.Delete(Path.Combine(Root, "Restarter.exe"));
+            Assert.True(PlayerFiles.InstallWindowsEntry(Root, v1));
+            Assert.False(File.Exists(Path.Combine(Root, "OniMoono.exe.old")));
+            Assert.Equal("MZ 1", File.ReadAllText(Path.Combine(Root, "Restarter.exe")));
+            File.WriteAllText(Path.Combine(Root, "Restarter.exe.old"), "older");
+            Assert.True(PlayerFiles.InstallWindowsEntry(Root, v2));
+            foreach (var name in new[] { "OniMoono.exe", "Restarter.exe" })
+            {
+                Assert.Equal("MZ 2", File.ReadAllText(Path.Combine(Root, name)));
+                Assert.Equal("MZ 1", File.ReadAllText(Path.Combine(Root, name + ".old")));
+            }
+        }
+
         [Fact]
         public void MarkerTellsMoonosItem()
         {

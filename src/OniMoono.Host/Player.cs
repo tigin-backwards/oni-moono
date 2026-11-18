@@ -96,6 +96,7 @@ namespace OniMoono.Host
                 StartupProgress.FrameEnded(frame);
                 if (options.LogPointerHits) PointerHitLog.Frame(frame);
                 TestHang.Frame(frame);
+                TestAppRestart.Frame(frame);
                 frame++;
                 Throttle(clock, now, platform != null, frame <= options.MaxFrameRateFrames ? options.MaxFrameRate : 0);
             }

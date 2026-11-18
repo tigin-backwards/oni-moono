@@ -3176,24 +3176,47 @@ formatting (D2).
   `--log <file>`.
 
 The host directory carries a `Restarter` (`Restarter.exe` on Windows, a .NET program), as Klei's
-player directory does: `App.Restart` (language change) starts it with the player's executable
-path and quits.
+player directory does: `App.Restart` (language change, the mods screen, Moono Tweaks' "Restart to
+apply") starts `Restarter.exe` (Linux: `Restarter`) from the folder of
+`Process.GetCurrentProcess().MainModule`, with that executable's path, and quits. U59's and
+U60's are the same in this; from U60-761654 they also pass the arguments (below).
 
 - **Ours** waits for the player to exit and starts it again with the arguments it was started
   with (recorded by the host in `ONI_MOONO_RESTART_ARGS`, shell-quoted, and
   `ONI_MOONO_RESTART_ARGV`, JSON, with `ONI_MOONO_RESTART_PID`).
-- **From U60-761654** the Windows `App.Restart` also passes the player's arguments
+- **From U60-761654** `App.Restart` also passes the player's arguments
   (`Environment.GetCommandLineArgs()[1..]`, each in quotes as it is, so one holding a quote or
-  ending in a backslash does not survive). Klei's 761654 `Restarter.exe`, measured, starts the
-  executable with them at once (no wait for the old process), in the executable's folder, with
-  .NET's quoting (`ArgumentList`).
+  ending in a backslash does not survive), on Windows and Linux. Klei's 761654 `Restarter.exe`,
+  measured, starts the executable with them at once (no wait for the old process), in the
+  executable's folder, with .NET's quoting (`ArgumentList`).
 - **Ours takes `EXECUTABLE [ARGUMENT...]`.** The recorded arguments win, and the command line's
   are used without them (`RestartCommand`, quoting as Klei's does). It keeps the player's
   working folder, so a relative `--game` still resolves.
-- **Linux.** The Linux `App.Restart` still passes only the executable.
 - **Which arguments.** Since the game's `GetCommandLineArgs()` gives the game's arguments
   (below), the arguments `App.Restart` passes are those. The recorded ones, the host's whole
   command line, start the player again with the same options and the same game arguments.
+- **Which executable**, per install mode ([INSTALL-MODES.md](INSTALL-MODES.md)):
+  - Launch options and standalone: the player's own executable, with the Restarter beside it.
+  - The versioned install on Windows: the entry point `versioned\OniMoono.exe` hosts the
+    player in its own process, so `MainModule` is the entry point and `App.Restart` looks for
+    `versioned\Restarter.exe`. The install puts the version's native host there under that
+    name too (`PlayerFiles.InstallWindowsEntry`, from the installer and the loader mod). Named
+    `Restarter.exe`, the native host runs `player\<state\current>\Restarter.dll` with its
+    arguments, and that Restarter starts the entry point again, which chooses the version
+    again. Before this, the restart failed with "The system cannot find the file specified".
+  - The versioned install on Linux: the entry point is a script that starts
+    `player/<version>/OniMoono`, which `App.Restart` names, beside its `Restarter`. The host
+    records the entry point in `ONI_MOONO_RESTART_EXE` (`RestartEntry`, for a version folder
+    of the install, not a bootstrap copy), and both Restarters start it in place of the
+    executable they are given.
+- **Test.** `ONI_TEST_APP_RESTART=FRAME` calls the game's `App.Restart` at the first frame from
+  FRAME with `App.instance`; the host clears it, so the restarted player plays on.
+  The log's `restart:` line names what a restart starts and the recorded arguments.
+  `scripts/check-restart.sh linux|windows` runs it in a temporary versioned install and in a
+  player folder started directly, both made from the build output and started as Steam starts
+  them (`-- GAME_EXE GAME_ARGS`, the executable under a `Program Files (x86)` path, game
+  arguments with a space, a quote and a trailing backslash), and checks from both runs' logs
+  that the second run started from the right executable with exactly the same arguments.
 
 **The game's command line (#53).** In the original player `Environment.GetCommandLineArgs()`
 gives the game's executable (its full path) followed by every argument the player was started

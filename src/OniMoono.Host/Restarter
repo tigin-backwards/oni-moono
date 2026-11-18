@@ -2,10 +2,13 @@
 # Restarter EXECUTABLE [ARGUMENT...]: the helper the game's App.Restart starts from the player's
 # directory (Klei ships one next to their player) before quitting, e.g. after a language change.
 # Once the player has exited, the executable is started again with the arguments the player was
-# started with, which the host records in ONI_MOONO_RESTART_ARGS (shell-quoted). The Linux
-# App.Restart passes only the executable (761654's Windows one adds the arguments); any given
-# are used without the record.
+# started with, which the host records in ONI_MOONO_RESTART_ARGS (shell-quoted). App.Restart
+# passes the player's arguments after the executable (from U60-761654; U59's passes none); the
+# record wins over them. For a player started through the versioned install's entry point the
+# host records that in ONI_MOONO_RESTART_EXE, which starts in place of the executable, so the
+# version is chosen again.
 exe="$1"; shift
+[ -n "${ONI_MOONO_RESTART_EXE:-}" ] && exe="$ONI_MOONO_RESTART_EXE"
 while kill -0 "$PPID" 2>/dev/null; do sleep 0.2; done
 [ -n "${ONI_MOONO_RESTART_ARGS+set}" ] && eval "set -- $ONI_MOONO_RESTART_ARGS"
 exec "$exe" "$@"

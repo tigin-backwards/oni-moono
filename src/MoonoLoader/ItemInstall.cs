@@ -184,22 +184,13 @@ namespace MoonoLoader
             catch (Exception e) when (e is ArgumentException || e is NotSupportedException || e is IOException) { return false; }
         }
 
-        /// The entry point, as Entry.Install puts it: on Windows the version's OniMoono.exe (an
-        /// older one renamed to OniMoono.exe.old first), on Linux the shell script.
+        /// The entry point, as Entry.Install puts it: on Windows the version's OniMoono.exe as
+        /// OniMoono.exe and Restarter.exe (PlayerFiles.InstallWindowsEntry), on Linux the shell
+        /// script.
         void InstallEntry(string versionDir, Action<string>? makeExecutable)
         {
             var entry = EntryPath;
-            if (Windows)
-            {
-                var fresh = Path.Combine(versionDir, "OniMoono.exe");
-                if (File.Exists(entry) && File.ReadAllBytes(entry).SequenceEqual(File.ReadAllBytes(fresh))) return;
-                if (File.Exists(entry))
-                {
-                    if (File.Exists(entry + ".old")) File.Delete(entry + ".old");
-                    File.Move(entry, entry + ".old");
-                }
-                File.Copy(fresh, entry);
-            }
+            if (Windows) PlayerFiles.InstallWindowsEntry(Root, versionDir);
             else
             {
                 if (File.Exists(entry) && File.ReadAllText(entry) == PlayerFiles.EntryScript) return;

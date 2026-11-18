@@ -169,6 +169,10 @@ scripts/run-windows.sh         # from WSL: a test run on the Windows install
   run homes under `%TEMP%`, before any window opens (`ONI_WIN_GAME_DIR` names the game, as for
   `run-windows.sh`). On Windows it also checks the crash window offscreen
   (`--crash-dialog-render` PNGs, its zip and issue link) and that no crash case leaves one open.
+- **Restart check.** `scripts/check-restart.sh linux|windows` (not in `check.sh`: it starts the
+  game four times) calls the game's `App.Restart` in a temporary versioned install and in a
+  player folder made from the build output, and checks that the Restarter started the entry
+  point (or the player) again with exactly the same arguments. Run it through runq (`--kind linux-player` or `--kind windows`).
 
 The Windows player uses the Windows build's data, whose shaders include OpenGL programs
 alongside the Direct3D ones. `run-windows.sh` copies `out/win` to `%TEMP%\oni-brutal` and starts
