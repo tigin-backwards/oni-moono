@@ -117,7 +117,7 @@ namespace OniMoono.Engine.Playables
             get
             {
                 var asset = PlayableAsset;
-                return asset == null ? 0 : asset.duration;
+                return !asset ? 0 : asset.duration;
             }
         }
 
@@ -139,7 +139,7 @@ namespace OniMoono.Engine.Playables
         {
             if (HasGraph) return true;
             var asset = PlayableAsset;
-            if (asset == null) return false;
+            if (!asset) return false;
             var g = PlayableGraph.Create(Director.gameObject.name);
             g.SetResolver(Director);
             Playable playable;
@@ -379,17 +379,17 @@ namespace OniMoono.Engine.Playables
 
         public static void Add(PlayableDirectorNative d)
         {
-            if (!directors.Contains(d)) directors.Add(d);
+            if (!ByReference.Contains(directors, d)) directors.Add(d);
         }
 
-        public static void Remove(PlayableDirectorNative d) => directors.Remove(d);
+        public static void Remove(PlayableDirectorNative d) => ByReference.Remove(directors, d);
 
         static void Update()
         {
             if (directors.Count == 0) return;
             foreach (var d in directors.ToArray())
             {
-                if (!directors.Contains(d) || d.Destroyed) continue;
+                if (!ByReference.Contains(directors, d) || d.Destroyed) continue;
                 try
                 {
                     d.Update();

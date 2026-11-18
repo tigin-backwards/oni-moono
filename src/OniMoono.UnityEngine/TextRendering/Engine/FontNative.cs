@@ -195,7 +195,7 @@ namespace OniMoono.Engine.Text
                 }
                 foreach (var fallback in Fallbacks)
                 {
-                    if (fallback == null) continue;
+                    if (!fallback) continue;
                     var fn = (FontNative)fallback.NativeOrThrow;
                     if (fn != this && fn.FaceData is { Length: > 0 } data) chain.Add(GlyphChainLink.FromData(this, data, fn.faceIndex));
                 }
@@ -412,10 +412,10 @@ namespace OniMoono.Engine.Text
         {
             get
             {
-                if (Texture == null)
+                if (!Texture)
                 {
                     Texture = new Texture2D(0, 0, TextureFormat.Alpha8, false) { name = "Font Texture" };
-                    if (Material != null) Material.mainTexture = Texture;
+                    if (Material) Material.mainTexture = Texture;
                 }
                 return (Texture2DNative)Texture.NativeOrThrow;
             }

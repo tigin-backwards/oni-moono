@@ -44,10 +44,10 @@ namespace UnityEngine.Playables
 
         private static object CloneScriptInstance(IPlayableBehaviour source)
         {
-            if (source is Object engineObject && engineObject != null)
+            if (source is Object engineObject && engineObject)
             {
                 Object clone = Object.Instantiate(engineObject);
-                if (clone != null) clone.hideFlags |= HideFlags.DontSave;
+                if (clone) clone.hideFlags |= HideFlags.DontSave;
                 return clone;
             }
             if (source is ICloneable cloneable) return cloneable.Clone();

@@ -73,7 +73,7 @@ namespace OniMoono.Engine
         {
             get
             {
-                if (defaultMaterial != null) return defaultMaterial;
+                if (defaultMaterial) return defaultMaterial;
                 var file = AssetSystem.Get("unity_builtin_extra");
                 foreach (var info in file.Objects)
                 {
@@ -224,7 +224,7 @@ namespace OniMoono.Engine
         /// The AABB of the mesh's vertices under the transform.
         public override Bounds WorldBounds(TransformNative t)
         {
-            var vertices = Mesh != null ? Mesh.vertices : Array.Empty<Vector3>();
+            var vertices = Mesh ? Mesh.vertices : Array.Empty<Vector3>();
             if (vertices.Length == 0) return new Bounds(Hierarchy.Position(t), Vector3.zero);
             return ShapeBounds.Of(t.LocalToWorld, vertices);
         }
@@ -233,7 +233,7 @@ namespace OniMoono.Engine
         {
             distance = 0f;
             normal = default;
-            if (Mesh == null) return false;
+            if (!Mesh) return false;
             var m = (MeshNative)Mesh.NativeOrThrow;
             if (m.Positions == null) return false;
             var world = GameObject.Transform.LocalToWorld;

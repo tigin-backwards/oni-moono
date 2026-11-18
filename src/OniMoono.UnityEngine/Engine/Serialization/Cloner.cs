@@ -28,13 +28,13 @@ namespace OniMoono.Engine.Serialization
     {
         public static Object Instantiate(Object original, Transform parent, bool worldPositionStays, Vector3? position, Quaternion? rotation)
         {
-            if (original == null) throw new ArgumentException("The Object you want to instantiate is null.");
+            if (!original) throw new ArgumentException("The Object you want to instantiate is null.");
             Threads.AssertMainThread("Instantiate");
             Platform.MainThreadPump.Maybe();
             if (original is GameObject || original is Component) return InstantiateHierarchy(original, parent, worldPositionStays, position, rotation);
             if (original is ScriptableObject so) return CloneScriptableObject(so);
             var clone = original.EngineCloneAsset();
-            if (clone == null) throw new InvalidOperationException($"Instantiate is not available for {original.GetType().FullName} objects in this engine.");
+            if (!clone) throw new InvalidOperationException($"Instantiate is not available for {original.GetType().FullName} objects in this engine.");
             clone.NativeOrThrow.Name = original.name + "(Clone)";
             return clone;
         }
@@ -122,7 +122,7 @@ namespace OniMoono.Engine.Serialization
                 t.LocalRotation = rotation ?? Quaternion.identity;
             }
             TransformNative parentNative = null;
-            if (parent != null)
+            if (parent)
             {
                 var p = parentNative = parent.TransformNative;
                 bool keepWorld = position.HasValue || worldPositionStays;
@@ -149,7 +149,7 @@ namespace OniMoono.Engine.Serialization
                 }
             }
             t.MarkDirty(false);
-            if (t is RectTransformNative rt) rt.ParentChangedInternal(position.HasValue || (parent != null && worldPositionStays));
+            if (t is RectTransformNative rt) rt.ParentChangedInternal(position.HasValue || (parent && worldPositionStays));
 
             // 4. Lifecycle.
             Lifecycle.UpdateActiveInHierarchy(rootClone);

@@ -76,7 +76,7 @@ namespace OniMoono.Engine.IMGUI
                     if (c == '\t' || c == '\0' || (c == '\n' && !multiline)) break;
                     if (c != '\n' && char.IsControl(c)) break;
                     var font = style.ResolvedFont;
-                    if (c != '\n' && font != null && !font.HasCharacter(c)) break;
+                    if (c != '\n' && font && !font.HasCharacter(c)) break;
                     editor.SaveBackup();
                     editor.Insert(c);
                     e.Use();

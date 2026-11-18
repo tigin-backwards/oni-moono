@@ -22,6 +22,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OniMoono.UnityEngine/OniMoono.UnityEngine.csproj" />
+    <!-- Comparisons of engine records and facades by reference (IdentityAnalyzer). -->
+    <ProjectReference Include="../OniMoono.Analyzers/OniMoono.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="../OniMoono.Desktop/OniMoono.Desktop.csproj" />
     <ProjectReference Include="../Unity.InternalAPIEngineBridge.004/Unity.InternalAPIEngineBridge.004.csproj" />
     <!-- Steamworks.NET built for CoreCLR; replaces the shipped copy (ARCHITECTURE §2.1). -->

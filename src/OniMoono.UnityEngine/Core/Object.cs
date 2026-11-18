@@ -32,7 +32,7 @@ namespace UnityEngine
         public Object()
         {
             var pending = s_PendingNative;
-            if (pending != null && GetType() == s_PendingType)
+            if (pending is not null && GetType() == s_PendingType)
             {
                 s_PendingNative = null;
                 s_PendingType = null;
@@ -60,7 +60,7 @@ namespace UnityEngine
             try
             {
                 var obj = (T)Activator.CreateInstance(type, nonPublic: true);
-                if (native.Managed != obj) throw new InvalidOperationException($"{type} did not chain to UnityEngine.Object's constructor");
+                if (!ReferenceEquals(native.Managed, obj)) throw new InvalidOperationException($"{type} did not chain to UnityEngine.Object's constructor");
                 return obj;
             }
             finally
@@ -91,7 +91,7 @@ namespace UnityEngine
             var native = Native;
             Volatile.Write(ref m_CachedPtr, IntPtr.Zero);
             m_Native = null;
-            if (native != null) ObjectTable.Unregister(native);
+            if (native is not null) ObjectTable.Unregister(native);
         }
 
         /// The table handle (zero once destroyed).
@@ -110,7 +110,7 @@ namespace UnityEngine
             get
             {
                 var n = Native;
-                if (n == null) ThrowNullReference(this);
+                if (n is null) ThrowNullReference(this);
                 return n;
             }
         }
@@ -126,7 +126,7 @@ namespace UnityEngine
         public EntityId GetEntityId()
         {
             var n = Native;
-            return n == null ? EntityId.None : EntityId.From(n.InstanceId);
+            return n is null ? EntityId.None : EntityId.From(n.InstanceId);
         }
 
         public override int GetHashCode() => base.GetHashCode();
@@ -156,7 +156,7 @@ namespace UnityEngine
         public override string ToString()
         {
             var n = Native;
-            if (n == null) return "null";
+            if (n is null) return "null";
             return (n is ComponentNative c ? c.GameObject.Name : n.Name) + " (" + GetType().FullName + ")";
         }
 

@@ -26,7 +26,7 @@ namespace OniMoono.Engine.IMGUI
         {
             get
             {
-                if (textureClip != null) return textureClip;
+                if (textureClip) return textureClip;
                 textureClip = new Material(Shader.Find("Hidden/Internal-GUITextureClip")) { hideFlags = HideFlags.HideAndDontSave };
                 textureClip.SetTexture(ClipTex, Texture2D.whiteTexture);
                 textureClip.SetMatrix(ClipMatrix, Matrix4x4.identity);
@@ -40,7 +40,7 @@ namespace OniMoono.Engine.IMGUI
             get
             {
                 if (!active) return null;
-                if (blit != null) return blit;
+                if (blit) return blit;
                 blit = new Material(Shader.Find("Hidden/Internal-GUITextureBlit")) { hideFlags = HideFlags.HideAndDontSave };
                 blit.SetTexture(ClipTex, Texture2D.whiteTexture);
                 blit.SetMatrix(ClipMatrix, Matrix4x4.identity);
@@ -53,7 +53,7 @@ namespace OniMoono.Engine.IMGUI
         {
             get
             {
-                if (textClip != null) return textClip;
+                if (textClip) return textClip;
                 textClip = new Material(Shader.Find("Hidden/Internal-GUITextureClipText")) { hideFlags = HideFlags.HideAndDontSave };
                 textClip.SetTexture(ClipTex, Texture2D.whiteTexture);
                 textClip.SetMatrix(ClipMatrix, Matrix4x4.identity);
@@ -98,7 +98,7 @@ namespace OniMoono.Engine.IMGUI
         /// their size, edges stretch along one axis, the centre along both).
         public static void DrawTexture(Rect rect, Texture texture, Rect uv, Color color, RectOffset border, Material material = null)
         {
-            if (!CanDraw || texture == null || rect.width <= 0f || rect.height <= 0f) return;
+            if (!CanDraw || !texture || rect.width <= 0f || rect.height <= 0f) return;
             vertices.Clear();
             var abs = ClipStack.Unclip(rect);
             var clip = ClipStack.AbsoluteVisible;
@@ -161,12 +161,12 @@ namespace OniMoono.Engine.IMGUI
         /// (local, null: only the GUIClip).
         public static void DrawText(Rect rect, string text, Font font, int fontSize, FontStyle fontStyle, TextAnchor alignment, bool wordWrap, bool richText, Color color, Rect? textClip)
         {
-            if (!CanDraw || font == null || string.IsNullOrEmpty(text)) return;
+            if (!CanDraw || !font || string.IsNullOrEmpty(text)) return;
             var settings = GUIText.Settings(font, fontSize, fontStyle, alignment, wordWrap, richText, rect.size, aligned: true);
             settings.color = Color.white;
             generator.Populate(text, settings);
-            var texture = font.material != null ? font.material.mainTexture : null;
-            if (texture == null) return;
+            var texture = font.material ? font.material.mainTexture : null;
+            if (!texture) return;
             var abs = ClipStack.Unclip(rect);
             var clip = ClipStack.AbsoluteVisible;
             if (textClip is { } local)
@@ -241,8 +241,8 @@ namespace OniMoono.Engine.IMGUI
             {
                 font = font,
                 color = Color.white,
-                fontSize = font != null && font.dynamic ? fontSize : 0,
-                fontStyle = font != null && font.dynamic ? fontStyle : FontStyle.Normal,
+                fontSize = font && font.dynamic ? fontSize : 0,
+                fontStyle = font && font.dynamic ? fontStyle : FontStyle.Normal,
                 lineSpacing = LineSpacing(font, fontSize),
                 richText = richText,
                 scaleFactor = 1f,
@@ -266,7 +266,7 @@ namespace OniMoono.Engine.IMGUI
         /// as its text is measured (Size); other fonts keep their own.
         static float LineSpacing(Font font, int fontSize)
         {
-            if (font == null || !IsLegacyRuntime(font)) return 1f;
+            if (!font || !IsLegacyRuntime(font)) return 1f;
             var native = (Text.FontNative)font.NativeOrThrow;
             int size = PixelSize(native, fontSize);
             native.PixelLineMetrics(size, out _, out _, out int pitch, out _);
@@ -277,7 +277,7 @@ namespace OniMoono.Engine.IMGUI
         /// built-in font it is a whole number: Font.lineHeight (14) at the font's own size.
         public static float LineHeight(Font font, int fontSize)
         {
-            if (font == null) return 0f;
+            if (!font) return 0f;
             var native = (Text.FontNative)font.NativeOrThrow;
             int size = PixelSize(native, fontSize);
             native.LineMetrics(size, out _, out _, out float lineHeight);
@@ -292,7 +292,7 @@ namespace OniMoono.Engine.IMGUI
         /// stepped up the same way (27.31 for two at 13).
         public static Vector2 Size(string text, Font font, int fontSize, FontStyle fontStyle, bool richText, float width)
         {
-            if (font == null) return Vector2.zero;
+            if (!font) return Vector2.zero;
             float line = LineHeight(font, fontSize);
             if (string.IsNullOrEmpty(text)) return new Vector2(0f, line);
             bool wrap = width > 0f;
@@ -318,7 +318,7 @@ namespace OniMoono.Engine.IMGUI
             lineHeight = LineHeight(font, fontSize);
             lineStarts = new List<int> { 0 };
             var result = new List<(Vector2, int)>();
-            if (font == null)
+            if (!font)
             {
                 for (int i = 0; i <= (text?.Length ?? 0); i++) result.Add((Vector2.zero, 0));
                 return result;

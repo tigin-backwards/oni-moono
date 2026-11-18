@@ -331,7 +331,7 @@ namespace OniMoono.Engine.IMGUI
         public static void DrawTexture(Rect position, Texture image, ScaleMode scaleMode, bool alphaBlend, float imageAspect, Color tint)
         {
             GUIStateData.RequireGUI();
-            if (image == null || Current.type != EventType.Repaint) return;
+            if (!image || Current.type != EventType.Repaint) return;
             if (imageAspect == 0f) imageAspect = image.height > 0 ? (float)image.width / image.height : 1f;
             var uv = new Rect(0f, 0f, 1f, 1f);
             var rect = position;
@@ -369,7 +369,7 @@ namespace OniMoono.Engine.IMGUI
         public static void DrawTextureWithTexCoords(Rect position, Texture image, Rect texCoords, bool alphaBlend, Color tint)
         {
             GUIStateData.RequireGUI();
-            if (image == null || Current.type != EventType.Repaint) return;
+            if (!image || Current.type != EventType.Repaint) return;
             if (!GUIStateData.Enabled) tint.a *= 0.5f;
             GUIRenderer.DrawTexture(position, image, texCoords, tint, null, alphaBlend ? null : GUIRenderer.BlitMaterial);
         }

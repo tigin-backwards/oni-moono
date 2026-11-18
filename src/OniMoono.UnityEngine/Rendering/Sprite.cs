@@ -285,7 +285,7 @@ namespace OniMoono.Engine.Rendering
         {
             get
             {
-                if (Atlas != null && Atlas.Native is SpriteAtlasNative atlas && atlas.RenderData.TryGetValue(RenderDataKey, out var packed)) return packed;
+                if (Atlas && Atlas.Native is SpriteAtlasNative atlas && atlas.RenderData.TryGetValue(RenderDataKey, out var packed)) return packed;
                 return Own;
             }
         }
@@ -295,7 +295,7 @@ namespace OniMoono.Engine.Rendering
             var r = Render;
             var t = r.Texture;
             var uvs = new Vector2[Vertices.Length];
-            if (t == null) return uvs;
+            if (!t) return uvs;
             float w = t.width, h = t.height;
             for (int i = 0; i < uvs.Length; i++)
             {
@@ -309,7 +309,7 @@ namespace OniMoono.Engine.Rendering
         public Vector4 OuterUvs()
         {
             var r = Render;
-            if (r.Texture == null) return Vector4.zero;
+            if (!r.Texture) return Vector4.zero;
             float w = r.Texture.width, h = r.Texture.height;
             var tr = r.TextureRect;
             return new Vector4(tr.xMin / w, tr.yMin / h, tr.xMax / w, tr.yMax / h);
@@ -320,7 +320,7 @@ namespace OniMoono.Engine.Rendering
         public Vector4 InnerUvs()
         {
             var r = Render;
-            if (r.Texture == null) return Vector4.zero;
+            if (!r.Texture) return Vector4.zero;
             float w = r.Texture.width, h = r.Texture.height;
             var tr = r.TextureRect;
             var pad = Padding();
@@ -440,7 +440,7 @@ namespace OniMoono.Engine.Rendering
         {
             var p = PackedSprites[index];
             var sprite = p.Resolver.Resolve(p.Pointer) as Sprite;
-            if (sprite == null) return null;
+            if (!sprite) return null;
             var clone = (Sprite)Object.Instantiate(sprite);
             return clone;
         }

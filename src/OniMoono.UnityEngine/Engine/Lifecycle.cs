@@ -97,7 +97,7 @@ namespace OniMoono.Engine
                     if (req != null && Components.First(go, req) == null)
                     {
                         if (typeof(Transform).IsAssignableFrom(req)) AddComponent(go, req);
-                        else if (AddComponent(go, req) == null) return null;
+                        else if (!AddComponent(go, req)) return null;
                     }
 
             var component = CreateComponent(go, type);
@@ -150,7 +150,7 @@ namespace OniMoono.Engine
             Array.Copy(comps, grown, comps.Length);
             grown[^1] = component;
             go.Components = grown;
-            if (go.Transform != null) Hierarchy.Touch(go.Transform);
+            if (go.Transform is not null) Hierarchy.Touch(go.Transform);
             return component;
         }
 
@@ -187,7 +187,7 @@ namespace OniMoono.Engine
         public static bool ParentActive(GameObjectNative go)
         {
             var parent = go.Transform.Parent;
-            return parent != null ? parent.GameObject.ActiveInHierarchy : go.Scene != null;
+            return parent is not null ? parent.GameObject.ActiveInHierarchy : go.Scene != null;
         }
 
         public static void SetActive(GameObjectNative go, bool value)
@@ -255,9 +255,9 @@ namespace OniMoono.Engine
             if (!go.ActiveInHierarchy) return;
             go.ActiveInHierarchy = false;
             foreach (var child in go.Transform.Children)
-                if (child.GameObject.ActiveSelf && child.Parent == go.Transform) DeactivateTree(child.GameObject);
+                if (child.GameObject.ActiveSelf && ReferenceEquals(child.Parent, go.Transform)) DeactivateTree(child.GameObject);
             foreach (var c in go.Components)
-                if (c.Native != null) Disable(c);
+                if (c.Native is not null) Disable(c);
             StopCoroutinesOn(go);
         }
 
@@ -270,7 +270,7 @@ namespace OniMoono.Engine
         static void ReapplyDrivenOnActivation(TransformNative t, List<GameObjectNative> changed)
         {
             if (changed.Count == 0) return;
-            var set = changed.Count == 1 ? null : new HashSet<GameObjectNative>(changed);
+            var set = changed.Count == 1 ? null : new HashSet<GameObjectNative>(changed, ReferenceEqualityComparer.Instance);
             void PostOrder(TransformNative n)
             {
                 foreach (var child in n.Children)
@@ -308,7 +308,7 @@ namespace OniMoono.Engine
                 foreach (var c in g.Components)
                 {
                     if (c is MonoBehaviour mb) scripts.Add((mb, (mb.Native as BehaviourNative)?.ExecutionOrder ?? 0, seq++));
-                    else if (g.ActiveInHierarchy && c.Native != null) AwakeAndEnable(c);
+                    else if (g.ActiveInHierarchy && c.Native is not null) AwakeAndEnable(c);
                 }
             scripts.Sort((a, b) => a.order != b.order ? a.order.CompareTo(b.order) : a.seq.CompareTo(b.seq));
             foreach (var (c, _, _) in scripts)
@@ -337,7 +337,7 @@ namespace OniMoono.Engine
         public static void AwakeAndEnable(Component c)
         {
             var native = c.Native as ComponentNative;
-            if (native == null) return;
+            if (native is null) return;
             if (native is BehaviourNative bn)
             {
                 if (!bn.AwakeCalled)
@@ -370,12 +370,12 @@ namespace OniMoono.Engine
                     // An Awake that throws leaves its behaviour disabled, with an OnDisable although
                     // it had no OnEnable; enabling it later runs OnEnable and Start as for any
                     // (measured in Unity's player, UnityProbe's PROBE_SCENARIO=u60, AW lines).
-                    if (threw && bn.Enabled && !bn.DestroyPending && c.Native != null)
+                    if (threw && bn.Enabled && !bn.DestroyPending && c.Native is not null)
                     {
                         bn.Enabled = false;
                         if (bn.Script?.OnDisable != null) Invoke(bn.Script.OnDisable, (MonoBehaviour)c);
                     }
-                    if (c.Native == null || !native.GameObject.ActiveInHierarchy)
+                    if (c.Native is null || !native.GameObject.ActiveInHierarchy)
                     {
                         if (reserved && !bn.IsActiveAndEnabledState) BehaviourManager.Unregister(bn);
                         return;
@@ -498,7 +498,7 @@ namespace OniMoono.Engine
         public static void ScheduleDestroy(Object obj, float delay)
         {
             var native = obj.Native;
-            if (native == null) return;
+            if (native is null) return;
             if (delay > 0f)
             {
                 timedDestroy.Add((obj, Time.time + delay));
@@ -582,7 +582,7 @@ namespace OniMoono.Engine
         public static void DestroyNow(Object obj, bool unloading = false)
         {
             var native = obj.Native;
-            if (native == null || native.Destroyed) return;
+            if (native is null || native.Destroyed) return;
             switch (obj)
             {
                 case GameObject go:
@@ -625,7 +625,7 @@ namespace OniMoono.Engine
             // 2. Detach from parent or scene; the parent's child list changed (measured in the
             //    original player, for Destroy and DestroyImmediate).
             var parent = t.Parent;
-            if (parent != null)
+            if (parent is not null)
             {
                 Hierarchy.RemoveChild(parent, t);
                 Messages.SendToComponents(parent.GameObject, s => s.OnTransformChildrenChanged);
@@ -701,7 +701,7 @@ namespace OniMoono.Engine
             {
                 var go = native.GameObject;
                 var comps = go.Components;
-                int index = Array.IndexOf(comps, c);
+                int index = ByReference.IndexOf(comps, c);
                 if (index >= 0)
                 {
                     var shrunk = new Component[comps.Length - 1];

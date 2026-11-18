@@ -43,7 +43,7 @@ namespace OniMoono.Engine.Mecanim
             CullingType = data.Int("m_CullingType");
             foreach (var p in data.Array("m_Animations"))
                 if (resolver.Resolve((PPtr)p) is AnimationClip clip) AddClip(clip, clip.name);
-            if (DefaultClip != null && State(DefaultClip.name) == null) AddClip(DefaultClip, DefaultClip.name);
+            if (DefaultClip && State(DefaultClip.name) == null) AddClip(DefaultClip, DefaultClip.name);
             Serialized = null;
         }
 
@@ -68,14 +68,18 @@ namespace OniMoono.Engine.Mecanim
 
         public void AddClip(AnimationClip clip, string name)
         {
-            if (clip == null) throw new NullReferenceException("AddClip: the clip is null.");
+            if (!clip) throw new NullReferenceException("AddClip: the clip is null.");
             var existing = State(name);
             if (existing != null) States.Remove(existing);
             var clipWrap = clip.wrapMode;
             States.Add(new AnimationState(name, clip, clipWrap == WrapMode.Default ? wrapMode : clipWrap));
         }
 
+        // Animation.RemoveClip(clip): Unity's equality, as the facade's caller compares (a destroyed
+        // clip matches the states whose clip was destroyed).
+#pragma warning disable MOONO002
         public void RemoveClip(AnimationClip clip) => States.RemoveAll(s => s.clip == clip);
+#pragma warning restore MOONO002
 
         public void RemoveClip(string name) => States.RemoveAll(s => s.name == name);
 
@@ -128,7 +132,7 @@ namespace OniMoono.Engine.Mecanim
         {
             binder = null; // the hierarchy may have changed while disabled
             LegacyAnimationSystem.Add(this);
-            if (PlayAutomatically && DefaultClip != null) Play(DefaultClip.name, PlayMode.StopSameLayer);
+            if (PlayAutomatically && DefaultClip) Play(DefaultClip.name, PlayMode.StopSameLayer);
         }
 
         public void OnDisable()
@@ -188,7 +192,7 @@ namespace OniMoono.Engine.Mecanim
 
         readonly Dictionary<(PropertyTarget Target, int Component), (float Sum, float Weight)> blend = new();
         readonly List<PropertyTarget> staged = new();
-        readonly HashSet<MonoBehaviour> notify = new();
+        readonly HashSet<MonoBehaviour> notify = new(ReferenceEqualityComparer.Instance);
 
         /// Writes the weighted values of the sampled states. Higher layers take their weight
         /// first and lower layers share what remains; a property keeps its own value in
@@ -226,10 +230,10 @@ namespace OniMoono.Engine.Mecanim
             foreach (var t in staged)
             {
                 t.Commit();
-                if (t.Notify != null) notify.Add(t.Notify);
+                if (t.Notify) notify.Add(t.Notify);
             }
             foreach (var mb in notify)
-                if (mb != null && mb.Native is BehaviourNative { Script.OnDidApplyAnimationProperties: { } message })
+                if (mb && mb.Native is BehaviourNative { Script.OnDidApplyAnimationProperties: { } message })
                     Lifecycle.Invoke(message, mb);
         }
 
@@ -267,10 +271,10 @@ namespace OniMoono.Engine.Mecanim
 
         public static void Add(AnimationNative a)
         {
-            if (!animations.Contains(a)) animations.Add(a);
+            if (!ByReference.Contains(animations, a)) animations.Add(a);
         }
 
-        public static void Remove(AnimationNative a) => animations.Remove(a);
+        public static void Remove(AnimationNative a) => ByReference.Remove(animations, a);
 
         static void Run(bool fixedStep)
         {

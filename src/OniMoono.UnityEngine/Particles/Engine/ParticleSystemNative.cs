@@ -327,7 +327,7 @@ namespace OniMoono.Engine.Particles
             switch (Config.EmitterVelocityMode)
             {
                 case 1:
-                    for (var t = GameObject.Transform; t != null; t = t.Parent)
+                    for (var t = GameObject.Transform; t is not null; t = t.Parent)
                         foreach (var comp in t.GameObject.Components)
                         {
                             if (comp.Native is RigidbodyNative rb) return rb.LinearVelocity.magnitude;

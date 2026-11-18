@@ -218,7 +218,7 @@ namespace OniMoono.Engine
         {
             for (int i = count; i < items.Length; i++)
             {
-                if (items[i] == null) continue;
+                if (items[i] is null) continue;
                 EngineLog.Engine($"child lists wrong ({++childListsWrong}): spare slot {i} of {items.Length} past {count} children holds {items[i].GameObject?.Name}");
                 break;
             }
@@ -333,7 +333,7 @@ namespace OniMoono.Engine
         void ComputeLocalToWorld()
         {
             var m = LocalTrs();
-            for (var p = Parent; p != null; p = p.Parent)
+            for (var p = Parent; p is not null; p = p.Parent)
             {
                 var pm = p.LocalTrs();
                 m = HierarchyMath.Mul(in pm, in m);
@@ -383,7 +383,7 @@ namespace OniMoono.Engine
                 if (Volatile.Read(ref cache.WorldDirty))
                 {
                     var m = LocalInverse();
-                    for (var p = Parent; p != null; p = p.Parent)
+                    for (var p = Parent; p is not null; p = p.Parent)
                     {
                         var pm = p.LocalInverse();
                         m = HierarchyMath.Mul(in m, in pm);
@@ -426,7 +426,7 @@ namespace OniMoono.Engine
                     // From the leaf up too: P0 · m0(P1 · m1(… L)), each level's product seen
                     // through that ancestor's scale signs (HierarchyMath.Mirror).
                     var r = LocalRotation;
-                    for (var p = Parent; p != null; p = p.Parent)
+                    for (var p = Parent; p is not null; p = p.Parent)
                         r = HierarchyMath.Mul(p.LocalRotation, HierarchyMath.Mirror(r, p.LocalScale));
                     worldRotation = r;
                     Volatile.Write(ref rotationDirty, false);
@@ -473,7 +473,7 @@ namespace OniMoono.Engine
             // A RectTransform at or below moved or resized: counted here and on every object
             // above (UI.RaycastInputs).
             if (rect)
-                for (var t = this; t != null; t = t.Parent) t.SubtreeMoves++;
+                for (var t = this; t is not null; t = t.Parent) t.SubtreeMoves++;
         }
 
         /// Whether a RectTransform was among those marked.

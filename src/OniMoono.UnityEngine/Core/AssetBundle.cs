@@ -257,11 +257,11 @@ namespace OniMoono.Engine.Assets
                 var files = new HashSet<string>(native.NodeKeys, StringComparer.Ordinal);
                 // Components go with their GameObjects (destroying one directly is refused).
                 foreach (var obj in ObjectLoader.LoadedFrom(files))
-                    if (obj != bundle && obj is not Component && obj != null) Object.DestroyImmediate(obj, true);
+                    if (!ReferenceEquals(obj, bundle) && obj is not Component && obj) Object.DestroyImmediate(obj, true);
             }
             foreach (var key in native.NodeKeys) ObjectLoader.ForgetFile(key);
             AssetSystem.UnmountBundle(native.NodeKeys);
-            Loaded.Remove(bundle);
+            ByReference.Remove(Loaded, bundle);
             Object.DestroyImmediate(bundle, true);
         }
     }

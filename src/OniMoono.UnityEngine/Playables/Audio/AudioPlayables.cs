@@ -19,7 +19,7 @@ namespace OniMoono.Engine.Playables
 
         public override void CheckEvaluable(PlayableNode node, OutputNode output, float effectiveWeight)
         {
-            if (Clip != null && effectiveWeight > 0f && output.Kind == typeof(UnityEngine.Audio.AudioPlayableOutput))
+            if (Clip && effectiveWeight > 0f && output.Kind == typeof(UnityEngine.Audio.AudioPlayableOutput))
                 throw new NotSupportedException($"Playing AudioClip '{Clip.name}' through a PlayableGraph needs Unity's audio mixer, which is not implemented.");
         }
     }

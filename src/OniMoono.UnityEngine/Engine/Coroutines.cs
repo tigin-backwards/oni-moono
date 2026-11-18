@@ -65,7 +65,7 @@ namespace OniMoono.Engine
         {
             while (!state.Done)
             {
-                if (state.Owner.Native == null) { Finish(state); return; }
+                if (state.Owner.Native is null) { Finish(state); return; }
                 var top = state.Stack.Peek();
                 bool moved;
                 try

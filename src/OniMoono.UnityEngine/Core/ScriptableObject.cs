@@ -16,7 +16,7 @@ namespace UnityEngine
         /// log, as in the player.
         public ScriptableObject()
         {
-            if (Native != null) return;
+            if (Native is not null) return;
             var type = GetType();
             Debug.LogWarning($"{type.FullName} must be instantiated using the ScriptableObject.CreateInstance method instead of new {type.Name}.");
             Bind(new NativeObject { Name = "" });
@@ -95,7 +95,7 @@ namespace OniMoono.Engine
         {
             var m = Get(so.GetType());
             Call(m.Awake, so);
-            if (so.Native != null) Call(m.OnEnable, so);
+            if (so.Native is not null) Call(m.OnEnable, so);
         }
 
         public static void Destroy(UnityEngine.ScriptableObject so)

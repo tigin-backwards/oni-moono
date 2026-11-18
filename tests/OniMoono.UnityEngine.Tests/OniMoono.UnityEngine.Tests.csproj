@@ -16,6 +16,8 @@
     <PackageReference Include="System.Security.Permissions" />
     <!-- PathGridPagesTests rewrites the game's Assembly-CSharp as the host does. -->
     <PackageReference Include="Mono.Cecil" />
+    <!-- IdentityAnalyzerTests runs the engine's analyzer on samples. -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
   </ItemGroup>
   <ItemGroup>
     <!-- What the tests need of the game install, and the skips without it (GameInstall). -->
@@ -32,6 +34,7 @@
     <ProjectReference Include="../../src/UnityEngine.UI/UnityEngine.UI.csproj" />
     <ProjectReference Include="../../src/Unity.TextMeshPro/Unity.TextMeshPro.csproj" />
     <ProjectReference Include="../../src/Unity.Timeline/Unity.Timeline.csproj" />
+    <ProjectReference Include="../../src/OniMoono.Analyzers/OniMoono.Analyzers.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- The host's settings precedence and file (PlayerSettingsTests): plain .NET, compiled in. -->

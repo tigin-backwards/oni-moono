@@ -27,7 +27,7 @@ namespace UnityEngine.UIElements
         /// registered object still alive is a second event system.
         internal static void RegisterEventSystem(Object eventSystem)
         {
-            if (activeEventSystem != null && !ReferenceEquals(activeEventSystem, eventSystem))
+            if (activeEventSystem && !ReferenceEquals(activeEventSystem, eventSystem))
                 Debug.LogWarning("There can be only one active Event System.", eventSystem);
             activeEventSystem = eventSystem;
         }
@@ -153,7 +153,7 @@ namespace UnityEngine.UIElements
         /// Destroys an object UI Toolkit created; the player is always in play mode.
         internal static void Destroy(Object obj)
         {
-            if (obj != null)
+            if (obj)
                 Object.Destroy(obj);
         }
     }

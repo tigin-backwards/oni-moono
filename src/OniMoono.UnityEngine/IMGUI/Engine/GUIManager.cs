@@ -45,7 +45,7 @@ namespace OniMoono.Engine.IMGUI
 
         static bool installed;
         static readonly List<GUIParticipant> participants = new();
-        static readonly Dictionary<BehaviourNative, GUIParticipant> byBehaviour = new();
+        static readonly Dictionary<BehaviourNative, GUIParticipant> byBehaviour = new(ReferenceEqualityComparer.Instance);
         /// The behaviours front to back.
         static readonly List<GUIParticipant> ordered = new();
         static long nextOrder;

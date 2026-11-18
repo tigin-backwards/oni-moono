@@ -34,7 +34,7 @@ namespace OniMoono.Engine.Assets
             foreach (Fields pair in pairs)
             {
                 var c = request.Resolver.Resolve(pair.PPtr("component")) as Component;
-                if (c == null) throw new InvalidDataException($"GameObject {native.Name}: missing component {pair.PPtr("component")}.");
+                if (!c) throw new InvalidDataException($"GameObject {native.Name}: missing component {pair.PPtr("component")}.");
                 components.Add(c);
             }
             native.Components = components.ToArray();
@@ -72,7 +72,7 @@ namespace OniMoono.Engine.Assets
             native.Serialized = null;
             native.GameObject = (GameObjectNative)request.Resolver.Resolve(f.PPtr("m_GameObject")).NativeOrThrow;
             var parent = request.Resolver.Resolve(f.PPtr("m_Father")) as Transform;
-            native.Parent = parent == null ? null : (TransformNative)parent.NativeOrThrow;
+            native.Parent = !parent ? null : (TransformNative)parent.NativeOrThrow;
             var children = f.Array("m_Children");
             var list = new List<TransformNative>(children.Length);
             foreach (PPtr child in children)

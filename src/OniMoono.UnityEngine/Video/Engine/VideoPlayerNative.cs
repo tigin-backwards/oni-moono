@@ -192,12 +192,12 @@ namespace OniMoono.Engine.Video
         public bool IsPrepared => phase == Phase.Prepared;
         public bool IsPlaying => playing;
         public bool IsPaused => paused;
-        public bool HasPresentedFrame => FrameTexture != null && presentedIndex >= 0;
+        public bool HasPresentedFrame => FrameTexture && presentedIndex >= 0;
 
         /// A decoded frame is waiting to be presented (tests step playback deterministically).
         public bool HasQueuedFrame => worker?.Peek() != null;
 
-        VideoClipNative ClipData => Source == VideoSourceKind.VideoClip && Clip != null ? Clip.Native as VideoClipNative : null;
+        VideoClipNative ClipData => Source == VideoSourceKind.VideoClip && Clip ? Clip.Native as VideoClipNative : null;
 
         public double FrameRate => ClipData?.FrameRate ?? 0;
         public ulong FrameCount => ClipData?.FrameCount ?? 0;
@@ -355,7 +355,7 @@ namespace OniMoono.Engine.Video
             presentedIndex = -1;
             loop = baseLoop = 0;
             if (resetTime) clock = 0;
-            if (FrameTexture != null)
+            if (FrameTexture)
             {
                 Object.DestroyImmediate(FrameTexture);
                 FrameTexture = null;
@@ -391,7 +391,7 @@ namespace OniMoono.Engine.Video
             if (error != null)
             {
                 StopInternal(resetTime: true);
-                ReportError("VideoPlayer cannot play " + (Clip != null ? Clip.name : "the clip") + ": " + error);
+                ReportError("VideoPlayer cannot play " + (Clip ? Clip.name : "the clip") + ": " + error);
                 return;
             }
             double delta = Delta();
@@ -550,7 +550,7 @@ namespace OniMoono.Engine.Video
         unsafe void Present(DecodedFrame f)
         {
             var stream = worker.Stream;
-            if (FrameTexture == null)
+            if (!FrameTexture)
             {
                 FrameTexture = new Texture2D(stream.Width, stream.Height, TextureFormat.RGBA32, false)
                 {
@@ -592,17 +592,17 @@ namespace OniMoono.Engine.Video
 
         public static void Add(VideoPlayerNative p)
         {
-            if (!players.Contains(p)) players.Add(p);
+            if (!ByReference.Contains(players, p)) players.Add(p);
         }
 
-        public static void Remove(VideoPlayerNative p) => players.Remove(p);
+        public static void Remove(VideoPlayerNative p) => ByReference.Remove(players, p);
 
         static void Update()
         {
             if (players.Count == 0) return;
             foreach (var p in players.ToArray())
             {
-                if (!players.Contains(p)) continue;
+                if (!ByReference.Contains(players, p)) continue;
                 try
                 {
                     p.Update();
@@ -627,7 +627,7 @@ namespace OniMoono.Engine.Video
         public static Texture2D RenderTextureContent(RenderTexture target, out VideoAspect aspect)
         {
             aspect = VideoAspect.NoScaling;
-            if (target == null) return null;
+            if (!target) return null;
             for (int i = VideoSystem.Players.Count - 1; i >= 0; i--)
             {
                 var p = VideoSystem.Players[i];
@@ -649,7 +649,7 @@ namespace OniMoono.Engine.Video
         public static List<CameraVideo> CameraVideos(Camera camera, List<CameraVideo> result)
         {
             result.Clear();
-            if (camera == null) return result;
+            if (!camera) return result;
             foreach (var p in VideoSystem.Players)
             {
                 if (p.RenderMode is not (VideoRenderTarget.CameraFarPlane or VideoRenderTarget.CameraNearPlane)) continue;

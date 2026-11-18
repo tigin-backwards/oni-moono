@@ -66,7 +66,7 @@ namespace UnityEngine
             else if (focus) state = on ? m_OnFocused : m_Focused;
             else if (isHover) state = on ? m_OnHover : m_Hover;
             else state = baseState;
-            var background = state.m_Background != null ? state.m_Background : baseState.m_Background;
+            var background = state.m_Background ? state.m_Background : baseState.m_Background;
             var text = state.m_TextColor != default ? state.m_TextColor : baseState.m_TextColor;
             return (background, text);
         }
@@ -84,7 +84,7 @@ namespace UnityEngine
         /// tinted by GUI.color × GUI.backgroundColor.
         void DrawBackground(Rect position, Texture2D background)
         {
-            if (background == null) return;
+            if (!background) return;
             var tint = Dim(Multiply(GUIStateData.Color, GUIStateData.BackgroundColor));
             GUIRenderer.DrawTexture(m_Overflow.Add(position), background, new Rect(0f, 0f, 1f, 1f), tint, m_Border);
         }

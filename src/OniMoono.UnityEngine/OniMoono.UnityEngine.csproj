@@ -14,6 +14,8 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../OniMoono.Assets/OniMoono.Assets.csproj" />
+    <!-- Comparisons of engine records and facades by reference (IdentityAnalyzer). -->
+    <ProjectReference Include="../OniMoono.Analyzers/OniMoono.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <!-- stb_image: PNG/JPEG decoding for ImageConversion.LoadImage. -->
     <PackageReference Include="Ahwoo.BRUTAL.Stb" />
     <!-- FreeType (native only): glyph rasterization for TextCore and legacy fonts. -->

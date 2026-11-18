@@ -169,7 +169,7 @@ namespace OniMoono.Engine.Serialization
                 case ValueKind.ObjectReference:
                     StartObject();
                     Name("instanceID");
-                    Raw(value is Object o && o != null ? o.GetInstanceID().ToString(CultureInfo.InvariantCulture) : "0");
+                    Raw(value is Object o && o ? o.GetInstanceID().ToString(CultureInfo.InvariantCulture) : "0");
                     EndObject();
                     break;
                 case ValueKind.BuiltinStruct: WriteBuiltinStruct(value); break;

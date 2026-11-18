@@ -53,13 +53,13 @@ namespace OniMoono.Engine.UI
         public static void Write(string path)
         {
             var text = new StringBuilder();
-            var paths = new Dictionary<GameObjectNative, string>();
+            var paths = new Dictionary<GameObjectNative, string>(ReferenceEqualityComparer.Instance);
             int elements = 0;
             foreach (var go in Finder.ActiveGameObjects())
             {
                 var parent = go.Transform.Parent?.GameObject;
                 var name = go.Name;
-                var key = parent != null && paths.TryGetValue(parent, out var p) ? p + "/" + name : "/" + name;
+                var key = parent is not null && paths.TryGetValue(parent, out var p) ? p + "/" + name : "/" + name;
                 // Siblings with the same name are told apart by their sibling index.
                 key += "#" + ((GameObject)go.Managed).transform.GetSiblingIndex();
                 paths[go] = key;
@@ -96,9 +96,9 @@ namespace OniMoono.Engine.UI
             text.Append($" v={vertices} i={indices}");
             if (g != null && vertices > 0) text.Append($" h={OrderedHash(g):x8} t={TriangleHash(g):x8}");
             var materials = new List<string>();
-            foreach (var m in r.Materials) materials.Add(m == null ? "null" : m.name + "(" + m.shader?.name + ")");
+            foreach (var m in r.Materials) materials.Add(!m ? "null" : m.name + "(" + m.shader?.name + ")");
             text.Append(" mat=").Append(string.Join(";", materials));
-            if (r.Texture != null) text.Append(" tex=").Append(r.Texture.name);
+            if (r.Texture) text.Append(" tex=").Append(r.Texture.name);
             text.Append(" col=").Append(C(r.Color));
             if (r.ClipRect is { } clip) text.Append(" clip=").Append(F(clip.x)).Append(',').Append(F(clip.y)).Append(',').Append(F(clip.width)).Append(',').Append(F(clip.height));
             if (r.Cull) text.Append(" cull");
@@ -179,7 +179,7 @@ namespace OniMoono.Engine.UI
             Vector2 v2 => F(v2.x) + "," + F(v2.y),
             Color c => C(c),
             string s => "\"" + s.Replace("\\", "\\\\").Replace("\n", "\\n").Replace("\"", "\\\"") + "\"",
-            UnityEngine.Object o => o == null ? "null" : o.name,
+            UnityEngine.Object o => !o ? "null" : o.name,
             _ => Convert.ToString(v, CultureInfo.InvariantCulture),
         };
 

@@ -34,7 +34,7 @@ namespace OniMoono.Engine.UI
         /// frame, as before).
         public static int Watch(TransformNative t)
         {
-            if (t == null || t.ScaleWatchSlot != 0) return 0;
+            if (t is null || t.ScaleWatchSlot != 0) return 0;
             int slot;
             if (free.Count > 0) slot = free.Pop();
             else
@@ -60,7 +60,7 @@ namespace OniMoono.Engine.UI
         {
             if (slot <= 0) return;
             var t = owners[slot];
-            if (t == null) return;
+            if (t is null) return;
             if (t.ScaleWatchSlot == slot) t.ScaleWatchSlot = 0;
             owners[slot] = null;
             Armed[slot] = 1;

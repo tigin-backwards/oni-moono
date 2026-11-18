@@ -174,7 +174,7 @@ namespace OniMoono.Desktop.Gl
             int slash = useName.LastIndexOf('/');
             if (slash <= 0) return (null, null);
             var shader = ShaderRegistry.Find(useName[..slash]);
-            if (shader == null) return (null, null);
+            if (!shader) return (null, null);
             var native = (ShaderNative)shader.NativeOrThrow;
             var passName = useName[(slash + 1)..];
             foreach (var s in native.SubShaders)
@@ -329,9 +329,9 @@ namespace OniMoono.Desktop.Gl
         /// passes, or with `sink` adds them to it instead (verify mode).
         void Draw(in DrawRequest draw, FrameArena arena, List<ProgramInputs> sink)
         {
-            if (draw.Material == null || draw.Mesh == null) return;
+            if (!draw.Material || draw.Mesh == null) return;
             var material = (MaterialNative)draw.Material.NativeOrThrow;
-            if (material.Shader == null) return;
+            if (!material.Shader) return;
             var shader = (ShaderNative)material.Shader.NativeOrThrow;
             if (!shader.HasOpenGLCorePrograms) return;
             if (draw.SubMesh < 0 || draw.SubMesh >= draw.Mesh.SubMeshes.Count) return;
@@ -588,9 +588,9 @@ namespace OniMoono.Desktop.Gl
         bool TryRecordAhead(in DrawRequest draw, Chunk c, out bool prepare)
         {
             prepare = false;
-            if (draw.Material == null || draw.Mesh == null) return true;
+            if (!draw.Material || draw.Mesh == null) return true;
             var material = (MaterialNative)draw.Material.NativeOrThrow;
-            if (material.Shader == null) return true;
+            if (!material.Shader) return true;
             var shader = (ShaderNative)material.Shader.NativeOrThrow;
             if (!shader.HasOpenGLCorePrograms) return true;
             if (draw.SubMesh < 0 || draw.SubMesh >= draw.Mesh.SubMeshes.Count) return true;

@@ -79,7 +79,7 @@ namespace OniMoono.Engine
             var native = (GameObjectNative)go.Native;
             var t = native.Transform;
             // Unity applies DontDestroyOnLoad to the root of the hierarchy only and warns otherwise.
-            if (t.Parent != null)
+            if (t.Parent is not null)
             {
                 Debug.LogWarning("DontDestroyOnLoad only works for root GameObjects or components on root GameObjects.");
                 return;

@@ -62,7 +62,7 @@ namespace OniMoono.Engine.IMGUI
         }
 
         /// The skin of the running call, or the default skin outside OnGUI.
-        public static GUISkin CurrentSkin => InGUI && Skin != null ? Skin : DefaultSkin.Get();
+        public static GUISkin CurrentSkin => InGUI && Skin ? Skin : DefaultSkin.Get();
 
         /// GUI functions that need an OnGUI call check it here.
         public static void RequireGUI()

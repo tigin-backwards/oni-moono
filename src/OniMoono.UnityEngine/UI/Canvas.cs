@@ -52,7 +52,7 @@ namespace UnityEngine
 
         CanvasNative RootData => CanvasSystem.RootOf(Data);
 
-        public bool isRootCanvas => CanvasSystem.RootOf(Data) == Data;
+        public bool isRootCanvas => ReferenceEquals(CanvasSystem.RootOf(Data), Data);
 
         public Canvas rootCanvas => (Canvas)CanvasSystem.RootOf(Data).Managed;
 
@@ -110,7 +110,7 @@ namespace UnityEngine
             get
             {
                 var d = Data;
-                return d.OverridePixelPerfect || CanvasSystem.RootOf(d) == d ? d.PixelPerfect : CanvasSystem.RootOf(d).PixelPerfect;
+                return d.OverridePixelPerfect || ReferenceEquals(CanvasSystem.RootOf(d), d) ? d.PixelPerfect : CanvasSystem.RootOf(d).PixelPerfect;
             }
             set => Data.PixelPerfect = value;
         }
@@ -308,7 +308,7 @@ namespace UnityEngine
         static bool IsText(OniMoono.Engine.GameObjectNative go)
         {
             foreach (var c in go.Components)
-                if (c != null && c.GetType().Namespace == "TMPro") return true;
+                if (c && c.GetType().Namespace == "TMPro") return true;
             return false;
         }
 
@@ -976,7 +976,7 @@ namespace OniMoono.Engine.UI
         public int DepthEpoch;
 
         /// Its depths stand: its sort root has not renumbered since, or been reset.
-        public bool HasDepth => DepthBatch != null && DepthBatch.DepthEpoch == DepthEpoch;
+        public bool HasDepth => DepthBatch is not null && DepthBatch.DepthEpoch == DepthEpoch;
         public int Version;
 
         /// The element's transform relative to its root canvas at the last build.

@@ -329,7 +329,7 @@ namespace OniMoono.Engine.Rendering
         {
             if (name == null) return null;
             lock (loaded)
-                if (loaded.TryGetValue(name, out var w) && w.TryGetTarget(out var s) && s.Managed is Shader live && live != null) return live;
+                if (loaded.TryGetValue(name, out var w) && w.TryGetTarget(out var s) && s.Managed is Shader live && live) return live;
             var pptr = ProjectSettings.ShaderNames.GetValueOrDefault(name);
             if (pptr.IsNull) return null;
             return ObjectLoader.Resolve(ProjectSettings.Managers, pptr) as Shader;

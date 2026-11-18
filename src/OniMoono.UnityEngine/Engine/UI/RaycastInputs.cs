@@ -43,10 +43,10 @@ namespace OniMoono.Engine.UI
             public void Take(Component canvas)
             {
                 count = 0;
-                if (canvas == null || canvas.gameObject.Native is not GameObjectNative go || go.Transform is not { } t) return;
+                if (!canvas || canvas.gameObject.Native is not GameObjectNative go || go.Transform is not { } t) return;
                 Add(go, go.SubtreeVersion, t.SubtreeMoves, t.WorldStamp);
                 AddNumbering(go);
-                for (var p = t.Parent; p != null; p = p.Parent)
+                for (var p = t.Parent; p is not null; p = p.Parent)
                 {
                     var o = p.GameObject;
                     Add(o, o.SelfVersion, o.CanvasHiddenAt, o.CanvasHiddenAt >= 0 ? o.SubtreeVersion : -1);

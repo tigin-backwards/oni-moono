@@ -77,10 +77,10 @@ namespace OniMoono.Engine
                 bool fromRoot = name.StartsWith('/');
                 foreach (var go in ActiveGameObjects())
                 {
-                    if (fromRoot && go.Transform.Parent != null) continue;
+                    if (fromRoot && go.Transform.Parent is not null) continue;
                     if (go.Name != parts[0]) continue;
                     var t = FindPath(go.Transform, parts, 1);
-                    if (t != null && t.GameObject.ActiveInHierarchy) return (GameObject)t.GameObject.Managed;
+                    if (t is not null && t.GameObject.ActiveInHierarchy) return (GameObject)t.GameObject.Managed;
                 }
                 return null;
             }
@@ -90,7 +90,7 @@ namespace OniMoono.Engine
             // in between).
             GameObjectNative first = null;
             foreach (var go in ActiveGameObjects())
-                if (go.Name == name && (first == null || go.ActivatedAt < first.ActivatedAt)) first = go;
+                if (go.Name == name && (first is null || go.ActivatedAt < first.ActivatedAt)) first = go;
             return (GameObject)first?.Managed;
         }
 
@@ -102,7 +102,7 @@ namespace OniMoono.Engine
             {
                 if (child.Name != parts[index] && child.GameObject.Name != parts[index]) continue;
                 var found = FindPath(child, parts, index + 1);
-                if (found != null) return found;
+                if (found is not null) return found;
             }
             return null;
         }

@@ -67,8 +67,8 @@ namespace UnityEngine
             get
             {
                 var native = Native3D;
-                if (!native.Enabled || native.GameObject == null || !native.GameObject.ActiveInHierarchy) return null;
-                for (var t = native.GameObject.Transform; t != null; t = t.Parent)
+                if (!native.Enabled || native.GameObject is null || !native.GameObject.ActiveInHierarchy) return null;
+                for (var t = native.GameObject.Transform; t is not null; t = t.Parent)
                     foreach (var c in t.GameObject.Components)
                         if (c is Rigidbody body) return body;
                 return null;
@@ -308,7 +308,7 @@ namespace OniMoono.Engine
         {
             if (id == EntityId.None) return null;
             foreach (var c in Snapshot())
-                if (c.InstanceId == id && c.Managed != null) return c.Managed;
+                if (c.InstanceId == id && c.Managed) return c.Managed;
             return null;
         }
 
@@ -321,9 +321,9 @@ namespace OniMoono.Engine
             bool found = false;
             foreach (var native in Snapshot())
             {
-                if (native is not ColliderNative c || !c.Enabled || c.Managed == null) continue;
+                if (native is not ColliderNative c || !c.Enabled || !c.Managed) continue;
                 var go = c.GameObject;
-                if (go == null || !go.ActiveInHierarchy || (layerMask & (1 << go.Layer)) == 0) continue;
+                if (go is null || !go.ActiveInHierarchy || (layerMask & (1 << go.Layer)) == 0) continue;
                 if (c.IsTrigger && !QueriesHitTriggers) continue;
                 if (!c.Raycast(origin, direction, out float distance, out var normal)) continue;
                 if (distance > maxDistance || (found && distance >= hit.m_Distance)) continue;

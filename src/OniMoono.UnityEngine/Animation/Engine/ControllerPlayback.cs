@@ -100,7 +100,7 @@ namespace OniMoono.Engine.Mecanim
             samples = new float[data.Clips.Length][];
             for (int c = 0; c < data.Clips.Length; c++)
             {
-                var clip = data.Clips[c] == null ? null : data.Clips[c].Native as AnimationClipNative;
+                var clip = !data.Clips[c] ? null : data.Clips[c].Native as AnimationClipNative;
                 var curves = clip?.Curves ?? ClipCurves.Empty;
                 var map = new int[curves.CurveCount];
                 Array.Fill(map, -1);
@@ -233,7 +233,7 @@ namespace OniMoono.Engine.Mecanim
         float MotionLength(LayerPlayback layer, int state)
         {
             int clip = state < 0 ? -1 : layer.Machine.States[state].ClipByMotionSet[layer.Data.MotionSetIndex];
-            if (clip < 0 || Data.Clips[clip] == null || Data.Clips[clip].Native is not AnimationClipNative c) return 1f; // an empty state lasts one second
+            if (clip < 0 || !Data.Clips[clip] || Data.Clips[clip].Native is not AnimationClipNative c) return 1f; // an empty state lasts one second
             float length = c.Length;
             return length > 0f ? length : 1f;
         }
@@ -497,7 +497,7 @@ namespace OniMoono.Engine.Mecanim
             Array.Clear(written);
             var s = layer.Machine.States[state];
             int clip = s.ClipByMotionSet[layer.Data.MotionSetIndex];
-            if (clip >= 0 && Data.Clips[clip] != null && Data.Clips[clip].Native is AnimationClipNative c)
+            if (clip >= 0 && Data.Clips[clip] && Data.Clips[clip].Native is AnimationClipNative c)
             {
                 var buffer = samples[clip];
                 float offset = s.CycleOffsetParamId != 0 ? FloatParameter(s.CycleOffsetParamId, s.CycleOffset) : s.CycleOffset;
@@ -582,7 +582,7 @@ namespace OniMoono.Engine.Mecanim
         }
 
         readonly List<PropertyTarget> staged = new();
-        readonly HashSet<MonoBehaviour> notify = new();
+        readonly HashSet<MonoBehaviour> notify = new(ReferenceEqualityComparer.Instance);
 
         void Write(float[] values, bool[] written)
         {
@@ -596,10 +596,10 @@ namespace OniMoono.Engine.Mecanim
             foreach (var t in staged)
             {
                 t.Commit();
-                if (t.Notify != null) notify.Add(t.Notify);
+                if (t.Notify) notify.Add(t.Notify);
             }
             foreach (var mb in notify)
-                if (mb != null && mb.Native is BehaviourNative { Script.OnDidApplyAnimationProperties: { } message })
+                if (mb && mb.Native is BehaviourNative { Script.OnDidApplyAnimationProperties: { } message })
                     Lifecycle.Invoke(message, mb);
         }
     }

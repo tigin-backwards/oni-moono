@@ -111,8 +111,8 @@ namespace OniMoono.Engine.Rendering
         /// them (1 << Layer): a camera whose culling mask has none of them skips the list, whose
         /// every mesh would fail that test.
         static int queuedLayers, frameQueuedLayers;
-        static readonly HashSet<RendererNative> visibleThisFrame = new();
-        static readonly HashSet<RendererNative> visibleLastFrame = new();
+        static readonly HashSet<RendererNative> visibleThisFrame = new(ReferenceEqualityComparer.Instance);
+        static readonly HashSet<RendererNative> visibleLastFrame = new(ReferenceEqualityComparer.Instance);
 
         /// Additional draws for a camera (world-space and camera-space canvases, particles…).
         public static event Action<Camera, CameraNative, List<DrawItem>> CollectDraws;
@@ -227,7 +227,7 @@ namespace OniMoono.Engine.Rendering
             for (int i = 0; i < items.Count; i++)
             {
                 var r = items[i];
-                if (r == null) continue;
+                if (r is null) continue;
                 r.CandidateSlot = kept;
                 bounds[kept] = bounds[i];
                 states[kept] = states[i];
@@ -254,7 +254,7 @@ namespace OniMoono.Engine.Rendering
                 for (int i = 0; i < list.Items.Count; i++)
                 {
                     var r = list.Items[i];
-                    if (r == null || list.States[i] != Kept) continue;
+                    if (r is null || list.States[i] != Kept) continue;
                     kept++;
                     if (!CullCache.SameBits(list.Bounds[i], r.WorldBounds)) wrong++;
                 }
@@ -263,11 +263,11 @@ namespace OniMoono.Engine.Rendering
 
         /// The cull candidates in their order (tests).
         internal static IEnumerable<RendererNative> Candidates
-            => candidates.SelectMany(l => l.Items).Where(r => r != null).OrderBy(r => r.CandidateStamp);
+            => candidates.SelectMany(l => l.Items).Where(r => r is not null).OrderBy(r => r.CandidateStamp);
 
         public static void Queue(QueuedMesh m)
         {
-            m.DuringRender = Current != null;
+            m.DuringRender = (bool)Current;
             queued.Add(m);
             queuedLayers |= 1 << m.Layer;
         }
@@ -402,13 +402,13 @@ namespace OniMoono.Engine.Rendering
             for (int i = 0; i < cameras.Length; i++)
             {
                 var n = (CameraNative)cameras[i].Native;
-                if (n == null || !n.GameObject.ActiveInHierarchy) continue;
-                bool offscreen = n.TargetTexture != null || n.TargetColorBuffers != null;
+                if (n is null || !n.GameObject.ActiveInHierarchy) continue;
+                bool offscreen = n.TargetTexture || n.TargetColorBuffers != null;
                 order.Add((offscreen ? 0 : 1, n.Depth, i, cameras[i]));
             }
             order.Sort((a, b) => a.Key != b.Key ? a.Key.CompareTo(b.Key) : a.Depth != b.Depth ? a.Depth.CompareTo(b.Depth) : a.Index.CompareTo(b.Index));
             foreach (var entry in order)
-                if (entry.Camera != null && (lightCamera == null || entry.Camera.Native != lightCamera)) RenderCamera(entry.Camera);
+                if (entry.Camera && (lightCamera is null || !ReferenceEquals(entry.Camera.Native, lightCamera))) RenderCamera(entry.Camera);
             order.Clear();
             screenOrder = order;
             if (overlays) RenderOverlays?.Invoke();
@@ -661,7 +661,7 @@ namespace OniMoono.Engine.Rendering
                     if (wsToCs != Shader.GetGlobalVector(WsToCs)) Shader.SetGlobalVector(WsToCs, wsToCs);
                     if (wsToCcs != Shader.GetGlobalVector(WsToCcs)) Shader.SetGlobalVector(WsToCcs, wsToCcs);
                 }
-                if (rt != null) UnityEngine.Object.DestroyImmediate(rt);
+                if (rt) UnityEngine.Object.DestroyImmediate(rt);
             }
             try
             {
@@ -799,7 +799,7 @@ namespace OniMoono.Engine.Rendering
             foreach (var camera in Cameras.Enabled.ToArray())
             {
                 var n = (CameraNative)camera.Native;
-                if (n == null || !n.GameObject.ActiveInHierarchy || n.TargetTexture == null || n.TargetTexture.Native != buffer) continue;
+                if (n is null || !n.GameObject.ActiveInHierarchy || !n.TargetTexture || !ReferenceEquals(n.TargetTexture.Native, buffer)) continue;
                 var tiled = window;
                 window = new CaptureWindow { Scale = tiled.Scale, VirtualWidth = light.Width, VirtualHeight = light.Height, Width = light.Width, Height = light.Height };
                 try
@@ -1074,7 +1074,7 @@ namespace OniMoono.Engine.Rendering
         {
 
             RenderTexture source = null;
-            bool toScreen = cam.TargetTexture == null && cam.TargetColorBuffers == null;
+            bool toScreen = !cam.TargetTexture && cam.TargetColorBuffers == null;
             // A super-sized capture renders the cameras of the screen and of its screen-sized
             // textures into its window (Capture).
             bool windowed = window != null && (toScreen || IsWindowTarget(cam));
@@ -1085,8 +1085,8 @@ namespace OniMoono.Engine.Rendering
                     cam.AllowHDR ? RenderTextureFormat.DefaultHDR : RenderTextureFormat.Default);
                 Bind(device, RenderTargetBinding.Of((RenderTextureNative)source.NativeOrThrow));
             }
-            var cameraTarget = source != null ? RenderTargetBinding.Of((RenderTextureNative)source.NativeOrThrow) : CameraTarget(cam);
-            if (source == null) Bind(device, cameraTarget);
+            var cameraTarget = source ? RenderTargetBinding.Of((RenderTextureNative)source.NativeOrThrow) : CameraTarget(cam);
+            if (!source) Bind(device, cameraTarget);
             var pixelViewport = windowed ? new Rect(0f, 0f, window.Width, window.Height) : cam.PixelRect;
             device.SetViewport(pixelViewport);
             var constants = Constants(cam);
@@ -1116,7 +1116,7 @@ namespace OniMoono.Engine.Rendering
         /// window.
         static bool IsWindowTarget(CameraNative cam)
         {
-            if (cam.TargetTexture != null) return ((RenderTextureNative)cam.TargetTexture.NativeOrThrow).CaptureLogicalSize != default;
+            if (cam.TargetTexture) return ((RenderTextureNative)cam.TargetTexture.NativeOrThrow).CaptureLogicalSize != default;
             return cam.TargetColorBuffers is { Length: > 0 }
                 && ObjectTable.FindByInstanceId(cam.TargetColorBuffers[0].m_RenderTextureInstanceID) is RenderTextureNative { CaptureLogicalSize.x: > 0 };
         }
@@ -1171,7 +1171,7 @@ namespace OniMoono.Engine.Rendering
             Camera.onPostRender?.Invoke(camera);
             RenderSplit.Exit();
 
-            if (effects.Count > 0 && source != null) ImageEffects(camera, cam, effects, source);
+            if (effects.Count > 0 && source) ImageEffects(camera, cam, effects, source);
             Execute(camera, cam, CameraEvent.AfterEverything);
         }
 
@@ -1209,7 +1209,7 @@ namespace OniMoono.Engine.Rendering
                 var depth = ObjectTable.FindByInstanceId(cam.TargetDepthBuffer.m_RenderTextureInstanceID) as RenderTextureNative;
                 return new RenderTargetBinding(colors, depth, 0);
             }
-            return cam.TargetTexture != null ? RenderTargetBinding.Of((RenderTextureNative)cam.TargetTexture.NativeOrThrow) : ScreenBinding;
+            return cam.TargetTexture ? RenderTargetBinding.Of((RenderTextureNative)cam.TargetTexture.NativeOrThrow) : ScreenBinding;
         }
 
         /// Binds a target, creating render textures on first use.
@@ -1275,7 +1275,7 @@ namespace OniMoono.Engine.Rendering
                     for (int c = 0; c < counts[layer]; c++)
                     {
                         var r = items[c];
-                        if (r == null) continue;
+                        if (r is null) continue;
                         visits++;
                         Bounds bounds;
                         // Kept bounds are tested first, the renderer looked at only when they
@@ -1344,8 +1344,8 @@ namespace OniMoono.Engine.Rendering
                 for (int k = 0; k < span.Length; k++)
                 {
                     ref readonly var q = ref span[k];
-                    if (q.Camera != null && q.Camera != camera) continue;
-                    if ((cam.CullingMask & (1 << q.Layer)) == 0 || q.Mesh == null || q.Material == null) continue;
+                    if (q.Camera && !ReferenceEquals(q.Camera, camera)) continue;
+                    if ((cam.CullingMask & (1 << q.Layer)) == 0 || !q.Mesh || !q.Material) continue;
                     var mesh = (MeshNative)q.Mesh.NativeOrThrow;
                     var bounds = RendererNative.Transform(mesh.Bounds, q.Matrix);
                     if (!frustum.Intersects(bounds)) continue;
@@ -1517,7 +1517,7 @@ namespace OniMoono.Engine.Rendering
             for (int i = 0; i < mesh.SubMeshes.Count && i < r.Materials.Length; i++)
             {
                 var material = r.Materials[i];
-                if (material == null || mesh.SubMeshes[i].Indices.Length == 0) continue;
+                if (!material || mesh.SubMeshes[i].Indices.Length == 0) continue;
                 var item = Item(r, mesh, i, material, r.PropertyBlock);
                 item.ObjectToWorld = objectToWorld;
                 draws.Add(item);
@@ -1535,7 +1535,7 @@ namespace OniMoono.Engine.Rendering
             if (!r.BuildGeometry(Hierarchy.Position(view), rotation * Vector3.forward, rotation * Vector3.right, rotation * Vector3.up, !camera.orthographic, mesh)) return;
             foreach (var material in r.Materials)
             {
-                if (material == null) continue;
+                if (!material) continue;
                 var item = Item(r, mesh, 0, material, r.PropertyBlock);
                 item.ObjectToWorld = Matrix4x4.identity;
                 draws.Add(item);
@@ -1549,13 +1549,13 @@ namespace OniMoono.Engine.Rendering
             Mesh mesh = null;
             foreach (var c in r.GameObject.Components)
                 if (c is MeshFilter f && f.Native is MeshFilterNative fn) { mesh = fn.Mesh; break; }
-            var m = mesh != null ? (MeshNative)mesh.NativeOrThrow : MeshRendererNative.TextMesh(r.GameObject)?.Geometry();
+            var m = mesh ? (MeshNative)mesh.NativeOrThrow : MeshRendererNative.TextMesh(r.GameObject)?.Geometry();
             if (m == null) return;
             int subMeshes = m.SubMeshes.Count;
             for (int i = 0; i < r.Materials.Length; i++)
             {
                 var material = r.Materials[i];
-                if (material == null || subMeshes == 0) continue;
+                if (!material || subMeshes == 0) continue;
                 draws.Add(Item(r, m, Math.Min(i, subMeshes - 1), material, r.PropertyBlock, bounds));
             }
         }
@@ -1565,16 +1565,16 @@ namespace OniMoono.Engine.Rendering
         static void CollectSprite(SpriteRendererNative r, List<DrawItem> draws)
         {
             var sprite = r.Sprite;
-            if (sprite == null || r.Materials.Length == 0) return;
+            if (!sprite || r.Materials.Length == 0) return;
             var s = (SpriteNative)sprite.NativeOrThrow;
             var render = s.Render;
-            if (render.Texture == null) return;
+            if (!render.Texture) return;
             var mesh = r.GeometryMesh(s);
             // The sheet is this frame's draws' only (PropertySheet.RentForFrame).
             var props = PropertySheet.RentForFrame();
             if (r.PropertyBlock != null) props.CopyFrom(r.PropertyBlock);
             props.SetTexture(MainTex, render.Texture);
-            if (render.AlphaTexture != null)
+            if (render.AlphaTexture)
             {
                 props.SetTexture(AlphaTex, render.AlphaTexture);
                 props.SetFloat(EnableExternalAlpha, 1f);
@@ -1582,7 +1582,7 @@ namespace OniMoono.Engine.Rendering
             props.SetVector(RendererColor, Vector4.one);
             props.SetVector(Flip, new Vector4(1f, 1f, 0f, 0f));
             foreach (var material in r.Materials)
-                if (material != null) draws.Add(Item(r, mesh, 0, material, props));
+                if (material) draws.Add(Item(r, mesh, 0, material, props));
         }
     }
 }

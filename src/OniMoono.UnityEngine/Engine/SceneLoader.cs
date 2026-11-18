@@ -90,7 +90,7 @@ namespace OniMoono.Engine
             foreach (var go in gameObjects)
             {
                 go.Scene = scene;
-                if (go.Transform.Parent == null) scene.Roots.Add(go);
+                if (go.Transform.Parent is null) scene.Roots.Add(go);
             }
             StartupStats.Mark($"scene {index} objects loaded");
             Time.LevelLoaded();
@@ -132,7 +132,7 @@ namespace OniMoono.Engine
         static void Unload(SceneRecord scene, bool notify)
         {
             foreach (var root in scene.Roots.ToArray())
-                if (root.Managed != null && root.Managed.Native != null) Lifecycle.DestroyNow(root.Managed, unloading: true);
+                if (root.Managed && root.Managed.Native is not null) Lifecycle.DestroyNow(root.Managed, unloading: true);
             if (notify) UnityEngine.SceneManagement.SceneManager.RaiseSceneUnloaded(scene);
             Scenes.Remove(scene);
         }

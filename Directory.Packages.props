@@ -18,6 +18,8 @@
     <PackageVersion Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.16" />
     <!-- Build time only: OniMoono.GameTweaks compiles against publicized copies of the game's assemblies. -->
     <PackageVersion Include="Krafs.Publicizer" Version="2.3.2" />
+    <!-- Build time only: the engine's analyzers (src/OniMoono.Analyzers) and their test. -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <!-- Tests -->
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />

@@ -15,8 +15,8 @@ namespace OniMoono.Engine
         public static void Touch(TransformNative t)
         {
             Touches++;
-            if (t != null) t.GameObject.SelfVersion++;
-            for (; t != null; t = t.Parent) t.GameObject.SubtreeVersion++;
+            if (t is not null) t.GameObject.SelfVersion++;
+            for (; t is not null; t = t.Parent) t.GameObject.SubtreeVersion++;
         }
 
         /// Touch calls so far: answers kept from the hierarchy stand while it is unchanged.
@@ -49,25 +49,25 @@ namespace OniMoono.Engine
 
         public static bool IsAncestorOrSelf(TransformNative ancestor, TransformNative t)
         {
-            for (var p = t; p != null; p = p.Parent)
-                if (p == ancestor) return true;
+            for (var p = t; p is not null; p = p.Parent)
+                if (ReferenceEquals(p, ancestor)) return true;
             return false;
         }
 
         public static void SetParent(TransformNative t, TransformNative newParent, bool worldPositionStays)
         {
-            if (t.Parent == newParent) return;
+            if (ReferenceEquals(t.Parent, newParent)) return;
             // A transform made its own parent is left as it is, without a message: Unity logs
             // nothing (Momentary Switch's side screen does this twice, spec
             // tests/e2e/mods/2624509351-momentary-switch.yaml).
-            if (newParent == t) return;
+            if (ReferenceEquals(newParent, t)) return;
             var go = t.GameObject;
-            if (newParent != null && IsAncestorOrSelf(t, newParent))
+            if (newParent is not null && IsAncestorOrSelf(t, newParent))
             {
                 Debug.LogError("Cannot set the parent of the GameObject '" + go.Name + "' to itself or one of its children.", go.Managed);
                 return;
             }
-            if (newParent != null && newParent.GameObject.IsPersistent != go.IsPersistent)
+            if (newParent is not null && newParent.GameObject.IsPersistent != go.IsPersistent)
             {
                 Debug.LogError("Setting the parent of a transform which resides in a Prefab Asset is disabled to prevent data corruption (GameObject: '" + go.Name + "').", go.Managed);
                 return;
@@ -85,10 +85,10 @@ namespace OniMoono.Engine
             Messages.SendToSubtree(go, s => s.OnBeforeTransformParentChanged);
 
             var oldParent = t.Parent;
-            if (oldParent != null) RemoveChild(oldParent, t);
+            if (oldParent is not null) RemoveChild(oldParent, t);
             else if (go.Scene != null) Scenes.RemoveRoot(go.Scene, go);
 
-            if (newParent != null)
+            if (newParent is not null)
             {
                 InsertChild(newParent, t, newParent.Children.Length);
                 if (newParent.GameObject.Scene != go.Scene) Scenes.SetSceneRecursive(go, newParent.GameObject.Scene);
@@ -100,7 +100,7 @@ namespace OniMoono.Engine
 
             if (worldPositionStays)
             {
-                if (newParent == null)
+                if (newParent is null)
                 {
                     t.LocalPosition = worldPos;
                     t.LocalRotation = worldRot;
@@ -118,8 +118,8 @@ namespace OniMoono.Engine
             t.MarkDirty();
 
             Messages.SendToSubtree(go, s => s.OnTransformParentChanged);
-            if (oldParent != null) Messages.SendToComponents(oldParent.GameObject, s => s.OnTransformChildrenChanged);
-            if (newParent != null) Messages.SendToComponents(newParent.GameObject, s => s.OnTransformChildrenChanged);
+            if (oldParent is not null) Messages.SendToComponents(oldParent.GameObject, s => s.OnTransformChildrenChanged);
+            if (newParent is not null) Messages.SendToComponents(newParent.GameObject, s => s.OnTransformChildrenChanged);
             ParentChanged?.Invoke(t);
             Lifecycle.UpdateActiveInHierarchy(go);
         }
@@ -131,7 +131,7 @@ namespace OniMoono.Engine
             // A root's world translation is its local position (Matrix4x4.TRS copies it in): no
             // matrix needed, which a moved object would otherwise rebuild. Most world objects in
             // the game are roots.
-            if (t.Parent == null) return t.LocalPosition;
+            if (t.Parent is null) return t.LocalPosition;
             var m = t.LocalToWorld;
             return new Vector3(m.m03, m.m13, m.m23);
         }
@@ -152,7 +152,7 @@ namespace OniMoono.Engine
 
         static bool InverseUnrotated(TransformNative t, ref Vector3 p)
         {
-            if (t.Parent != null && !InverseUnrotated(t.Parent, ref p)) return false;
+            if (t.Parent is not null && !InverseUnrotated(t.Parent, ref p)) return false;
             var q = t.LocalRotation;
             if (q.x != 0f || q.y != 0f || q.z != 0f || q.w != 1f) return false;
             var lp = t.LocalPosition;
@@ -175,11 +175,11 @@ namespace OniMoono.Engine
 
         /// Root objects report 0: Unity's player does not expose an order of scene roots (the
         /// editor's root order); observed with tools/UnityProbe, including after SetAsFirstSibling.
-        public static int GetSiblingIndex(TransformNative t) => t.Parent != null ? t.Parent.Children.IndexOf(t) : 0;
+        public static int GetSiblingIndex(TransformNative t) => t.Parent is not null ? t.Parent.Children.IndexOf(t) : 0;
 
         public static void SetSiblingIndex(TransformNative t, int index)
         {
-            if (t.Parent != null)
+            if (t.Parent is not null)
             {
                 var parent = t.Parent;
                 int current = parent.Children.IndexOf(t);
