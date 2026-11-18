@@ -6,4 +6,4 @@ steps:
   - expect: {duplicants: 3}
   - run: {seconds: 180}
   - expect: {duplicants: 3}
-  - shot: smoke
+  - shot: {name: smoke, threshold: 0.03}   # a moving scene: Duplicants, water, particles (763612 QA: 2.2–2.6%)
