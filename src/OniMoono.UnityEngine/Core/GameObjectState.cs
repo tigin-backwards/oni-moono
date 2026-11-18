@@ -20,7 +20,7 @@ namespace UnityEngine
         long m_EngineActivatedAt;
         SceneRecord m_EngineScene;
         bool m_EngineIsStatic;
-        TransformNative m_EngineTransform;
+        Transform m_EngineTransform;
         int m_EngineRootSlot;
         OniMoono.Engine.UI.UiParts m_EngineUiParts;
         ComponentLayout.Cached m_EngineLayout;
@@ -141,7 +141,7 @@ namespace UnityEngine
         internal SceneRecord Scene { get => m_EngineScene; set => m_EngineScene = value; }
         internal bool IsStatic { get => m_EngineIsStatic; set => m_EngineIsStatic = value; }
         /// The record of Components[0].
-        internal TransformNative Transform { get => m_EngineTransform; set => m_EngineTransform = value; }
+        internal Transform Transform { get => m_EngineTransform; set => m_EngineTransform = value; }
         /// Slot in the owning scene's root list while a root, else -1 (SceneRoots).
         internal int RootSlot { get => m_EngineRootSlot; set => m_EngineRootSlot = value; }
         /// Its canvas components, cached by CanvasSystem for the current Components array.

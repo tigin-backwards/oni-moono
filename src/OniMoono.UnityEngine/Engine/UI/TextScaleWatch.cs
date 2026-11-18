@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 
+using Transform = UnityEngine.Transform;
+
 namespace OniMoono.Engine.UI
 {
     /// TextMeshPro's scale check (TextMeshProUGUI.RescaleIfScaleChanged, a
@@ -9,7 +11,7 @@ namespace OniMoono.Engine.UI
     /// few texts ever rescale.
     ///
     /// Each text's transform gets a slot. Every invalidation of the transform's cached world
-    /// data (TransformNative.WorldChanged: its own position, rotation, scale or parent set, or an
+    /// data (Transform.WorldChanged: its own position, rotation, scale or parent set, or an
     /// ancestor's) arms the slot; the text disarms it when its check finds the scale settled, so
     /// that the same check with the same scale would do nothing again. The text's subscription
     /// carries the slot (Canvas.AddWillRenderCanvases), and the call skips it while it is
@@ -24,7 +26,7 @@ namespace OniMoono.Engine.UI
         /// Armed[slot] != 0: check the text. Slot 0 is no slot (an ungated subscriber); its byte
         /// is written by Disarm(0) and never read.
         internal static byte[] Armed = new byte[1024];
-        static TransformNative[] owners = new TransformNative[1024];
+        static Transform[] owners = new Transform[1024];
         static int next = 1;
         static readonly Stack<int> free = new();
 
@@ -32,7 +34,7 @@ namespace OniMoono.Engine.UI
 
         /// A slot for `t`, armed; 0 when `t` already has one (a second watcher is called every
         /// frame, as before).
-        public static int Watch(TransformNative t)
+        public static int Watch(Transform t)
         {
             if (t is null || t.ScaleWatchSlot != 0) return 0;
             int slot;
@@ -69,7 +71,7 @@ namespace OniMoono.Engine.UI
 
         /// The transform's native object was replaced (Lifecycle.ConvertTransform): the slot
         /// follows it, armed.
-        public static void Moved(TransformNative from, TransformNative to)
+        public static void Moved(Transform from, Transform to)
         {
             int slot = from.ScaleWatchSlot;
             if (slot == 0) return;

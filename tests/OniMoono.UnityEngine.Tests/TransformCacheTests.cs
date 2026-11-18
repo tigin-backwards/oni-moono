@@ -4,7 +4,7 @@ using Xunit;
 
 namespace OniMoono.Tests
 {
-    /// The transforms' cached matrices (TransformNative: local, world and inverse) never go stale:
+    /// The transforms' cached matrices (Transform: local, world and inverse) never go stale:
     /// after any sequence of sets, with every level read between them, each read gives the bits a
     /// hierarchy built afresh from the same local values gives.
     public class TransformCacheTests : EngineTest

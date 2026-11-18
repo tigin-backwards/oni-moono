@@ -115,7 +115,7 @@ namespace OniMoono.Engine
         /// the axis scale.
         /// The capsule's segment along its axis (height and radius scaled as PhysX does: the
         /// height by the axis's scale, the radius by the larger of the other two).
-        public override Bounds WorldBounds(TransformNative t)
+        public override Bounds WorldBounds(Transform t)
         {
             var scale = Hierarchy.LossyScale(t);
             var abs = new Vector3(Math.Abs(scale.x), Math.Abs(scale.y), Math.Abs(scale.z));
@@ -222,7 +222,7 @@ namespace OniMoono.Engine
 
         /// Möller–Trumbore against each triangle in world space; front faces wind clockwise.
         /// The AABB of the mesh's vertices under the transform.
-        public override Bounds WorldBounds(TransformNative t)
+        public override Bounds WorldBounds(Transform t)
         {
             var vertices = Mesh ? Mesh.vertices : Array.Empty<Vector3>();
             if (vertices.Length == 0) return new Bounds(Hierarchy.Position(t), Vector3.zero);

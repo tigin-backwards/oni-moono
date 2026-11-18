@@ -43,9 +43,8 @@ namespace OniMoono.Engine
         /// Creates the GameObject's Transform (or RectTransform) as component 0.
         static Transform AttachTransform(GameObject go, Type transformType)
         {
-            var native = (TransformNative)ComponentNatives.Create(transformType);
-            var t = (Transform)Object.ConstructComponent(transformType, native, new ComponentInit(go));
-            go.Transform = native;
+            var t = (Transform)Object.ConstructComponent(transformType, ComponentNatives.Create(transformType), new ComponentInit(go));
+            go.Transform = t;
             go.Components = [t];
             return t;
         }
@@ -159,9 +158,8 @@ namespace OniMoono.Engine
         static Component ConvertTransform(GameObject go, Type type)
         {
             var old = (Transform)go.Components[0];
-            var oldNative = (TransformNative)old.EngineStateOrThrow;
-            var native = (TransformNative)ComponentNatives.Create(type);
-            native.GameObject = go;
+            var oldNative = old.TransformNative;
+            var native = (Transform)Object.ConstructComponent(type, ComponentNatives.Create(type), new ComponentInit(go));
             native.LocalPosition = oldNative.LocalPosition;
             native.LocalRotation = oldNative.LocalRotation;
             native.LocalScale = oldNative.LocalScale;
@@ -170,7 +168,7 @@ namespace OniMoono.Engine
             foreach (var child in native.Children) child.Parent = native;
             native.Parent?.ReplaceChild(oldNative, native);
             UI.TextScaleWatch.Moved(oldNative, native);
-            var transform = (Transform)Object.ConstructComponent(type, native, new ComponentInit(go));
+            var transform = native;
             var comps = (Component[])go.Components.Clone();
             comps[0] = transform;
             go.Transform = native;
@@ -267,15 +265,15 @@ namespace OniMoono.Engine
         /// uGUI's LayoutRebuilder listens and marks the layout around each one, which is how a
         /// layout group re-lays out when a child without a Graphic or layout element appears or
         /// disappears (the build menu's search results).
-        static void ReapplyDrivenOnActivation(TransformNative t, List<GameObject> changed)
+        static void ReapplyDrivenOnActivation(Transform t, List<GameObject> changed)
         {
             if (changed.Count == 0) return;
             var set = changed.Count == 1 ? null : new HashSet<GameObject>(changed, ReferenceEqualityComparer.Instance);
-            void PostOrder(TransformNative n)
+            void PostOrder(Transform n)
             {
                 foreach (var child in n.Children)
                     if (set != null && set.Contains(child.GameObject)) PostOrder(child);
-                if (n is RectTransformNative && n.Managed is UnityEngine.RectTransform rt && !n.GameObject.Destroyed)
+                if (n is RectTransform rt && rt.Alive && !n.GameObject.Destroyed)
                 {
                     try { UnityEngine.RectTransform.SendReapplyDrivenProperties(rt); }
                     catch (Exception e) { Debug.LogException(e); }

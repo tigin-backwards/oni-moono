@@ -7,12 +7,12 @@ namespace OniMoono.Engine
     internal static class Hierarchy
     {
         /// Subscribers notified after a transform's parent changed (canvas hierarchy tracking).
-        public static event Action<TransformNative> ParentChanged;
+        public static event Action<Transform> ParentChanged;
 
         /// Records a change to what lies at or below a transform (children, activation, components,
         /// enabled state, canvas and group settings) on it and every ancestor. CanvasSystem skips
         /// a subtree hidden through its CanvasGroups when nothing in it changed since its last walk.
-        public static void Touch(TransformNative t)
+        public static void Touch(Transform t)
         {
             Touches++;
             if (t is not null) t.GameObject.SelfVersion++;
@@ -22,7 +22,7 @@ namespace OniMoono.Engine
         /// Touch calls so far: answers kept from the hierarchy stand while it is unchanged.
         public static long Touches;
 
-        public static void RemoveChild(TransformNative parent, TransformNative child)
+        public static void RemoveChild(Transform parent, Transform child)
         {
             int index = parent.Children.IndexOf(child);
             if (index < 0) return;
@@ -34,12 +34,12 @@ namespace OniMoono.Engine
 
         /// An active UI object leaving or joining a parent (or moving among its siblings)
         /// renumbers the canvas's depths.
-        static void ChildrenRestructured(TransformNative parent, TransformNative child)
+        static void ChildrenRestructured(Transform parent, Transform child)
         {
-            if (child is RectTransformNative && child.GameObject.ActiveInHierarchy) UI.CanvasSystem.Restructured(parent);
+            if (child is RectTransform && child.GameObject.ActiveInHierarchy) UI.CanvasSystem.Restructured(parent);
         }
 
-        static void InsertChild(TransformNative parent, TransformNative child, int index)
+        static void InsertChild(Transform parent, Transform child, int index)
         {
             parent.InsertChildAt(child, Math.Clamp(index, 0, parent.Children.Length));
             child.Parent = parent;
@@ -47,14 +47,14 @@ namespace OniMoono.Engine
             ChildrenRestructured(parent, child);
         }
 
-        public static bool IsAncestorOrSelf(TransformNative ancestor, TransformNative t)
+        public static bool IsAncestorOrSelf(Transform ancestor, Transform t)
         {
             for (var p = t; p is not null; p = p.Parent)
                 if (ReferenceEquals(p, ancestor)) return true;
             return false;
         }
 
-        public static void SetParent(TransformNative t, TransformNative newParent, bool worldPositionStays)
+        public static void SetParent(Transform t, Transform newParent, bool worldPositionStays)
         {
             if (ReferenceEquals(t.Parent, newParent)) return;
             // A transform made its own parent is left as it is, without a message: Unity logs
@@ -126,7 +126,7 @@ namespace OniMoono.Engine
 
         static float Divide(float a, float b) => b == 0f ? 0f : a / b;
 
-        public static Vector3 Position(TransformNative t)
+        public static Vector3 Position(Transform t)
         {
             // A root's world translation is its local position (Matrix4x4.TRS copies it in): no
             // matrix needed, which a moved object would otherwise rebuild. Most world objects in
@@ -144,13 +144,13 @@ namespace OniMoono.Engine
         /// levels, the setter and InverseTransformPoint bit for bit, signs of zeros included.
         /// False when a level is rotated: that form is not known (IS8), and the callers keep
         /// their matrix products.
-        public static bool TryInverseTransformPoint(TransformNative t, Vector3 point, out Vector3 local)
+        public static bool TryInverseTransformPoint(Transform t, Vector3 point, out Vector3 local)
         {
             local = point;
             return InverseUnrotated(t, ref local);
         }
 
-        static bool InverseUnrotated(TransformNative t, ref Vector3 p)
+        static bool InverseUnrotated(Transform t, ref Vector3 p)
         {
             if (t.Parent is not null && !InverseUnrotated(t.Parent, ref p)) return false;
             var q = t.LocalRotation;
@@ -171,13 +171,13 @@ namespace OniMoono.Engine
         static float PlusZero(float x) => x + 0f;
 
         /// World scale with the world rotation removed (exact without skew).
-        public static Vector3 LossyScale(TransformNative t) => t.LossyScale;
+        public static Vector3 LossyScale(Transform t) => t.LossyScale;
 
         /// Root objects report 0: Unity's player does not expose an order of scene roots (the
         /// editor's root order); observed with tools/UnityProbe, including after SetAsFirstSibling.
-        public static int GetSiblingIndex(TransformNative t) => t.Parent is not null ? t.Parent.Children.IndexOf(t) : 0;
+        public static int GetSiblingIndex(Transform t) => t.Parent is not null ? t.Parent.Children.IndexOf(t) : 0;
 
-        public static void SetSiblingIndex(TransformNative t, int index)
+        public static void SetSiblingIndex(Transform t, int index)
         {
             if (t.Parent is not null)
             {
@@ -189,7 +189,7 @@ namespace OniMoono.Engine
                 // (a world-space canvas with thousands of icons, each sent to the front as it
                 // is made); the rest as those two leave it.
                 parent.MoveChild(current, index);
-                RectTransformNative.RectEpoch += 2; // as the two parent links did
+                RectTransform.RectEpoch += 2; // as the two parent links did
                 Touch(parent);
                 Touch(parent);
                 ChildrenRestructured(parent, t);

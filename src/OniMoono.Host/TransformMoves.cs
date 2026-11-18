@@ -18,7 +18,7 @@ namespace OniMoono.Host
 
         public static void Unwatch(UnityEngine.Transform t)
         {
-            if (t is not null && t.EngineState is TransformNative native) TransformMoveWatch.Unwatch(native);
+            if (t is not null && t.Alive) TransformMoveWatch.Unwatch(t);
         }
 
         /// Each token whose transform moved since the last call, once.

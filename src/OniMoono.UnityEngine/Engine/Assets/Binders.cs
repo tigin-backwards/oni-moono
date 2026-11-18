@@ -38,7 +38,7 @@ namespace OniMoono.Engine.Assets
                 components.Add(c);
             }
             native.Components = components.ToArray();
-            native.Transform = (TransformNative)components[0].EngineStateOrThrow;
+            native.Transform = ((Transform)components[0]).TransformNative;
             native.Serialized = null;
         }
     }
@@ -49,11 +49,11 @@ namespace OniMoono.Engine.Assets
         {
             var f = request.ReadNative();
             bool rect = request.ClassId == 224;
-            var native = rect ? new RectTransformNative() : new TransformNative();
+            var native = (Transform)ObjectLoader.CreateComponent(rect ? typeof(RectTransform) : typeof(Transform), null, default);
             native.LocalRotation = ToQuaternion(f.Struct("m_LocalRotation"));
             native.LocalPosition = ToVector3(f.Struct("m_LocalPosition"));
             native.LocalScale = ToVector3(f.Struct("m_LocalScale"));
-            if (native is RectTransformNative r)
+            if (native is RectTransform r)
             {
                 r.AnchorMin = ToVector2(f.Struct("m_AnchorMin"));
                 r.AnchorMax = ToVector2(f.Struct("m_AnchorMax"));
@@ -62,21 +62,21 @@ namespace OniMoono.Engine.Assets
                 r.Pivot = ToVector2(f.Struct("m_Pivot"));
             }
             native.Serialized = f;
-            return ObjectLoader.CreateComponent(rect ? typeof(RectTransform) : typeof(Transform), native, default);
+            return native;
         }
 
         public override void Fill(Object obj, LoadRequest request)
         {
-            var native = (TransformNative)obj.NativeOrThrow;
+            var native = ((Transform)obj).TransformNative;
             var f = native.Serialized;
             native.Serialized = null;
             ((Component)obj).SetEngineGameObject(((GameObject)request.Resolver.Resolve(f.PPtr("m_GameObject"))).GameObjectNative);
             var parent = request.Resolver.Resolve(f.PPtr("m_Father")) as Transform;
-            native.Parent = !parent ? null : (TransformNative)parent.EngineStateOrThrow;
+            native.Parent = !parent ? null : parent.TransformNative;
             var children = f.Array("m_Children");
-            var list = new List<TransformNative>(children.Length);
+            var list = new List<Transform>(children.Length);
             foreach (PPtr child in children)
-                if (request.Resolver.Resolve(child) is Transform t) list.Add((TransformNative)t.EngineStateOrThrow);
+                if (request.Resolver.Resolve(child) is Transform t) list.Add(t.TransformNative);
             native.SetChildren(list.ToArray());
             native.MarkDirty(false);
         }

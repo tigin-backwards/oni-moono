@@ -161,7 +161,7 @@ namespace UnityEngine.UI
             return known;
         }
 
-        static bool KnownBelow(OniMoono.Engine.TransformNative t)
+        static bool KnownBelow(UnityEngine.Transform t)
         {
             if (!KnownOn(t.GameObject)) return false;
             foreach (var child in t.Children)

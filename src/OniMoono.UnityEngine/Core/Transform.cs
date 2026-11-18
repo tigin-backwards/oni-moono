@@ -8,9 +8,7 @@ namespace UnityEngine
     {
         protected Transform() { }
 
-        internal TransformNative TransformNative => (TransformNative)EngineStateOrThrow;
-
-        static Transform Wrap(TransformNative t) => t is null ? null : (Transform)t.GameObject.Components[0];
+        static Transform Wrap(Transform t) => t;
 
         // ---- Local and world TRS ----
 
@@ -296,7 +294,7 @@ namespace UnityEngine
                 var t = TransformNative;
                 while (t.Parent is not null) t = t.Parent;
                 return Count(t);
-                static int Count(TransformNative x)
+                static int Count(Transform x)
                 {
                     int n = 1;
                     foreach (var c in x.Children) n += Count(c);
@@ -318,12 +316,12 @@ namespace UnityEngine
     }
 }
 
-namespace OniMoono.Engine
+namespace UnityEngine
 {
-    internal partial class TransformNative
+    public partial class Transform
     {
         /// Sets the local position (RectTransforms also update their anchored position).
-        public virtual void SetLocalPositionInternal(UnityEngine.Vector3 value)
+        internal virtual void SetLocalPositionInternal(UnityEngine.Vector3 value)
         {
             if (KeepsEqualPosition(value)) return;
             bool moved = value != LocalPosition;

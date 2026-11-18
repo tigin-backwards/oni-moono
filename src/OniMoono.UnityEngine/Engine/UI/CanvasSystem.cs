@@ -98,12 +98,12 @@ namespace OniMoono.Engine.UI
             return false;
         }
 
-        static void ParentChanged(TransformNative t)
+        static void ParentChanged(Transform t)
         {
             if (HasLiveCanvas(t)) Resort();
         }
 
-        static bool HasLiveCanvas(TransformNative t)
+        static bool HasLiveCanvas(Transform t)
         {
             if (!t.GameObject.ActiveInHierarchy) return false;
             if (PartsOf(t.GameObject).Canvas is { } c && IsLive(c)) return true;
@@ -136,7 +136,7 @@ namespace OniMoono.Engine.UI
         /// A structural change at or below a transform: its sort root renumbers at the next build.
         /// The nearest canvas that overrides sorting (or is disabled: a root of its own) holds the
         /// change; a nested canvas that sorts with its parent passes it up.
-        public static void Restructured(TransformNative t)
+        public static void Restructured(Transform t)
         {
             for (; t is not null; t = t.Parent)
             {
@@ -157,7 +157,7 @@ namespace OniMoono.Engine.UI
             Restructured(t.Parent);
         }
 
-        static void Reset(TransformNative t)
+        static void Reset(Transform t)
         {
             var parts = PartsOf(t.GameObject);
             if (parts.Canvas is { Destroyed: false } c) c.DepthDirty = true;
@@ -331,7 +331,7 @@ namespace OniMoono.Engine.UI
         // only when that changed, so it is always the value a new computation would give.
 
         /// An element's world matrix taken into a space: the inverse of the space's world matrix
-        /// times the element's, kept while both world matrices stand (TransformNative.WorldStamp;
+        /// times the element's, kept while both world matrices stand (Transform.WorldStamp;
         /// each computation of one takes a new number, never 0).
         internal struct RelativeCache
         {
@@ -342,7 +342,7 @@ namespace OniMoono.Engine.UI
         /// worldToSpace × t's world matrix, where worldToSpace is the inverse of the world matrix
         /// numbered spaceStamp. With lazySpace (the transform whose world matrix that is) the
         /// inverse passed is not used and is taken from it only when the product is computed.
-        static Matrix4x4 Relative(ref RelativeCache cache, in Matrix4x4 worldToSpace, long spaceStamp, TransformNative t, TransformNative lazySpace = null)
+        static Matrix4x4 Relative(ref RelativeCache cache, in Matrix4x4 worldToSpace, long spaceStamp, Transform t, Transform lazySpace = null)
         {
             long stamp = t.WorldStamp;
             if (cache.Stamp == stamp && cache.SpaceStamp == spaceStamp && keepProducts)
@@ -359,7 +359,7 @@ namespace OniMoono.Engine.UI
         /// An object's placement in its nested canvas's space (Collect): its parent's times its own
         /// local matrix, kept while the parent's stands (a number for each computation, 0 for the
         /// identity at the canvas) and its own position, rotation and scale have the same bits.
-        static Matrix4x4 ToNearest(UiParts parts, in Matrix4x4 parentToNearest, long parentStamp, TransformNative t, out long stamp)
+        static Matrix4x4 ToNearest(UiParts parts, in Matrix4x4 parentToNearest, long parentStamp, Transform t, out long stamp)
         {
             if (parts.ToNearestStamp != 0 && parts.ToNearestParent == parentStamp && SameBits(parts.ToNearestPosition, t.LocalPosition)
                 && SameBits(parts.ToNearestRotation, t.LocalRotation) && SameBits(parts.ToNearestScale, t.LocalScale) && keepProducts)
@@ -387,7 +387,7 @@ namespace OniMoono.Engine.UI
         static readonly bool verifyProducts = Environment.GetEnvironmentVariable("ONI_VERIFY_CANVAS_PRODUCTS") == "1";
         static long productsVerified, productsWrong;
 
-        static void VerifyProduct(in Matrix4x4 kept, in Matrix4x4 computed, TransformNative t)
+        static void VerifyProduct(in Matrix4x4 kept, in Matrix4x4 computed, Transform t)
         {
             if (!SameBits(kept, computed)) EngineLog.Engine($"canvas products: wrong ({++productsWrong}) at {t.GameObject.Name}: kept {kept}, computed {computed}");
             if (++productsVerified % 100000 == 0) EngineLog.Engine($"canvas products: {productsVerified} kept products verified, {productsWrong} wrong");
@@ -436,7 +436,7 @@ namespace OniMoono.Engine.UI
         public static void UpdateRootTransform(CanvasNative canvas)
         {
             if (!IsLive(canvas) || !ReferenceEquals(RootOf(canvas), canvas)) return;
-            if (canvas.GameObject.Transform is not RectTransformNative rt) return;
+            if (canvas.GameObject.Transform is not RectTransform rt) return;
             if (canvas.RenderMode == RenderMode.WorldSpace) return;
             var size = DisplaySize(canvas);
             float scale = canvas.ScaleFactor;
@@ -503,15 +503,15 @@ namespace OniMoono.Engine.UI
             Canvas.SendWillRenderCanvases();
         }
 
-        static readonly List<RectTransformNative> movedRects = new();
-        static readonly HashSet<RectTransformNative> movedSet = new(ReferenceEqualityComparer.Instance);
+        static readonly List<RectTransform> movedRects = new();
+        static readonly HashSet<RectTransform> movedSet = new(ReferenceEqualityComparer.Instance);
 
         /// A RectTransform's place in the world changed (a position, rotation, scale or parent
         /// set, its own or an ancestor's). Kept for the next pass when the object is active and
         /// already has a CanvasRenderer: a move made before the renderer exists or while the
         /// object is inactive is never told, a move made after it is, in the frame the object
         /// was made too (measured, docs/cleanroom/ugui.md "Moves on pixel-perfect canvases").
-        public static void NoteMoved(RectTransformNative rect)
+        public static void NoteMoved(RectTransform rect)
         {
             var go = rect.GameObject;
             if (go is null || go.Components.Length < 2 || !go.ActiveInHierarchy || PartsOf(go).Renderers.Length == 0) return;
@@ -525,7 +525,7 @@ namespace OniMoono.Engine.UI
         /// the same frame, and so does an ancestor's; a size change alone, a sibling index, an
         /// activation and the placement of an object made or cloned do not. On other canvases a
         /// move sends nothing.
-        static readonly ListSnapshot<RectTransformNative> movedSnapshot = new();
+        static readonly ListSnapshot<RectTransform> movedSnapshot = new();
         static readonly ListSnapshot<CanvasNative> enabledSnapshot = new();
 
         static void SendMovesOnPixelPerfectCanvases()
@@ -606,7 +606,7 @@ namespace OniMoono.Engine.UI
             public readonly List<CanvasDraw> Draws = new();
             /// The root canvas's local-to-world matrix and its inverse (geometry space).
             public Matrix4x4 SpaceToWorld, WorldToSpace;
-            /// SpaceToWorld's number (TransformNative.WorldStamp).
+            /// SpaceToWorld's number (Transform.WorldStamp).
             public long SpaceStamp;
         }
 
