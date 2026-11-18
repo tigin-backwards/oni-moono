@@ -31,7 +31,7 @@ namespace UnityEngine
 
     public partial class Renderer
     {
-        internal RendererNative RendererData => (RendererNative)NativeOrThrow;
+        internal RendererNative RendererData => (RendererNative)EngineStateOrThrow;
 
         public bool enabled
         {
@@ -248,7 +248,7 @@ namespace UnityEngine
 
     public partial class SpriteRenderer
     {
-        SpriteRendererNative Data => (SpriteRendererNative)NativeOrThrow;
+        SpriteRendererNative Data => (SpriteRendererNative)EngineStateOrThrow;
 
         /// Unity gives a SpriteRenderer created by AddComponent the project's default sprite
         /// material.
@@ -313,7 +313,7 @@ namespace UnityEngine
 
     public partial class MeshFilter
     {
-        MeshFilterNative Data => (MeshFilterNative)NativeOrThrow;
+        MeshFilterNative Data => (MeshFilterNative)EngineStateOrThrow;
 
         public Mesh sharedMesh
         {
@@ -343,7 +343,7 @@ namespace UnityEngine
 
     public partial class Light
     {
-        LightNative Data => (LightNative)NativeOrThrow;
+        LightNative Data => (LightNative)EngineStateOrThrow;
 
         public Color color
         {
@@ -368,7 +368,7 @@ namespace UnityEngine.Rendering
 
         internal static SortingGroup GetSortingGroupByIndex(int index) => SortingGroups.ByIndex(index);
 
-        SortingGroupNative Data => (SortingGroupNative)NativeOrThrow;
+        SortingGroupNative Data => (SortingGroupNative)EngineStateOrThrow;
 
         public int sortingLayerID
         {
@@ -634,7 +634,7 @@ namespace OniMoono.Engine.Rendering
         public static OniMoono.Engine.Text.TextMeshNative TextMesh(GameObjectNative go)
         {
             foreach (var c in go.Components)
-                if (c is TextMesh && c.Native is OniMoono.Engine.Text.TextMeshNative t) return t;
+                if (c is TextMesh && c.EngineState is OniMoono.Engine.Text.TextMeshNative t) return t;
             return null;
         }
 
@@ -654,7 +654,7 @@ namespace OniMoono.Engine.Rendering
         MeshNative FilterMesh()
         {
             foreach (var c in GameObject.Components)
-                if (c is MeshFilter && c.Native is MeshFilterNative { Mesh: { } mesh } && mesh)
+                if (c is MeshFilter && c.EngineState is MeshFilterNative { Mesh: { } mesh } && mesh)
                     return (MeshNative)mesh.NativeOrThrow;
             return null;
         }
@@ -952,14 +952,14 @@ namespace OniMoono.Engine.Rendering
                 {
                     if (found >= 0) return;
                     foreach (var c in go.Components)
-                        if (c.Native is RendererNative r)
+                        if (c.EngineState is RendererNative r)
                         {
                             if (ReferenceEquals(r, renderer)) found = order;
                             order++;
                         }
                     foreach (var child in go.Transform.Children) Visit(child.GameObject);
                 }
-                Visit(((ComponentNative)Group.NativeOrThrow).GameObject);
+                Visit(((ComponentNative)Group.EngineStateOrThrow).GameObject);
                 return Math.Max(found, 0);
             }
         }
@@ -968,7 +968,7 @@ namespace OniMoono.Engine.Rendering
         {
             for (var t = renderer.GameObject.Transform; t is not null; t = t.Parent)
                 foreach (var c in t.GameObject.Components)
-                    if (c is SortingGroup g && c.Native is SortingGroupNative { IsActiveAndEnabledState: true })
+                    if (c is SortingGroup g && c.EngineState is SortingGroupNative { IsActiveAndEnabledState: true })
                     {
                         int index = ByReference.IndexOf(active, g);
                         if (index >= 0) return new Membership(index, g);

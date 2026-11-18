@@ -8,7 +8,7 @@ namespace UnityEngine
     {
         protected Transform() { }
 
-        internal TransformNative TransformNative => (TransformNative)NativeOrThrow;
+        internal TransformNative TransformNative => (TransformNative)EngineStateOrThrow;
 
         static Transform Wrap(TransformNative t) => t is null ? null : (Transform)t.GameObject.Components[0];
 

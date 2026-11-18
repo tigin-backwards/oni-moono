@@ -128,7 +128,7 @@ namespace OniMoono.Engine.Particles
             get
             {
                 foreach (var c in GameObject.Components)
-                    if (c is ParticleSystem && c.Native is ParticleSystemNative ps) return ps;
+                    if (c is ParticleSystem && c.EngineState is ParticleSystemNative ps) return ps;
                 return null;
             }
         }
@@ -149,7 +149,7 @@ namespace OniMoono.Engine.Particles
         /// Geometry for a camera; see the overload taking a ParticleView.
         internal bool BuildGeometry(Camera camera, MeshNative target, out Matrix4x4 objectToWorld)
         {
-            var t = (TransformNative)camera.transform.NativeOrThrow;
+            var t = (TransformNative)camera.transform.EngineStateOrThrow;
             var projection = CameraProjection != null ? CameraProjection(camera) : (Matrix4x4?)null;
             return BuildGeometry(new ParticleView(Hierarchy.Position(t), t.WorldRotation, projection), target, out objectToWorld);
         }

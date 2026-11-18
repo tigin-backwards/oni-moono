@@ -26,14 +26,14 @@ namespace UnityEngine
     {
         public Vector3 center
         {
-            get => ((BoxColliderNative)NativeOrThrow).Center;
-            set => ((BoxColliderNative)NativeOrThrow).Center = value;
+            get => ((BoxColliderNative)EngineStateOrThrow).Center;
+            set => ((BoxColliderNative)EngineStateOrThrow).Center = value;
         }
 
         public Vector3 size
         {
-            get => ((BoxColliderNative)NativeOrThrow).Size;
-            set => ((BoxColliderNative)NativeOrThrow).Size = value;
+            get => ((BoxColliderNative)EngineStateOrThrow).Size;
+            set => ((BoxColliderNative)EngineStateOrThrow).Size = value;
         }
     }
 
@@ -41,14 +41,14 @@ namespace UnityEngine
     {
         public Vector3 center
         {
-            get => ((SphereColliderNative)NativeOrThrow).Center;
-            set => ((SphereColliderNative)NativeOrThrow).Center = value;
+            get => ((SphereColliderNative)EngineStateOrThrow).Center;
+            set => ((SphereColliderNative)EngineStateOrThrow).Center = value;
         }
 
         public float radius
         {
-            get => ((SphereColliderNative)NativeOrThrow).Radius;
-            set => ((SphereColliderNative)NativeOrThrow).Radius = value;
+            get => ((SphereColliderNative)EngineStateOrThrow).Radius;
+            set => ((SphereColliderNative)EngineStateOrThrow).Radius = value;
         }
     }
 
@@ -58,7 +58,7 @@ namespace UnityEngine
         {
             get
             {
-                var n = (Collider2DNative)NativeOrThrow;
+                var n = (Collider2DNative)EngineStateOrThrow;
                 var t = n.GameObject.Transform;
                 if (!n.Enabled || !n.GameObject.ActiveInHierarchy) return new Bounds(Hierarchy.Position(t), Vector3.zero);
                 var b = n.WorldBounds(t.LocalToWorld);

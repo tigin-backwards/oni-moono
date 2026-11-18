@@ -126,7 +126,7 @@ namespace OniMoono.Engine.Rendering
         {
             if (installed) return;
             installed = true;
-            Particles.ParticleSystemRendererNative.CameraProjection = camera => ((CameraNative)camera.NativeOrThrow).Projection;
+            Particles.ParticleSystemRendererNative.CameraProjection = camera => ((CameraNative)camera.EngineStateOrThrow).Projection;
             PlayerLoop.Render += RenderFrame;
             PlayerLoop.Present += EndFrame;
         }
@@ -179,7 +179,7 @@ namespace OniMoono.Engine.Rendering
         public static void BoundsInputsChanged(GameObjectNative go)
         {
             foreach (var c in go.Components)
-                if (c?.Native is RendererNative r) BoundsChanged(r);
+                if (c?.EngineState is RendererNative r) BoundsChanged(r);
         }
 
         static void RemoveCandidate(RendererNative r)
@@ -198,7 +198,7 @@ namespace OniMoono.Engine.Rendering
         {
             foreach (var c in go.Components)
             {
-                if (c?.Native is not RendererNative { CandidateSlot: >= 0 } r || r.CandidateLayer == go.Layer) continue;
+                if (c?.EngineState is not RendererNative { CandidateSlot: >= 0 } r || r.CandidateLayer == go.Layer) continue;
                 RemoveCandidate(r);
                 AddCandidate(r, go.Layer);
                 layerMoves++;
@@ -401,14 +401,14 @@ namespace OniMoono.Engine.Rendering
             order.Clear();
             for (int i = 0; i < cameras.Length; i++)
             {
-                var n = (CameraNative)cameras[i].Native;
+                var n = (CameraNative)cameras[i].EngineState;
                 if (n is null || !n.GameObject.ActiveInHierarchy) continue;
                 bool offscreen = n.TargetTexture || n.TargetColorBuffers != null;
                 order.Add((offscreen ? 0 : 1, n.Depth, i, cameras[i]));
             }
             order.Sort((a, b) => a.Key != b.Key ? a.Key.CompareTo(b.Key) : a.Depth != b.Depth ? a.Depth.CompareTo(b.Depth) : a.Index.CompareTo(b.Index));
             foreach (var entry in order)
-                if (entry.Camera && (lightCamera is null || !ReferenceEquals(entry.Camera.Native, lightCamera))) RenderCamera(entry.Camera);
+                if (entry.Camera && (lightCamera is null || !ReferenceEquals(entry.Camera.EngineState, lightCamera))) RenderCamera(entry.Camera);
             order.Clear();
             screenOrder = order;
             if (overlays) RenderOverlays?.Invoke();
@@ -798,7 +798,7 @@ namespace OniMoono.Engine.Rendering
             if (buffer == null) return;
             foreach (var camera in Cameras.Enabled.ToArray())
             {
-                var n = (CameraNative)camera.Native;
+                var n = (CameraNative)camera.EngineState;
                 if (n is null || !n.GameObject.ActiveInHierarchy || !n.TargetTexture || !ReferenceEquals(n.TargetTexture.Native, buffer)) continue;
                 var tiled = window;
                 window = new CaptureWindow { Scale = tiled.Scale, VirtualWidth = light.Width, VirtualHeight = light.Height, Width = light.Width, Height = light.Height };
@@ -998,15 +998,15 @@ namespace OniMoono.Engine.Rendering
             if (!go.ActiveInHierarchy) return;
             foreach (var c in go.Components)
             {
-                if (c is not MonoBehaviour mb || c.Native is not BehaviourNative { IsActiveAndEnabledState: true } bn || bn.Script == null) continue;
-                var m = select(bn.Script);
+                if (c is not MonoBehaviour mb || !mb.Alive || !mb.EngineActiveAndEnabled || mb.EngineScript == null) continue;
+                var m = select(mb.EngineScript);
                 if (m != null) Lifecycle.Invoke(m, mb);
             }
         }
 
         public static void RenderCamera(Camera camera)
         {
-            var cam = (CameraNative)camera.NativeOrThrow;
+            var cam = (CameraNative)camera.EngineStateOrThrow;
             var previous = Current;
             Current = camera;
             var previousActive = RenderTexture.active;
@@ -1065,7 +1065,7 @@ namespace OniMoono.Engine.Rendering
             try
             {
                 foreach (var c in cam.GameObject.Components)
-                    if (c is MonoBehaviour mb && c.Native is BehaviourNative { IsActiveAndEnabledState: true } bn && bn.Script?.OnRenderImage is { } effect)
+                    if (c is MonoBehaviour mb && mb.Alive && mb.EngineActiveAndEnabled && mb.EngineScript?.OnRenderImage is { } effect)
                         effects.Add((mb, effect));
                 RenderCameraTargets(camera, cam, device, draws, departuresAtCull, effects);
             }
@@ -1539,7 +1539,7 @@ namespace OniMoono.Engine.Rendering
         static void CollectLine(LineRendererNative r, Camera camera, List<DrawItem> draws)
         {
             var mesh = lineMeshes.GetValue(r, _ => new MeshNative());
-            var view = (TransformNative)camera.transform.NativeOrThrow;
+            var view = (TransformNative)camera.transform.EngineStateOrThrow;
             var rotation = view.WorldRotation;
             if (!r.BuildGeometry(Hierarchy.Position(view), rotation * Vector3.forward, rotation * Vector3.right, rotation * Vector3.up, !camera.orthographic, mesh)) return;
             foreach (var material in r.Materials)
@@ -1557,7 +1557,7 @@ namespace OniMoono.Engine.Rendering
         {
             Mesh mesh = null;
             foreach (var c in r.GameObject.Components)
-                if (c is MeshFilter f && f.Native is MeshFilterNative fn) { mesh = fn.Mesh; break; }
+                if (c is MeshFilter f && f.EngineState is MeshFilterNative fn) { mesh = fn.Mesh; break; }
             var m = mesh ? (MeshNative)mesh.NativeOrThrow : MeshRendererNative.TextMesh(r.GameObject)?.Geometry();
             if (m == null) return;
             int subMeshes = m.SubMeshes.Count;

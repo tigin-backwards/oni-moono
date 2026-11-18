@@ -76,21 +76,21 @@ namespace UnityEngine
         /// Stored; nothing simulates 2D contacts, so no trigger messages are sent.
         public bool isTrigger
         {
-            get => ((Collider2DNative)NativeOrThrow).IsTrigger;
-            set => ((Collider2DNative)NativeOrThrow).IsTrigger = value;
+            get => ((Collider2DNative)EngineStateOrThrow).IsTrigger;
+            set => ((Collider2DNative)EngineStateOrThrow).IsTrigger = value;
         }
 
         /// The shape's offset from the transform in local space (stored; nothing simulates 2D physics).
         public Vector2 offset
         {
-            get => ((Collider2DNative)NativeOrThrow).Offset;
-            set => ((Collider2DNative)NativeOrThrow).Offset = value;
+            get => ((Collider2DNative)EngineStateOrThrow).Offset;
+            set => ((Collider2DNative)EngineStateOrThrow).Offset = value;
         }
     }
 
     public sealed partial class PolygonCollider2D
     {
-        PolygonCollider2DNative Data => (PolygonCollider2DNative)NativeOrThrow;
+        PolygonCollider2DNative Data => (PolygonCollider2DNative)EngineStateOrThrow;
 
         /// Setting fewer paths drops the last ones; more adds empty ones.
         public int pathCount
@@ -126,8 +126,8 @@ namespace UnityEngine
     {
         public Vector2 size
         {
-            get => ((BoxCollider2DNative)NativeOrThrow).Size;
-            set => ((BoxCollider2DNative)NativeOrThrow).Size = value;
+            get => ((BoxCollider2DNative)EngineStateOrThrow).Size;
+            set => ((BoxCollider2DNative)EngineStateOrThrow).Size = value;
         }
     }
 
@@ -135,8 +135,8 @@ namespace UnityEngine
     {
         public float radius
         {
-            get => ((CircleCollider2DNative)NativeOrThrow).Radius;
-            set => ((CircleCollider2DNative)NativeOrThrow).Radius = value;
+            get => ((CircleCollider2DNative)EngineStateOrThrow).Radius;
+            set => ((CircleCollider2DNative)EngineStateOrThrow).Radius = value;
         }
     }
 
@@ -146,13 +146,13 @@ namespace UnityEngine
         /// script sets it. Velocity is not serialized, so a loaded body starts at rest.
         public Vector2 linearVelocity
         {
-            get => ((Rigidbody2DNative)NativeOrThrow).LinearVelocity;
-            set => ((Rigidbody2DNative)NativeOrThrow).LinearVelocity = value;
+            get => ((Rigidbody2DNative)EngineStateOrThrow).LinearVelocity;
+            set => ((Rigidbody2DNative)EngineStateOrThrow).LinearVelocity = value;
         }
 
         // The body's settings, kept as given (Unity's defaults until a script sets them). No
         // simulation steps bodies, so none of them moves one.
-        Rigidbody2DNative Body => (Rigidbody2DNative)NativeOrThrow;
+        Rigidbody2DNative Body => (Rigidbody2DNative)EngineStateOrThrow;
         public RigidbodyType2D bodyType { get => Body.BodyType; set => Body.BodyType = value; }
         public bool simulated { get => Body.Simulated; set => Body.Simulated = value; }
         public bool useAutoMass { get => Body.UseAutoMass; set => Body.UseAutoMass = value; }

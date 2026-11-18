@@ -12,7 +12,7 @@ namespace UnityEngine
     /// Mods draw lasers and debug lines with it (Capsule 2.0's mining laser). The game has none.
     public partial class LineRenderer
     {
-        LineRendererNative Data => (LineRendererNative)NativeOrThrow;
+        LineRendererNative Data => (LineRendererNative)EngineStateOrThrow;
 
         public int positionCount
         {

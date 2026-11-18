@@ -18,7 +18,7 @@ namespace OniMoono.Tests
             f.Add("m_Interactable", false);
             f.Add("m_BlocksRaycasts", false);
             f.Add("m_IgnoreParentGroups", true);
-            group.NativeOrThrow.Bind(f, null);
+            group.EngineStateOrThrow.Bind(f, null);
             Assert.Equal(0.25f, group.alpha);
             Assert.False(group.interactable);
             Assert.False(group.blocksRaycasts);

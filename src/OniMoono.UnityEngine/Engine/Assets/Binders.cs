@@ -38,7 +38,7 @@ namespace OniMoono.Engine.Assets
                 components.Add(c);
             }
             native.Components = components.ToArray();
-            native.Transform = (TransformNative)components[0].NativeOrThrow;
+            native.Transform = (TransformNative)components[0].EngineStateOrThrow;
             native.Serialized = null;
         }
     }
@@ -62,7 +62,7 @@ namespace OniMoono.Engine.Assets
                 r.Pivot = ToVector2(f.Struct("m_Pivot"));
             }
             native.Serialized = f;
-            return ObjectLoader.CreateNative<Transform>(rect ? typeof(RectTransform) : typeof(Transform), native);
+            return ObjectLoader.CreateComponent(rect ? typeof(RectTransform) : typeof(Transform), native, default);
         }
 
         public override void Fill(Object obj, LoadRequest request)
@@ -70,13 +70,13 @@ namespace OniMoono.Engine.Assets
             var native = (TransformNative)obj.NativeOrThrow;
             var f = native.Serialized;
             native.Serialized = null;
-            native.GameObject = (GameObjectNative)request.Resolver.Resolve(f.PPtr("m_GameObject")).NativeOrThrow;
+            ((Component)obj).SetEngineGameObject((GameObjectNative)request.Resolver.Resolve(f.PPtr("m_GameObject")).NativeOrThrow);
             var parent = request.Resolver.Resolve(f.PPtr("m_Father")) as Transform;
-            native.Parent = !parent ? null : (TransformNative)parent.NativeOrThrow;
+            native.Parent = !parent ? null : (TransformNative)parent.EngineStateOrThrow;
             var children = f.Array("m_Children");
             var list = new List<TransformNative>(children.Length);
             foreach (PPtr child in children)
-                if (request.Resolver.Resolve(child) is Transform t) list.Add((TransformNative)t.NativeOrThrow);
+                if (request.Resolver.Resolve(child) is Transform t) list.Add((TransformNative)t.EngineStateOrThrow);
             native.SetChildren(list.ToArray());
             native.MarkDirty(false);
         }
@@ -120,11 +120,13 @@ namespace OniMoono.Engine.Assets
             if (!baseFields.PPtr("m_GameObject").IsNull)
             {
                 if (!typeof(MonoBehaviour).IsAssignableFrom(type)) throw new InvalidDataException($"{type} attached to a GameObject is not a MonoBehaviour.");
-                var native = (BehaviourNative)ComponentNatives.Create(type);
-                native.Enabled = baseFields.Get<byte>("m_Enabled") != 0;
-                native.Script = ScriptInfo.Get(type);
-                native.ExecutionOrder = native.Script.ExecutionOrder;
-                obj = Object.ConstructBound<Component>(type, native);
+                var init = new ComponentInit
+                {
+                    Disabled = baseFields.Get<byte>("m_Enabled") == 0,
+                    Script = ScriptInfo.Get(type),
+                };
+                init.ExecutionOrder = init.Script.ExecutionOrder;
+                obj = Object.ConstructComponent(type, ComponentNatives.Create(type), in init);
             }
             else
             {
@@ -139,12 +141,12 @@ namespace OniMoono.Engine.Assets
         {
             pending.TryGetValue(obj, out var p);
             pending.Remove(obj);
-            if (obj.Native is ComponentNative cn)
-                cn.GameObject = (GameObjectNative)request.Resolver.Resolve(p.Base.PPtr("m_GameObject")).NativeOrThrow;
+            if (obj is Component component)
+                component.SetEngineGameObject((GameObjectNative)request.Resolver.Resolve(p.Base.PPtr("m_GameObject")).NativeOrThrow);
             if (obj is MissingScript)
             {
                 // Its data has no class to go to.
-                EngineLog.Message(LogType.Warning, $"The referenced script on this Behaviour (Game Object '{((ComponentNative)obj.Native).GameObject.Name}') is missing!", "");
+                EngineLog.Message(LogType.Warning, $"The referenced script on this Behaviour (Game Object '{((Component)obj).EngineGameObject.Name}') is missing!", "");
                 return;
             }
             var r = request.Open();
@@ -192,16 +194,33 @@ namespace OniMoono.Engine.Assets
         {
             var f = request.ReadNative();
             var native = ComponentNatives.Create(engineType);
-            native.Serialized = f;
-            if (native is BehaviourNative bn && f.Contains("m_Enabled")) bn.Enabled = f.Get<byte>("m_Enabled") != 0;
-            return ObjectLoader.CreateNative<Component>(engineType, native);
+            var init = new ComponentInit
+            {
+                Disabled = typeof(Behaviour).IsAssignableFrom(engineType) && f.Contains("m_Enabled") && f.Get<byte>("m_Enabled") == 0,
+            };
+            var component = ObjectLoader.CreateComponent(engineType, native, in init);
+            // Its data waits for its subsystem's Bind on its record, or here for a component
+            // without one.
+            if (native is not null) native.Serialized = f;
+            else unbound.Add(component, f);
+            return component;
         }
+
+        static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Object, Fields> unbound = new();
 
         public override void Fill(Object obj, LoadRequest request)
         {
-            var native = (ComponentNative)obj.NativeOrThrow;
-            native.GameObject = (GameObjectNative)request.Resolver.Resolve(native.Serialized.PPtr("m_GameObject")).NativeOrThrow;
-            native.Bind(native.Serialized, request.Resolver);
+            var component = (Component)obj;
+            var native = component.EngineState;
+            Fields f;
+            if (native is not null) f = native.Serialized;
+            else
+            {
+                unbound.TryGetValue(obj, out f);
+                unbound.Remove(obj);
+            }
+            component.SetEngineGameObject((GameObjectNative)request.Resolver.Resolve(f.PPtr("m_GameObject")).NativeOrThrow);
+            native?.Bind(f, request.Resolver);
         }
     }
 

@@ -187,7 +187,7 @@ namespace OniMoono.Tests
             var clip = Clip("Artifact_loop"); // 341 frames at 30 fps
             var go = new GameObject("Video");
             var vp = go.AddComponent<VideoPlayer>();
-            var native = (VideoPlayerNative)vp.Native;
+            var native = (VideoPlayerNative)vp.EngineState;
             var events = new List<string>();
             vp.prepareCompleted += p => events.Add("prepared");
             vp.started += p => events.Add("started");
@@ -275,7 +275,7 @@ namespace OniMoono.Tests
             var go = new GameObject("Video");
             go.SetActive(false);
             var vp = go.AddComponent<VideoPlayer>();
-            var native = (VideoPlayerNative)vp.Native;
+            var native = (VideoPlayerNative)vp.EngineState;
             native.RenderMode = VideoRenderTarget.RenderTexture;
             // A render texture described directly (its constructor reads the project's colour space).
             var rt = ObjectLoader.CreateNative<RenderTexture>(typeof(RenderTexture), new RenderTextureNative { Width = (int)clip.width, Height = (int)clip.height, DepthBits = 16 });

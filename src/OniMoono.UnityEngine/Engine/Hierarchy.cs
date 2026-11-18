@@ -217,8 +217,8 @@ namespace OniMoono.Engine
             if (!go.ActiveInHierarchy) return;
             foreach (var c in go.Components)
             {
-                if (c is not MonoBehaviour mb || c.Native is not BehaviourNative bn || bn.Script == null) continue;
-                var m = select(bn.Script);
+                if (c is not MonoBehaviour mb || !mb.Alive || mb.EngineScript == null) continue;
+                var m = select(mb.EngineScript);
                 if (m != null) Lifecycle.Invoke(m, mb);
             }
         }

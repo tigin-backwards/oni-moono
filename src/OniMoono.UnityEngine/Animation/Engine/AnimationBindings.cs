@@ -297,7 +297,7 @@ namespace OniMoono.Engine.Mecanim
             if (!ScriptProperties(target.GetType()).TryGetValue(attribute, out var p)) return null;
             var chain = p.Chain;
             var kind = p.Kind;
-            var notify = target.Native is BehaviourNative { Script.OnDidApplyAnimationProperties: not null } ? target : null;
+            var notify = target is Behaviour { Alive: true, EngineScript.OnDidApplyAnimationProperties: not null } ? target : null;
             return Shared(target, p.Path, () => new PropertyTarget(target, () => ToVector(GetLeaf(target, chain), kind), v => SetLeaf(target, chain, FromVector(v, kind)), notify));
         }
 

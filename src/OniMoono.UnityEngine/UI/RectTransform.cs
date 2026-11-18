@@ -7,7 +7,7 @@ namespace UnityEngine
     {
         public RectTransform() { }
 
-        internal RectTransformNative Rect => (RectTransformNative)NativeOrThrow;
+        internal RectTransformNative Rect => (RectTransformNative)EngineStateOrThrow;
 
         public Rect rect => Rect.ComputeRect();
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using OniMoono.Assets.TypeTrees;
 using UnityEngine;
@@ -184,46 +185,66 @@ namespace OniMoono.Engine
         public UI.CanvasNative NearestCanvas;
     }
 
-    internal class ComponentNative : NativeObject
+    /// What a component starts with, set before its constructor body runs (Object.ConstructComponent):
+    /// its GameObject's record, its hide flags, and for a behaviour whether it starts disabled
+    /// or without GUILayout and its script. Defaults are a component's: enabled, using
+    /// GUILayout.
+    internal struct ComponentInit
     {
         public GameObjectNative GameObject;
-        /// EngineAwake has run (components that are not Behaviours).
-        public bool AwakeCalledForComponent;
-        /// EngineOnEnable has run and EngineOnDisable has not run since (components that are not
-        /// Behaviours).
-        public bool EngineEnabled;
-        /// Destroy was called on the component or its GameObject (or an ancestor) and it awaits
-        /// destruction: as in Unity it is disabled at once and is not enabled again.
-        public bool DestroyPending;
-    }
-
-    internal class BehaviourNative : ComponentNative
-    {
-        public bool Enabled = true;
-        /// OnEnable has run and OnDisable has not run since (Unity's "is in enabled state").
-        public bool IsActiveAndEnabledState;
-        public bool AwakeCalled;
-        /// Its Awake is running, while its GameObject activates (Lifecycle.AwakeAndEnable).
-        public bool InAwake;
-        public bool StartCalled;
-        /// Scheduled for Start in the next Start phase.
-        public bool StartPending;
+        public HideFlags HideFlags;
+        public bool Disabled;
+        public bool NoGUILayout;
         public ScriptInfo Script;
         public int ExecutionOrder;
-        /// MonoBehaviour.useGUILayout: OnGUI gets Layout events and may use GUILayout.
-        public bool UseGUILayout = true;
 
-        public override void CopyStateFrom(NativeObject source)
+        public ComponentInit(GameObjectNative gameObject) : this() => GameObject = gameObject;
+    }
+
+    /// The record of an engine component (transforms, renderers, colliders, cameras…): the state
+    /// of its subsystem. The component's own state (its GameObject, its lifecycle flags) is on
+    /// the component (UnityEngine.Component); these read it there. Scripts and plain components
+    /// have no record.
+    internal class ComponentNative : NativeObject
+    {
+        /// The component's GameObject record, as the component's (set when it is bound, never
+        /// changed): read here without going through the component.
+        public GameObjectNative GameObject;
+
+        public Component Component => Unsafe.As<Component>(Managed);
+
+        public bool AwakeCalledForComponent
         {
-            var b = (BehaviourNative)source;
-            // Instantiate copies a behaviour awaiting destruction, and copies it disabled, as
-            // observed in Unity's player: the clone keeps the enabled = false its source reports
-            // and lives on after the source's destruction.
-            Enabled = b.Enabled && !b.DestroyPending;
-            UseGUILayout = b.UseGUILayout;
+            get => Component.EngineAwakeCalledForComponent;
+            set => Component.EngineAwakeCalledForComponent = value;
         }
-        /// Per-behaviour coroutines (MonoBehaviour only).
-        public List<CoroutineState> Coroutines;
+
+        public bool EngineEnabled
+        {
+            get => Component.EngineEnableRan;
+            set => Component.EngineEnableRan = value;
+        }
+
+        public bool DestroyPending
+        {
+            get => Component.EngineDestroyPending;
+            set => Component.EngineDestroyPending = value;
+        }
+    }
+
+    /// The record of an engine Behaviour (cameras, canvases, animators…): the behaviour's own
+    /// state is on the behaviour (UnityEngine.Behaviour); these read it there.
+    internal class BehaviourNative : ComponentNative
+    {
+        public Behaviour Behaviour => Unsafe.As<Behaviour>(Managed);
+
+        public bool Enabled
+        {
+            get => Behaviour.EngineEnabledSelf;
+            set => Behaviour.EngineEnabledSelf = value;
+        }
+
+        public bool IsActiveAndEnabledState => Behaviour.EngineActiveAndEnabled;
     }
 
     internal partial class TransformNative : ComponentNative

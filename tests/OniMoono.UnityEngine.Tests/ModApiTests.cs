@@ -174,7 +174,7 @@ namespace OniMoono.Tests
             line.endColor = new Color(0, 0, 1, 0.5f);
             setup(line);
             var mesh = new OniMoono.Engine.Rendering.MeshNative();
-            var native = (OniMoono.Engine.Rendering.LineRendererNative)line.NativeOrThrow;
+            var native = (OniMoono.Engine.Rendering.LineRendererNative)line.EngineStateOrThrow;
             if (!native.BuildGeometry(new Vector3(0, 0, -10), Vector3.forward, Vector3.right, Vector3.up, false, mesh)) return (Array.Empty<Vector3>(), Array.Empty<Vector2>(), Array.Empty<Color32>(), Array.Empty<int>());
             return (mesh.Positions, mesh.Uvs[0].Select(u => new Vector2(u.x, u.y)).ToArray(), mesh.Colors.Select(c => (Color32)c).ToArray(), mesh.SubMeshes[0].Indices.ToArray());
         }

@@ -21,7 +21,7 @@ namespace UnityEngine
 
         public Camera() { }
 
-        internal CameraNative Data => (CameraNative)NativeOrThrow;
+        internal CameraNative Data => (CameraNative)EngineStateOrThrow;
 
         internal override void EngineOnEnable() => Cameras.Add(this);
         internal override void EngineOnDisable() => Cameras.Remove(this);
@@ -661,7 +661,7 @@ namespace OniMoono.Engine.Rendering
             get
             {
                 foreach (var c in Enabled)
-                    if (c.Native is CameraNative n && n.GameObject.Tag == "MainCamera") return c;
+                    if (c.EngineState is CameraNative n && n.GameObject.Tag == "MainCamera") return c;
                 return null;
             }
         }

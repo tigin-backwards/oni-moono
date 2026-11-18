@@ -9,7 +9,7 @@ namespace UnityEngine
 {
     public partial class TextMesh
     {
-        TextMeshNative Data => (TextMeshNative)NativeOrThrow;
+        TextMeshNative Data => (TextMeshNative)EngineStateOrThrow;
 
         internal override void EngineOnDestroy() => Data.ReleaseResources();
 

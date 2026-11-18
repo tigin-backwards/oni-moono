@@ -26,8 +26,8 @@ namespace OniMoono.Tests
             void LateUpdate() => LateUpdates++;
         }
 
-        /// The object the behaviour manager keeps for a behaviour.
-        static object Key(MonoBehaviour b) => b.Native;
+        /// The object the behaviour manager keeps for a behaviour: the behaviour itself.
+        static object Key(MonoBehaviour b) => b;
 
         /// Two behaviours, each on an inactive object of its own, whose keys have the same hash
         /// (a hash has 26 bits: about 10,000 objects give a collision).

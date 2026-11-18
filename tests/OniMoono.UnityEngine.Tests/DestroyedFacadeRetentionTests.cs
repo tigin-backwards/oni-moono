@@ -69,7 +69,8 @@ namespace OniMoono.Tests
             };
             foreach (var o in new Object[] { parent, held, other, collider, child, childOther, grandchild, parent.transform, child.transform, grandchild.transform })
             {
-                watched.Add($"{o.name}'s {o.GetType().Name} record", o.Native);
+                // Scripts and plain components have no record: their state is on them.
+                if (o.NativeRecord is { } record) watched.Add($"{o.name}'s {o.GetType().Name} record", record);
                 if (!ReferenceEquals(o, keep) && !Allowed(keep, o)) watched.Add($"{o.name}'s {o.GetType().Name}", o);
             }
             if (immediate) Object.DestroyImmediate(parent);

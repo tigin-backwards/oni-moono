@@ -129,7 +129,7 @@ namespace OniMoono.Tests
             var go = new GameObject("2d");
             var box = go.AddComponent<BoxCollider2D>();
             box.size = new Vector2(1f, 1.5f);
-            Assert.Equal(new Vector2(1f, 1.5f), ((BoxCollider2DNative)box.Native).Size);
+            Assert.Equal(new Vector2(1f, 1.5f), ((BoxCollider2DNative)box.EngineState).Size);
             Assert.Equal(Vector2.zero, go.AddComponent<Rigidbody2D>().linearVelocity);
             Assert.False(default(RaycastHit2D));
         }
@@ -138,10 +138,10 @@ namespace OniMoono.Tests
         public void EdgeCollider2DKeepsItsLineWhenCloned()
         {
             var go = new GameObject("edge");
-            var edge = (EdgeCollider2DNative)go.AddComponent<EdgeCollider2D>().Native;
+            var edge = (EdgeCollider2DNative)go.AddComponent<EdgeCollider2D>().EngineState;
             edge.Points = new[] { Vector2.zero, new Vector2(2f, 1f) };
             edge.EdgeRadius = 0.25f;
-            var copy = (EdgeCollider2DNative)Object.Instantiate(go).GetComponent<EdgeCollider2D>().Native;
+            var copy = (EdgeCollider2DNative)Object.Instantiate(go).GetComponent<EdgeCollider2D>().EngineState;
             Assert.Equal(edge.Points, copy.Points);
             Assert.NotSame(edge.Points, copy.Points);
             Assert.Equal(0.25f, copy.EdgeRadius);

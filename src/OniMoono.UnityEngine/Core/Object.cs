@@ -43,30 +43,31 @@ namespace UnityEngine
 
         /// Set by the engine around construction of a component or ScriptableObject so that the
         /// base constructor binds the managed object to its native record (Unity creates the
-        /// native object first and then runs the managed constructor).
+        /// native object first and then runs the managed constructor). A component's record is
+        /// its engine state (null for scripts and plain components) and its starting state.
         [ThreadStatic] static NativeObject s_PendingNative;
-        /// The type being constructed for s_PendingNative. A class's field initializers run before
-        /// its base constructor, so an object they create (a mod's component holding
+        [ThreadStatic] static bool s_PendingIsComponent;
+        [ThreadStatic] static ComponentInit s_PendingInit;
+        /// The type being constructed; null when nothing is pending. A class's field initializers
+        /// run before its base constructor, so an object they create (a mod's component holding
         /// `new ColorStyleSetting()`) reaches this constructor first and must not take the record.
         [ThreadStatic] static Type s_PendingType;
 
         public Object()
         {
-            var pending = s_PendingNative;
-            if (pending is not null && GetType() == s_PendingType)
+            var pendingType = s_PendingType;
+            if (pendingType is not null && GetType() == pendingType)
             {
+                var pending = s_PendingNative;
                 s_PendingNative = null;
                 s_PendingType = null;
-                Bind(pending);
+                if (s_PendingIsComponent) Unsafe.As<Component>(this).BindComponent((ComponentNative)pending, in s_PendingInit);
+                else Bind(pending);
             }
         }
 
         internal static T ConstructBound<T>(Type type, NativeObject native) where T : Object
         {
-            // Field initializers may construct bound objects too (CreateInstance), before the
-            // outer object's base constructor runs: its record is put back afterwards.
-            var outerNative = s_PendingNative;
-            var outerType = s_PendingType;
             // A class without a parameterless constructor is created with no constructor run at
             // all, its base classes' and field initializers included (UnityProbe's missingtypes:
             // Trash Cans' components have only a constructor taking a state).
@@ -76,18 +77,48 @@ namespace UnityEngine
                 bare.Bind(native);
                 return bare;
             }
+            return Construct<T>(type, native, false, default);
+        }
+
+        /// Constructs a component bound to its engine state (null for scripts and plain
+        /// components), starting as INIT says.
+        internal static Component ConstructComponent(Type type, ComponentNative state, in ComponentInit init)
+        {
+            if (!HasParameterlessConstructor(type))
+            {
+                var bare = (Component)RuntimeHelpers.GetUninitializedObject(type);
+                bare.BindComponent(state, in init);
+                return bare;
+            }
+            return Construct<Component>(type, state, true, init);
+        }
+
+        static T Construct<T>(Type type, NativeObject native, bool component, ComponentInit init) where T : Object
+        {
+            // Field initializers may construct bound objects too (CreateInstance, AddComponent),
+            // before the outer object's base constructor runs: its pending binding is put back
+            // afterwards.
+            var outerNative = s_PendingNative;
+            var outerType = s_PendingType;
+            var outerIsComponent = s_PendingIsComponent;
+            var outerInit = s_PendingInit;
             s_PendingNative = native;
             s_PendingType = type;
+            s_PendingIsComponent = component;
+            s_PendingInit = init;
             try
             {
                 var obj = (T)Activator.CreateInstance(type, nonPublic: true);
-                if (!ReferenceEquals(native.Managed, obj)) throw new InvalidOperationException($"{type} did not chain to UnityEngine.Object's constructor");
+                // Bound: the base constructor took the pending binding.
+                if (s_PendingType is not null) throw new InvalidOperationException($"{type} did not chain to UnityEngine.Object's constructor");
                 return obj;
             }
             finally
             {
                 s_PendingNative = outerNative;
                 s_PendingType = outerType;
+                s_PendingIsComponent = outerIsComponent;
+                s_PendingInit = outerInit;
             }
         }
 
@@ -107,13 +138,36 @@ namespace UnityEngine
             if (ObjectCensus.Sites) ObjectCensus.Created(native);
         }
 
-        /// Detaches from the native record: from now on this object compares equal to null.
-        internal void Unbind()
+        /// A component's binding: its engine state (null for scripts and plain components), the
+        /// state it starts with, its id and its slot. As for a record, all of it is in place
+        /// before the component's constructor body runs.
+        internal void BindAsComponent(ComponentNative state)
         {
-            var native = Native;
+            if (state is not null)
+            {
+                state.HandOver(this);
+                state.Managed = this;
+            }
+            if (m_EngineInstanceId == 0) m_EngineInstanceId = ObjectTable.NewInstanceId(m_EngineIsPersistent);
+            m_Native = state;
+            Volatile.Write(ref m_CachedPtr, ObjectTable.Register(this));
+        }
+
+        /// Detaches from the native record: from now on this object compares equal to null.
+        internal virtual void Unbind()
+        {
+            bool alive = Handle != IntPtr.Zero;
             Volatile.Write(ref m_CachedPtr, IntPtr.Zero);
             m_Native = null;
-            if (native is not null) ObjectTable.Unregister(this);
+            if (alive) ObjectTable.Unregister(this);
+        }
+
+        /// Whether the object is alive: bound to the engine and not destroyed (Unity's bool
+        /// conversion). Safe from any thread.
+        internal bool Alive
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get => Volatile.Read(ref m_CachedPtr) != IntPtr.Zero;
         }
 
         /// The record, alive or not (the object table's snapshot of its live objects).
@@ -146,13 +200,9 @@ namespace UnityEngine
         static void ThrowNullReference(Object obj) => throw new NullReferenceException();
 
         /// 0 once the object is destroyed, as in Unity 6.
-        public int GetInstanceID() => Native is null ? 0 : m_EngineInstanceId;
+        public int GetInstanceID() => Alive ? m_EngineInstanceId : 0;
 
-        public EntityId GetEntityId()
-        {
-            var n = Native;
-            return n is null ? EntityId.None : EntityId.From(m_EngineInstanceId);
-        }
+        public EntityId GetEntityId() => Alive ? EntityId.From(m_EngineInstanceId) : EntityId.None;
 
         public override int GetHashCode() => base.GetHashCode();
 
@@ -161,14 +211,13 @@ namespace UnityEngine
         {
             get
             {
-                var n = NativeOrThrow;
-                return n is ComponentNative c ? c.GameObject.Name : n.Name;
+                if (this is Component c) return c.EngineGameObjectOrThrow.Name;
+                return NativeOrThrow.Name;
             }
             set
             {
-                var n = NativeOrThrow;
-                if (n is ComponentNative c) c.GameObject.Name = value ?? "";
-                else n.Name = value ?? "";
+                if (this is Component c) c.EngineGameObjectOrThrow.Name = value ?? "";
+                else NativeOrThrow.Name = value ?? "";
             }
         }
 
@@ -176,21 +225,20 @@ namespace UnityEngine
         {
             get
             {
-                _ = NativeOrThrow;
+                if (!Alive) ThrowNullReference(this);
                 return m_EngineHideFlags;
             }
             set
             {
-                _ = NativeOrThrow;
+                if (!Alive) ThrowNullReference(this);
                 m_EngineHideFlags = value;
             }
         }
 
         public override string ToString()
         {
-            var n = Native;
-            if (n is null) return "null";
-            return (n is ComponentNative c ? c.GameObject.Name : n.Name) + " (" + GetType().FullName + ")";
+            if (!Alive) return "null";
+            return (this is Component c ? c.EngineGameObject.Name : m_Native.Name) + " (" + GetType().FullName + ")";
         }
 
         // Inlined into callers: the game null-checks objects everywhere (1.4% of a large colony's
@@ -345,5 +393,18 @@ namespace UnityEngine
 #pragma warning disable SYSLIB0051 // Unity declares the serialization constructor.
         protected MissingReferenceException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
 #pragma warning restore SYSLIB0051
+    }
+}
+
+namespace OniMoono.Engine
+{
+    internal static class ObjectChecks
+    {
+        /// The object, which must be alive; throws Unity's error otherwise.
+        public static T AliveOrThrow<T>(this T obj) where T : UnityEngine.Object
+        {
+            if (!obj.Alive) throw new System.NullReferenceException();
+            return obj;
+        }
     }
 }

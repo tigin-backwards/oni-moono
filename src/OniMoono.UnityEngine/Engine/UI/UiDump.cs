@@ -76,12 +76,12 @@ namespace OniMoono.Engine.UI
                     if (c is null || c is Transform) continue;
                     text.Append(" | ").Append(c.GetType().Name);
                     if (c is Behaviour b && !b.enabled) text.Append("(off)");
-                    if (c is CanvasRenderer cr) AppendRenderer(text, (CanvasRendererNative)cr.Native);
+                    if (c is CanvasRenderer cr) AppendRenderer(text, (CanvasRendererNative)cr.EngineState);
                     AppendMembers(text, c);
                 }
                 if (VerticesFilter != null && key.Contains(VerticesFilter, StringComparison.Ordinal)
                     && go.Managed is GameObject managed && managed.GetComponent<CanvasRenderer>() is { } renderer
-                    && ((CanvasRendererNative)renderer.Native).Geometry is { } geometry)
+                    && ((CanvasRendererNative)renderer.EngineState).Geometry is { } geometry)
                     AppendVertices(text, geometry);
                 text.Append('\n');
             }

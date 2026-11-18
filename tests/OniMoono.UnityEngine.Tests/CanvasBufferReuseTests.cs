@@ -30,7 +30,7 @@ namespace OniMoono.Tests
         {
             var go = new GameObject("Element", typeof(RectTransform));
             var renderer = go.AddComponent<CanvasRenderer>();
-            return (go, renderer, (CanvasRendererNative)renderer.Native);
+            return (go, renderer, (CanvasRendererNative)renderer.EngineState);
         }
 
         static void AssertGeometry(Mesh source, CanvasGeometry g)

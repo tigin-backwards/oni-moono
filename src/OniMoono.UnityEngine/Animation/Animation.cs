@@ -23,7 +23,7 @@ namespace UnityEngine
     {
         public Animation() { }
 
-        internal AnimationNative Data => (AnimationNative)NativeOrThrow;
+        internal AnimationNative Data => (AnimationNative)EngineStateOrThrow;
 
         /// The default clip.
         public AnimationClip clip

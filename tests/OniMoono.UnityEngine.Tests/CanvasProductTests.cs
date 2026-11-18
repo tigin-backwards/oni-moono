@@ -91,7 +91,7 @@ namespace OniMoono.Tests
             foreach (var e in s.Elements)
             {
                 if (e == null) continue;
-                var r = (CanvasRendererNative)e.Native;
+                var r = (CanvasRendererNative)e.EngineState;
                 sb.Append(e.name).Append(" built ").Append(r.BuiltToCanvas is { } b ? Bits(b) : "none");
                 sb.Append(" moved ").Append(e.hasMoved).Append(" to canvas ").Append(Bits(CanvasSystem.ToCanvas(r)));
                 sb.Append(" baked ").Append(r.Baked == null ? "none" : Bits(r.BakedToSpace));

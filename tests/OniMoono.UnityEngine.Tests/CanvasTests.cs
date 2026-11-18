@@ -23,7 +23,7 @@ namespace OniMoono.Tests
             try
             {
                 var renderer = go.AddComponent<CanvasRenderer>();
-                var data = (OniMoono.Engine.UI.CanvasRendererNative)renderer.Native;
+                var data = (OniMoono.Engine.UI.CanvasRendererNative)renderer.EngineState;
                 var material = new Material(Shader.Find("UI/Default"));
                 renderer.materialCount = 1;
                 renderer.SetMaterial(material, 0);
@@ -63,7 +63,7 @@ namespace OniMoono.Tests
             try
             {
                 var renderer = go.AddComponent<CanvasRenderer>();
-                var data = (OniMoono.Engine.UI.CanvasRendererNative)renderer.Native;
+                var data = (OniMoono.Engine.UI.CanvasRendererNative)renderer.EngineState;
                 var mesh = new Mesh { vertices = [Vector3.zero, new Vector3(0f, 100f), new Vector3(100f, 0f)], triangles = [0, 1, 2] };
                 renderer.SetMesh(mesh);
                 var first = data.Geometry;

@@ -8,9 +8,9 @@ namespace OniMoono.Engine.IMGUI
     /// A behaviour that takes part in IMGUI (its script declares OnGUI), with the state kept for
     /// it across events: its control IDs, its GUILayout entries and its depth. Its windows are
     /// in the one stack of every behaviour's windows (Windows).
-    internal sealed class GUIParticipant(BehaviourNative behaviour, long order)
+    internal sealed class GUIParticipant(Behaviour behaviour, long order)
     {
-        public readonly BehaviourNative Behaviour = behaviour;
+        public readonly Behaviour Behaviour = behaviour;
         /// When it was enabled: the tie-break between equal depths.
         public readonly long Order = order;
         /// GUI.depth as last set by its OnGUI: lower is in front.
@@ -18,9 +18,9 @@ namespace OniMoono.Engine.IMGUI
         public readonly ControlScope Scope = new();
         public readonly LayoutPass Layout = new();
 
-        public bool UsesLayout => Behaviour.UseGUILayout;
+        public bool UsesLayout => Behaviour.EngineUseGUILayout;
 
-        public bool Alive => !Behaviour.Destroyed && Behaviour.IsActiveAndEnabledState && Behaviour.Managed is MonoBehaviour;
+        public bool Alive => !Behaviour.EngineDestroyed && Behaviour.EngineActiveAndEnabled && Behaviour is MonoBehaviour;
 
         public void Release()
         {
@@ -45,7 +45,7 @@ namespace OniMoono.Engine.IMGUI
 
         static bool installed;
         static readonly List<GUIParticipant> participants = new();
-        static readonly Dictionary<BehaviourNative, GUIParticipant> byBehaviour = new(ReferenceEqualityComparer.Instance);
+        static readonly Dictionary<Behaviour, GUIParticipant> byBehaviour = new(ReferenceEqualityComparer.Instance);
         /// The behaviours front to back.
         static readonly List<GUIParticipant> ordered = new();
         static long nextOrder;
@@ -64,15 +64,15 @@ namespace OniMoono.Engine.IMGUI
             FrameRenderer.RenderScreenLate += RepaintCapture;
         }
 
-        public static void Register(BehaviourNative b)
+        public static void Register(Behaviour b)
         {
-            if (b.Script?.OnGUI == null || byBehaviour.ContainsKey(b)) return;
+            if (b.EngineScript?.OnGUI == null || byBehaviour.ContainsKey(b)) return;
             var p = new GUIParticipant(b, nextOrder++);
             participants.Add(p);
             byBehaviour[b] = p;
         }
 
-        public static void Unregister(BehaviourNative b)
+        public static void Unregister(Behaviour b)
         {
             if (!byBehaviour.Remove(b, out var p)) return;
             participants.Remove(p);
@@ -341,11 +341,11 @@ namespace OniMoono.Engine.IMGUI
         /// ran to its end.
         public static bool Invoke(GUIParticipant p, WindowRecord window)
         {
-            var context = (MonoBehaviour)p.Behaviour.Managed;
+            var context = (MonoBehaviour)p.Behaviour;
             try
             {
                 if (window != null) window.Function(window.Id);
-                else p.Behaviour.Script.OnGUI(context);
+                else p.Behaviour.EngineScript.OnGUI(context);
                 return true;
             }
             catch (ExitGUIException)

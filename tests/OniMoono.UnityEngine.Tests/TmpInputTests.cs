@@ -334,7 +334,7 @@ namespace OniMoono.Tests
         {
             Canvas.ForceUpdateCanvases();
             var renderer = field.textViewport.GetChild(0).GetComponent<CanvasRenderer>();
-            var p = ((OniMoono.Engine.UI.CanvasRendererNative)renderer.NativeOrThrow).Geometry?.Positions ?? new Vector3[0];
+            var p = ((OniMoono.Engine.UI.CanvasRendererNative)renderer.EngineStateOrThrow).Geometry?.Positions ?? new Vector3[0];
             var quads = new Rect[p.Length / 4];
             for (int q = 0; q < quads.Length; q++)
                 quads[q] = Rect.MinMaxRect(Mathf.Min(p[4 * q].x, p[4 * q + 2].x), Mathf.Min(p[4 * q].y, p[4 * q + 2].y), Mathf.Max(p[4 * q].x, p[4 * q + 2].x), Mathf.Max(p[4 * q].y, p[4 * q + 2].y));
