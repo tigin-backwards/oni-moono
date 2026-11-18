@@ -1035,6 +1035,36 @@ msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PACE"
 msgid "112 → 220 fps at normal speed on a large modded colony"
 msgstr ""
 
+#. Row title (frame-time-cap)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_TIME_CAP.TITLE"
+msgid "Game time at the simulation's pace"
+msgstr ""
+
+#. The line under the title (frame-time-cap)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_TIME_CAP.EFFECT"
+msgid "At low frame rates, animations, automation and timers no longer run ahead of the simulation."
+msgstr ""
+
+#. Tooltip: how it works (frame-time-cap)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_TIME_CAP.DETAIL"
+msgid "The game's simulation takes at most 0.2 s of game time a frame and drops the rest, but animations, the automation clock and the game's timers take all of it: up to 1 s a frame at speed 3. Duplicants and critters then finish what waits on an animation sooner, Buffer and Filter Gates switch early, and overheating buildings and scalding Duplicants take damage faster. This caps a frame's game time at the simulation's 0.2 s while a colony runs. Nothing changes above 15 fps at speed 3, 10 fps at speed 2 or 5 fps at speed 1. The camera and menus keep real time. Off while another mod changes the simulation's frame."
+msgstr ""
+
+#. Row title (logic-in-sim-steps)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOGIC_IN_SIM_STEPS.TITLE"
+msgid "Automation between simulation steps"
+msgstr ""
+
+#. The line under the title (logic-in-sim-steps)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOGIC_IN_SIM_STEPS.EFFECT"
+msgid "At low frame rates, an automation signal that lasts one tick still reaches pumps, doors and valves."
+msgstr ""
+
+#. Tooltip: how it works (logic-in-sim-steps)
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOGIC_IN_SIM_STEPS.DETAIL"
+msgid "Automation ticks every 0.1 s of game time. When a frame holds several ticks, the game runs them back to back before the frame's simulation steps, so a signal that lasts one tick can switch a building on and off with no step in between. This runs each later tick before the step it falls on. The number of ticks is the same. Nothing changes above 30 fps at speed 3, 20 fps at speed 2 or 10 fps at speed 1. Off while another mod changes the automation clock or the simulation's frame."
+msgstr ""
+
 #. Row title (brain-rate)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.TITLE"
 msgid "Cap critter and dupe brain updates"

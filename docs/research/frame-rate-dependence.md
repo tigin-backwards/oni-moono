@@ -101,6 +101,39 @@ regime more often than the original, so Moono is closer to the high-fps behaviou
 **Recommended:** A first (eight outcome cases, no cost, one place), then B for automation
 builds, then C as a U60 backport. D and case 12 only if someone reports them.
 
+## Built (2026-11-18)
+
+A and B are opt-in tweaks in the Changes gameplay group, on master and u60
+([TWEAKS.md](../TWEAKS.md#game-time-at-the-simulations-pace)):
+
+- **A: `frame-time-cap`.** A postfix on `Game.SimEveryTick` arms a one-frame cap in
+  `Time.BeginFrame` (`Time.CapNextFrame`, through `OniMoono.Host.GameTimeCap`): the next frame's
+  scaled `deltaTime` is at most 0.2 s, SimEveryTick's own `Mathf.Min(dt, 0.2f)` (declared as a
+  mirror). The sim consumes exactly `min(deltaTime, 0.2)` a frame (sub-ticks of 1/60 s, the
+  remainder under 1/60 s carried in `simDt`, the rest dropped), so the capped `deltaTime` equals
+  what the sim takes, bit for bit. Frames at or under the cap are untouched. Only frames after
+  one that ran SimEveryTick are capped: the main menu and loading never are. `Time.time`,
+  `smoothDeltaTime`, `timeSinceLevelLoad` and the FixedUpdate steps follow; `unscaledDeltaTime`
+  and `realtimeSinceStartup` stay real. Paused frames have no game time either way. Not changed:
+  case 9 (frame rounding) and case 12 (real time). FMOD's listener velocity and
+  `FlowOffsetRenderer` divide by `deltaTime`: a smaller divisor on long frames only, where the
+  world already moves at the sim's pace.
+- **B: `logic-in-sim-steps`.** Not one tick per 6 sub-ticks as first proposed (that changes the
+  tick count when a frame passes the cap, and the tick phase): Refresh's own loop counts the
+  frame's ticks, as many as the game's with the same `elapsedTime` left, and only where they run
+  changes. The first tick of a frame runs where the game runs it; each later one before the
+  first sub-tick at or after its moment in the frame, after the previous tick's sub-tick and
+  leaving one for each tick after it. A frame with one tick or one sub-tick at most runs exactly
+  as the game's (unit tests against copies of Refresh and SimEveryTick). It shares
+  SimEveryTick's loop with `sim-step-pace`.
+
+Counts on a Linux lane (speed 3 at 5 fps against speed 1 at 220 fps, TWEAKS.md has the tables):
+`Time.time` 3.0 → 1.0 s per sim second, automation ticks 30 → 10 a second, a 10 s Buffer Gate
+3.3 → 10.0 game s, overheat hits 0.23 → 0.12 a second (target 0.12), scald hits 0.49 → 0.18
+(0.17), a 1 s animation 0.41 → 1.20 game s a play (0.97; the extra 0.2 s is case 9). One-tick
+signals the sim never sees: 33% → 0 at 20 fps, 83% → 0 at 5 fps. At 60 fps no frame was capped
+and no tick moved.
+
 ## Related findings that are not frame rate
 
 - **R1. Scheduler and `GameClock.GetTime` are floats** (fixed in U60). `GetTime` returns

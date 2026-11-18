@@ -60,7 +60,7 @@ namespace OniMoono.Host.GameTweaks
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots", TableScroll = "fix-table-scroll", LazyTableRefresh = "lazy-table-refresh",
             ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history", CompactReportEntries = "compact-report-entries",
-            SimStepPace = "sim-step-pace", FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds",
+            SimStepPace = "sim-step-pace", FrameTimeCap = "frame-time-cap", LogicInSimSteps = "logic-in-sim-steps", FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds",
             LoadingAnimation = "loading-animation";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
@@ -272,6 +272,18 @@ namespace OniMoono.Host.GameTweaks
                 + "This skips those calls, as the game does below 60 fps and at faster speeds. "
                 + "Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. "
                 + "Off while paused, or while another mod changes these calls.", PaceGain),
+            new(FrameTimeCap, ChangesGameplay, "Game time at the simulation's pace", "At low frame rates, animations, automation and timers no longer run ahead of the simulation.",
+                "The game's simulation takes at most 0.2 s of game time a frame and drops the rest, but animations, the automation clock and the game's timers take all of it: up to 1 s a frame at speed 3. "
+                + "Duplicants and critters then finish what waits on an animation sooner, Buffer and Filter Gates switch early, and overheating buildings and scalding Duplicants take damage faster. "
+                + "This caps a frame's game time at the simulation's 0.2 s while a colony runs. "
+                + "Nothing changes above 15 fps at speed 3, 10 fps at speed 2 or 5 fps at speed 1. The camera and menus keep real time. "
+                + "Off while another mod changes the simulation's frame."),
+            new(LogicInSimSteps, ChangesGameplay, "Automation between simulation steps", "At low frame rates, an automation signal that lasts one tick still reaches pumps, doors and valves.",
+                "Automation ticks every 0.1 s of game time. When a frame holds several ticks, the game runs them back to back before the frame's simulation steps, "
+                + "so a signal that lasts one tick can switch a building on and off with no step in between. "
+                + "This runs each later tick before the step it falls on. The number of ticks is the same. "
+                + "Nothing changes above 30 fps at speed 3, 20 fps at speed 2 or 10 fps at speed 1. "
+                + "Off while another mod changes the automation clock or the simulation's frame."),
             new("brain-rate", ChangesGameplay, "Cap critter and dupe brain updates", "Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps.",
                 "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. "
                 + "One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food or excrete goes ahead of the others, so critters act at other moments than without this. "
@@ -301,7 +313,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "critter-needs-first", SimStepPace, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, TableScroll, FetchByCell, SharedDuplicates, LazyTableRefresh, "fast-table-rows", CompactReports, CompactReportEntries, FastPipeRebuilds, ReleasedSounds, "fast-overlay-removals", "direct-rail-bridges"];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "critter-needs-first", SimStepPace, FrameTimeCap, LogicInSimSteps, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, TableScroll, FetchByCell, SharedDuplicates, LazyTableRefresh, "fast-table-rows", CompactReports, CompactReportEntries, FastPipeRebuilds, ReleasedSounds, "fast-overlay-removals", "direct-rail-bridges"];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem),

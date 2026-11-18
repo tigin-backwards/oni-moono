@@ -98,6 +98,8 @@
     <Compile Include="../../src/OniMoono.GameTweaks/OffWorldFallersCore.cs" Link="GameTweaks/OffWorldFallersCore.cs" />
     <!-- The sim-step-pace game tweak's frame against the game's SimEveryTick (SimStepPaceTests). -->
     <Compile Include="../../src/OniMoono.GameTweaks/SimStepPaceCore.cs" Link="GameTweaks/SimStepPaceCore.cs" />
+    <!-- The logic-in-sim-steps game tweak's tick plan against the game's Refresh and SimEveryTick (LogicTicksTests). -->
+    <Compile Include="../../src/OniMoono.GameTweaks/LogicTicksCore.cs" Link="GameTweaks/LogicTicksCore.cs" />
     <!-- The sim-data-check diagnostic's record, checks and lines (SimDataCheckTests, #91). -->
     <Compile Include="../../src/OniMoono.GameTweaks/SimDataCheckCore.cs" Link="GameTweaks/SimDataCheckCore.cs" />
     <!-- A tweak written for another game version is off; the checks and the install (TweakChecksTests). -->

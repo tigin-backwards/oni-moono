@@ -206,6 +206,8 @@ namespace OniMoono.GameTweaks
             Add(FastAnimEvents.Name, FastAnimEvents.Guarded, FastAnimEvents.KindsOf);
             Add(FastPipeRebuilds.Name, FastPipeRebuilds.Guarded);
             Add(SimStepPace.Name, SimStepPace.Guarded);
+            Add(FrameTimeCap.Name, FrameTimeCap.Guarded, FrameTimeCap.KindsOf);
+            Add(LogicTicks.Name, LogicTicks.Guarded);
             Add(FastPartitionerEvents.Name, FastPartitionerEvents.Guarded);
             Add(FastConduitSorts.Name, FastConduitSorts.Guarded);
             Add(FastOverlayRemovals.Name, FastOverlayRemovals.Guarded);

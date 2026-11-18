@@ -81,13 +81,32 @@ namespace UnityEngine
             s_UnscaledDeltaTime = realDelta;
             s_UnscaledTime += realDelta;
             float clamped = realDelta < s_MaximumDeltaTime ? realDelta : s_MaximumDeltaTime;
-            s_DeltaTime = clamped * s_TimeScale;
+            float scaled = clamped * s_TimeScale;
+            // The frame-time-cap game tweak: armed by the game's sim step of the frame before,
+            // so only while a colony runs; below the cap the frame's time is left as it is.
+            if (s_ScaledCapArmed)
+            {
+                s_ScaledCapArmed = false;
+                if (scaled > s_ScaledCap) scaled = s_ScaledCap;
+            }
+            s_DeltaTime = scaled;
             s_Time += s_DeltaTime;
             // Exponential smoothing of deltaTime; the first frame starts the average.
             s_SmoothDeltaTime = s_FrameCount <= 1 ? s_DeltaTime : s_SmoothDeltaTime + (s_DeltaTime - s_SmoothDeltaTime) * 0.2f;
         }
 
         static float s_SmoothDeltaTime;
+        static float s_ScaledCap;
+        static bool s_ScaledCapArmed;
+
+        /// Caps the next frame's deltaTime (scaled, after maximumDeltaTime) at `cap`, for one
+        /// frame: the frame-time-cap game tweak arms it at each of the game's sim steps, with the
+        /// step's own cap (OniMoono.Host.GameTimeCap). unscaledDeltaTime stays the real time.
+        internal static void CapNextFrame(float cap)
+        {
+            s_ScaledCap = cap;
+            s_ScaledCapArmed = true;
+        }
 
         /// deltaTime smoothed over recent frames.
         public static float smoothDeltaTime => s_SmoothDeltaTime;

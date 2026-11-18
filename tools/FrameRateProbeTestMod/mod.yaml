@@ -1,0 +1,3 @@
+title: "Frame Rate Probe"
+description: "Moono test mod: counts game time, animations and automation ticks against the sim"
+staticID: FrameRateProbeTestMod
