@@ -1,7 +1,15 @@
 # The Moono Tweaks screen's search box in English (moono-tweaks-search-zh.yaml: in Chinese): a
-# query keeps the rows it matches and the headings of their sections, one that matches nothing
-# says so, Escape closes the screen as it closes the Supply Closet's inventory while its search
-# has the keyboard, and emptying the field brings every row back. Ours only (`--player ours`).
+# query keeps the rows it matches and the headings of their sections, whatever its case and
+# whatever the order of its words; one that matches nothing says so; Escape closes the screen as
+# it closes the Supply Closet's inventory while its search has the keyboard; emptying the field
+# brings every row back. Ours only (`--player ours`).
+#
+# What a query should show comes from the screen itself, not from a list of tweaks here:
+# E2eDriver's `TweaksScreen::Problems` (tools/E2eDriver/README.md, "Moono Tweaks screen") checks
+# each row against the field's text as the game's searches match (the row's name, title,
+# one-liner, tooltip and choices), each heading against its rows and the "no matches" line
+# against them all. Adding, renaming or regrouping tweaks changes nothing here. The shots and the
+# dump keep to the search bar and the "no matches" line, which do not change with the catalog.
 from: main-menu
 tweaks_menu: true
 steps:
@@ -14,60 +22,59 @@ steps:
   - expect_ui:
       "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Placeholder": {active: true, text: "Search"}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
-  - shot: search-empty
-  - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel"}
-  # "screen": ten rows, in General (loading-animation's "loading screen"), Graphics & overlays
-  # (lazy-table-refresh's "the rows on screen"), Simulation (compact-report-history's "reports
-  # screen"), Saving (post-load-gc's "loading screen"), Changes gameplay and Bug fixes
-  # (fix-timelapse-snapshots' "the screen's wider view").
+  # Every row shown before a search.
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Rows": [">= 10", {save_as: rows}]
+  - expect_state: {"type:E2eDriver.TweaksScreen::Shown": "== rows"}
+  - shot: {name: search-empty, crop: "**/MoonoTweaksScreen/Panel/SearchBar"}
+  - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel/SearchBar"}
+  # A word many rows have (the loading screen, the Load screen, the rows on screen): some rows
+  # and their headings, not all.
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - expect_ui:
       "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Text": {text: "~screen"}
-      "**/MoonoTweaksScreen/**/Content/dxgi": {active: true}
-      "**/MoonoTweaksScreen/**/Content/loading-animation": {active: true}
-      "**/MoonoTweaksScreen/**/Content/fast-load-screen": {active: true}
-      "**/MoonoTweaksScreen/**/Content/off-screen-conveyors": {active: true}
-      "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {active: true}
-      "**/MoonoTweaksScreen/**/Content/fix-timelapse-snapshots": {active: true}
-      "**/MoonoTweaksScreen/**/Content/fast-overlay-textures": {active: true}
-      "**/MoonoTweaksScreen/**/Content/lazy-table-refresh": {active: true}
-      "**/MoonoTweaksScreen/**/Content/post-load-gc": {active: true}
-      "**/MoonoTweaksScreen/**/Content/compact-report-history": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading General": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading Changes gameplay": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading Bug fixes": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading Graphics & overlays": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading Saving": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading Simulation": {active: true}
-      "**/MoonoTweaksScreen/**/Content/splash": {exists: false}
-      "**/MoonoTweaksScreen/**/Content/fast-jobs": {exists: false}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
-  # The rows and headings shown: ten rows and six headings.
-  - expect_ui:
-      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 16}
-  - shot: search-screen
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": [">= 2", "< rows", {save_as: screen}]
+  - shot: {name: search-screen, crop: "**/MoonoTweaksScreen/Panel/SearchBar"}
+  # The same word in capitals: the same rows.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "SCREEN", clear: true}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": "== screen"
+  # Two words in another order than the rows have them: the rows with both.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen load", clear: true}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": [">= 1", "<= screen"]
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "zzqx", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: stable}
   - expect_ui:
       "**/MoonoTweaksScreen/**/Content/NoMatches/**/Title": {active: true, text: "No tweaks match the search."}
-      "**/MoonoTweaksScreen/**/Content/Heading General": {exists: false}
-      "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {exists: false}
-  - shot: search-none
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": 0
+  - shot: {name: search-none, crop: "**/MoonoTweaksScreen/**/Content/NoMatches"}
   # No clear button (the screen's close button is right above): emptying the field brings
   # every row back.
   - expect_ui:
       "**/MoonoTweaksScreen/Panel/SearchBar/Search/ClearButton": {exists: false}
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: gone}
-  - expect_ui:
-      "**/MoonoTweaksScreen/**/Content/splash": {active: true}
-      "**/MoonoTweaksScreen/**/Content/fast-jobs": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading Saving": {active: true}
-  # Typing again, then Escape: the screen closes, as the Supply Closet's inventory does with
-  # its search field focused (measured in the original, U60 761211).
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": "== rows"
+  # Typing again, then Escape: the field takes the camera's keys as text, and the screen
+  # closes, as the Supply Closet's inventory does with its search field focused (measured in the
+  # original, U60 761211).
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "wasd"}
   - expect_ui:
-      "**/MoonoTweaksScreen/**/Content/NoMatches": {active: true}
+      "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Text": {text: "~wasd"}
+  - expect_state: {"type:E2eDriver.TweaksScreen::Problems": ok}
   - key: {code: Escape}
   - ui_wait: {path: "**/MoonoTweaksScreen", cond: gone, frames: 600}

@@ -340,7 +340,9 @@ Key names follow the game's `KKeyCode`: `A`–`Z`, `Alpha0`–`Alpha9` (or `0`�
 `Escape`, `Return`, `Space`, `Tab`, `Backspace`, `Delete`, `UpArrow`/`DownArrow`/`LeftArrow`/
 `RightArrow`, `LeftShift`, `LeftControl`, `LeftAlt`, `Keypad0`–`Keypad9`, `KeypadPlus`,
 `Comma`, `Period`, `Slash`, `Minus`, `Equals`, `LeftBracket` and others (`KKEYCODES` in
-e2e.py). `type` types any printable ASCII, on a US keymap (or the spec's `keyboard`).
+e2e.py). `type` types any printable ASCII, on a US keymap (or the spec's `keyboard`). A
+character no key has (`text: "存档"`) goes through a keycode the layout leaves empty, mapped to
+it for one press and emptied again, as xdotool types them.
 
 ```yaml
 keyboard: fr                     # top level: the lane display's XKB layout (setxkbmap), for both players

@@ -2627,6 +2627,43 @@ class Input:
             x11.XFree(image)
         return path
 
+    def keycode_of(self, ch):
+        """The keycode of a key that types CH on the display's layout, or 0."""
+        keysym = ord(ch) if ord(ch) <= 0xFF else 0x01000000 | ord(ch)
+        return self.x11.XKeysymToKeycode(self.dpy, keysym)
+
+    def type_unmapped(self, ch):
+        """Types CH, which no key of the layout has (Chinese, say), as xdotool does: a keycode
+        the layout leaves empty gets CH's keysym (Unicode keysyms are 0x01000000 + the code
+        point) for one press, then is emptied again. The player sees the change as any keymap
+        change (MappingNotify) and its text input gets CH."""
+        x11 = self.x11
+        if not getattr(self, 'spare', None):
+            x11.XDisplayKeycodes.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
+            x11.XGetKeyboardMapping.argtypes = [ctypes.c_void_p, ctypes.c_ubyte, ctypes.c_int, ctypes.POINTER(ctypes.c_int)]
+            x11.XGetKeyboardMapping.restype = ctypes.POINTER(ctypes.c_ulong)
+            x11.XChangeKeyboardMapping.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, ctypes.POINTER(ctypes.c_ulong), ctypes.c_int]
+            low, high, per = ctypes.c_int(), ctypes.c_int(), ctypes.c_int()
+            x11.XDisplayKeycodes(self.dpy, ctypes.byref(low), ctypes.byref(high))
+            syms = x11.XGetKeyboardMapping(self.dpy, low.value, high.value - low.value + 1, ctypes.byref(per))
+            self.spare = next((k for k in range(high.value, low.value - 1, -1) if not any(syms[(k - low.value) * per.value + j] for j in range(per.value))), 0)
+            x11.XFree(syms)
+            if not self.spare:
+                raise SpecFailure(f'no empty key on {self.display} to type {ch!r} with')
+        keysym = ord(ch) if ord(ch) <= 0xFF else 0x01000000 | ord(ch)
+        x11.XChangeKeyboardMapping(self.dpy, self.spare, 2, (ctypes.c_ulong * 2)(keysym, keysym), 1)
+        x11.XSync(self.dpy, 0)
+        self.frames(2)
+        self.xtst.XTestFakeKeyEvent(self.dpy, self.spare, 1, 0)
+        self._flush()
+        self.frames(1)
+        self.xtst.XTestFakeKeyEvent(self.dpy, self.spare, 0, 0)
+        self._flush()
+        self.frames(1)
+        x11.XChangeKeyboardMapping(self.dpy, self.spare, 2, (ctypes.c_ulong * 2)(0, 0), 1)
+        x11.XSync(self.dpy, 0)
+        self.frames(1)
+
     def keycode(self, name):
         keysym = self.x11.XStringToKeysym(name.encode())
         if not keysym and len(name) == 1:
@@ -2746,6 +2783,9 @@ class Input:
     def type_text(self, text):
         self.focus()
         for ch in text:
+            if ord(ch) > 0x7E and not self.keycode_of(ch):
+                self.type_unmapped(ch)
+                continue
             name = {'\n': 'Return', '\t': 'Tab', ' ': 'space'}.get(ch, ch)
             keycode, keysym = self.keycode(name)
             # A character on a key's shifted level needs Shift held.

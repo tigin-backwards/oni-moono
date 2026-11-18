@@ -1,6 +1,11 @@
 # The Moono Tweaks screen's search box in the game's Simplified Chinese (zh_klei), as
-# moono-tweaks-search-en.yaml takes it in English. The runner types ASCII only: a query matches
-# the tweaks' names (in each row's launch option) as well as its Chinese text. Ours only.
+# moono-tweaks-search-en.yaml takes it in English: the rows are in Chinese, a Chinese word keeps
+# the rows whose Chinese text has it, and an English word only the rows whose name (in each row's
+# launch option) has it, as the rows' English text is not searched. Ours only.
+#
+# As in English, what a query should show comes from the screen itself (E2eDriver's
+# `TweaksScreen::Problems`), so adding, renaming or regrouping tweaks changes nothing here. The
+# runner types the Chinese through a key it maps for each character (tests/e2e/README.md, `type`).
 from: main-menu
 language: zh_klei
 tweaks_menu: true
@@ -14,39 +19,46 @@ steps:
   - expect_ui:
       "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Placeholder": {active: true}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
-  - shot: search-empty
-  - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel"}
-  # "screen": three rows by their names, in General, Changes gameplay and Bug fixes. A row whose
-  # English has the word (lazy-table-refresh's "the rows on screen") stays out: it is translated.
-  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen"}
+  # Every row shown, and the rows in Chinese: all but the few a translation may not have caught
+  # up with yet (shown in English; TweakTranslationTests lists them).
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Rows": [">= 10", {save_as: rows}]
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Shown": "== rows"
+      "type:E2eDriver.TweaksScreen::Translated": ">= 0.8 * rows"
+  - shot: {name: search-empty, crop: "**/MoonoTweaksScreen/Panel/SearchBar"}
+  - ui_dump: {name: search, root: "**/MoonoTweaksScreen/Panel/SearchBar"}
+  # 存档 (saving): the rows about saves, by their Chinese text.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "存档"}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - expect_ui:
-      "**/MoonoTweaksScreen/**/Content/fast-load-screen": {active: true}
-      "**/MoonoTweaksScreen/**/Content/off-screen-conveyors": {active: true}
-      "**/MoonoTweaksScreen/**/Content/fix-load-screen-clicks": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading 通用": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading 改变玩法": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading 错误修复": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading 存档": {exists: false}
-      "**/MoonoTweaksScreen/**/Content/dxgi": {exists: false}
-      "**/MoonoTweaksScreen/**/Content/lazy-table-refresh": {exists: false}
+      "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField/**/Text": {text: "~存档"}
       "**/MoonoTweaksScreen/**/Content/NoMatches": {exists: false}
-  # Three rows and three headings.
-  - expect_ui:
-      "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content/*": {count: 6}
-  - shot: search-screen
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": [">= 2", "< rows"]
+  - shot: {name: search-chinese, crop: "**/MoonoTweaksScreen/Panel/SearchBar"}
+  # "screen": the rows whose name has it, not those whose English text alone does.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "screen", clear: true}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": [">= 1", "< rows"]
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "zzqx", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: stable}
   - expect_ui:
       "**/MoonoTweaksScreen/**/Content/NoMatches/**/Title": {active: true, text: "没有与搜索匹配的调整项。"}
-      "**/MoonoTweaksScreen/**/Content/Heading 通用": {exists: false}
-  - shot: search-none
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": 0
+  - shot: {name: search-none, crop: "**/MoonoTweaksScreen/**/Content/NoMatches"}
   # No clear button (the screen's close button is right above): emptying the field brings
   # every row back.
   - expect_ui:
       "**/MoonoTweaksScreen/Panel/SearchBar/Search/ClearButton": {exists: false}
   - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/Content/NoMatches", cond: gone}
-  - expect_ui:
-      "**/MoonoTweaksScreen/**/Content/splash": {active: true}
-      "**/MoonoTweaksScreen/**/Content/Heading 存档": {active: true}
+  - expect_state:
+      "type:E2eDriver.TweaksScreen::Problems": ok
+      "type:E2eDriver.TweaksScreen::Shown": "== rows"
