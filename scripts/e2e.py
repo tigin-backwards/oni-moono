@@ -284,6 +284,9 @@ def check_step(where, kind, value, in_setup):
         return [f'{where}: unknown step {kind!r}']
     if kind in ('shot', 'world_shot', 'file_shot', 'ui_dump') and isinstance(value, dict) and 'name' in value:
         need(isinstance(value['name'], str), f"{kind} name {value['name']!r} is not text (YAML reads on, off, yes and no as booleans: quote it)")
+    if kind in ('shot', 'world_shot', 'file_shot') and isinstance(value, dict) and 'specks' in value:
+        specks = value['specks']
+        need(isinstance(specks, int) and not isinstance(specks, bool) and specks >= 3 and specks % 2, f'{kind} `specks` is an odd number of pixels, 3 or more')
     if kind == 'dig':
         need(_rect(value), 'dig takes [x1, y1, x2, y2]')
     elif kind == 'build':
@@ -321,7 +324,7 @@ def check_step(where, kind, value, in_setup):
     elif kind == 'save':
         need(isinstance(value, str) and value, 'save takes a name')
     elif kind == 'shot':
-        need(isinstance(value, str) or (isinstance(value, dict) and value.get('name')), 'shot takes NAME or {name, crop, mask, pointer}')
+        need(isinstance(value, str) or (isinstance(value, dict) and value.get('name')), 'shot takes NAME or {name, crop, mask, pointer, threshold, specks}')
         if isinstance(value, dict):
             need(value.get('pointer', 'away') in ('away', 'stay'), 'shot `pointer` is away (the default) or stay')
             for m in value.get('mask', []):
@@ -4800,7 +4803,7 @@ class Run:
         menu = self.at_main_menu()
         if not menu:
             self.settle_build_menu(f'shot {name}')
-        meta = {'name': name, 'crop': None, 'masks': [], 'threshold': value.get('threshold')}
+        meta = {'name': name, 'crop': None, 'masks': [], 'threshold': value.get('threshold'), 'specks': value.get('specks')}
         if value.get('crop'):
             meta['crop'] = list(self.need_driver().find_one({'ui': value['crop']}).rect)
             # An empty crop compares nothing: in ours it fails as "off the image", too late to
@@ -4853,7 +4856,15 @@ class Run:
                 driver.canvas(False)
         if not path:
             raise SpecFailure(f'world_shot {name}: OniMcp made no screenshot')
-        meta = {'name': name, 'crop': None, 'masks': masks, 'threshold': value.get('threshold'), 'file': os.path.basename(path), 'world': True}
+        meta = {
+            'name': name,
+            'crop': None,
+            'masks': masks,
+            'threshold': value.get('threshold'),
+            'specks': value.get('specks'),
+            'file': os.path.basename(path),
+            'world': True,
+        }
         with open(os.path.join(self.out, name + '.shot.json'), 'w') as f:
             json.dump(meta, f)
         self.evidence['world_shot'].append(meta)
@@ -4901,6 +4912,7 @@ class Run:
             'crop': None,
             'masks': [],
             'threshold': value.get('threshold'),
+            'specks': value.get('specks'),
             'file': os.path.basename(target),
             'world': True,
             'source': os.path.relpath(source, self.player.profile),
@@ -5377,8 +5389,16 @@ def differential(spec, result, reference, findings=None):
             crop_a, crop_b = ref_meta.get('crop'), meta.get('crop')
             masks = relative_masks(ref_meta.get('masks', []), crop_a) + relative_masks(meta.get('masks', []), crop_b)
             diff_png = os.path.join(result['out'], name + '.diff.png')
+            # The step's `specks` as this run has it: an original recorded before the step had
+            # them still compares.
             compared = qa_tools.compare_images(
-                os.path.join(reference.folder, ref_meta['file']), os.path.join(result['out'], meta['file']), diff_png, crop=crop_a, crop_new=crop_b, masks=masks
+                os.path.join(reference.folder, ref_meta['file']),
+                os.path.join(result['out'], meta['file']),
+                diff_png,
+                crop=crop_a,
+                crop_new=crop_b,
+                masks=masks,
+                specks=meta.get('specks') or 0,
             )
             threshold = meta.get('threshold') or thresholds.get(kind) or default
             ok = compared['fraction'] <= threshold

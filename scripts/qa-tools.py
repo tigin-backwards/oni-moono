@@ -5,9 +5,10 @@ qa-tools.py signatures LOG [ERRORS]     the log's exceptions and errors, one nor
                                         errors logged as plain lines
 qa-tools.py new-signatures REF NEW      lines of NEW whose canonical form REF lacks (signature files)
 qa-tools.py image REFERENCE NEW DIFF [--crop X,Y,W,H] [--crop-new X,Y,W,H] [--mask X,Y,W,H]...
-                                        fraction of (unmasked) pixels differing visibly; writes
+                [--specks N]            fraction of (unmasked) pixels differing visibly; writes
                                         DIFF (a mask). --crop cuts both (--crop-new the new one
-                                        apart); masks are relative to the crop
+                                        apart); masks are relative to the crop; --specks leaves
+                                        out differences no NxN square of them covers
 qa-tools.py verify LOG [--expect FILE]  each verify mode's last report; exit 1 on a mismatch, and
                                         with FILE (one check name a line, # comments) on a named
                                         check that reported nothing: silence is not 0 wrong
@@ -155,12 +156,15 @@ def rect(text):
     return x, y, w, h
 
 
-def compare_images(reference, new, diff, crop=None, crop_new=None, masks=(), level=40, size_tolerance=2):
+def compare_images(reference, new, diff, crop=None, crop_new=None, masks=(), level=40, size_tolerance=2, specks=0):
     """The fraction of unmasked pixels whose largest channel difference exceeds LEVEL. CROP
     (x, y, w, h) cuts both images, CROP_NEW the new one instead; MASKS are rectangles relative to
     the crop that do not count. Sizes up to SIZE_TOLERANCE pixels apart are trimmed to the
-    smaller. DIFF gets the mask image: differing pixels white, masked ones grey."""
-    from PIL import Image, ImageChops
+    smaller. SPECKS (odd, 3 or more) leaves out differing pixels that no SPECKS x SPECKS square
+    of differing pixels covers (a morphological opening of the difference): particles, outlines
+    and edges moved a few pixels, while a missing panel or a wrongly coloured sprite still counts.
+    DIFF gets the mask image: differing pixels white, specks dark grey, masked ones grey."""
+    from PIL import Image, ImageChops, ImageFilter
     import os
     import numpy as np
 
@@ -183,13 +187,17 @@ def compare_images(reference, new, diff, crop=None, crop_new=None, masks=(), lev
         size = (min(a.width, b.width), min(a.height, b.height))
         a, b = a.crop((0, 0) + size), b.crop((0, 0) + size)
     differs = np.asarray(ImageChops.difference(a, b)).max(axis=2) > level
+    raw = differs
+    if specks:
+        opened = Image.fromarray((differs * 255).astype('uint8')).filter(ImageFilter.MinFilter(specks)).filter(ImageFilter.MaxFilter(specks))
+        differs = np.asarray(opened) > 0
     counted = np.ones(differs.shape, dtype=bool)
     for m in masks:
         x, y, w, h = (int(round(v)) for v in m)
         counted[max(0, y) : max(0, y + h), max(0, x) : max(0, x + w)] = False
     if diff:
         # Always a PNG, whatever the path's extension (or none, as /dev/null).
-        Image.fromarray(np.where(counted, differs * 255, 128).astype('uint8')).save(diff, format='PNG')
+        Image.fromarray(np.where(counted, np.where(differs, 255, np.where(raw, 64, 0)), 128).astype('uint8')).save(diff, format='PNG')
     total = int(counted.sum())
     fraction = float((differs & counted).sum()) / total if total else 0.0
     return {'fraction': round(fraction, 6), 'size': list(a.size), 'masked': int(counted.size - total)}
@@ -197,7 +205,7 @@ def compare_images(reference, new, diff, crop=None, crop_new=None, masks=(), lev
 
 def image(reference, new, diff, *options):
     crop = crop_new = None
-    masks, level = [], 40
+    masks, level, specks = [], 40, 0
     for name, value in zip(options[::2], options[1::2]):
         if name == '--crop':
             crop = rect(value)
@@ -207,9 +215,11 @@ def image(reference, new, diff, *options):
             masks.append(rect(value))
         elif name == '--level':
             level = int(value)
+        elif name == '--specks':
+            specks = int(value)
         else:
             sys.exit(f'unknown option {name}')
-    result = compare_images(reference, new, diff, crop, crop_new, masks, level)
+    result = compare_images(reference, new, diff, crop, crop_new, masks, level, specks=specks)
     print(f'{result["fraction"]:.4f}' + (f' {result["note"]}' if 'note' in result else ''))
 
 
