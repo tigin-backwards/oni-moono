@@ -942,6 +942,30 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.DETAIL"
 msgid "Above 60 fps at normal speed, the game calls the simulation on every frame between its five steps a second, and each call waits for the step underway. This skips those calls, as the game does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. Off while paused, or while another mod changes these calls."
 msgstr "正常速度下超过 60 fps 时，游戏会在模拟每秒五次步进之间的每一帧调用模拟，每次调用都要等待正在进行的步进。此项跳过这些调用，与游戏在 60 fps 以下和更快速度下的做法相同。挖掉的格子、建成的格子以及游戏要求模拟做的其他改动会晚约 0.3 秒显示（最多 0.4 秒），与 60 fps 以下相同。暂停时，或有其他模组修改这些调用时，此项不生效。"
 
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_TIME_CAP.TITLE"
+msgid "Game time at the simulation's pace"
+msgstr "游戏时间跟随模拟的节奏"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_TIME_CAP.EFFECT"
+msgid "At low frame rates, animations, automation and timers no longer run ahead of the simulation."
+msgstr "低帧率时，动画、自动化和计时器不再跑在模拟前面。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_TIME_CAP.DETAIL"
+msgid "The game's simulation takes at most 0.2 s of game time a frame and drops the rest, but animations, the automation clock and the game's timers take all of it: up to 1 s a frame at speed 3. Duplicants and critters then finish what waits on an animation sooner, Buffer and Filter Gates switch early, and overheating buildings and scalding Duplicants take damage faster. This caps a frame's game time at the simulation's 0.2 s while a colony runs. Nothing changes above 15 fps at speed 3, 10 fps at speed 2 or 5 fps at speed 1. The camera and menus keep real time. Off while another mod changes the simulation's frame."
+msgstr "游戏的模拟每帧最多取 0.2 秒游戏时间，其余的丢弃，但动画、自动化时钟和游戏的计时器会取走全部：在 3 倍速下每帧最多 1 秒。于是复制人和小动物会更早完成要等动画结束的事情，缓冲门和过滤门会提前切换，过热的建筑和烫伤的复制人受到伤害更快。此项在殖民地运行时把每帧的游戏时间限制在模拟的 0.2 秒。3 倍速下 15 fps 以上、2 倍速下 10 fps 以上或 1 倍速下 5 fps 以上时没有任何变化。镜头和菜单仍按真实时间运行。有其他模组修改模拟的每帧处理时，此项不生效。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOGIC_IN_SIM_STEPS.TITLE"
+msgid "Automation between simulation steps"
+msgstr "在模拟步进之间运行自动化"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOGIC_IN_SIM_STEPS.EFFECT"
+msgid "At low frame rates, an automation signal that lasts one tick still reaches pumps, doors and valves."
+msgstr "低帧率时，只持续一刻的自动化信号也能传到泵、门和阀门。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOGIC_IN_SIM_STEPS.DETAIL"
+msgid "Automation ticks every 0.1 s of game time. When a frame holds several ticks, the game runs them back to back before the frame's simulation steps, so a signal that lasts one tick can switch a building on and off with no step in between. This runs each later tick before the step it falls on. The number of ticks is the same. Nothing changes above 30 fps at speed 3, 20 fps at speed 2 or 10 fps at speed 1. Off while another mod changes the automation clock or the simulation's frame."
+msgstr "自动化每 0.1 秒游戏时间运行一刻。当一帧包含多个刻时，游戏会在该帧的模拟步进之前连续运行它们，因此只持续一刻的信号可能在中间没有任何步进的情况下把建筑打开又关上。此项把之后的每一刻放到它所在时刻的步进之前运行。刻数不变。3 倍速下 30 fps 以上、2 倍速下 20 fps 以上或 1 倍速下 10 fps 以上时没有任何变化。有其他模组修改自动化时钟或模拟的每帧处理时，此项不生效。"
+
 msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PACE"
 msgid "112 → 220 fps at normal speed on a large modded colony"
 msgstr "大型模组殖民地在正常速度下 112 → 220 fps"

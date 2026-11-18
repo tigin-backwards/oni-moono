@@ -174,6 +174,7 @@ TEST_MODS = (
     'CritterTurnsTestMod',
     'GeoVentProbeTestMod',
     'TimelapseProbeTestMod',
+    'FrameRateProbeTestMod',
 )
 # `blocked_plugins`: how a plugin of the run's copy of the install is blocked (blocked_install).
 # `stray_plugins`: paths under Plugins added to that copy, `DIR/` an empty folder, else an empty

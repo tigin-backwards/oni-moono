@@ -18,6 +18,7 @@ namespace OniMoono.Tests
             public List<float> Calls;
             public void Sim200ms(float dt) => Calls.Add(dt);
             public void SubTick() => Calls.Add(-1);
+            public void BeforeSubTick(int k) { }
         }
 
         sealed class GameCopy
@@ -68,7 +69,7 @@ namespace OniMoono.Tests
             foreach (var dt in frames)
             {
                 game.SimEveryTick(dt);
-                if (SimStepPaceCore.Frame(ref simDt, ref subTick, ref first, dt, ref log)) skipped++;
+                if (SimStepPaceCore.Frame(ref simDt, ref subTick, ref first, dt, true, ref log)) skipped++;
                 Assert.Equal(BitConverter.SingleToInt32Bits(game.simDt), BitConverter.SingleToInt32Bits(simDt));
                 Assert.Equal(game.simSubTick, subTick);
                 Assert.Equal(game.hasFirstSimTickRun, first);

@@ -76,6 +76,8 @@ It only shows what it finds. It never turns a tweak on or off. The grades:
   `fast-overlay-textures` (`MultipleRenderTargetProxy.CreateRenderTarget`), `fast-anim-events`
   (the animation event loop and what it reads; see [Animation events](#animation-events)),
   `sim-step-pace` (`Game.SimEveryTick` and `UnsafeSim200ms`),
+  `frame-time-cap` (`Game.SimEveryTick`, for any patch but a postfix),
+  `logic-in-sim-steps` (`LogicCircuitManager.Refresh` and `RenderEveryTick`, `Game.SimEveryTick`),
   `instant-reachability` (the reachability monitor, the Duplicants' reach table, work cells and
   offsets), `fetch-by-cell` (the fetch groups' update and lists, what makes an item pickable and
   the fetch order; for path costs and probes only its skip of unreachable worlds),
@@ -321,6 +323,8 @@ All but `post-load-gc` together: autosave freeze ~12 s → ~5 s on a large colon
 - **Instant reachability checks** (`instant-reachability`): Duplicants notice a newly opened or blocked path at once, using less CPU. Errands and items are rechecked where and when a Duplicant's reach changes, instead of all of them once a second. The answers are the same, up to 1 s sooner. Items it can't track (from some mods) are still checked every second. *On by default.*
 - **Lazy unseen conveyor items** (`off-screen-conveyors`): Items riding rails off screen are placed only when they stop or come into view. The rails carry exactly the same things, but items' positions lag while off screen.
 - **Simulation at its own pace** (`sim-step-pace`): Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU. Above 60 fps at normal speed, the game calls the simulation on every frame between its five steps a second, and each call waits for the step underway. This skips those calls, as the game does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. Off while paused, or while another mod changes these calls. *Measured: 112 → 220 fps at normal speed on a large modded colony; a large modded Spaced Out colony, Windows, 2026-11-12.*
+- **Game time at the simulation's pace** (`frame-time-cap`): At low frame rates, animations, automation and timers no longer run ahead of the simulation. The game's simulation takes at most 0.2 s of game time a frame and drops the rest, but animations, the automation clock and the game's timers take all of it: up to 1 s a frame at speed 3. Duplicants and critters then finish what waits on an animation sooner, Buffer and Filter Gates switch early, and overheating buildings and scalding Duplicants take damage faster. This caps a frame's game time at the simulation's 0.2 s while a colony runs. Nothing changes above 15 fps at speed 3, 10 fps at speed 2 or 5 fps at speed 1. The camera and menus keep real time. Off while another mod changes the simulation's frame.
+- **Automation between simulation steps** (`logic-in-sim-steps`): At low frame rates, an automation signal that lasts one tick still reaches pumps, doors and valves. Automation ticks every 0.1 s of game time. When a frame holds several ticks, the game runs them back to back before the frame's simulation steps, so a signal that lasts one tick can switch a building on and off with no step in between. This runs each later tick before the step it falls on. The number of ticks is the same. Nothing changes above 30 fps at speed 3, 20 fps at speed 2 or 10 fps at speed 1. Off while another mod changes the automation clock or the simulation's frame.
 - **Cap critter and dupe brain updates** (`brain-rate`): Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps. The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food or excrete goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time.
 
 ### Bug fixes (off by default but where marked)
@@ -555,6 +559,94 @@ game's code runs (`sim-step-pace: off (...)` in Player.log).
 **Measured** on Windows on a large modded colony at 1×, off against on in alternating segments
 of one run: 112 → 220 fps, frame times p50 7.4 → 3.9 ms and p99 34 → 12 ms, the sim's CPU about
 160 → 38 ms a step.
+
+### Game time at the simulation's pace
+
+Off by default (`frame-time-cap`, in the Changes gameplay group, not in `exact`).
+
+**In the game.** `Game.SimEveryTick` gives the simulation at most 0.2 s of game time a frame
+(its sub-ticks of 1/60 s; less than one is kept for the next frame) and drops the rest. The
+frame's game time, `Time.deltaTime`, is the real frame time capped at 1/3 s and multiplied by
+the speed: up to 1 s a frame at speed 3. Animations, the automation clock, `Time.time` and what
+the game updates every frame advance by all of it, so on long frames they run up to 5 times as
+fast as the simulation:
+
+- Duplicants and critters finish what waits on an animation sooner (work, eating, jumps, ledge
+  climbs), so they get more done per game second.
+- Buffer and Filter Gate delays, and Limit Valve resets, last less game time.
+- Timers on `Time.time` fire sooner: overheat damage (every 7.5 s), scald and cold damage
+  (every 5 s), slimelung coughs, the 4 s window of temperature checks (below 3.75 fps at speed 3,
+  Duplicants are then never Too Hot or Too Cold), Athletics from moves, algae dissolving.
+
+**With the tweak** each frame's game time is capped at the simulation's 0.2 s while a colony
+runs, so everything advances by the game time the simulation does. It acts only on frames
+longer than that: below 15 fps at speed 3, 10 fps at speed 2 and 5 fps at speed 1. Above those
+the game time is the same, bit for bit. `Time.time`, `smoothDeltaTime`, `timeSinceLevelLoad`
+and the `FixedUpdate` steps follow the cap. `unscaledDeltaTime` and the real-time clocks stay
+real, so the camera, menus and input are unchanged. The main menu and loading screens have no
+cap. The cases are in [research/frame-rate-dependence.md](research/frame-rate-dependence.md)
+(cases 1-8, 11 and 18).
+
+**Other mods.** While another mod patches `Game.SimEveryTick` other than with a postfix (it could
+change the simulation's cap), the game's timing stays (`frame-time-cap: off (...)` in
+Player.log).
+
+**Measured** on a Linux lane with a new colony (`tests/e2e/frame-rate-probe.yaml`,
+`tools/FrameRateProbeTestMod`), 40 s of game time at speed 1 at about 220 fps (the target),
+then about 51 s at speed 3 capped at 5 fps (`--max-frame-rate 5`), 2026-11-18. Counts, not
+frame rates:
+
+| Speed 3 at 5 fps, per game second the simulation ran | Without | With | Speed 1, 220 fps |
+| --- | --- | --- | --- |
+| `Time.time` advanced | 3.0 s | 1.0 s | 1.0 s |
+| Automation ticks | 30 | 10 | 10 |
+| A 10 s Buffer Gate's delay (100 ticks), in game time | 3.3 s | 10.0 s | 10.0 s |
+| Overheat hits (Overheatable's rule) | 0.23 | 0.12 | 0.12 |
+| Scald hits (ScaldingMonitor's rule) | 0.49 | 0.18 | 0.17 |
+| A 1 s animation played once, again on its end (game time a play) | 0.41 s | 1.20 s | 0.97 s |
+
+With the tweak, a step that waits on an animation still ends on a frame boundary, a frame after
+its last frame (case 9 of the study): at 0.2 s a frame, a 1 s animation takes 1.2 s, as it does
+at speed 1 and 5 fps without the tweak (1.12-1.19 s).
+
+At speed 3 and 60 fps, and at 20 fps (0.15 s of game time a frame), no frame was capped.
+
+### Automation between simulation steps
+
+Off by default (`logic-in-sim-steps`, in the Changes gameplay group, not in `exact`).
+
+**In the game.** Automation ticks every 0.1 s of game time (`LogicCircuitManager.Refresh`, from
+`Game.Update`), all of a frame's ticks before the frame's simulation sub-ticks. A frame of more
+than 0.1 s of game time (below 30 fps at speed 3, 20 at speed 2, 10 at speed 1) holds two ticks
+or more, run back to back. A signal that lasts one tick then turns on and off with no sub-tick in
+between: buildings that react to the signal's change see both edges, but a pump, door or valve
+switched on for one tick does nothing in it. At speed 3 that hides a third of one-tick signals
+at 20 fps, half at 15 fps and two thirds at 10 fps.
+
+**With the tweak** a frame's first tick runs where the game runs it, and each later one just
+before the sub-tick it falls on, so a sub-tick follows each tick. The ticks are the game's own,
+counted by its loop: as many, with the same clock left over. Frames with one tick, or one sub-tick
+at most, run exactly as the game's. Network rebuilds, bridge lists and overload checks stay where
+they are. It shares the simulation's loop with `sim-step-pace`; either can be on alone. Without
+`frame-time-cap`, a long frame at speed 3 holds up to 10 ticks over its 12 sub-ticks, still a
+sub-tick after each; with it, at most 2.
+
+**Other mods.** While another mod patches `LogicCircuitManager.Refresh` or `RenderEveryTick`, or
+`Game.SimEveryTick`, the game's code runs (`logic-in-sim-steps: off (...)` in Player.log).
+
+**Measured** in the same runs: the share of automation ticks followed by no sub-tick before the
+next one (a one-tick signal the simulation never sees), 2026-11-18.
+
+| Speed 3 | Without | With |
+| --- | --- | --- |
+| 20 fps | 168 of 504 (33%) | 0 of 504 |
+| 5 fps | 1,281 of 1,537 (83%) | 0 of 1,536 |
+| 5 fps with `frame-time-cap` | 256 of 512 (50%) | 0 of 512 |
+| 60 fps | — | 0 of 502, no tick moved |
+
+Speed 1 at about 220 fps, the target, hid 2 of 402 ticks (on a hitch, a frame of over 0.1 s).
+The plan costs about 70 ns a frame in the worst case (speed 3 at 5 fps, 6 ticks over 12
+sub-ticks) and allocates nothing (`LogicTicksTests`); it moves the game's work, adding none.
 
 ### Items lost below a world
 

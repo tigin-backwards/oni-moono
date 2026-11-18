@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using Xunit;
 
@@ -61,6 +62,42 @@ namespace OniMoono.Tests
             Assert.True(Time.fixedTimeAsDouble <= Time.timeAsDouble);
             Assert.True(Time.fixedTimeAsDouble + Time.fixedDeltaTime > Time.timeAsDouble);
             Assert.True(steps >= 1);
+        }
+
+        /// The frame-time-cap tweak's cap (Time.CapNextFrame): the next frame's deltaTime at most
+        /// the cap, real time untouched, frames under the cap bit for bit as without, one frame only.
+        [Fact]
+        public void CapNextFrameCapsOnlyTheScaledTimeOfOneFrame()
+        {
+            float scale = Time.timeScale;
+            Time.timeScale = 3f;
+            try
+            {
+                Time.BeginFrame(0.01f); // a frame armed before this test runs no further
+                foreach (float real in new[] { 1f / 240, 1f / 60, 1f / 20, 1f / 15, 0.0667f, 0.1f, 0.2f, 0.25f, 0.5f, 2f })
+                {
+                    Time.BeginFrame(real);
+                    float uncapped = Time.deltaTime;
+                    double time = Time.timeAsDouble, unscaled = Time.unscaledTimeAsDouble;
+                    Time.CapNextFrame(0.2f);
+                    Time.BeginFrame(real);
+                    Assert.Equal(uncapped < 0.2f ? uncapped : 0.2f, Time.deltaTime);
+                    if (uncapped <= 0.2f) Assert.Equal(BitConverter.SingleToInt32Bits(uncapped), BitConverter.SingleToInt32Bits(Time.deltaTime));
+                    Assert.Equal(real, Time.unscaledDeltaTime);
+                    Assert.Equal(time + Time.deltaTime, Time.timeAsDouble);
+                    Assert.Equal(unscaled + real, Time.unscaledTimeAsDouble);
+                    Time.BeginFrame(real);
+                    Assert.Equal(uncapped, Time.deltaTime);
+                }
+                // Speed 3 at 5 fps: 0.6 s of game time a frame, 0.2 s capped.
+                Time.CapNextFrame(0.2f);
+                Time.BeginFrame(0.2f);
+                Assert.Equal(0.2f, Time.deltaTime);
+            }
+            finally
+            {
+                Time.timeScale = scale;
+            }
         }
     }
 }

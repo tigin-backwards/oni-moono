@@ -1,0 +1,16 @@
+# Counts for the frame-time-cap and logic-in-sim-steps game tweaks
+# (docs/research/frame-rate-dependence.md, tools/FrameRateProbeTestMod). Ours only: a measurement,
+# not a check. 40 s of game time at speed 1, then 60 s at speed 3; the probe's
+# `FrameRateProbe:` lines in Player.log give, by speed, the frames, their real, game and sim time,
+# sub-ticks, automation ticks and those the sim never sees, an animation's plays and sim seconds,
+# and overheat and scald hits. Run it from a list file to give the player a frame rate and tweaks:
+#   frame-rate-probe ours player-args='--max-frame-rate 5 --game-tweak frame-time-cap'
+from: landing
+test_mods: [FrameRateProbeTestMod]
+memory_gb: 6
+steps:
+  - run: {seconds: 40, speed: 1}
+  - run: {seconds: 60}
+  - expect_state:
+      "type:FrameRateProbeTestMod.Mod::Ticks3": "> 100"
+      "type:FrameRateProbeTestMod.Mod::Plays3": "> 0"
