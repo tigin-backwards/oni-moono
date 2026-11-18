@@ -26,16 +26,15 @@ steps:
   # list to settle before a shot or a hover.
   - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
   - shot: {name: end}
-  # The gameplay-changing section's last row sits just above the Bug fixes section, which fills
-  # the list's end in Chinese (its rows are one line high): five notches back up bring it out
-  # from under the search box.
-  - scroll: {at: "**/MoonoTweaksScreen/**/ListView/Files/Viewport", notches: 5}
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  # A gameplay-changing row's tooltip, then a Bug fixes row's: the search box brings each to
+  # the top of the list, wherever the catalog puts it.
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "brain-rate"}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/brain-rate", cond: stable}
   - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~--game-tweak brain-rate"}
   - shot: {name: gameplay-tip, pointer: stay}
-  # The Bug fixes section, last: its rows show their tooltips too.
-  - scroll: {at: "**/MoonoTweaksScreen/**/brain-rate", notches: -30}
-  - ui_wait: {path: "**/MoonoTweaksScreen/**/ListView/Files/Viewport/Content", cond: stable}
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "fix-load-screen-clicks", clear: true}
+  - ui_wait: {path: "**/MoonoTweaksScreen/**/fix-load-screen-clicks", cond: stable}
   - scroll: {at: "**/MoonoTweaksScreen/**/fix-load-screen-clicks", notches: 0}
   - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~--game-tweak fix-load-screen-clicks"}
   - expect_ui:
@@ -43,7 +42,7 @@ steps:
   - shot: {name: bugfix-tip, pointer: stay}
   # The measured gain is on a Simulation row: the search box brings it to the top of the list
   # (wheel notches travel further at a lower frame rate).
-  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "fast-conveyor-paths"}
+  - type: {ui: "**/MoonoTweaksScreen/Panel/SearchBar/Search/FilterInputField", text: "fast-conveyor-paths", clear: true}
   - ui_wait: {path: "**/MoonoTweaksScreen/**/fast-conveyor-paths", cond: stable}
   # The row's centre, on its title here (in English, the gap between its title and effect):
   # the row's tooltip, with its gain and launch option.

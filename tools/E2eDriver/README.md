@@ -654,6 +654,20 @@ What worldgen made, captured as each world goes into its settling simulation (a 
   mass_bits temp_bits`), `WORLD.polys.tsv` (a polygon a line, `x_bits,y_bits` per vertex) and
   `elements.txt` (the game's element ids by index), for finding where two players differ.
 
+### Moono Tweaks screen reads
+
+Our main menu's Moono Tweaks screen while it is open (ours only; a driver error otherwise), for
+`tests/e2e/moono-tweaks-search-*.yaml`. They read what the screen shows, so specs need no list
+of tweaks:
+- `type:E2eDriver.TweaksScreen::Rows`: its rows, shown or not; `::Shown`: those shown now.
+- `type:E2eDriver.TweaksScreen::Problems`: `ok`, or what disagrees with the search field's
+  text: a row shown that the query does not match or hidden that it does, a section heading
+  shown over no shown row or hidden over one, the "no matches" line out of step. A row matches as
+  the game's searches match a list: the whole query, or each of its words, lowercased, is in the
+  row's name, title, one-liner, tooltip (without colour tags) or choices.
+- `type:E2eDriver.TweaksScreen::Translated`: the rows whose title and one-liner are not the
+  English ones (in another language, those its translation has).
+
 ## Errors
 
 | error | when |
