@@ -47,8 +47,8 @@ don't read that one, tag it or add builds to it.
   `Game::OnPrefabInit()`) or a line as `BUILD:raw/<asm>/<Type>.cs:N`
   (`763612:raw/Assembly-CSharp/Game.cs:N`), not `uBUILD:File.cs:N` in a private decompile. A
   cross-build finding is reproduced with the `changed_members` or `member_history` call it came
-  from (MCP or `archive.py`), named in the doc. Past docs keep their citations and oni-versioning
-  hashes (`4a63c523`, `7fa0f5b3`) as history.
+  from (MCP or `archive.py`), named in the doc. Past docs were moved to these forms too: their
+  oni-versioning hashes became tags and their private-decompile lines archive lines.
 
 ## 1. Identify the build
 
