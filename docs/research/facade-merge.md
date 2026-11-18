@@ -1,7 +1,7 @@
 # Merging the engine records into the facades (2026-11-17)
 
-Status: the guard rails (step 1 of the recommendation) and step 2, every component's state on
-the component, landed ("Progress" below). The study answers two questions about candidate 3 of
+Status: the guard rails (step 1 of the recommendation), step 2 (every component's state on the
+component) and step 3 (every GameObject's state on the GameObject) landed ("Progress" below). The study answers two questions about candidate 3 of
 [live-managed-heap.md](live-managed-heap.md), "`BehaviourNative` merged into the facade":
 how much frame time the facade-to-record step costs, and how safe the merge would be.
 
@@ -864,6 +864,73 @@ No hot member is slower. Cold, the members that read a GameObject or transform t
 component (`gameObject`, `activeInHierarchy`, `localPosition`) are 1–5% slower: the facade's
 own fields now sit further from its handle, so the two more often fall in different cache
 lines. The members that read the merged state save a cache miss (14–30 ns cold).
+
+### Step 3: GameObjects keep their own state (landed)
+
+- **What moved.** `GameObjectNative`'s fields (component array, layer, tag, active flags, scene,
+  transform record, root slot, the canvas system's answers, name, serialized data) are private
+  fields of `GameObject`, read through internal properties of the record's names, so the engine
+  reads a GameObject as it read the record. `GameObjectNative` is gone; GameObjects have no
+  record. `GameObject` hides `Object.Native` and `NativeOrThrow` at compile time, as `Component`
+  does.
+- **Construction.** Every constructor sets the starting state (tag Untagged, active, root slot
+  −1, canvas answers −1) before the object is bound, as the record's field initializers did;
+  the loaders and Instantiate set the rest after, as nothing runs in between.
+- **Destruction.** A destroyed GameObject drops its components, transform record and canvas
+  caches, so one the game keeps holds nothing of its hierarchy (a mutation that keeps them fails
+  4 of 6 retention cases). A component an OnDestroy adds to an object of the destroyed subtree is
+  now destroyed with it: before, it stayed alive on the dead object (also before the merge),
+  and with the object's transform gone a collider left so would have made the physics world's
+  queries throw. The original's handling of this was not measured.
+- **Reflection.** A component's link to its GameObject is stored untyped, so `m_GameObject`
+  stays the only `GameObject`-typed field `Localization.SetFont` follows. A GameObject walked as
+  `UnityEngine.Object` no longer goes round through a record.
+- **Not folded:** `ComponentLayout.Cached` stays a separate object. Worker threads read a
+  GameObject's component array and its layout while the main thread replaces both; only one
+  reference publishes the pair together. Folding it needs a seqlock on the hottest lookup or an
+  eager layout computed for every component-array change; neither was worth its cost or risk.
+- **A fix to step 2,** from an independent review: Instantiate had lost the hide flags of engine
+  components (cameras, renderers, colliders, transforms…) since step 2, as binding handed the
+  record's own flags over the clone's. The record's leftovers now go first and the starting state
+  over them; a test instantiates every engine component type, active or not, enabled or not.
+- **Tests:** `MergedGameObjectStateTests` (starting state, constructors, destruction, Instantiate,
+  the untyped link) and `MergedStateLifetimeTests` (Instantiate of every engine component type;
+  a component added by an OnDestroy; a prefab loaded from the game's files: ids, persistence,
+  source, links, scripts; and unloaded with its scripts and record-less GameObject).
+
+**Verified** on master and u60 as for step 2: `check.sh` and `ci-unit-tests.sh` green, the
+analyzer clean, the core e2e list (the same pre-existing `moono-tweaks-search` failures as the
+base; `issue-52-states-bic`'s one failure was the original's, passing 2 of 2 on a re-run), the
+master mod specs (Fast Track's local build was refused by the gate this time: not run), `qa.sh
+verify` (0 wrong in every mode, no log signatures), and saves equal to the base's but for
+`GameClock`'s real-time float.
+
+**Heap** (the late-game colony, HeapInv): master 23.10 M → 22.93 M reachable objects (−163 k,
+the GameObject records), 71.27 M → 70.94 M references, 5.002 → 4.995 GB; u60 22.08 M → 21.92 M,
+75.34 M → 75.00 M, 4.401 → 4.390 GB. The GameObject facades grew by 136 bytes each (9.3 → 31.9
+MB) while their records' 33.1 MB went.
+
+**Hot and cold paths** (the engine micro-benchmark, step 2 against step 3, ns a call, medians
+of six alternating rounds):
+
+| Member | Hot step 2 | Hot step 3 | Cold step 2 | Cold step 3 |
+|---|---:|---:|---:|---:|
+| `go.activeSelf` | 1.28 | 1.19 | 13.1 | 10.2 |
+| `go.activeInHierarchy` | 1.29 | 1.21 | 12.6 | 9.0 |
+| `go.layer` | 1.29 | 1.19 | 12.0 | 9.4 |
+| `go.transform` | 1.82 | 1.56 | 32.1 | 22.6 |
+| `go.GetComponent<T>` | 3.20 | 2.92 | 76.5 | 62.9 |
+| `go.tag` | 1.38 | 1.18 | 14.3 | 11.0 |
+| `go.name` | 1.25 | 1.18 | 10.0 | 11.1 |
+| GameObject fake-null check | 1.18 | 1.19 | 8.3 | 8.4 |
+| `component.gameObject.activeInHierarchy` | 1.69 | 1.40 | 38.3 | 21.7 |
+| `component.gameObject` | 1.32 | 1.33 | 19.7 | 14.2 |
+
+No hot member is slower; cold, the GameObject members save the record's cache miss. In that
+series Instantiate measured 26% slower after the other members' loops, but alone, on the same
+150,000-object world, it was 10% faster than step 2 (2,824 against 3,148 ns) and on a small
+world 30% (3,177 against 4,536): the slower figure follows the benchmark's earlier loops, not
+Instantiate. It allocates 64 bytes less.
 
 ## Not measured
 
