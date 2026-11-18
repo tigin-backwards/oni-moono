@@ -1,10 +1,10 @@
 # When the game updates
 
 The procedure for a new build of Oxygen Not Included, drawn from the U60 updates
-(`docs/research/u60-762230.md`, `u60-763023.md`, `u60-763325.md` on the `u60` branch). It
-applies to the branch that plays the updated game: `u60` for the U60 beta, `master` for U59.
-BUILD is the new build, OLD the one the branch targets now. Run builds, players and checks
-through runq (`RUNQ_OWNER=gameupdate RUNQ_LEVEL=release`, docs/RUNQ.md).
+(`docs/research/u60-762230.md`, `u60-763023.md`, `u60-763325.md`, `u60-763612.md` on the `u60`
+branch). It applies to the branch that plays the updated game: `u60` for the U60 beta, `master`
+for U59. BUILD is the new build, OLD the one the branch targets now. Run builds, players and
+checks through runq (`RUNQ_OWNER=gameupdate RUNQ_LEVEL=release`, docs/RUNQ.md).
 
 Never write to the live Steam install, Steam's settings, Documents or `%LOCALAPPDATA%\oni-moono`:
 read the live install only, and freeze copies.
@@ -29,9 +29,11 @@ read the live install only, and freeze copies.
 - [ ] **Windows and Linux:** DepotDownloader 3.x (`E:\oni-builds\depotdownloader`), the saved
   login, into new folders named for the build: `-app 457140 -os windows -all-platforms=false
   -beta public_testing -dir E:\oni-builds\oni-win-BUILD` and `-app 457140 -os linux -beta
-  public_testing -dir E:\oni-builds\oni-linux-BUILD` (no `-beta` for U59). Retry a dropped
-  connection. Check that the main depot's manifest and `Assembly-CSharp.dll` match the live
-  install's.
+  public_testing -dir E:\oni-builds\oni-linux-BUILD` (no `-beta` for U59). One download at a
+  time: two with the same login drop each other's connection. 3.x warns that it did not use
+  `-all-platforms=false`; one platform is its default. Retry a dropped connection; success is its
+  `Total downloaded` line, not its exit code. Check that the main depot's manifest and
+  `Assembly-CSharp.dll` match the live install's.
 - [ ] **Linux-side copies:** `~/projects/oni-linux-BUILD` (the Linux download without the DLC
   `StreamingAssets` entries that `~/projects/oni-dlc-OLD` holds) and `~/projects/oni-dlc-BUILD`
   (those entries from `oni-win-BUILD`).
@@ -53,16 +55,18 @@ read the live install only, and freeze copies.
   Managed/Assembly-CSharp.dll` (firstpass too when it changed).
 - [ ] **oni-versioning tag** on a commit of its own, without touching its working tree or
   `master`: with a scratch `GIT_INDEX_FILE`, `read-tree U60-OLD`, replace `OxygenNotIncluded/`
-  with the decompile (its `.csproj` left out) from a staging folder (`git --work-tree=STAGE`),
-  then `write-tree`, `commit-tree -p U60-OLD`, `tag U60-BUILD`. Check the tag's tree against the
-  decompile.
+  with the decompile (its `.csproj` left out) from a staging folder (`git --work-tree=STAGE add
+  -f -A OxygenNotIncluded`, which also drops removed files; `git rm --cached` refuses while the
+  repository's working tree has changes), then `write-tree`, `commit-tree -p U60-OLD`, `tag
+  U60-BUILD`. Check the tag's tree against the decompile.
 - [ ] **MD5 of every file**, OLD against BUILD, Linux and Windows (`.DepotDownloader` left out;
   mind file names with spaces): what changed and what did not (firstpass, Unity, BCL, FMOD,
   SimDLL).
 - [ ] **Serialized data:** a UnityPy listing of `globalgamemanagers`, `level0`,
   `resources.assets` and `sharedassets*.assets` (type, name, path ID, size and MD5 of each
   object), compared by path ID and by type, name and size (path IDs are dense, so an insertion
-  renumbers the rest).
+  renumbers the rest). A texture's pixels are in the `.resS` file, outside its object's bytes:
+  hash each `Texture2D`'s stream data (`m_StreamData` offset and size) too.
 - [ ] **AssemblyDiff:** OLD against BUILD for Assembly-CSharp (and firstpass when changed), the
   members gone or added; and Linux against Windows of BUILD (one Windows-only field,
   `Global.saveFolderTestResult`, is expected).
@@ -109,7 +113,8 @@ As in `13b5e5b9` and the commits after it (`u60-763023.md`, "Moono's commits for
   the default, OLD kept) with that commit. Check with `scripts/fetch-game-refs.py OUT`.
 - [ ] **Stripped game:** the branch's `tools/GameStrip` (Release) `strip
   E:\oni-builds\oni-linux-BUILD OUT/oni-BUILD`; `tar --sort=name --mtime=@0 --owner=0 --group=0
-  --numeric-owner --transform s,^oni-BUILD,BUILD,` then zstd -19; a refs release
+  --numeric-owner --transform s,^oni-BUILD,BUILD,` then zstd -19 (without a `zstd` command, the
+  Python `zstandard` module at level 19 makes the same format); a refs release
   `game/BUILD-SHA16` with the archive and its `SHA256SUMS`; `ci/game-content.json`. Check with
   `scripts/fetch-game-content.py game OUT`.
 - [ ] `ci/game-tests/budget/BUILD.txt`, `.github/workflows/workshop.yml`'s refs build,
