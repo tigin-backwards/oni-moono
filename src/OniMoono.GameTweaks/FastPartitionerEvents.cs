@@ -31,7 +31,7 @@ namespace OniMoono.GameTweaks
     /// counted and logged. Off for the session while another mod patches the partitioner's event,
     /// insert, remove or scan, or while Fast Track, MoreTek, Colony Performance Fixes or Multiplayer
     /// Mod is active (checked at the first event and every 4,096).
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ScenePartitioner::TriggerEventInternal(System.Int32,System.Int32,System.Int32,System.Int32,ScenePartitionerLayer,System.Object)", "aa21b8008dd4fefe linux-744825 win-744825", "4f3c5bee3b515f81 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void ScenePartitioner::TriggerEventInternal(System.Int32,System.Int32,System.Int32,System.Int32,ScenePartitionerLayer,System.Object)", "aa21b8008dd4fefe linux-744825 win-744825", "4f3c5bee3b515f81 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612", "425518116c58c362 linux-763796 win-763796")]
     [GameMember(GameUse.Postfix, "System.Void ScenePartitioner::Insert(HandleVector`1/Handle<System.Int32>)")]
     [GameMember(GameUse.Prefix, "System.Void ScenePartitioner::Remove(HandleVector`1/Handle<System.Int32>)")]
     [GameMember(GameUse.Postfix, "System.Void ScenePartitioner::Sim1000ms(System.Single)")]

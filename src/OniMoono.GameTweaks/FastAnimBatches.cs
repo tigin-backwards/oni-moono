@@ -48,10 +48,10 @@ namespace OniMoono.GameTweaks
     ///
     /// Measured (a pile-heavy colony, Linux, steady windows): 1.92–2.01 → 1.49–1.65 ms a frame.
     /// What stays on the main thread is mostly applying the overrides.
-    [GameMember(GameUse.Transpiler, "System.Int32 KAnimBatch::UpdateDirty(System.Int32)", "179b53cbc38cbf63 linux-744825 win-744825", "a037122a00fc858c linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612", Rewrites = 3)]
+    [GameMember(GameUse.Transpiler, "System.Int32 KAnimBatch::UpdateDirty(System.Int32)", "179b53cbc38cbf63 linux-744825 win-744825 linux-763796 win-763796", "a037122a00fc858c linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612", Rewrites = 3)]
     [GameMember(GameUse.Uses, "System.Void KAnimBatch::WriteBatchedAnimInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
     [GameMember(GameUse.Uses, "System.Boolean KAnimBatch::WriteSymbolInstanceData(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)")]
-    [GameMember(GameUse.Mirrors, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)", "4ddcc4d476fe3321 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Mirrors, "System.Boolean KAnimBatch::WriteSymbolOverrideInfoTex(System.Int32,KAnimConverter/IAnimConverter,Unity.Collections.NativeArray`1<System.Byte>)", "4ddcc4d476fe3321 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612", "8e847ca8af22507b linux-763796 win-763796")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Int32 KAnimBatchManager::UpdateDirty(System.Int32)")]
     [GameMember(GameUse.Uses, "UnityEngine.Vector4 KBatchedAnimTracker::MyAnimGetPosition()")]
     [GameMember(GameUse.Uses, "SymbolOverrideInfoGpuData KAnimControllerBase::get_symbolOverrideInfoGpuData()")]
