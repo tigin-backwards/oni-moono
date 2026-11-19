@@ -40,6 +40,9 @@ CDN = 'https://cdn.onimaxxing.com/mods-data'
 U59_BUILD = 744825
 TTL = 3600
 FLAGS = ('malware', 'credentials', 'chatWebhook', 'obfuscated')
+# Local builds, not on the Workshop, that do not run on this game update: {id: why}. Specs that
+# install them are skipped with that reason. Fast Track's GitHub builds pass on master (U59).
+NOT_ON_THIS_UPDATE = {'9000000001': 'Fast Track does not run on U60 (its GitHub builds pass on U59 only)'}
 BINARY_EXT = ('.dll', '.exe', '.so', '.dylib')
 BINARY_MAGIC = (b'\x7fELF', b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf', b'\xce\xfa\xed\xfe', b'\xcf\xfa\xed\xfe')
 
@@ -164,6 +167,8 @@ def check(mid, oni, handles, ws=WS):
     def verdict(ok, reason):
         return {'id': mid, 'verdict': 'pass' if ok else 'skip', 'reason': reason}
 
+    if mid in NOT_ON_THIS_UPDATE:
+        return verdict(False, NOT_ON_THIS_UPDATE[mid])
     folder = os.path.join(ws, mid)
     if not os.path.isdir(folder):
         return verdict(False, 'not downloaded')

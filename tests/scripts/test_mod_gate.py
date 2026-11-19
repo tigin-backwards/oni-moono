@@ -135,6 +135,10 @@ class Gate(unittest.TestCase):
         self.assertEqual(results['1']['reason'], 'not downloaded')
         self.assertEqual(results['../x']['reason'], 'not a Workshop id')
 
+    def test_fast_track_is_skipped_on_u60(self):
+        self.mod('9000000001', {'mod.yaml': b'title: Fast Track\n', 'FastTrack.dll': b'MZ fast track'})
+        self.assertIn('does not run on U60', self.run_gate(onimaxxing(), ['9000000001'])['9000000001']['reason'])
+
     def test_data_is_cached_with_its_fetch_time(self):
         self.run_gate(onimaxxing())
         fetched = len(self.fake.urls)
