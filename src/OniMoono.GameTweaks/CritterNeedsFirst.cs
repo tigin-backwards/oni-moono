@@ -51,6 +51,11 @@ namespace OniMoono.GameTweaks
     /// `brain-rate` installs the same hooks for its critter cap, where turns are scarce at any
     /// frame rate; with both tweaks on they are installed once.
     ///
+    /// The checks and threat turns belong to one game: each new Game (Game.OnPrefabInit, before
+    /// the colony's state machines start) forgets them. Leaving a colony frees its state machines
+    /// without their states' exits (StateMachineController.OnLoadLevel), so none is untracked
+    /// then; a freed one read later throws (#93). A key whose test throws is dropped.
+    ///
     /// With ONI_TWEAK_VERIFY=1 each asked turn is followed: it must come within as many frames as
     /// brains were queued before it, plus 2 (the queue is served in order, at least one a frame);
     /// the count and those over are logged every 600 game seconds.
@@ -77,6 +82,7 @@ namespace OniMoono.GameTweaks
     // Verify mode's count of the turns that followed.
     [GameMember(GameUse.Postfix, "System.Void Brain::UpdateBrain()", Conditional = true)]
     [GameMember(GameUse.Uses, "BrainScheduler Game::BrainScheduler")]
+    [GameMember(GameUse.Postfix, "System.Void Game::OnPrefabInit()")]
     public static class CritterNeedsFirst
     {
         public const string Name = "critter-needs-first";
@@ -87,11 +93,16 @@ namespace OniMoono.GameTweaks
         static readonly Func<ThreatMonitor.Instance, bool> threatReady = ThreatReady;
         static readonly Action<ThreatMonitor.Instance> threatAsk = ThreatAsk;
         static Func<BrainScheduler.BrainGroup, int> probeCount;
-        static BrainScheduler scheduler;
         static BrainScheduler.BrainGroup critters;
+        static bool dropLogged;
 
         /// For tests (E2eDriver's state reads): the turns asked for, by need.
         public static long ToInhale, ToExcrete, ToAttack;
+
+        /// For tests: the critters followed for threat turns, and those dropped this game as their
+        /// test threw.
+        public static int ThreatTracked => threatTurns.Count;
+        public static int ThreatDropped => threatTurns.Dropped;
 
         /// Installs the hooks once: `brain-rate` installs them too, for its critter cap. They go
         /// under the first caller's Harmony ID, and in again if that tweak's install was taken back.
@@ -109,6 +120,19 @@ namespace OniMoono.GameTweaks
             probeCount ??= AccessTools.MethodDelegate<Func<BrainScheduler.BrainGroup, int>>(AccessTools.Method(typeof(BrainScheduler.BrainGroup), "InitialProbeCount"));
             harmony.Patch(AccessTools.Method(typeof(BrainScheduler), nameof(BrainScheduler.RenderEveryTick)), postfix: new HarmonyMethod(typeof(CritterNeedsFirst), nameof(Frame)));
             if (verify) harmony.Patch(AccessTools.Method(typeof(Brain), nameof(Brain.UpdateBrain)), postfix: new HarmonyMethod(typeof(CritterNeedsFirst), nameof(Turn)));
+            harmony.Patch(AccessTools.Method(typeof(Game), "OnPrefabInit"), postfix: new HarmonyMethod(typeof(CritterNeedsFirst), nameof(NewGame)));
+        }
+
+        /// Game.OnPrefabInit: a new game, before its state machines start. The last game's
+        /// critters are forgotten; its state machines were freed without leaving their states.
+        static void NewGame()
+        {
+            excreteChecks.Clear();
+            threatTurns.Clear();
+            asked.Clear();
+            critters = null;
+            critterScheduler = null;
+            dropLogged = false;
         }
 
         /// GasAndLiquidConsumerMonitor.InitializeStates: entering `looking` (hungry, the wait
@@ -163,7 +187,8 @@ namespace OniMoono.GameTweaks
 
         static bool ThreatReady(ThreatMonitor.Instance smi)
         {
-            if (smi.isMasterNull || !smi.IsRunning())
+            // A freed state machine (its colony left) has no state machine: isMasterNull would throw.
+            if (smi.GetStateMachine() == null || smi.isMasterNull || !smi.IsRunning())
             {
                 threatTurns.Remove(smi);
                 return false;
@@ -215,26 +240,25 @@ namespace OniMoono.GameTweaks
         }
 
         /// After the frame's brain turns: the excrete checks that have come due.
-        static void Frame(BrainScheduler __instance)
+        static void Frame()
         {
-            if (!ReferenceEquals(scheduler, __instance))
-            {
-                scheduler = __instance;
-                excreteChecks.Clear();
-                asked.Clear();
-            }
             float now = Time.time;
             if (threatTurns.Count > 0 && CritterGroup() is { } critterGroup)
             {
                 // The group's turns this frame: brain-rate's cap when it ran the group, else the game's count.
                 int turns = BrainRate.CritterTurnsFrame == Time.frameCount ? BrainRate.CritterTurns : probeCount(critterGroup);
                 threatTurns.Serve(now, critterGroup.BrainCount / (float)BrainRate.CritterRate, turns, threatReady, threatAsk);
+                if (threatTurns.LastError is { } error && !dropLogged)
+                {
+                    dropLogged = true;
+                    global::Debug.LogWarning($"{Name}: a critter's threat turn test threw, so it is no longer tracked ({threatTurns.Dropped} so far this game): {error}");
+                }
             }
             if (excreteChecks.Count == 0) return;
             foreach (var smi in excreteChecks.Take(now))
             {
                 // CreatureCalorieMonitor.ReadyToPoop, as the game tests it on the critter's turn.
-                if (!smi.IsRunning() || !smi.stomach.IsReadyToPoop()) continue;
+                if (smi.GetStateMachine() == null || !smi.IsRunning() || !smi.stomach.IsReadyToPoop()) continue;
                 if (now - smi.lastMealOrPoopTime < smi.def.minimumTimeBeforePooping || smi.IsInsideState(smi.sm.pause)) continue;
                 if (Ask(smi.GetComponent<Brain>())) ToExcrete++;
             }

@@ -1,0 +1,33 @@
+# Issue #93: critter-needs-first after loading another colony. Leaving a colony frees its
+# critters' state machines without them leaving their states (StateMachineController.OnLoadLevel),
+# so the Beetas the tweak followed for threat turns stayed in its queue. In the next colony the
+# first test of one read the freed state machine and threw every frame, and the game's error
+# dialog came up. Ours only (`--player ours`): the original has no such tweak.
+#
+# BeetaTurnsTestMod's rooms (critter-threat-turns.yaml) give the tweak Beetas to follow. The
+# colony is saved and loaded from the pause menu; the loaded colony must run with nothing
+# dropped and no error dialog (KCrashReporter's ErrorCanvas), its own Beetas followed.
+from: early-base
+game_tweaks: [critter-needs-first]
+test_mods: [BeetaTurnsTestMod]
+env: {BEETA_FPS: "15", BEETA_FILLERS: "200"}
+steps:
+  - wait_state: {state: {"type:BeetaTurnsTestMod.Rooms::Ready": true}, seconds: 180}
+  - run: {seconds: 30, speed: 3}
+  - expect_state:
+      "type:OniMoono.GameTweaks.CritterNeedsFirst::ThreatTracked": ">= 1"
+  - save: issue-93-critter-turns
+  - key: {code: Escape, until: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton", cond: stable}
+  - click: {ui: "**/PauseScreen/LayoutContent/ButtonContent/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/TitleContainer/SaveText", cond: text, value: issue-93-critter-turns}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - ui_wait: {path: "**/LoadScreen", cond: gone, frames: 6000}
+  - run: {seconds: 60, speed: 3}
+  - expect_ui:
+      "**/ErrorCanvas": {exists: false}
+  - expect_state:
+      "type:OniMoono.GameTweaks.CritterNeedsFirst::ThreatDropped": 0
+      "type:OniMoono.GameTweaks.CritterNeedsFirst::ThreatTracked": ">= 1"

@@ -741,6 +741,12 @@ At most 4 such critters are tested a frame, and at most one is asked for in ever
 critter group's turns, so the fixed order keeps at least 4 in 5 of them. A test reads the
 partitioner and the path cache, up to 50 entries, and allocates nothing.
 
+The critters it follows belong to one colony: each new game forgets them before its critters
+start. Leaving a colony frees the critters' state machines without them leaving their states,
+so none stops being followed then. Until 2026-11-19 they were kept after loading another
+colony, and the first test of one threw every frame (#93). A critter whose test throws is now
+dropped.
+
 **Measured** on Linux with 12 Beetas, 500 other critters and a Pip that visits the Beetas for 8
 game seconds every 30–40 (`tests/e2e/critter-threat-turns.yaml`), counts only:
 
