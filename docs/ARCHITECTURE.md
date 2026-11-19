@@ -1703,11 +1703,14 @@ citing why.
     slot, and the table holds the objects themselves.
   - Every component keeps its own state: its GameObject's record and its lifecycle flags; every
     behaviour its enabled state, its Awake/Start/OnEnable flags, its script, execution order and
-    coroutines. Scripts and plain components have no record. Engine components (transforms,
-    renderers, colliders, cameras, canvases…) keep their subsystem's state in a record, which
-    reads the component's state through properties.
+    coroutines. Scripts and plain components have no record. Engine components (renderers,
+    colliders, cameras, canvases…) keep their subsystem's state in a record, which reads the
+    component's state through properties.
   - Every GameObject keeps its state (its component array, layer, tag, active flags, scene, its
-    transform's record, the canvas system's answers) and has no record. A component's link to
+    transform, the canvas system's answers) and has no record.
+  - Every Transform keeps its local placement, its world caches and its place in the hierarchy
+    (its parent, and its children in a copy-on-write array that worker threads read), and every
+    RectTransform its anchoring and its rect; neither has a record. A component's link to
     it is stored untyped, so `m_GameObject` stays the only `GameObject`-typed field.
   - Assets (textures, meshes, materials, shaders, fonts…) keep their state in their records.
 
@@ -1719,8 +1722,10 @@ citing why.
     and `transform`, first, then the component's state.
   - `Behaviour`: the behaviour's state.
   - `GameObject`: the object's state, none of it `GameObject`-typed.
-  - `MonoBehaviour`, `Transform`, `RectTransform`: none. Unity's `MonoBehaviour`
-    has `m_CancellationTokenSource`; ours has none.
+  - `Transform`, `RectTransform`: the transform's state, none of it `GameObject`-typed; the
+    parent is a `Transform` and the children a `Transform[]`, and the object driving a
+    RectTransform is stored untyped.
+  - `MonoBehaviour`: none. Unity's has `m_CancellationTokenSource`; ours has none.
 
   Game code reflects over components' fields, so new engine fields on the facades keep three
   rules (`SetFontWalkTests`, docs/research/facade-merge.md, category 5):
@@ -1740,11 +1745,12 @@ citing why.
   KSerialization's templates take a type's public fields and public settable properties up to
   `object` (OptOut) or its `[Serialize]` members (OptIn), so the facade bases give a template
   exactly what Unity's give (`SaveTemplateTests` compares them with the game's CoreModule).
-- A record holds the name of an asset, and the scene-graph data of transforms. **Fake-null semantics** follow Unity: `==`, `!=`, `op_Implicit(bool)` and `Equals`
+- A record holds the name of an asset. **Fake-null semantics** follow Unity: `==`, `!=`, `op_Implicit(bool)` and `Equals`
   treat destroyed objects (and C#-created `UnityEngine.Object`s the engine never bound) as null;
   these checks read `m_CachedPtr` only, lock-free, from any thread. A destroyed component drops
-  its link to its GameObject, and a destroyed GameObject its components and transform, so one
-  the game keeps holds nothing of its hierarchy.
+  its link to its GameObject, a destroyed GameObject its components and transform, and a
+  destroyed transform its parent and children, so one the game keeps holds nothing of its
+  hierarchy.
 - **The engine compares its objects by reference.** Records have no equality of their own, but
   a facade's is Unity's, under which every destroyed object equals every other. The engine's
   analyzer (`src/OniMoono.Analyzers`, `IdentityAnalyzer`) makes these build errors:

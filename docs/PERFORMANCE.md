@@ -390,6 +390,9 @@ The 2026-11-06 tables (v2026.11.06.01 on U59) had U57 at about 90 fps with defau
   and plain components have no record of their own any more. On U57 the live heap holds 2.19 M
   objects (8.7%) and 6.45 M references fewer, 126 MB less, which a full collection no longer
   traces; an Instantiate of a 14-script object allocates 23% less (2,480 against 3,232 bytes).
+  Steps 3 and 4 merged the GameObject and transform records: 0.33 M objects, 0.99 M references
+  and 22 MB fewer on the late-game colony (U59), and transform reads 20–75% faster when their
+  objects are out of cache.
 - **Frame times** are new: p50 and p99 for every configuration.
 - **Opt-in tweaks:** `brain-rate` still makes most of U57's gap between default and every tweak
   (default with it: 142 fps, one launch); `sim-step-pace` gave 159 → 170 fps at speed 1 on U57
