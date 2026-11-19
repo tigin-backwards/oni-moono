@@ -58,6 +58,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void ReportManager::OnNightTime(System.Object)")]
     [GameMember(GameUse.Postfix, "System.Void ReportManager::OnDeserialized()")]
     [GameMember(GameUse.Postfix, "System.Void ReportManager::OnCleanUp()")]
+    [GameMember(GameUse.Postfix, "System.Void ReportManager::DestroyInstance()")]
     [GameMember(GameUse.Prefix | GameUse.Finalizer, "System.Void SaveLoader::Save(System.IO.BinaryWriter)")]
     [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<ReportManager/DailyReport> ReportManager::dailyReports")]
     [GameMember(GameUse.Uses, "ReportManager/DailyReport ReportManager::todaysReport")]
@@ -148,6 +149,7 @@ namespace OniMoono.GameTweaks
                 postfix: new HarmonyMethod(typeof(CompactReportDays), nameof(NightEnded)) { priority = Priority.Last });
             h.Patch(AccessTools.Method(manager, "OnDeserialized"), postfix: new HarmonyMethod(typeof(CompactReportDays), nameof(Loaded)) { priority = Priority.Last });
             h.Patch(AccessTools.Method(manager, "OnCleanUp"), postfix: new HarmonyMethod(typeof(CompactReportDays), nameof(CleanedUp)));
+            h.Patch(AccessTools.Method(manager, nameof(ReportManager.DestroyInstance)), postfix: new HarmonyMethod(typeof(CompactReportDays), nameof(Released)));
             h.Patch(AccessTools.Method(typeof(SaveLoader), "Save", new[] { typeof(System.IO.BinaryWriter) }),
                 prefix: new HarmonyMethod(typeof(CompactReportDays), nameof(SaveStarting)), finalizer: new HarmonyMethod(typeof(CompactReportDays), nameof(SaveEnded)));
         }
@@ -304,7 +306,13 @@ namespace OniMoono.GameTweaks
 
         static void CleanedUp(ReportManager __instance)
         {
-            if (__instance != owner) return;
+            if (__instance == owner) Released();
+        }
+
+        /// ReportManager.DestroyInstance: the colony is left (Game.OnDestroy). A scene unload
+        /// destroys the manager without its OnCleanUp, so the store is let go here.
+        static void Released()
+        {
             store = null;
             owner = null;
             shadows = null;

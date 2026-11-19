@@ -52,6 +52,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "System.Void ReportManager::OnDeserialized()")]
     [GameMember(GameUse.Prefix | GameUse.Postfix, "System.Void ReportManager::OnNightTime(System.Object)")]
     [GameMember(GameUse.Postfix, "System.Void ReportManager::OnCleanUp()")]
+    [GameMember(GameUse.Postfix, "System.Void ReportManager::DestroyInstance()")]
     public static class CompactReports
     {
         public const string Name = "compact-report-history";
@@ -86,6 +87,7 @@ namespace OniMoono.GameTweaks
             harmony.Patch(AccessTools.Method(manager, "OnNightTime"), prefix: new HarmonyMethod(typeof(CompactReports), nameof(NightStarting)),
                 postfix: new HarmonyMethod(typeof(CompactReports), nameof(NightEnded)));
             harmony.Patch(AccessTools.Method(manager, "OnCleanUp"), postfix: new HarmonyMethod(typeof(CompactReports), nameof(ManagerCleanedUp)));
+            harmony.Patch(AccessTools.Method(manager, nameof(ReportManager.DestroyInstance)), postfix: new HarmonyMethod(typeof(CompactReports), nameof(ManagerReleased)));
         }
 
         static ReportNoteStore<NoteEntryKey, Keys> StoreOf(NoteEntries owner) => owner == storeOwner ? store : null;
@@ -161,11 +163,16 @@ namespace OniMoono.GameTweaks
             for (int i = 0; i < entry.contextEntries.Count; i++) MoveOut(s, entries, entry.contextEntries[i]);
         }
 
-        /// The colony ends (back to the main menu, or another load): its store goes with it.
+        /// The manager is destroyed outside a scene load: its store goes with it.
         static void ManagerCleanedUp(ReportManager __instance)
         {
             if (__instance.noteStorage != null && __instance.noteStorage.noteEntries == storeOwner) Own(null, null, null);
         }
+
+        /// ReportManager.DestroyInstance: the colony is left (Game.OnDestroy, back to the main
+        /// menu or another load). A scene unload skips the manager's OnCleanUp, so the store
+        /// goes here.
+        static void ManagerReleased() => Own(null, null, null);
 
         // ---- Writing ----
 
