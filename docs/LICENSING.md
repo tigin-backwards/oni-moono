@@ -108,7 +108,11 @@ Steamworks (`libsteam_api.so`, Steamworks.NET under MIT); `cimgui.so` (Dear ImGu
   Memory Allocator, and shaderc with glslang, SPIRV-Tools and SPIRV-Headers, which the Vulkan
   device uses to compile mods' GLCore shaders that carry no Vulkan programs U60 reads), under
   their own licences as shipped in those packages (shaderc's: Apache-2.0, BSD-3-Clause and
-  others, listed in the package's `LICENSES/BRUTAL-SHADERC-THIRD-PARTY-NOTICES.txt`).
+  others, listed in the package's `LICENSES/BRUTAL-SHADERC-THIRD-PARTY-NOTICES.txt`). The
+  libraries are in `Ahwoo.BRUTAL.Glfw.Native`, `Ahwoo.BRUTAL.OpenGl.Native` (glad),
+  `Ahwoo.BRUTAL.Stb.Native`, `Ahwoo.BRUTAL.FreeType` (FreeType and libpng), `Ahwoo.BRUTAL.ZLib`,
+  `Ahwoo.BRUTAL.Vulkan.Native` (VulkanEx), `Ahwoo.BRUTAL.Vulkan.Vma.Native` and
+  `Ahwoo.BRUTAL.ShaderC.Native`.
 
 ## Provenance of the bundled type trees
 

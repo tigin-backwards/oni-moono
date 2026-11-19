@@ -11,7 +11,7 @@ Legend: **(verified)** = compiled or run here; **(unverified)** = read from sour
 
 ## Top gotchas (read first)
 1. **Package ids are cased `Ahwoo.BRUTAL.*`**, all net10.0-only. Natives ship only for linux-x64, win-x64 and osx-arm64.
-2. **Linux: Brutal.Vulkan cannot find `libvulkan.so.1` by itself.** It loads `"vulkan"`, which only matches `libvulkan.so` (a dev symlink). Add an `AssemblyLoadContext.Default.ResolvingUnmanagedDll` hook (section 9) **(verified)**.
+2. **Linux: Brutal.Vulkan before 2026.10.3 cannot find `libvulkan.so.1` by itself.** It loads `"vulkan"`, which only matches `libvulkan.so` (a dev symlink). Add an `AssemblyLoadContext.Default.ResolvingUnmanagedDll` hook (section 9) **(verified)**. From 2026.10.3 it tries `libvulkan.so.1` first and throws `DllNotFoundException` naming what it tried; the hook is not needed.
 3. **Each BRUTAL assembly installs its own `DllImportResolver`** in a static ctor. Do not call `NativeLibrary.SetDllImportResolver` on BRUTAL assemblies.
 4. **Slang: `ISessionExtensions.CreateCompositeComponentType(ReadOnlySpan<IComponentType>, ...)` segfaults.** Use the raw-pointer workaround (section 3.2) **(verified)**. You must also set `StructureSize` on `SessionDesc` and `TargetDesc` yourself.
 5. **GLFW `OnChar` truncates codepoints to UTF-16 code units** (`(char)point`) (section 1.3).

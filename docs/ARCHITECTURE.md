@@ -104,9 +104,10 @@ probing, as in Unity's player.
   loading: D59's messages).
 - **BRUTAL** installs its own per-assembly resolvers. We never call `SetDllImportResolver` on
   BRUTAL assemblies.
-- **Vulkan.** Brutal.Vulkan asks for `vulkan`, which on Linux only the loader's -dev package
-  provides (`libvulkan.so`). The default ALC's `ResolvingUnmanagedDll` maps that name, for
-  Brutal.Vulkan only, to `libvulkan.so.1` (`VkContext.LoaderPresent`).
+- **Vulkan.** Brutal.Vulkan loads the system's loader itself: `libvulkan.so.1` first on Linux
+  (then `vulkan`, the -dev package's `libvulkan.so`), `vulkan-1` on Windows.
+  `VkContext.LoaderPresent` looks for it first, so a machine without one falls back to OpenGL
+  with the loader named in the log.
 
 **The Windows executable.** On Windows `OniMoono.exe` is our own native host
 (`src/OniMoono.NativeHost/host.c`, about 150 lines of C), not the .NET SDK's apphost, which

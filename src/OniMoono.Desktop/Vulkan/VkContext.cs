@@ -51,10 +51,10 @@ namespace OniMoono.Desktop.Vulkan
         /// Validation messages of error severity since start (diagnostics, tests).
         public static int ValidationErrors;
 
-        static bool loaderResolverInstalled;
-
-        /// Makes the loader loadable by Brutal.Vulkan, which asks for "vulkan" (only the -dev
-        /// package's libvulkan.so on Linux) or "vulkan-1": false when the system has none.
+        /// Whether the system has the Vulkan loader, looked for before Brutal.Vulkan's type
+        /// initializer, so a machine without one is told so by name: that initializer loads it
+        /// itself (libvulkan.so.1 first on Linux, vulkan-1 on Windows) and otherwise throws
+        /// DllNotFoundException, after which the type stays unusable for the process.
         public static bool LoaderPresent(out string detail)
         {
             string name = OperatingSystem.IsWindows() ? "vulkan-1.dll" : OperatingSystem.IsMacOS() ? "libvulkan.1.dylib" : "libvulkan.so.1";
@@ -64,12 +64,6 @@ namespace OniMoono.Desktop.Vulkan
                 return false;
             }
             NativeLibrary.Free(handle);
-            if (OperatingSystem.IsLinux() && !loaderResolverInstalled)
-            {
-                loaderResolverInstalled = true;
-                System.Runtime.Loader.AssemblyLoadContext.Default.ResolvingUnmanagedDll += (assembly, library) =>
-                    library == "vulkan" && assembly == typeof(Brutal.VulkanApi.Vulkan).Assembly ? NativeLibrary.Load("libvulkan.so.1") : IntPtr.Zero;
-            }
             detail = name;
             return true;
         }
