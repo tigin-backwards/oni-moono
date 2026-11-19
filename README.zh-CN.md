@@ -38,7 +38,7 @@ Moono 运行 Klei 原版的 DLL，并在加载时按照 Mono 与 .NET 的[差异
 
 在 Linux 上，以 Flatpak 或 Snap 方式安装的 Steam 会在沙盒中运行游戏，而该沙盒看不到你家目录的大部分内容；安装脚本会识别这种情况，并把 Moono 本体安装到沙盒自己的文件夹中。（Snap 已测试，Flatpak 尚未测试。）
 
-你需要 OpenGL 4.5 显卡驱动。游戏会使用你平常的 Steam 账户、DLC、存档、设置和模组。
+你需要支持 Vulkan 1.3 的显卡驱动，或以 OpenGL 4.5 作为备选。游戏会使用你平常的 Steam 账户、DLC、存档、设置和模组。
 
 ### 手动安装
 

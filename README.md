@@ -62,7 +62,7 @@ On Linux, Steam installed as a Flatpak or a snap runs games in a sandbox that ca
 your home folder. The setup notices and installs the player inside the sandbox's folder. Snap is
 tested, Flatpak isn't yet.
 
-You'll need an OpenGL 4.5 graphics driver. The game uses your normal Steam account, DLCs, saves,
+You'll need a Vulkan 1.3 graphics driver, or OpenGL 4.5 as the fallback. The game uses your normal Steam account, DLCs, saves,
 settings and mods.
 
 ### Manual installation
