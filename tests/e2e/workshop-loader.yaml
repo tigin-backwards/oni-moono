@@ -11,7 +11,7 @@ from: main-menu
 moono_item: true
 expect_log:
   - '\[MoonoLoader\] asked whether to play with Moono'
-  - '\[MoonoLoader\] Moono 2026\.11\.10\.01-u60 installed in .*/moono-install/versioned; launch option copied: ".*/moono-install/versioned/OniMoono" -- %command%'
+  - '\[MoonoLoader\] Moono 2026\.11\.10\.01 installed in .*/moono-install/versioned; launch option copied: ".*/moono-install/versioned/OniMoono" -- %command%'
 steps:
   # The intro video of a first start plays over the main menu and its dialog.
   - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
@@ -49,10 +49,10 @@ steps:
       "**/MoonoDialog/Layout": {active: true}
   - shot: {name: copied}
   - expect_state:
-      "file:moono-install/versioned/player/2026.11.10.01-u60/OniMoono": exists
-      "file:moono-install/versioned/player/2026.11.10.01-u60/packages/UnityEngine.UI.dll": exists
-      "file:moono-install/versioned/player/2026.11.10.01-u60/moono.json": exists
-      "file:moono-install/versioned/player/2026.11.10.01-u60/SHA256SUMS": exists
+      "file:moono-install/versioned/player/2026.11.10.01/OniMoono": exists
+      "file:moono-install/versioned/player/2026.11.10.01/packages/UnityEngine.UI.dll": exists
+      "file:moono-install/versioned/player/2026.11.10.01/moono.json": exists
+      "file:moono-install/versioned/player/2026.11.10.01/SHA256SUMS": exists
       "file:moono-install/versioned/OniMoono": exists
       "file:moono-install/versioned/state/current": exists
       "file:moono-install/versioned/state/source": exists

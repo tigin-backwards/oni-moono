@@ -13,8 +13,8 @@ Steam. The item's row in the Mods screen shows it again. Disable the mod to stop
   `OniMoono.exe` in that folder, not this one: from a shortcut you make to it, as a non-Steam
   game in Steam, or from ONI's Steam launch options (see the install guide). Steam updates this
   folder, and Moono installs each update the next time it starts.
-- **U60 only:** this folder has Moono for the game's U60 update. For U59, install Moono from a
-  GitHub release: https://github.com/tigin-backwards/oni-moono/releases
+- **U60 only:** this folder has Moono for the game's current update, U60. For U59, install
+  Moono's last U59 release: https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.19.03
 - **Checked files:** Moono and the loader mod check each player file against its release's
   manifest as they copy it, so a download Steam hasn't finished installs nothing. That is for
   integrity, not a signature check: like any mod, this folder is trusted as Steam delivers it.

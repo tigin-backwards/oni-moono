@@ -3,8 +3,9 @@
 #   gh api -H 'Accept: application/vnd.github.raw' repos/tigin-backwards/oni-moono/contents/ci/workshop/verify.ps1 > verify.ps1
 #   powershell -ExecutionPolicy Bypass -File verify.ps1 ITEM-FOLDER
 # 1. The release manifests (oni-moono-*.SHA256SUMS) by their SLSA provenance, from release.yml
-#    on u60, and every file of each player against its manifest. (An archived_versions folder,
-#    which the item no longer has, would be checked the same against master.)
+#    on master (on u60 for an item laid out before the U60 cut-over), and every file of each
+#    player against its manifest. The item has one version: an archived_versions folder is
+#    refused.
 # 2. The item's SHA256SUMS by its provenance from workshop.yml (looked up, and the bundle in
 #    attestation\), every file against it, and that no file is here that SHA256SUMS doesn't list.
 # Needs the GitHub CLI (gh). Windows PowerShell 5.1 or PowerShell 7.
@@ -32,16 +33,17 @@ function Check($manifest, $folder) {
     }
 }
 
-$versions = @($here) + @(Get-ChildItem -Directory -LiteralPath (Join-Path $here 'archived_versions') -ErrorAction SilentlyContinue | ForEach-Object FullName)
-foreach ($version in $versions) {
-    if (-not (Test-Path (Join-Path $version 'mod_info.yaml'))) { continue }
-    $branch = if ($version -eq $here) { 'u60' } else { 'master' }
-    foreach ($manifest in Get-ChildItem -LiteralPath $version -Filter 'oni-moono-*.SHA256SUMS') {
-        $platform = if ($manifest.Name -like '*-windows-x64.SHA256SUMS') { 'windows-x64' } elseif ($manifest.Name -like '*-linux-x64.SHA256SUMS') { 'linux-x64' } else { throw "unexpected $($manifest.Name)" }
-        if (-not (Attested $manifest.FullName 'release.yml' $branch)) { throw "$($manifest.Name): not attested as a release.yml build of $branch" }
-        Check $manifest.FullName (Join-Path $version $platform)
-        Write-Host "$version\${platform}: as the attested $($manifest.Name) ($branch)"
-    }
+if (Test-Path -LiteralPath (Join-Path $here 'archived_versions')) { throw "archived_versions: the item has one version" }
+if (-not (Test-Path -LiteralPath (Join-Path $here 'mod_info.yaml'))) { throw "mod_info.yaml is missing" }
+$manifests = @(Get-ChildItem -LiteralPath $here -Filter 'oni-moono-*.SHA256SUMS')
+if ($manifests.Count -eq 0) { throw "no release manifests" }
+foreach ($manifest in $manifests) {
+    $platform = if ($manifest.Name -like '*-windows-x64.SHA256SUMS') { 'windows-x64' } elseif ($manifest.Name -like '*-linux-x64.SHA256SUMS') { 'linux-x64' } else { throw "unexpected $($manifest.Name)" }
+    $branch = $null
+    foreach ($b in 'master', 'u60') { if (Attested $manifest.FullName 'release.yml' $b) { $branch = $b; break } }
+    if (-not $branch) { throw "$($manifest.Name): not attested as a release.yml build of master" }
+    Check $manifest.FullName (Join-Path $here $platform)
+    Write-Host "${platform}: as the attested $($manifest.Name) ($branch)"
 }
 $bundle = Join-Path $here 'attestation\SHA256SUMS.sigstore.json'
 if (((@(Get-ChildItem -LiteralPath (Join-Path $here 'attestation'))).Name -join ',') -ne 'SHA256SUMS.sigstore.json') { throw "attestation\ should hold SHA256SUMS.sigstore.json alone" }

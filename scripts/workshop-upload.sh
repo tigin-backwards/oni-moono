@@ -2,8 +2,8 @@
 # The steps .github/workflows/workshop-upload.yml shares between its dry run and its upload
 # (docs/WORKSHOP-UPLOAD.md). Run in Actions, with GH_TOKEN and GH_REPO set.
 #   workshop-upload.sh prepare RUN DIR MASTER ITEM VISIBILITY PREVIEW
-#     DIR/item: the workshop-item artifact of RUN, a successful workshop.yml run on master or
-#     u60, checked by ci/workshop/verify.sh and tied to RUN by its attestation; DIR/item.vdf:
+#     DIR/item: the workshop-item artifact of RUN, a successful workshop.yml run on master,
+#     checked by ci/workshop/verify.sh and tied to RUN by its attestation; DIR/item.vdf:
 #     its VDF, with MASTER's ci/workshop/description.bbcode (MASTER: a checkout of master),
 #     the change note from the releases' notes, and MASTER's ci/workshop/preview.gif when
 #     PREVIEW is true. ITEM is the published file ID, or new.
@@ -31,11 +31,11 @@ prepare() {
     info="$(gh api "repos/$GH_REPO/actions/runs/$run" \
         --jq '"\(.path) \(.head_branch) \(.conclusion) \(.event) \(.head_repository.full_name)"')"
     branch="$(cut -d' ' -f2 <<< "$info")"
-    [ "$info" = ".github/workflows/workshop.yml $branch success workflow_dispatch $GH_REPO" ] && [[ "$branch" =~ ^(master|u60)$ ]] \
-        || fail "run $run is not a successful workshop.yml run on master or u60 ($info)"
+    [ "$info" = ".github/workflows/workshop.yml $branch success workflow_dispatch $GH_REPO" ] && [ "$branch" = master ] \
+        || fail "run $run is not a successful workshop.yml run on master ($info)"
     mkdir -p "$dir"
     gh run download "$run" -n workshop-item -D "$dir/item"
-    # Every file as attested, nothing else, the bundle from workshop.yml on master or u60.
+    # Every file as attested, nothing else, the bundle from workshop.yml on master.
     sh "$root/ci/workshop/verify.sh" "$dir/item"
     # And that bundle is this run's: its certificate names the run that signed it.
     uris="$(gh attestation verify "$dir/item/SHA256SUMS" --bundle "$dir/item/attestation/SHA256SUMS.sigstore.json" \
@@ -44,14 +44,10 @@ prepare() {
     grep -qE "^https://github.com/$GH_REPO/.github/workflows/workshop.yml@refs/heads/$branch https://github.com/$GH_REPO/actions/runs/$run/attempts/[0-9]+$" <<< "$uris" \
         || fail "the item's attestation is not run $run's: $uris"
     echo "run $run ($branch): the item is as attested"
-    # The change note: the notes of each version's release, read from its attested moono.json.
-    # (The root's, and an archived version's when the item has one.)
+    # The change note: the notes of the item's release, read from its attested moono.json.
     mkdir -p "$dir/notes"
-    local markers=("$dir/item/moono.json") marker tags
-    for marker in "$dir"/item/archived_versions/*/moono.json; do
-        [ ! -f "$marker" ] || markers+=("$marker")
-    done
-    tags="$(python3 -I -c 'import json, sys; print(*(json.load(open(p))["tag"] for p in sys.argv[1:]))' "${markers[@]}")" \
+    local tags
+    tags="$(python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["tag"])' "$dir/item/moono.json")" \
         || fail "the item's moono.json can't be read"
     for tag in $tags; do
         [[ "$tag" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || fail "unexpected tag '$tag' in the item"

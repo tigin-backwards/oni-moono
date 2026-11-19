@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Lays out Moono's Workshop item from the u60 release's assets (docs/INSTALL-MODES.md).
+"""Lays out Moono's Workshop item from a release's assets (docs/INSTALL-MODES.md).
 
-    python3 -I scripts/workshop-item.py --u60 DIR --u60-tag vYYYY.MM.DD.NN --loader MoonoLoader.dll OUT
+    python3 -I scripts/workshop-item.py --assets DIR --tag vYYYY.MM.DD.NN --loader MoonoLoader.dll OUT
 
 DIR holds the release's assets as downloaded (and verified: .github/workflows/workshop.yml
 checks their attestations first): its Windows zip, Linux tarball and their SHA256SUMS manifests.
 Each archive is extracted with every file checked against its manifest, and laid out as a mod's
 one version:
 
-    OUT/                         the U60 build (minimumSupportedBuild 763796)
+    OUT/                         the release, for the current game, U60 (minimumSupportedBuild 763796)
       mod_info.yaml  moono.json  oni-moono-*-windows-x64.SHA256SUMS  oni-moono-*-linux-x64.SHA256SUMS
       windows-x64/   linux-x64/  the archives' oni-moono folders
       OniMoono.exe  OniMoono.sh  verify.ps1  verify.sh  README.md   (root only)
@@ -16,10 +16,9 @@ one version:
       SHA256SUMS                 every other file of OUT (root only)
       attestation/               added by workshop.yml once SHA256SUMS is attested: its Sigstore bundle
 
-The item has no U59 build: the original U59 game lists a folder item as failed to download, so
-U59 players install Moono from a GitHub release. `--master DIR --master-tag TAG` still lays a
-master release out as archived_versions/u59 (minimumSupportedBuild 744825, the game's
-archived_versions convention, KMod.Mod.GetMostSuitableArchive); workshop.yml doesn't pass them.
+The item has one version, master's release: no archived_versions (the original U59 game lists a
+folder item as failed to download, so U59 players install Moono from a GitHub release, the u59
+line's last). A U60 beta build (an archive named -u60, from before the U60 cut-over) is refused.
 
 Of what the original game loads, a version's top has only the loader at the root: no other DLL,
 no .po or content folder. Nothing is run from the archives.
@@ -37,7 +36,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "..", "ci", "workshop")
-BRANCHES = {"u60": 763796, "master": 744825}
+MINIMUM_BUILD = 763796  # U60's release build, ci/game-refs.json's default_build
 PLATFORMS = {"windows-x64": ".zip", "linux-x64": ".tar.gz"}
 TAG = re.compile(r"v([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2})")
 COMPONENT = re.compile(r"[A-Za-z0-9._+-]+")
@@ -112,11 +111,11 @@ def extract(archive, manifest, dest):
     return len(seen)
 
 
-def version_folder(assets, tag, branch, out):
+def version_folder(assets, tag, out):
     m = TAG.fullmatch(tag)
     if not m:
         fail(f"the tag must be vYYYY.MM.DD.NN, not {tag!r}")
-    version = m.group(1) + ("-u60" if branch == "u60" else "")
+    version = m.group(1)
     os.makedirs(out, exist_ok=True)
     platforms = {}
     for platform, ext in PLATFORMS.items():
@@ -124,17 +123,16 @@ def version_folder(assets, tag, branch, out):
         manifests = [f for f in os.listdir(assets) if f.startswith("oni-moono-") and f.endswith(f"-{platform}.SHA256SUMS")]
         if len(found) != 1 or len(manifests) != 1 or found[0][: -len(ext)] != manifests[0][: -len(".SHA256SUMS")]:
             fail(f"{assets}: expected one {platform} archive and its manifest, found {found + manifests}")
-        if ("-u60-" in found[0]) != (branch == "u60"):
-            fail(f"{found[0]} is not a {branch} build")
+        if "-u60-" in found[0]:
+            fail(f"{found[0]} is a U60 beta build, not a master release")
         n = extract(os.path.join(assets, found[0]), os.path.join(assets, manifests[0]), os.path.join(out, platform))
         shutil.copyfile(os.path.join(assets, manifests[0]), os.path.join(out, manifests[0]))
         platforms[platform] = {"folder": platform, "manifest": manifests[0], "archive": found[0]}
         print(f"{version} {platform}: {n} files from {found[0]}")
     with open(os.path.join(out, "mod_info.yaml"), "w", newline="\n") as f:
-        what = "the game loads only its loader mod, MoonoLoader.dll, from here" if branch == "u60" else "not a mod: the game loads nothing from here"
-        f.write(f"# Moono {version}, for the game's {'U60' if branch == 'u60' else 'U59'} update; {what}.\n")
-        f.write(f"minimumSupportedBuild: {BRANCHES[branch]}\nAPIVersion: 2\nrequiredDlcIds: []\nforbiddenDlcIds: []\nversion: \"{version}\"\n")
-    info = {"workshopItem": "oni-moono", "version": version, "tag": tag, "branch": branch, "repository": "tigin-backwards/oni-moono", "platforms": platforms}
+        f.write(f"# Moono {version}, for the game's U60 update; the game loads only its loader mod, MoonoLoader.dll, from here.\n")
+        f.write(f"minimumSupportedBuild: {MINIMUM_BUILD}\nAPIVersion: 2\nrequiredDlcIds: []\nforbiddenDlcIds: []\nversion: \"{version}\"\n")
+    info = {"workshopItem": "oni-moono", "version": version, "tag": tag, "branch": "master", "repository": "tigin-backwards/oni-moono", "platforms": platforms}
     with open(os.path.join(out, "moono.json"), "w", newline="\n") as f:
         json.dump(info, f, indent=2)
         f.write("\n")
@@ -143,24 +141,16 @@ def version_folder(assets, tag, branch, out):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    parser.add_argument("--u60", required=True)
-    parser.add_argument("--u60-tag", required=True)
-    parser.add_argument("--master", help="a master release's assets, laid out as archived_versions/u59 (not in the item today)")
-    parser.add_argument("--master-tag")
+    parser.add_argument("--assets", required=True, help="the release's archives and manifests")
+    parser.add_argument("--tag", required=True, help="the release's tag")
     parser.add_argument("--loader", required=True, help="the loader mod's MoonoLoader.dll, put at the root")
     parser.add_argument("out")
     args = parser.parse_args()
-    if bool(args.master) != bool(args.master_tag):
-        fail("--master and --master-tag go together")
     if os.path.exists(args.out):
         fail(f"{args.out} exists already")
     final, args.out = args.out, args.out + ".partial"
     shutil.rmtree(args.out, ignore_errors=True)
-    versions = [args.out]
-    version_folder(args.u60, args.u60_tag, "u60", args.out)
-    if args.master:
-        versions.append(os.path.join(args.out, "archived_versions", "u59"))
-        version_folder(args.master, args.master_tag, "master", versions[-1])
+    version_folder(args.assets, args.tag, args.out)
     shutil.copyfile(os.path.join(args.out, "windows-x64", "player", "OniMoono.exe"), os.path.join(args.out, "OniMoono.exe"))
     for name in ("OniMoono.sh", "verify.sh", "verify.ps1", "README.md"):
         shutil.copyfile(os.path.join(STATIC, name), os.path.join(args.out, name))
@@ -170,15 +160,14 @@ def main():
         fail(f"the loader is {LOADER}, not {args.loader}")
     shutil.copyfile(args.loader, os.path.join(args.out, LOADER))
     # The game looks only at a version's top: nothing there may be content but the loader.
-    for version in versions:
-        for name in os.listdir(version):
-            lower = name.lower()
-            if version == args.out and name == LOADER:
-                continue
-            if lower.endswith((".dll", ".po")) or (
-                os.path.isdir(os.path.join(version, name)) and lower in ("strings", "codex", "elements", "templates", "worldgen", "buildingfacades", "anim")
-            ):
-                fail(f"{version}/{name} would be content the game loads")
+    for name in os.listdir(args.out):
+        lower = name.lower()
+        if name == LOADER:
+            continue
+        if lower.endswith((".dll", ".po")) or (
+            os.path.isdir(os.path.join(args.out, name)) and lower in ("strings", "codex", "elements", "templates", "worldgen", "buildingfacades", "anim")
+        ):
+            fail(f"{args.out}/{name} would be content the game loads")
     paths = sorted(os.path.relpath(os.path.join(d, f), args.out).replace(os.sep, "/") for d, _, files in os.walk(args.out) for f in files)
     with open(os.path.join(args.out, "SHA256SUMS"), "wb") as out:
         for p in paths:

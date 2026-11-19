@@ -163,27 +163,22 @@ def change_note(releases):
 
 
 def item_releases(item, notes_dir):
-    """(label, release) for each version in the item (moono.json: its tag and branch), from
+    """(label, release) for the item's one version (moono.json: its tag, and branch master), from
     NOTES-DIR/TAG.json. A tag without a published release is refused: the item would be a dry
     run's."""
-    out = []
-    archived = os.path.join(item, "archived_versions")  # none today: the item is the U60 build alone
-    versions = ["."] + (sorted(os.path.join("archived_versions", d) for d in os.listdir(archived)) if os.path.isdir(archived) else [])
-    for version in versions:
-        with open(os.path.join(item, version, "moono.json"), encoding="utf-8") as f:
-            meta = json.load(f)
-        tag, branch = meta["tag"], meta["branch"]
-        if not TAG.fullmatch(tag) or branch not in ("u60", "master"):
-            fail(f"{version}/moono.json: unexpected tag {tag!r} or branch {branch!r}")
-        path = os.path.join(notes_dir, tag + ".json")
-        if not os.path.exists(path):
-            fail(f"{tag} has no published release; an item built from release.yml runs is never uploaded")
-        with open(path, encoding="utf-8") as f:
-            release = json.load(f)
-        if release.get("tagName") != tag or release.get("isDraft"):
-            fail(f"{tag}: not a published release")
-        out.append(("U60 build" if branch == "u60" else "U59 build", release))
-    return out
+    with open(os.path.join(item, "moono.json"), encoding="utf-8") as f:
+        meta = json.load(f)
+    tag, branch = meta["tag"], meta["branch"]
+    if not TAG.fullmatch(tag) or branch != "master":
+        fail(f"moono.json: unexpected tag {tag!r} or branch {branch!r}")
+    path = os.path.join(notes_dir, tag + ".json")
+    if not os.path.exists(path):
+        fail(f"{tag} has no published release; an item built from release.yml runs is never uploaded")
+    with open(path, encoding="utf-8") as f:
+        release = json.load(f)
+    if release.get("tagName") != tag or release.get("isDraft"):
+        fail(f"{tag}: not a published release")
+    return [("Moono", release)]
 
 
 def totp(shared_secret, now=None):

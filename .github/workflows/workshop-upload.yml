@@ -1,9 +1,9 @@
 # Uploads a workshop.yml run's item to Moono's Steam Workshop item (docs/WORKSHOP-UPLOAD.md). Run by
-# hand from master or u60, never on pull requests. Mode dry-run checks the run's item (its
-# attestation from workshop.yml on master or u60, tied to that run, every file, nothing more),
+# hand from master, never on pull requests. Mode dry-run checks the run's item (its
+# attestation from workshop.yml on master, tied to that run, every file, nothing more),
 # writes the VDF and installs steamcmd, and stops before any login. Mode upload does the same in
 # the steam-workshop environment, which alone holds the account's secrets and takes runs from
-# master and u60 only, then signs in (with the cached steamcmd login in STEAM_CONFIG_VDF; or the
+# master only, then signs in (with the cached steamcmd login in STEAM_CONFIG_VDF; or the
 # password, confirmed on the phone or with a Steam Guard code from STEAM_SHARED_SECRET) and runs
 # workshop_build_item. steamcmd's home, with its cached login, is deleted at the end of the job.
 name: Workshop upload
@@ -53,7 +53,7 @@ env:
 jobs:
   dry-run:
     name: Check the item (no Steam login)
-    if: inputs.mode == 'dry-run' && github.repository == 'tigin-backwards/oni-moono' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/u60')
+    if: inputs.mode == 'dry-run' && github.repository == 'tigin-backwards/oni-moono' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -85,9 +85,9 @@ jobs:
 
   upload:
     name: Upload to the Steam Workshop
-    if: inputs.mode == 'upload' && github.repository == 'tigin-backwards/oni-moono' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/u60')
+    if: inputs.mode == 'upload' && github.repository == 'tigin-backwards/oni-moono' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-24.04
-    # Its secrets are readable only by jobs in it, and it takes runs from master and u60 only.
+    # Its secrets are readable only by jobs in it, and it takes runs from master only.
     environment: steam-workshop
     permissions:
       contents: read

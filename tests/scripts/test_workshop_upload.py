@@ -2,7 +2,7 @@
 a double quote refused, visibility left out to keep it), the change note from the releases'
 notes, Steam Guard's code from a shared_secret, and the login script."""
 
-import json, os, shutil, stat, subprocess, sys, tempfile, unittest
+import json, os, stat, subprocess, sys, tempfile, unittest
 from unittest import mock
 
 import helpers
@@ -158,14 +158,12 @@ class ChangeNoteTests(unittest.TestCase):
     def test_item_releases(self):
         with tempfile.TemporaryDirectory() as d:
             item, notes = os.path.join(d, 'item'), os.path.join(d, 'notes')
-            os.makedirs(os.path.join(item, 'archived_versions', 'u59'))
+            os.makedirs(item)
             os.makedirs(notes)
-            for folder, tag, branch in (('', 'v2026.11.10.06', 'u60'), ('archived_versions/u59', 'v2026.11.10.05', 'master')):
-                with open(os.path.join(item, folder, 'moono.json'), 'w') as f:
-                    json.dump({'tag': tag, 'branch': branch}, f)
-            with open(os.path.join(notes, 'v2026.11.10.06.json'), 'w') as f:
-                json.dump(RELEASE_U60, f)
-            # A tag without a published release (a dry run's item) is refused.
+            marker = os.path.join(item, 'moono.json')
+            with open(marker, 'w') as f:
+                json.dump({'tag': 'v2026.11.10.05', 'branch': 'master'}, f)
+            # A tag without a published release (a dry run's item) is refused, and a draft.
             with self.assertRaises(SystemExit):
                 upload.item_releases(item, notes)
             with open(os.path.join(notes, 'v2026.11.10.05.json'), 'w') as f:
@@ -174,12 +172,12 @@ class ChangeNoteTests(unittest.TestCase):
                 upload.item_releases(item, notes)
             with open(os.path.join(notes, 'v2026.11.10.05.json'), 'w') as f:
                 json.dump(RELEASE_MASTER, f)
-            self.assertEqual(
-                [(l, r['tagName']) for l, r in upload.item_releases(item, notes)], [('U60 build', 'v2026.11.10.06'), ('U59 build', 'v2026.11.10.05')]
-            )
-            # The item as it is built: the U60 build alone, no archived_versions folder.
-            shutil.rmtree(os.path.join(item, 'archived_versions'))
-            self.assertEqual([(l, r['tagName']) for l, r in upload.item_releases(item, notes)], [('U60 build', 'v2026.11.10.06')])
+            self.assertEqual([(l, r['tagName']) for l, r in upload.item_releases(item, notes)], [('Moono', 'v2026.11.10.05')])
+            # An item laid out from another branch (the U60 beta's u60, before the cut-over) is refused.
+            with open(marker, 'w') as f:
+                json.dump({'tag': 'v2026.11.10.05', 'branch': 'u60'}, f)
+            with self.assertRaises(SystemExit):
+                upload.item_releases(item, notes)
 
 
 class LoginTests(unittest.TestCase):

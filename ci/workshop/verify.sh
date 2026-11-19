@@ -4,8 +4,9 @@
 #   gh api -H 'Accept: application/vnd.github.raw' repos/tigin-backwards/oni-moono/contents/ci/workshop/verify.sh > verify.sh
 #   sh verify.sh ITEM-FOLDER
 # 1. The release manifests (oni-moono-*.SHA256SUMS) by their SLSA provenance, from release.yml
-#    on u60, and every file of each player against its manifest. (An archived_versions folder,
-#    which the item no longer has, would be checked the same against master.)
+#    on master (on u60 for an item laid out before the U60 cut-over), and every file of each
+#    player against its manifest. The item has one version: an archived_versions folder is
+#    refused.
 # 2. The item's SHA256SUMS by its provenance from workshop.yml (looked up, and the bundle in
 #    attestation/), every file against it, and that no file is here that SHA256SUMS doesn't list.
 # Needs the GitHub CLI (gh) and sha256sum.
@@ -24,16 +25,18 @@ attested() {
         --format json --jq '.[].verificationResult.signature.certificate.buildConfigURI')" || return 1
     printf '%s\n' "$configs" | grep -qxF "https://github.com/$repo/.github/workflows/$workflow@refs/heads/$branch"
 }
-for version in . archived_versions/*; do
-    [ -f "$version/mod_info.yaml" ] || continue
-    branch=u60; [ "$version" = . ] || branch=master
-    for manifest in "$version"/oni-moono-*.SHA256SUMS; do
-        [ -f "$manifest" ] || continue
-        case "$manifest" in *-windows-x64.SHA256SUMS) platform=windows-x64 ;; *-linux-x64.SHA256SUMS) platform=linux-x64 ;; *) fail "unexpected $manifest" ;; esac
-        attested "$manifest" release.yml "$branch" >/dev/null || fail "$manifest: not attested as a release.yml build of $branch"
-        (cd "$version/$platform" && sha256sum --quiet --strict -c "$item/$manifest")
-        echo "$version/$platform: as the attested $(basename "$manifest") ($branch)"
+[ ! -e archived_versions ] || fail "archived_versions: the item has one version"
+[ -f mod_info.yaml ] || fail "mod_info.yaml is missing"
+for manifest in oni-moono-*.SHA256SUMS; do
+    [ -f "$manifest" ] || fail "no release manifests"
+    case "$manifest" in *-windows-x64.SHA256SUMS) platform=windows-x64 ;; *-linux-x64.SHA256SUMS) platform=linux-x64 ;; *) fail "unexpected $manifest" ;; esac
+    branch=""
+    for b in master u60; do
+        if attested "$manifest" release.yml "$b" >/dev/null 2>&1; then branch=$b; break; fi
     done
+    [ -n "$branch" ] || fail "$manifest: not attested as a release.yml build of master"
+    (cd "$platform" && sha256sum --quiet --strict -c "$item/$manifest")
+    echo "$platform: as the attested $manifest ($branch)"
 done
 [ "$(ls attestation)" = SHA256SUMS.sigstore.json ] || fail "attestation/ should hold SHA256SUMS.sigstore.json alone"
 item_branch=""

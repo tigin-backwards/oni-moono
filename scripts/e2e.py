@@ -181,7 +181,7 @@ TOP_KEYS = {
 # take no image (a shot still moves the pointer away first), so a spec checks its UI dumps,
 # expectations and state only, and no picture of the game is made.
 NO_SHOTS = os.environ.get('E2E_NO_SHOTS') == '1'
-# `moono_item: true`: a made-up Moono Workshop item (moono_test_item: two fake releases laid out
+# `moono_item: true`: a made-up Moono Workshop item (moono_test_item: a fake release laid out
 # by scripts/workshop-item.py with the loader mod, out/bin/MoonoLoader/release) as a Local mod,
 # and in ours also as a Steam subscription (MOONO_ITEM_ID), which Moono leaves out of its mod
 # list. The original's loader installs into the profile's moono-install/versioned
@@ -3797,8 +3797,8 @@ def blocked_install(source, plugins, dest, stray=()):
 
 
 def moono_test_item(dest, loader=None):
-    """A made-up Moono Workshop item in dest (`moono_item`): two releases' assets with a tiny
-    player each (an entry script, a library, a file in a folder), laid out by
+    """A made-up Moono Workshop item in dest (`moono_item`): a release's assets with a tiny
+    player (an entry script, a library, a file in a folder), laid out by
     scripts/workshop-item.py with the loader mod as the real item is."""
     loader = loader or os.path.join(ROOT, 'out', 'bin', 'MoonoLoader', 'release', 'MoonoLoader.dll')
     if not os.path.exists(loader):
@@ -3812,26 +3812,25 @@ def moono_test_item(dest, loader=None):
         'player/packages/UnityEngine.UI.dll': b'MZ ui',
     }
     manifest = ''.join(f'{hashlib.sha256(d).hexdigest()}  {p}\n' for p, d in sorted(files.items()))
-    for branch, version in (('u60', '2026.11.10.01-u60'), ('master', '2026.11.10.01')):
-        folder = os.path.join(assets, branch)
-        os.makedirs(folder)
-        for platform in ('windows-x64', 'linux-x64'):
-            base = os.path.join(folder, f'oni-moono-{version}-{platform}')
-            with open(base + '.SHA256SUMS', 'w') as f:
-                f.write(manifest)
-            if platform == 'windows-x64':
-                with zipfile.ZipFile(base + '.zip', 'w') as z:
-                    for p, d in files.items():
-                        z.writestr('oni-moono/' + p, d)
-            else:
-                with tarfile.open(base + '.tar.gz', 'w:gz') as t:
-                    for p, d in files.items():
-                        info = tarfile.TarInfo('oni-moono/' + p)
-                        info.size, info.mode = len(d), 0o755 if p == 'player/OniMoono' else 0o644
-                        t.addfile(info, io.BytesIO(d))
+    version = '2026.11.10.01'
+    os.makedirs(assets)
+    for platform in ('windows-x64', 'linux-x64'):
+        base = os.path.join(assets, f'oni-moono-{version}-{platform}')
+        with open(base + '.SHA256SUMS', 'w') as f:
+            f.write(manifest)
+        if platform == 'windows-x64':
+            with zipfile.ZipFile(base + '.zip', 'w') as z:
+                for p, d in files.items():
+                    z.writestr('oni-moono/' + p, d)
+        else:
+            with tarfile.open(base + '.tar.gz', 'w:gz') as t:
+                for p, d in files.items():
+                    info = tarfile.TarInfo('oni-moono/' + p)
+                    info.size, info.mode = len(d), 0o755 if p == 'player/OniMoono' else 0o644
+                    t.addfile(info, io.BytesIO(d))
     shutil.rmtree(dest, ignore_errors=True)
-    run = [sys.executable, '-I', os.path.join(ROOT, 'scripts', 'workshop-item.py'), '--u60', os.path.join(assets, 'u60'), '--u60-tag', 'v2026.11.10.01']
-    run += ['--master', os.path.join(assets, 'master'), '--master-tag', 'v2026.11.10.01', '--loader', loader, dest]
+    run = [sys.executable, '-I', os.path.join(ROOT, 'scripts', 'workshop-item.py'), '--assets', assets, '--tag', 'v2026.11.10.01']
+    run += ['--loader', loader, dest]
     made = subprocess.run(run, capture_output=True, text=True)
     shutil.rmtree(assets, ignore_errors=True)
     if made.returncode:

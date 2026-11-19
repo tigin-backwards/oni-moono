@@ -1,25 +1,26 @@
 # Makes Moono's Workshop item as a workflow artifact, never uploaded anywhere else
-# (docs/INSTALL-MODES.md): the assets of a u60 release (or, for a dry run, of a release.yml
-# run's build, whose draft was deleted: its archives are attested all the same), downloaded and
-# checked against their SLSA provenance (signed by attest.yml, built from u60), laid out by
-# scripts/workshop-item.py (the U60 build alone; U59 players install from a GitHub release) with
-# the loader mod (src/MoonoLoader, built here from this run's commit against U60's reference
-# assemblies), and the item's SHA256SUMS and every file in it attested by attest.yml in turn. The
-# Sigstore bundle naming SHA256SUMS goes into the item as attestation/SHA256SUMS.sigstore.json,
-# for anyone to check the item by hand (ci/workshop/verify.sh, docs/RELEASES.md); Moono's
-# installer checks no signature (docs/INSTALL-MODES.md). The last job checks the artifact with
-# the repository's verify.sh. Nothing here touches Steam.
+# (docs/INSTALL-MODES.md): the assets of a release (or, for a dry run, of a release.yml run's
+# build, whose draft was deleted: its archives are attested all the same), downloaded and
+# checked against their SLSA provenance (signed by attest.yml, built from master), laid out by
+# scripts/workshop-item.py (that release alone, for the current game, U60; U59 players install
+# from a GitHub release) with the loader mod (src/MoonoLoader, built here from this run's commit
+# against U60's reference assemblies), and the item's SHA256SUMS and every file in it attested
+# by attest.yml in turn. The Sigstore bundle naming SHA256SUMS goes into the item as
+# attestation/SHA256SUMS.sigstore.json, for anyone to check the item by hand
+# (ci/workshop/verify.sh, docs/RELEASES.md); Moono's installer checks no signature
+# (docs/INSTALL-MODES.md). The last job checks the artifact with the repository's verify.sh.
+# Nothing here touches Steam.
 name: Workshop item
 
 on:
   workflow_dispatch:
     inputs:
-      u60_tag:
-        description: The u60 release's tag (the U60 build), vYYYY.MM.DD.NN.
+      tag:
+        description: The release's tag, vYYYY.MM.DD.NN.
         type: string
         required: true
-      u60_run:
-        description: Dry runs; a release.yml run on u60 whose build to take instead of u60_tag's release (u60_tag names its version).
+      run:
+        description: Dry runs; a release.yml run on master whose build to take instead of the tag's release (the tag names its version).
         type: string
         default: ""
 
@@ -42,36 +43,36 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
       SIGNER: ${{ github.repository }}/.github/workflows/attest.yml
-      U60_TAG: ${{ inputs.u60_tag }}
-      U60_RUN: ${{ inputs.u60_run }}
+      TAG: ${{ inputs.tag }}
+      RUN: ${{ inputs.run }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      # The release's archives and manifests, each verified against its provenance from u60, the
-      # branch the U60 build must come from.
+      # The release's archives and manifests, each verified against its provenance from master,
+      # the branch releases come from.
       - name: Download and verify the release's assets
         run: |
-          [[ "$U60_TAG" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "::error::a tag must be vYYYY.MM.DD.NN, not '$U60_TAG'"; exit 1; }
-          dir="$RUNNER_TEMP/assets-u60"; mkdir "$dir"
-          if [ -n "$U60_RUN" ]; then
-            [[ "$U60_RUN" =~ ^[0-9]+$ ]] || { echo "::error::a run is its number, not '$U60_RUN'"; exit 1; }
-            [ "$(gh api "repos/$GH_REPO/actions/runs/$U60_RUN" --jq '"\(.path) \(.head_branch) \(.conclusion)"')" = ".github/workflows/release.yml u60 success" ] \
-              || { echo "::error::run $U60_RUN is not a successful release.yml run on u60"; exit 1; }
-            gh run download "$U60_RUN" -n release-windows -n release-linux -D "$RUNNER_TEMP/run-u60"
-            find "$RUNNER_TEMP/run-u60" -type f -name 'oni-moono-*' -exec mv -t "$dir" {} +
-            source="run $U60_RUN"
+          [[ "$TAG" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "::error::a tag must be vYYYY.MM.DD.NN, not '$TAG'"; exit 1; }
+          dir="$RUNNER_TEMP/assets"; mkdir "$dir"
+          if [ -n "$RUN" ]; then
+            [[ "$RUN" =~ ^[0-9]+$ ]] || { echo "::error::a run is its number, not '$RUN'"; exit 1; }
+            [ "$(gh api "repos/$GH_REPO/actions/runs/$RUN" --jq '"\(.path) \(.head_branch) \(.conclusion)"')" = ".github/workflows/release.yml master success" ] \
+              || { echo "::error::run $RUN is not a successful release.yml run on master"; exit 1; }
+            gh run download "$RUN" -n release-windows -n release-linux -D "$RUNNER_TEMP/run"
+            find "$RUNNER_TEMP/run" -type f -name 'oni-moono-*' -exec mv -t "$dir" {} +
+            source="run $RUN"
           else
-            gh release download "$U60_TAG" -D "$dir" -p 'oni-moono-*'
-            source="$U60_TAG"
+            gh release download "$TAG" -D "$dir" -p 'oni-moono-*'
+            source="$TAG"
           fi
           [ "$(ls "$dir" | wc -l)" -eq 4 ] || { echo "::error::$source should have 4 oni-moono-* assets: $(ls "$dir")"; exit 1; }
           for f in "$dir"/*; do
-            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref refs/heads/u60 > /dev/null
-            echo "$source: $(basename "$f") attested, built from u60"
+            gh attestation verify "$f" -R "$GH_REPO" --signer-workflow "$SIGNER" --source-ref refs/heads/master > /dev/null
+            echo "$source: $(basename "$f") attested, built from master"
           done
-      # The loader mod the original game loads from the item's U60 root, built against that
-      # game build's reference assemblies (ci/game-refs.json; the U60 root's minimumSupportedBuild).
+      # The loader mod the original game loads from the item's root, built against that game
+      # build's reference assemblies (ci/game-refs.json; the root's minimumSupportedBuild).
       - id: sdk
         run: echo "version=$(python3 -I -c 'import json; print(json.load(open("global.json"))["sdk"]["version"])')" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -96,7 +97,7 @@ jobs:
         run: dotnet build src/MoonoLoader -c Release -p:OniGameDir="$GAME_DIR" -v q -nologo "-clp:ErrorsOnly;NoSummary"
       - name: Lay out the item
         run: |
-          python3 -I scripts/workshop-item.py --u60 "$RUNNER_TEMP/assets-u60" --u60-tag "$U60_TAG" \
+          python3 -I scripts/workshop-item.py --assets "$RUNNER_TEMP/assets" --tag "$TAG" \
             --loader out/bin/MoonoLoader/release/MoonoLoader.dll workshop-item
       - id: sums
         run: |
@@ -192,7 +193,7 @@ jobs:
         run: |
           cmp ci/workshop/verify.sh workshop-item/verify.sh
           sh ci/workshop/verify.sh workshop-item
-          # The U60 build alone: U59 players install from a GitHub release.
+          # One version: U59 players install from a GitHub release.
           [ ! -e workshop-item/archived_versions ] || { echo "::error::the item has archived_versions"; exit 1; }
       - name: Verify single files, and refuse a changed one
         run: |
