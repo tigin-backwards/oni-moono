@@ -24,6 +24,26 @@ namespace OniMoono.Tests
             Assert.Null(UpdateCheck.Version("nightly"));
         }
 
+        /// The Moono Tweaks screen's version label: the release's name as GitHub titles it, else
+        /// the short commit of a build that is no release.
+        [Fact]
+        public void VersionLabelIsTheReleaseNameElseTheShortCommit()
+        {
+            Assert.Equal("Moono 2026.11.19.01", UpdateCheck.VersionLabel("v2026.11.19.01", "1.0.0+095fcc721abcdef0123456789abcdef01234567"));
+            Assert.Equal("Moono 2026.11.19.02", UpdateCheck.VersionLabel("v2026.11.19.02-u60", null));
+            Assert.Equal("Moono test-tag", UpdateCheck.VersionLabel("vtest-tag", null));
+            Assert.Equal("Moono 095fcc721", UpdateCheck.VersionLabel(null, "1.0.0+095fcc721abcdef0123456789abcdef01234567"));
+            Assert.Equal("Moono 095fcc721", UpdateCheck.VersionLabel("", "1.0.0+095fcc721abcdef0123456789abcdef01234567"));
+            Assert.Equal("Moono abc", UpdateCheck.VersionLabel(null, "1.0.0+abc"));
+            Assert.Null(UpdateCheck.VersionLabel(null, "1.0.0"));
+            Assert.Null(UpdateCheck.VersionLabel(null, "1.0.0+"));
+            Assert.Null(UpdateCheck.VersionLabel(null, null));
+            // As moono-tweaks-en.yaml checks the header.
+            const string spec = @"^Moono (\d{4}\.\d\d\.\d\d\.\d\d|[0-9a-f]{1,9})$";
+            Assert.Matches(spec, UpdateCheck.VersionLabel("v2026.11.19.02-u60", null));
+            Assert.Matches(spec, UpdateCheck.VersionLabel(null, "1.0.0+095fcc721abcdef0123456789abcdef01234567"));
+        }
+
         [Fact]
         public void NormalBuildsSeeNewerNormalReleasesOnly()
         {

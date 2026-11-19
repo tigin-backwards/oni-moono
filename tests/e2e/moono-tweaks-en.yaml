@@ -12,6 +12,10 @@ steps:
   - ui_wait: {path: "**/MoonoTweaksScreen", cond: stable}
   - ui_dump: {name: screen, root: "**/MoonoTweaksScreen"}
   - shot: screen
+  # Moono's version at the title bar's left: the release's name, or a dev build's short commit.
+  - expect_ui:
+      "**/MoonoTweaksScreen/Panel/Title/Version": {active: true, text: "/^Moono (\\d{4}\\.\\d\\d\\.\\d\\d\\.\\d\\d|[0-9a-f]{1,9})$/"}
+  - shot: {name: header, crop: "**/MoonoTweaksScreen/Panel/Title"}
   # The list's end, however long the catalog makes it: more notches than it needs, then a
   # check that it got there. KScrollRect keeps scrolling for a few frames after the wheel (its
   # inertia): the list settles before a shot or a hover.

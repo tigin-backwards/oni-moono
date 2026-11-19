@@ -29,6 +29,8 @@ Using the screen:
   name contain what you type, and the headings of the sections that keep a row. It matches in
   the game's language, in any case, each word separately, as the game's searches do.
 - **Reset to defaults** sets every row back to its default.
+- **Version.** The title bar's left shows which Moono you run: its release's name
+  (`Moono 2026.11.19.01`), or the commit of a build you made yourself.
 - **Applying.** Changes apply when the game restarts, which the screen does for you.
 - **Unavailable tweaks.** A tweak this build of Moono can't run on your game version (a game
   update changed the code it changes) is off. Its row is greyed out with "Not available on this

@@ -104,6 +104,11 @@ namespace OniMoono.Host
                 return null;
             };
 
+            // The header's version label: the release's name, else this build's short commit.
+            var version = UpdateCheck.VersionLabel(UpdateCheck.CurrentTag(),
+                typeof(MoonoTweaksMenu).Assembly.GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                    .OfType<System.Reflection.AssemblyInformationalVersionAttribute>().FirstOrDefault()?.InformationalVersion);
+
             var install = GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.MoonoTweaksMenu", throwOnError: true)!.GetMethod("Install")!;
             install.Invoke(null, [harmony,
                 rows.Select(r => r.Id).ToArray(), rows.Select(r => TweakStrings.GroupKey(r.Group)).ToArray(),
@@ -113,7 +118,7 @@ namespace OniMoono.Host
                 rows.Select(r => r.Choices?.Select(c => TweakStrings.ChoiceKey(r, c)).ToArray()).ToArray(),
                 states.Select(s => s.Value).ToArray(), states.Select(s => s.Default).ToArray(), states.Select(s => s.Locked).ToArray(), off,
                 settingsPath, save,
-                TweakStrings.All.Select(t => t.Key).ToArray(), TweakStrings.All.Select(t => t.English).ToArray(), resolve, translations]);
+                TweakStrings.All.Select(t => t.Key).ToArray(), TweakStrings.All.Select(t => t.English).ToArray(), resolve, translations, version]);
         }
 
         static void InstallBeside(EffectiveOptions effective)

@@ -175,6 +175,23 @@ namespace OniMoono.Host
             return null;
         }
 
+        /// The Moono Tweaks screen's version label: "Moono " and the release's name as GitHub
+        /// titles it (the tag without its `v` and `-u60`); for a build that is no release, its
+        /// short commit (9 characters of the one the SDK stamps after `+` in the informational
+        /// version); null with neither.
+        public static string? VersionLabel(string? tag, string? informationalVersion)
+        {
+            if (!string.IsNullOrWhiteSpace(tag))
+            {
+                tag = tag.Trim();
+                return "Moono " + (Version(tag) ?? (tag.StartsWith('v') ? tag[1..] : tag));
+            }
+            int plus = informationalVersion?.IndexOf('+') ?? -1;
+            if (plus < 0 || plus + 1 >= informationalVersion!.Length) return null;
+            var commit = informationalVersion[(plus + 1)..];
+            return "Moono " + commit[..Math.Min(9, commit.Length)];
+        }
+
         static UpdateFound? result;
         static int done;
 

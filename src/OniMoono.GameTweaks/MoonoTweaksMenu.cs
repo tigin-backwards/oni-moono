@@ -61,6 +61,9 @@ namespace OniMoono.GameTweaks
         internal static string[][] Choices;
         internal static string SettingsPath;
         internal static Func<string[], int[], string> Save;
+        /// The header's version label ("Moono 2026.11.19.01", or a build's short commit; null for
+        /// none), from the host (OniMoono.Host.UpdateCheck.VersionLabel).
+        internal static string Version;
         /// The rows' text as keys ("" for none); every key, its English and its text in the
         /// game's language (Localize).
         static string[] groupKeys, titleKeys, effectKeys, detailKeys, gainKeys;
@@ -82,12 +85,14 @@ namespace OniMoono.GameTweaks
         /// the settings file, returning why it could not or null. The text (`groups` to `gains`,
         /// `choices`) is given as keys ("" for none) into `keys`, whose English is `englishTexts`;
         /// `resolveTexts` gives every key's text from a .po's strings (key to text, English where
-        /// it has none), read from the folder `translations`.
+        /// it has none), read from the folder `translations`. `version`: the header's version label
+        /// (null for none).
         public static void Install(Harmony harmony, string[] ids, string[] groups, string[] titles, string[] effects,
             string[] details, string[] gains, string[] notes, bool[] changesGameplay, bool[] bugFixes, string[][] choices, int[] running, int[] defaults, bool[] locked,
             bool[] unavailable, string settingsPath, Func<string[], int[], string> save,
-            string[] keys, string[] englishTexts, Func<Dictionary<string, string>, string[]> resolveTexts, string translations)
+            string[] keys, string[] englishTexts, Func<Dictionary<string, string>, string[]> resolveTexts, string translations, string version)
         {
+            Version = version;
             Ids = ids;
             groupKeys = groups;
             titleKeys = titles;
@@ -401,6 +406,7 @@ namespace OniMoono.GameTweaks
             reset.onClick += ResetToDefaults;
             reset.gameObject.SetActive(true);
             FooterNote(MoonoTweaksMenu.Ui("CHANGES_APPLY_ON_RESTART"));
+            if (!string.IsNullOrEmpty(MoonoTweaksMenu.Version)) VersionLabel(MoonoTweaksMenu.Version);
             var list = entryParent.GetComponent<VerticalLayoutGroup>();
             if (list != null)
             {
@@ -888,6 +894,39 @@ namespace OniMoono.GameTweaks
             label.fontSize = 12;
             label.alignment = TMPro.TextAlignmentOptions.MidlineLeft;
             label.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+        }
+
+        /// Moono's version at the title bar's left, small and dimmed (a copy of the rows' label, in
+        /// the body font: the title's font draws a commit's "f" as a capital), clear of the
+        /// centred title and of the close button at the right.
+        void VersionLabel(string text)
+        {
+            var source = entryPrefab.GetComponent<HierarchyReferences>().GetReference<LocText>("Version");
+            var bar = windowTitle.transform.parent;
+            var copy = Instantiate(source.gameObject, bar, worldPositionStays: false);
+            copy.name = "Version";
+            var tip = copy.GetComponent<ToolTip>();
+            if (tip != null) Destroy(tip);
+            var layout = copy.GetComponent<LayoutElement>();
+            if (layout == null) layout = copy.AddComponent<LayoutElement>();
+            layout.ignoreLayout = true;
+            var rect = copy.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 0.5f);
+            rect.anchoredPosition = new Vector2(8f, 0f);
+            rect.sizeDelta = new Vector2(200f, 0f);
+            copy.SetActive(true);
+            var label = copy.GetComponent<LocText>();
+            label.text = text;
+            label.fontSize = 11;
+            label.alignment = TMPro.TextAlignmentOptions.MidlineLeft;
+            label.textWrappingMode = TMPro.TextWrappingModes.NoWrap;
+            label.overflowMode = TMPro.TextOverflowModes.Ellipsis;
+            label.raycastTarget = false;
+            // Dimmed white over the title bar's colour (the rows' grey-blue is faint on it).
+            copy.AddComponent<CanvasGroup>().alpha = 0.7f;
+            label.color = Color.white;
         }
 
         static bool Differ(int[] a, int[] b)
