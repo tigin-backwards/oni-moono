@@ -27,32 +27,27 @@ namespace OniMoono.Tests
         void Prefs(string strings) => File.WriteAllText(Path.Combine(folder, "kplayerprefs.yaml"),
             "strings:\n" + strings + "ints:\n  ResolutionWidth: 1024\nfloats:\n  Volume_Master: 0\n");
 
+        /// A U60 build (master's, for the current game) on a U59 game (an older update kept as a
+        /// Steam beta): switch the game to U60, or get the u59 line's last release.
         [Fact]
-        public void TheNormalGameGetsSwitchToTheBeta()
+        public void AnOlderGameGetsSwitchToTheCurrentOneOrTheLastU59Build()
         {
-            var text = StartText.VersionMismatch(U59, null);
-            Assert.StartsWith("Your game is the normal version of Oxygen Not Included, and this Moono build is for the U60 beta.", text);
-            Assert.Contains("Properties → Betas, and choose public_testing", text);
-            Assert.Contains("https://github.com/tigin-backwards/oni-moono/releases/latest", text);
+            var text = StartText.VersionMismatch(U60, U59, null);
+            Assert.StartsWith("Your game is the U59 update of Oxygen Not Included, and this Moono build is for U60, the current update.", text);
+            Assert.Contains("switch the game to U60: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose None.", text);
+            Assert.Contains("Or get Moono for U59:\nhttps://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.19.03\n", text);
             Assert.Contains("clear the game's launch options", text);
+            Assert.DoesNotContain(" beta", text);
+            Assert.DoesNotContain("public_testing", text);
             Assert.DoesNotContain("Unity", text);
             Assert.DoesNotContain("6000", text);
-        }
-
-        [Fact]
-        public void TheBetaGetsTheBetasBuild()
-        {
-            var text = StartText.VersionMismatch(U60, null);
-            Assert.StartsWith("Your game is the U60 beta of Oxygen Not Included, and this Moono build is for the normal version.", text);
-            Assert.Contains("releases?q=%22Only+for+Oxygen+Not+Included%27s+U60+public+test%22&expanded=true", text);
-            Assert.Contains("Or leave the beta", text);
-            Assert.DoesNotContain("6000", text);
+            Assert.False(StartText.Updates[U60].Beta);
         }
 
         [Fact]
         public void AnUnknownUpdateHasNoBuildYet()
         {
-            var text = StartText.VersionMismatch("6000.4.1f1", null);
+            var text = StartText.VersionMismatch(U60, "6000.4.1f1", null);
             Assert.Contains("no Moono build supports it yet", text);
             Assert.Contains(StartText.Releases + "\n", text);
             Assert.DoesNotContain("6000", text);
@@ -68,12 +63,11 @@ namespace OniMoono.Tests
             Assert.Equal("zh", choice.Code);
             Assert.Equal(Path.Combine(Translations(), "zh.po"), choice.PoPath);
             Assert.Contains("zh_klei", choice.Why);
-            var text = StartText.VersionMismatch(U59, choice.Strings);
-            Assert.StartsWith("你的《缺氧》是正式版", text);
+            var text = StartText.VersionMismatch(U60, U59, choice.Strings);
+            Assert.StartsWith("你的《缺氧》是 U59 版本，而这个 Moono 版本是为当前的 U60 版本制作的。", text);
             Assert.Contains("属性 → 测试版", text);
             Assert.Contains("启动选项", text);
-            Assert.Contains(StartText.Releases + "/latest", text);
-            Assert.StartsWith("你的《缺氧》是 U60 测试版", StartText.VersionMismatch(U60, choice.Strings));
+            Assert.Contains(StartText.Releases + "/tag/v2026.11.19.03", text);
             Assert.Contains("Moono 找到了 2 个《缺氧》安装", StartText.Text(choice.Strings, StartText.ChooseBox, 2, @"D:\Games\OxygenNotIncluded"));
         }
 
@@ -84,7 +78,7 @@ namespace OniMoono.Tests
             var choice = PlayerLanguage.Choose(folder, chinese, Translations());
             Assert.Equal("", choice.Code);
             Assert.Null(choice.Strings);
-            Assert.StartsWith("Your game", StartText.VersionMismatch(U59, choice.Strings));
+            Assert.StartsWith("Your game", StartText.VersionMismatch(U60, U59, choice.Strings));
         }
 
         [Fact]
@@ -93,7 +87,7 @@ namespace OniMoono.Tests
             var choice = PlayerLanguage.Choose(folder, chinese, Translations());
             Assert.Equal("zh", choice.Code);
             Assert.Contains("no kplayerprefs.yaml", choice.Why);
-            Assert.StartsWith("你的《缺氧》是 U60 测试版", StartText.VersionMismatch(U60, choice.Strings));
+            Assert.StartsWith("你的《缺氧》是 U59 版本", StartText.VersionMismatch(U60, U59, choice.Strings));
             // Traditional Chinese reads the Simplified translation too, rather than English.
             Assert.Equal("zh", PlayerLanguage.Choose(folder, CultureInfo.GetCultureInfo("zh-TW"), Translations()).Code);
         }
@@ -147,10 +141,10 @@ namespace OniMoono.Tests
         {
             var strings = new System.Collections.Generic.Dictionary<string, string>
             {
-                [StartText.Prefix + StartText.GameIsBeta] = "没有链接",
+                [StartText.Prefix + StartText.GameIsOther] = "没有链接 {1} {2}",
                 [StartText.Prefix + StartText.NoSteam] = "需要 Steam。",
             };
-            Assert.StartsWith("Your game is the U60 beta", StartText.VersionMismatch(U60, strings));
+            Assert.StartsWith("Your game is the U59 update", StartText.VersionMismatch(U60, U59, strings));
             Assert.Equal("需要 Steam。", StartText.Text(strings, StartText.NoSteam));
         }
 

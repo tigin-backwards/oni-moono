@@ -19,7 +19,7 @@ namespace OniMoono.Host.Launch
     {
         public const string Prefix = "STRINGS.MOONO.START.";
 
-        public const string GameIsNormal = "GAME_IS_NORMAL", GameIsBeta = "GAME_IS_BETA", GameUnknown = "GAME_UNKNOWN",
+        public const string GameIsOther = "GAME_IS_OTHER", GameUnknown = "GAME_UNKNOWN",
             NotFound = "NOT_FOUND", NoneChosen = "NONE_CHOSEN", SteamBusy = "STEAM_BUSY", NoSteam = "NO_STEAM",
             ChooseBox = "CHOOSE_BOX", ChooseDialog = "CHOOSE_DIALOG";
 
@@ -27,18 +27,12 @@ namespace OniMoono.Host.Launch
         /// what the message puts there.
         public static readonly (string Name, string English, string Note)[] All =
         [
-            (GameIsNormal,
-                "Your game is the normal version of Oxygen Not Included, and this Moono build is for the U60 beta.\n\n" +
-                "To use this build, switch the game to the U60 beta: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose public_testing.\n\n" +
-                "Or get Moono for the normal game:\n{0}\n\n" +
+            (GameIsOther,
+                "Your game is the {1} update of Oxygen Not Included, and this Moono build is for {2}, the current update.\n\n" +
+                "To use this build, switch the game to {2}: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose None.\n\n" +
+                "Or get Moono for {1}:\n{0}\n\n" +
                 "To play now without Moono, clear the game's launch options in Steam.",
-                "Message box before the game starts: Moono for the U60 beta on the normal game; {0}: the download page. public_testing is the beta's name in Steam"),
-            (GameIsBeta,
-                "Your game is the U60 beta of Oxygen Not Included, and this Moono build is for the normal version.\n\n" +
-                "Get Moono for the U60 beta:\n{0}\n\n" +
-                "Or leave the beta: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose None.\n\n" +
-                "To play now without Moono, clear the game's launch options in Steam.",
-                "Message box before the game starts: Moono for the normal game on the U60 beta; {0}: the download page. None is the choice in Steam's Betas list"),
+                "Message box before the game starts: this build is for the current game update, the game is another one it knows (an older update kept as a Steam beta); {0}: the download page of Moono for the game's update, {1}: the game's update (U59), {2}: this build's (U60). None is the choice in Steam's Betas list"),
             (GameUnknown,
                 "This Moono build doesn't support your version of Oxygen Not Included, and no Moono build supports it yet. New builds appear at:\n{0}\n\n" +
                 "To play now without Moono, clear the game's launch options in Steam.",
@@ -78,28 +72,33 @@ namespace OniMoono.Host.Launch
 
         static IEnumerable<string> Placeholders(string text) => placeholder.Matches(text).Select(m => m.Value).Order(StringComparer.Ordinal);
 
-        /// The game update each Unity version shipped with: its name, whether it is a Steam beta,
-        /// and where its Moono builds are (the releases filtered as the release notes link them).
+        /// The game update each Unity version shipped with: its name, whether it is a Steam beta
+        /// (its builds are pre-releases, and look for updates among pre-releases only), and where
+        /// its Moono builds are. U60 is the current game (master's releases); U59's last build is
+        /// the frozen u59 line's last release.
         public sealed record Update(string Name, bool Beta, string Builds);
 
         public const string Releases = "https://github.com/tigin-backwards/oni-moono/releases";
 
         public static readonly IReadOnlyDictionary<string, Update> Updates = new Dictionary<string, Update>(StringComparer.Ordinal)
         {
-            ["6000.3.5f2"] = new("U59", false, Releases + "/latest"),
-            ["6000.3.17f1"] = new("U60", true, Releases + "?q=%22Only+for+Oxygen+Not+Included%27s+U60+public+test%22&expanded=true"),
+            ["6000.3.5f2"] = new("U59", false, Releases + "/tag/v2026.11.19.03"),
+            ["6000.3.17f1"] = new("U60", false, Releases + "/latest"),
         };
 
-        /// The message for a game whose Unity version `game` is not this build's: the game
-        /// is the beta (get the beta's build, or leave the beta), the normal game (switch to the
-        /// beta, or get the normal game's build), or an update no build knows.
-        public static string VersionMismatch(string game, IReadOnlyDictionary<string, string>? strings)
+        /// The message for a game whose Unity version `game` is not this build's (`ours`): an
+        /// update no build knows, or another known one (get its build, or switch the game to this
+        /// build's update). The second fits a build for the current game, as master's are; a
+        /// beta's build would need its own messages (docs/RELEASES.md, "A future beta", says
+        /// where the U60 beta's are).
+        public static string VersionMismatch(string ours, string game, IReadOnlyDictionary<string, string>? strings)
         {
             if (!Updates.TryGetValue(game, out var theirs)) return Text(strings, GameUnknown, Releases);
-            return theirs.Beta ? Text(strings, GameIsBeta, theirs.Builds) : Text(strings, GameIsNormal, theirs.Builds);
+            var name = Updates.TryGetValue(ours, out var update) ? update.Name : "another update";
+            return Text(strings, GameIsOther, theirs.Builds, theirs.Name, name);
         }
 
-        public static string VersionMismatch(string game) => VersionMismatch(game, translated);
+        public static string VersionMismatch(string ours, string game) => VersionMismatch(ours, game, translated);
 
         /// The log's line on the versions, in English with the Unity versions the message leaves out.
         public static string VersionDetail(string ours, string game)

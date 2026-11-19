@@ -26,8 +26,10 @@ namespace OniMoono.Host
     /// on the main menu when a newer release of this build's channel is out
     /// (OniMoono.GameTweaks.UpdateBadge). A build knows its release from the `MoonoRelease`
     /// assembly metadata (scripts/release.sh stamps the tag); a build without one (a developer's)
-    /// checks nothing. U59 builds look at normal releases only, U60 builds at pre-releases only;
-    /// releases marked "Superseded" are skipped. Failure of any kind shows no badge and logs one
+    /// checks nothing. A build for the current game looks at normal releases only, a build for a
+    /// Steam beta (StartText.Updates) at pre-releases only; releases marked "Superseded" are
+    /// skipped. Builds from before the U60 cut-over (docs/RELEASES.md) matched the same way, with
+    /// U60 the beta: their U60 builds see only pre-releases, their U59 builds normal releases. Failure of any kind shows no badge and logs one
     /// line. Plain .NET with no game types (the tests compile it in).
     ///
     /// ONI_UPDATE_RELEASES_URL: the releases list from elsewhere (`file://` path, plain path or
@@ -42,6 +44,7 @@ namespace OniMoono.Host
         /// about WrapAt characters).
         public const int MaxLines = 25, WrapAt = 60;
 
+        /// `-u60`: an earlier form of the U60 beta's tags (they never shipped with it).
         static readonly Regex TagForm = new(@"^v?(\d{4}\.\d{2}\.\d{2}\.\d{2})(-u60)?$", RegexOptions.CultureInvariant);
 
         /// A tag's version, "2026.11.02.03", which compares as text; null for another form.
@@ -67,12 +70,12 @@ namespace OniMoono.Host
         }
 
         /// The releases of this build's channel newer than `current`, newest first.
-        public static List<MoonoRelease> Newer(IEnumerable<MoonoRelease> releases, string current, bool u60)
+        public static List<MoonoRelease> Newer(IEnumerable<MoonoRelease> releases, string current, bool beta)
         {
             var ours = Version(current);
             if (ours == null) return [];
             return releases
-                .Where(r => r.Prerelease == u60 && Version(r.Tag) is { } v && string.CompareOrdinal(v, ours) > 0)
+                .Where(r => r.Prerelease == beta && Version(r.Tag) is { } v && string.CompareOrdinal(v, ours) > 0)
                 .Where(r => !Superseded(r))
                 .OrderByDescending(r => Version(r.Tag), StringComparer.Ordinal)
                 .ToList();
@@ -85,9 +88,9 @@ namespace OniMoono.Host
             r.Title.Contains("Superseded", StringComparison.OrdinalIgnoreCase)
             || r.Body.TrimStart().TrimStart('*', '#', '>', ' ').StartsWith("Superseded", StringComparison.OrdinalIgnoreCase);
 
-        public static UpdateFound? Find(IEnumerable<MoonoRelease> releases, string current, bool u60)
+        public static UpdateFound? Find(IEnumerable<MoonoRelease> releases, string current, bool beta)
         {
-            var newer = Newer(releases, current, u60);
+            var newer = Newer(releases, current, beta);
             if (newer.Count == 0) return null;
             var notes = Notes(newer, out bool truncated);
             return new UpdateFound(newer[0].Tag, newer[0].Url, notes, truncated);
@@ -176,7 +179,7 @@ namespace OniMoono.Host
         }
 
         /// The Moono Tweaks screen's version label: "Moono " and the release's name as GitHub
-        /// titles it (the tag without its `v` and `-u60`); for a build that is no release, its
+        /// titles it (the tag without its `v` and an old `-u60`); for a build that is no release, its
         /// short commit (9 characters of the one the SDK stamps after `+` in the informational
         /// version); null with neither.
         public static string? VersionLabel(string? tag, string? informationalVersion)
@@ -200,7 +203,7 @@ namespace OniMoono.Host
         public static bool Done => Volatile.Read(ref done) != 0;
 
         /// Starts the check on a background thread (once).
-        public static void Start(string persistentDataPath, bool u60, Action<string> log)
+        public static void Start(string persistentDataPath, bool beta, Action<string> log)
         {
             var current = CurrentTag();
             var url = Environment.GetEnvironmentVariable("ONI_UPDATE_RELEASES_URL");
@@ -215,7 +218,7 @@ namespace OniMoono.Host
                 try
                 {
                     var releases = await Releases(overridden ? url! : ReleasesUrl, overridden ? null : CachePath(persistentDataPath), DateTime.UtcNow);
-                    var found = Find(releases, current, u60);
+                    var found = Find(releases, current, beta);
                     Volatile.Write(ref result, found);
                     log(found == null ? $"update check: {current} is the newest" : $"update check: {found.Tag} is out (this build is {current})");
                 }

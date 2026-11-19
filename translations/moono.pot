@@ -1230,14 +1230,9 @@ msgctxt "STRINGS.MOONO.LOADER.MODS_TIP"
 msgid "Install Moono and copy the launch option for Steam"
 msgstr ""
 
-#. Message box before the game starts: Moono for the U60 beta on the normal game; {0}: the download page. public_testing is the beta's name in Steam
-msgctxt "STRINGS.MOONO.START.GAME_IS_NORMAL"
-msgid "Your game is the normal version of Oxygen Not Included, and this Moono build is for the U60 beta.\n\nTo use this build, switch the game to the U60 beta: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose public_testing.\n\nOr get Moono for the normal game:\n{0}\n\nTo play now without Moono, clear the game's launch options in Steam."
-msgstr ""
-
-#. Message box before the game starts: Moono for the normal game on the U60 beta; {0}: the download page. None is the choice in Steam's Betas list
-msgctxt "STRINGS.MOONO.START.GAME_IS_BETA"
-msgid "Your game is the U60 beta of Oxygen Not Included, and this Moono build is for the normal version.\n\nGet Moono for the U60 beta:\n{0}\n\nOr leave the beta: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose None.\n\nTo play now without Moono, clear the game's launch options in Steam."
+#. Message box before the game starts: this build is for the current game update, the game is another one it knows (an older update kept as a Steam beta); {0}: the download page of Moono for the game's update, {1}: the game's update (U59), {2}: this build's (U60). None is the choice in Steam's Betas list
+msgctxt "STRINGS.MOONO.START.GAME_IS_OTHER"
+msgid "Your game is the {1} update of Oxygen Not Included, and this Moono build is for {2}, the current update.\n\nTo use this build, switch the game to {2}: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose None.\n\nOr get Moono for {1}:\n{0}\n\nTo play now without Moono, clear the game's launch options in Steam."
 msgstr ""
 
 #. Message box before the game starts: a game update no Moono build knows; {0}: the download page

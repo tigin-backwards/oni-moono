@@ -16,8 +16,11 @@ namespace OniMoono.Host
     {
         public const string ReleasesUrl = Launch.StartText.Releases;
 
-        /// The game update this build is for ("U59", "U60").
+        /// The game update this build is for ("U60").
         public static string? ThisUpdate => Launch.StartText.Updates.TryGetValue(TypeTreeDatabase.UnityVersion, out var update) ? update.Name : null;
+
+        /// Whether this build is for a Steam beta (its releases are pre-releases).
+        public static bool ThisIsBeta => Launch.StartText.Updates.TryGetValue(TypeTreeDatabase.UnityVersion, out var update) && update.Beta;
 
         /// The game's Unity version when it is not this build's, else null.
         public static string? OtherUnity(string dataDir)
@@ -30,7 +33,7 @@ namespace OniMoono.Host
 
         /// Null when the game's data matches this build, else the message to show, in the
         /// player's language (Launch.StartText.VersionMismatch).
-        public static string? Problem(string dataDir) => OtherUnity(dataDir) is { } game ? Launch.StartText.VersionMismatch(game) : null;
+        public static string? Problem(string dataDir) => OtherUnity(dataDir) is { } game ? Launch.StartText.VersionMismatch(TypeTreeDatabase.UnityVersion, game) : null;
 
         /// Logs the problem (with the Unity versions, which the message leaves out) and, on
         /// Windows, where a player started from Steam sees no console, shows it in a message box

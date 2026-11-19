@@ -48,19 +48,54 @@ namespace OniMoono.Tests
         public void NormalBuildsSeeNewerNormalReleasesOnly()
         {
             // Newer: 11.03.01 and 11.02.02; 11.03.02 is a U60 pre-release, 11.02.03 superseded.
-            var newer = UpdateCheck.Newer(Fixture(), "v2026.11.01.04", u60: false);
+            var newer = UpdateCheck.Newer(Fixture(), "v2026.11.01.04", beta: false);
             Assert.Equal(["v2026.11.03.01", "v2026.11.02.02"], newer.Select(r => r.Tag));
-            Assert.Empty(UpdateCheck.Newer(Fixture(), "v2026.11.03.01", u60: false));
-            Assert.Null(UpdateCheck.Find(Fixture(), "v2026.11.03.01", u60: false));
-            Assert.Empty(UpdateCheck.Newer(Fixture(), "not-a-release", u60: false));
+            Assert.Empty(UpdateCheck.Newer(Fixture(), "v2026.11.03.01", beta: false));
+            Assert.Null(UpdateCheck.Find(Fixture(), "v2026.11.03.01", beta: false));
+            Assert.Empty(UpdateCheck.Newer(Fixture(), "not-a-release", beta: false));
         }
 
         [Fact]
-        public void U60BuildsSeeNewerPreReleasesOnly()
+        public void BetaBuildsSeeNewerPreReleasesOnly()
         {
-            Assert.Equal(["v2026.11.03.02"], UpdateCheck.Newer(Fixture(), "v2026.11.02.04", u60: true).Select(r => r.Tag));
-            Assert.Equal(["v2026.11.03.02"], UpdateCheck.Newer(Fixture(), "v2026.11.02.04-u60", u60: true).Select(r => r.Tag));
-            Assert.Empty(UpdateCheck.Newer(Fixture(), "v2026.11.03.02", u60: true));
+            Assert.Equal(["v2026.11.03.02"], UpdateCheck.Newer(Fixture(), "v2026.11.02.04", beta: true).Select(r => r.Tag));
+            Assert.Equal(["v2026.11.03.02"], UpdateCheck.Newer(Fixture(), "v2026.11.02.04-u60", beta: true).Select(r => r.Tag));
+            Assert.Empty(UpdateCheck.Newer(Fixture(), "v2026.11.03.02", beta: true));
+        }
+
+        /// The U60 cut-over (docs/RELEASES.md): the last U59 release (v2026.11.19.03) and the last
+        /// U60 beta pre-release (v2026.11.19.04) match as builds before it did (their U59 builds
+        /// normal releases, their U60 builds pre-releases), so the U60 builds see only the one
+        /// bridging pre-release, whose notes send them to the latest normal release; U59 builds and
+        /// new builds (for the current game, U60) see the new normal releases and not the bridge.
+        [Fact]
+        public void TheCutOverReachesOldU59AndU60BuildsAndNewOnes()
+        {
+            static MoonoRelease R(string tag, string title, bool pre, string body = "**Fixes**\n- Something.") =>
+                new(tag, title, pre, "https://github.com/tigin-backwards/oni-moono/releases/tag/" + tag, body);
+            MoonoRelease[] releases =
+            [
+                R("v2026.11.16.04", "2026.11.16.04 (U60 Beta)", true),
+                R("v2026.11.19.03", "2026.11.19.03", false),
+                R("v2026.11.19.04", "2026.11.19.04 (U60 Beta)", true),
+                R("v2026.11.20.01", "2026.11.20.01", false, "**U60 is the normal game now**\n- Moono follows it."),
+                R("v2026.11.20.02", "2026.11.20.02 (U60 is the normal game now)", true,
+                    "**U60 is the normal game now**\n- Moono's updates are normal releases from now on: get the [latest release](https://github.com/tigin-backwards/oni-moono/releases/latest)."),
+                R("v2026.11.21.01", "2026.11.21.01", false),
+            ];
+            // An old U60 build (a pre-release before the cut-over): the bridge alone, link and notes.
+            var u60 = UpdateCheck.Find(releases, "v2026.11.19.04", beta: true)!;
+            Assert.Equal("v2026.11.20.02", u60.Tag);
+            Assert.Contains("normal releases from now on: get the latest release.", u60.Notes);
+            Assert.Equal(["v2026.11.20.02", "v2026.11.19.04"], UpdateCheck.Newer(releases, "v2026.11.16.04", beta: true).Select(r => r.Tag));
+            // An old U59 build (a normal release before the cut-over): the new normal releases.
+            Assert.Equal(["v2026.11.21.01", "v2026.11.20.01"], UpdateCheck.Newer(releases, "v2026.11.19.03", beta: false).Select(r => r.Tag));
+            // A new build: newer normal releases only, never the bridge.
+            Assert.Equal(["v2026.11.21.01"], UpdateCheck.Newer(releases, "v2026.11.20.01", beta: false).Select(r => r.Tag));
+            Assert.Null(UpdateCheck.Find(releases, "v2026.11.21.01", beta: false));
+            // Marked superseded, the bridge would hide from old U60 builds: it must not be.
+            releases[4] = releases[4] with { Title = "2026.11.20.02 (Superseded)" };
+            Assert.Null(UpdateCheck.Find(releases, "v2026.11.19.04", beta: true));
         }
 
         /// As the real U60 builds are marked when a newer one ships (first words of the notes);
@@ -77,7 +112,7 @@ namespace OniMoono.Tests
         [Fact]
         public void NotesKeepSectionsAndBulletsOnly()
         {
-            var found = UpdateCheck.Find(Fixture(), "v2026.11.02.04", u60: true)!;
+            var found = UpdateCheck.Find(Fixture(), "v2026.11.02.04", beta: true)!;
             Assert.Equal("https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.03.02", found.Url);
             var notes = found.Notes;
             Assert.StartsWith("<size=125%><b>2026.11.03.02 (U60 Beta)</b></size>\n<b>Faster</b>\n•<indent=1em>Drawing costs less", notes);
@@ -94,7 +129,7 @@ namespace OniMoono.Tests
         [Fact]
         public void NotesConvertMarkdownAndCutAtTheirBudget()
         {
-            var found = UpdateCheck.Find(Fixture(), "v2026.11.01.04", u60: false)!;
+            var found = UpdateCheck.Find(Fixture(), "v2026.11.01.04", beta: false)!;
             Assert.Equal("v2026.11.03.01", found.Tag);
             Assert.True(found.Truncated);
             var lines = found.Notes.Split('\n');
