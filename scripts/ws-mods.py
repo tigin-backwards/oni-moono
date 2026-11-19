@@ -16,7 +16,7 @@ Environment:
                      libraries are); empty runs steamcmd.sh directly
   ONI_WS             where items are unpacked (default out/ws)"""
 
-import json, os, re, subprocess, sys, zipfile
+import json, os, re, shutil, subprocess, sys, zipfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STEAMCMD = os.environ.get('ONI_STEAMCMD') or os.path.join(ROOT, 'out', 'local-tools', 'steamcmd')
@@ -36,29 +36,54 @@ def download(ids):
             print(line[:140])
 
 
+def main_ws():
+    """out/ws of the repository's main checkout, where items unpacked earlier and the local
+    builds not on the Workshop (Fast Track's, 9000000001) are kept; None in the main checkout."""
+    try:
+        common = subprocess.run(['git', '-C', ROOT, 'rev-parse', '--path-format=absolute', '--git-common-dir'], capture_output=True, text=True).stdout.strip()
+    except OSError:
+        return None
+    ws = os.path.join(os.path.dirname(common), 'out', 'ws') if common else None
+    return ws if ws and os.path.realpath(ws) != os.path.realpath(WS) else None
+
+
 def unpack(i):
+    """out/ws/I, unpacked from SteamCMD's download, else copied from the main checkout's out/ws;
+    None when neither has it (the mod gate then skips it as not downloaded). An empty folder
+    (what a failed unpack left) is no copy: it is filled again."""
     dest = os.path.join(WS, i)
     if os.path.isdir(dest):
-        return dest
+        if os.listdir(dest):
+            return dest
+        os.rmdir(dest)
     src = os.path.join(CONTENT, i)
     files = os.listdir(src) if os.path.isdir(src) else []
     bins = [f for f in files if f.endswith('.bin')]
-    os.makedirs(dest)
+    shared = main_ws()
+    shared = os.path.join(shared, i) if shared else None
+    if not files and not (shared and os.path.isdir(shared) and os.listdir(shared)):
+        return None
+    tmp = dest + '.unpacking'
+    shutil.rmtree(tmp, ignore_errors=True)
+    os.makedirs(tmp)
     if bins:
         z = zipfile.ZipFile(os.path.join(src, bins[0]))
         for info in z.infolist():
             parts = [p for p in info.filename.replace('\\', '/').split('/') if p not in ('', '.')]
             if not parts or '..' in parts or ':' in parts[0]:
                 continue  # an entry that would land outside the mod's folder
-            path = os.path.join(dest, *parts)
+            path = os.path.join(tmp, *parts)
             if info.filename.endswith(('/', '\\')):
                 os.makedirs(path, exist_ok=True)
                 continue
             os.makedirs(os.path.dirname(path), exist_ok=True)
             with open(path, 'wb') as f:
                 f.write(z.read(info))
-    else:  # a plain folder (newer uploads)
-        subprocess.run(['cp', '-r', src + '/.', dest], check=True)
+    elif files:  # a plain folder (newer uploads)
+        subprocess.run(['cp', '-r', src + '/.', tmp], check=True)
+    else:  # the main checkout's copy, which the mod gate checks here as any other
+        subprocess.run(['cp', '-r', shared + '/.', tmp], check=True)
+    os.replace(tmp, dest)
     return dest
 
 
@@ -120,7 +145,7 @@ def profile(out, ids):
     os.makedirs(os.path.join(out, 'config'), exist_ok=True)
     mods = []
     for i in ids:
-        src = unpack(i)
+        src = os.path.join(WS, i)
         dest = os.path.join(out, 'Local', i)
         if not os.path.exists(dest):
             subprocess.run(['cp', '-r', src, dest], check=True)

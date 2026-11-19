@@ -179,8 +179,8 @@ def check(mid, oni, handles, ws=WS):
         return {'id': mid, 'verdict': 'pass' if ok else 'skip', 'reason': reason}
 
     folder = os.path.join(ws, mid)
-    if not os.path.isdir(folder):
-        return verdict(False, 'not downloaded')
+    if not os.path.isdir(folder) or not os.listdir(folder):
+        return verdict(False, 'not downloaded')  # an empty folder is what a failed unpack left
     if mid in GITHUB_BUILDS:
         name, builds = GITHUB_BUILDS[mid]
         have = binaries(folder)
