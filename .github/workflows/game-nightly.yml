@@ -1,7 +1,7 @@
 # The nightly game tests on the stripped game (docs/DEVELOPMENT.md, "Game tests in CI"):
 # ci/game-tests/nightly.txt's UI and mod-loading specs and the long verify run, and the perf
 # gates (perf-spread.yml, docs/PERFORMANCE.md "Perf gates in the nightly"). Scheduled runs
-# test the default branch (master, U59); run it by hand on u60 for U60.
+# test the default branch, master (U60).
 name: Game tests (nightly)
 
 on:

@@ -69,7 +69,7 @@ else
 fi
 # The macOS build's shaders (docs/research/macos-feasibility.md §6.1), when its data is here: Metal
 # reflection against the MSL, every Metal program's parameters against GLCore's, and the natives.
-# The u60 branch checks U60's Mac data (a frozen copy of depot 457142 at build 761015, fetched as
+# master checks U60's Mac data (a frozen copy of depot 457142 at build 761015, fetched as
 # the Linux one was); until it is there, the Mac checks are left out rather than run on U59's data,
 # which the version check refuses. The 761211 hotfix changed game code only (the Linux and Windows
 # builds' bundles, shaders and natives hold 761015's content), so 761015's Mac data stands for it.

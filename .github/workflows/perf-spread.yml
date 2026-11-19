@@ -168,7 +168,8 @@ jobs:
         run: |
           base="$BASE"
           # The branch's last release: each branch's history holds its own releases' tags only
-          # (u60's pre-releases are not in master's, nor master's in u60's).
+          # (master's since the U60 cut-over holds the U60 beta's pre-releases, not U59's
+          # releases, which are on u59).
           [ -n "$base" ] || base=$(git tag --merged HEAD --sort=-creatordate --list 'v*' | head -1)
           [ -n "$base" ] || { echo "no release tag in this commit's history"; exit 1; }
           echo "A: $base ($(git rev-parse --short "$base^{commit}")), B: $(git rev-parse --short HEAD)"

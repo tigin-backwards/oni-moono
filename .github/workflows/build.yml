@@ -7,7 +7,7 @@ name: Build
 
 on:
   push:
-    branches: [master, u60]
+    branches: [master]
   workflow_dispatch:
   workflow_call:
     inputs:

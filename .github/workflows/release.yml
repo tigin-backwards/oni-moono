@@ -4,8 +4,9 @@
 # digests, and creates a draft release with the archives and manifests, its notes starting with
 # where it was built and how to verify it. It never publishes: the notes are written in the
 # draft on GitHub, and publishing it there (which creates the tag and makes the release
-# immutable) is a person's step. Run it on master for a release, on u60 for a U60 beta (a
-# pre-release).
+# immutable) is a person's step. Run it on master: a normal release, for the current game (U60).
+# A Steam beta's builds would be pre-releases from a branch of their own (docs/RELEASES.md,
+# "A future beta").
 # dry_run checks the whole path (the draft's assets downloaded again and verified, and single
 # files from an extracted archive) and deletes the draft at the end; its draft is tagged
 # vtest-..., and no tag is left behind.
@@ -38,7 +39,6 @@ jobs:
     outputs:
       draft_tag: ${{ steps.plan.outputs.draft_tag }}
       title: ${{ steps.plan.outputs.title }}
-      prerelease: ${{ steps.plan.outputs.prerelease }}
       version_date: ${{ steps.plan.outputs.version_date }}
     steps:
       - id: plan
@@ -47,22 +47,18 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          case "$GITHUB_REF" in
-            refs/heads/master) prerelease=false ;;
-            refs/heads/u60) prerelease=true ;;
-            *) echo "::error::releases are made from master or u60, not $GITHUB_REF"; exit 1 ;;
-          esac
+          [ "$GITHUB_REF" = refs/heads/master ] || { echo "::error::releases are made from master, not $GITHUB_REF"; exit 1; }
           [[ "$TAG" =~ ^v[0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2}$ ]] || { echo "::error::the tag must be vYYYY.MM.DD.NN, not '$TAG'"; exit 1; }
           if [ "$DRY_RUN" != true ] && gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" > /dev/null 2>&1; then
             echo "::error::the tag $TAG exists already"; exit 1
           fi
-          title="${TAG#v}"; [ "$prerelease" = false ] || title="$title (U60 Beta)"
+          title="${TAG#v}"
           draft_tag="$TAG"
           if [ "$DRY_RUN" = true ]; then draft_tag="vtest-${TAG#v}-$GITHUB_RUN_ID"; title="TEST $title (dry run, deleted at its end)"; fi
           # The archives are named by the tag's date (scripts/release-version.sh), not the commit's.
           version_date="${TAG#v}"; version_date="${version_date%.*}"
-          { echo "draft_tag=$draft_tag"; echo "title=$title"; echo "prerelease=$prerelease"; echo "version_date=$version_date"; } >> "$GITHUB_OUTPUT"
-          echo "Draft $draft_tag, \"$title\", from $GITHUB_SHA ($GITHUB_REF_NAME), prerelease $prerelease"
+          { echo "draft_tag=$draft_tag"; echo "title=$title"; echo "version_date=$version_date"; } >> "$GITHUB_OUTPUT"
+          echo "Draft $draft_tag, \"$title\", from $GITHUB_SHA ($GITHUB_REF_NAME)"
 
   build:
     needs: plan
@@ -140,7 +136,6 @@ jobs:
       GH_REPO: ${{ github.repository }}
       DRAFT_TAG: ${{ needs.plan.outputs.draft_tag }}
       TITLE: ${{ needs.plan.outputs.title }}
-      PRERELEASE: ${{ needs.plan.outputs.prerelease }}
       CHECKSUMS: ${{ needs.digests.outputs.checksums }}
       SIGNER: ${{ github.repository }}/.github/workflows/attest.yml
     steps:
@@ -159,19 +154,7 @@ jobs:
           done
       - name: Write the notes
         run: |
-          : > notes.md
-          if [ "$PRERELEASE" != false ]; then
-            # A U60 pre-release opens as the earlier ones did: which game build it is for.
-            build=$(gh api "repos/$GH_REPO/contents/ci/game-refs.json?ref=$GITHUB_SHA" --jq .content | base64 -d | python3 -c 'import json, sys; print(json.load(sys.stdin).get("default_build") or "")')
-            [ -n "$build" ] && [ "$build" != null ] || { echo "::error::no default_build in ci/game-refs.json"; exit 1; }
-            cat >> notes.md <<EOF
-          **Only for Oxygen Not Included's U60 public test** (game build $build, Steam beta \`public_testing\`). On the normal game, use [the latest normal release]($GITHUB_SERVER_URL/$GH_REPO/releases/latest). If this build is started on the wrong game version, it says which build to get instead of crashing.
-
-          An update to the U60 beta, built from the [\`u60\`]($GITHUB_SERVER_URL/$GH_REPO/tree/u60) branch.
-
-          EOF
-          fi
-          cat >> notes.md <<EOF
+          cat > notes.md <<EOF
           Built by GitHub Actions from commit $GITHUB_SHA ([build]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)) and attested. [How to verify a download]($GITHUB_SERVER_URL/$GH_REPO/blob/master/docs/RELEASES.md#verifying-a-release).
 
           Install or update: download the archive for your system and extract it.
@@ -187,8 +170,7 @@ jobs:
           if [ -n "$(gh api "repos/$GH_REPO/releases" --paginate --jq ".[] | select(.tag_name == \"$DRAFT_TAG\") | .id")" ]; then
             echo "::error::a release or draft with the tag $DRAFT_TAG exists already"; exit 1
           fi
-          pre=(); [ "$PRERELEASE" = false ] || pre=(--prerelease)
-          gh release create "$DRAFT_TAG" dist/* --draft --target "$GITHUB_SHA" --title "$TITLE" --notes-file notes.md "${pre[@]}"
+          gh release create "$DRAFT_TAG" dist/* --draft --target "$GITHUB_SHA" --title "$TITLE" --notes-file notes.md
           id="$(gh api "repos/$GH_REPO/releases" --paginate --jq ".[] | select(.tag_name == \"$DRAFT_TAG\" and .draft) | .id")"
           [ "$(wc -w <<< "$id")" -eq 1 ] || { echo "::error::expected one draft $DRAFT_TAG, found '$id'"; exit 1; }
           echo "id=$id" >> "$GITHUB_OUTPUT"
