@@ -100,6 +100,19 @@ def environment():
     return env
 
 
+def driver_missing(env):
+    """Why E2eDriver cannot go into a spec's players, else None. Every spec gets it, not only
+    those with driver steps: it is what closes the MOD DIFFERENCES dialog a load opens, and the
+    fixtures e2e.py saved record it, so a load without it opens that dialog and nothing closes it
+    (shots then compare the dialog)."""
+    folder = env.get('E2E_DRIVER')
+    if not folder:
+        return 'E2eDriver is not built (dotnet build tools/E2eDriver -c Release, or E2E_DRIVER names a build)'
+    if not os.path.exists(os.path.join(folder, 'E2eDriver.dll')):
+        return f'no E2eDriver.dll in E2E_DRIVER ({folder}): dotnet build tools/E2eDriver -c Release'
+    return None
+
+
 def load_script(name):
     """A script of ours with a dash in its name, as a module."""
     path = os.path.join(ROOT, 'scripts', name)
@@ -4472,9 +4485,38 @@ class Run:
 
     # Dialogs a load may open, by their header text: a fixture saved with other mods than the
     # spec's opens "MOD DIFFERENCES" in both players (in a spec's `language:`, the game's own
-    # translation of it). Its OK button is pressed like a player would, or Escape when the button
-    # is off screen.
+    # translation of it). Most fixtures do: a save records the mods it was made with (U57's
+    # player had 20, decrew's 7, 2minnow's 15), and one made by e2e.py records OniMcp and
+    # E2eDriver, so a spec with a test mod or Workshop mods differs too. Its OK button is pressed
+    # like a player would, or Escape when the button is off screen.
     LOAD_DIALOGS = ('MOD DIFFERENCES', '模组差异', '모드 차이', 'РАЗЛИЧИЯ МОДОВ')
+
+    def open_load_dialog(self):
+        """The header of a load dialog that is still open, else None."""
+        if not self.driver:
+            return None
+        return next((e for title in self.LOAD_DIALOGS for e in self.driver.find(text=title)), None)
+
+    def refuse_load_dialog(self, what):
+        """Fails WHAT (a shot, a state check) while a load dialog covers the screen: its pixels
+        are not the spec's, and a wait for the game would only time out."""
+        header = self.open_load_dialog()
+        if header:
+            raise SpecFailure(f'{what}: the {header.text!r} dialog the load opened is still open ({header.path})')
+
+    def open_dialogs(self):
+        """The header texts of the confirm dialogs open now, for a failure's message."""
+        if not self.driver:
+            return []
+        with contextlib.suppress(SpecFailure):
+            return [e.text for e in self.driver.find(path='**/ConfirmDialog/**/Header/Label') if e.text]
+        return []
+
+    def pause_count(self):
+        with contextlib.suppress(SpecFailure):
+            value = self.driver.state('SpeedControlScreen.Instance.pauseCount')
+            return value if isinstance(value, int) and not isinstance(value, bool) else None
+        return None
 
     def dismiss_load_dialogs(self):
         for _ in range(5):
@@ -4502,15 +4544,31 @@ class Run:
                 self.click_element({'ui': ok[top].path, 'index': top})
                 self.frames(10)
                 continue
+            paused = self.pause_count()
             if ok[top].onscreen is False:
-                # A long list (a save with dozens of mods not installed) pushes the OK button
-                # below the screen, and the dialog does not scroll: a player presses Escape,
-                # which closes it as OK does (neither has an action of its own).
+                # A long list (U57's 20 mods on U60) pushes the OK button below a 720-pixel
+                # screen, in the original as in ours (the game's ConfirmDialog grows with its
+                # text and does not scroll): a player presses
+                # Escape. KMod's dialog has no confirm or cancel action, so Escape
+                # (ConfirmDialogScreen.OnSelect_CANCEL) and OK (OnSelect_OK) both only
+                # deactivate it, which releases the pause it took (KModalScreen.OnShow).
                 self.log(f'  its OK button is off screen (rect {ok[top].rect}): pressing Escape')
                 self.need_input().key('Escape')
             else:
+                self.log(f'  pressing its OK button (rect {ok[top].rect})')
                 self.click_element({'ui': ok[top].path, 'index': top})
             self.driver.wait(dialog, 'gone', 120)
+            # Closed as a player would close it, the game is as a load without the dialog leaves
+            # it: the pause menu not open, and the dialog's pause given back (the game's own and
+            # e2e.py's, after the load, stay until a `run` step).
+            self.frames(2)
+            if self.driver.count('**/PauseScreen'):
+                raise SpecFailure(f'closing {headers[0].text!r} left the pause menu open')
+            now = self.pause_count()
+            if paused is not None and now is not None:
+                if now != paused - 1:
+                    raise SpecFailure(f'closing {headers[0].text!r} took the pause count from {paused} to {now}, not {paused - 1}')
+                self.log(f'  closed; pause count {paused} -> {now}')
 
     # -- steps
     def step(self, kind, value, number):
@@ -4857,6 +4915,8 @@ class Run:
         return aggregate_rows(how, tests, driver.each(head, members))
 
     def expect_state(self, value, number):
+        if not all(expr.startswith('file:') for expr in value):
+            self.refuse_load_dialog('expect_state')
         misses = []
         for expr, wanted in value.items():
             have = self.state_value(expr)
@@ -4871,6 +4931,8 @@ class Run:
     def wait_state(self, value):
         """Waits (wall time: the game may be paused) until each of `state`'s expressions holds,
         checked every quarter second, for at most `seconds` (default 60). Nothing is recorded."""
+        if not all(expr.startswith('file:') for expr in value['state']):
+            self.refuse_load_dialog('wait_state')
         deadline = time.monotonic() + float(value.get('seconds', 60))
         while True:
             misses = []
@@ -4881,7 +4943,9 @@ class Run:
             if not misses:
                 return
             if time.monotonic() > deadline:
-                raise SpecFailure(f'wait_state: after {value.get("seconds", 60)} s ' + '; '.join(misses))
+                dialogs = self.open_dialogs()
+                shown = f' (a dialog is open: {", ".join(repr(d) for d in dialogs)})' if dialogs else ''
+                raise SpecFailure(f'wait_state: after {value.get("seconds", 60)} s ' + '; '.join(misses) + shown)
             time.sleep(0.25)
 
     def shot(self, value):
@@ -4892,6 +4956,7 @@ class Run:
             return
         menu = self.at_main_menu()
         if not menu:
+            self.refuse_load_dialog(f'shot {name}')
             self.settle_build_menu(f'shot {name}')
         meta = {'name': name, 'crop': None, 'masks': [], 'threshold': value.get('threshold'), 'specks': value.get('specks')}
         if value.get('crop'):
@@ -5022,8 +5087,8 @@ class Run:
         self.player = None
         records = None
         try:
-            if uses_driver and not self.env.get('E2E_DRIVER'):
-                raise SpecFailure('the spec needs E2eDriver, and E2E_DRIVER names no build of it')
+            if (uses_driver or fixture) and driver_missing(self.env):
+                raise SpecFailure(driver_missing(self.env))
             if fixture and not os.path.exists(fixture):
                 raise missing_fixture(fixture)
             self.player = Player(
@@ -5841,6 +5906,9 @@ def main(argv):
     if missing:
         print('e2e: skipped, needs ' + ', '.join(missing) + ' (out/local-tools/qa.env)')
         return 0
+    if driver_missing(env) and any(spec['from'] != MAIN_MENU or needs_driver(spec) for spec in specs):
+        print(f'e2e: {driver_missing(env)}')
+        return 2
     if 'original' in kinds and 'ours' in kinds:
         mismatch = install_mismatch(env['QA_U57_GAME'], os.path.dirname(os.path.abspath(env['E2E_ORIGINAL'])))
         if mismatch:

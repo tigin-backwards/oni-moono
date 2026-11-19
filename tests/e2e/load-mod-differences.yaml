@@ -1,0 +1,14 @@
+# The MOD DIFFERENCES dialog a load opens (e2e.py's dismiss_load_dialogs). early-base was saved
+# with OniMcp and E2eDriver; CommandLineTestMod (it only logs) makes this run's mods differ, so the
+# load opens the dialog in both players. e2e.py closes it with its OK button, as a player would,
+# and checks that the dialog gave its pause back and left no pause menu open. Two pauses are
+# left, as after a load without the dialog: the game's own (Game.OnSpawn) and e2e.py's. OniMcp's
+# resume releases one each, so after two the game runs.
+from: early-base
+test_mods: [CommandLineTestMod]
+steps:
+  - expect_state: {"SpeedControlScreen.Instance.pauseCount": 2}
+  - expect_ui: {"**/PauseScreen": {exists: false}}
+  - call: {tool: game_control, args: {domain: speed, action: resume, confirm: true}}
+  - call: {tool: game_control, args: {domain: speed, action: resume, confirm: true}}
+  - wait_state: {state: {"SpeedControlScreen.Instance.IsPaused": false}, seconds: 30}
