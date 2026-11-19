@@ -1685,12 +1685,61 @@ def perf_jobs(lines=None):
     """The ps lines (args) of running perf jobs."""
     if lines is None:
         return [args for _, _, args in perf_processes()]
-    found = []
-    for line in lines:
-        args = re.sub(r'^(/usr/bin/env )?(ba)?sh ', '', line.strip())
-        if any(re.search(p, args) for p in PERF_JOBS):
-            found.append(line.strip())
-    return found
+    return [line.strip() for line in lines if runs(PERF_JOBS, line.strip())]
+
+
+SHELLS = re.compile(r'^(ba|da|z|k|mk)?sh$')
+PYTHONS = re.compile(r'^python[0-9.]*$')
+RUNQ_PROGRAMS = ('runq', 'runq-submit.sh')
+
+
+def program_args(args):
+    """The argv that starts at the program a process runs, past the interpreters and env that
+    run it (`bash scripts/qa.sh verify` runs scripts/qa.sh; `/usr/bin/env python3 -u x.py` runs
+    x.py), or None when it runs no file of its own: a shell or python given a command string
+    (`bash -c "... qa.sh ..."`: what it starts shows up as processes of their own), or runq itself
+    (a `runq run -- scripts/qa.sh` client only waits for its job). ARGS: a list, or a command
+    line split on spaces. runqlib/legacy.py has the same rule (SharedWithE2e checks they agree)."""
+    argv = list(args) if isinstance(args, (list, tuple)) else args.split()
+    i = 0
+    while i < len(argv):
+        name = os.path.basename(argv[i])
+        if name == 'env':
+            i += 1
+            while i < len(argv) and (argv[i].startswith('-') or '=' in argv[i]):
+                i += 2 if argv[i] in ('-u', '--unset', '-C', '--chdir') else 1
+            continue
+        shell, python = SHELLS.match(name), PYTHONS.match(name)
+        if not (shell or python):
+            break
+        i += 1
+        while i < len(argv) and argv[i][:1] in ('-', '+') and argv[i] != '--':
+            opt = argv[i]
+            if opt in ('-', '-c', '-m') or (shell and not opt.startswith('--') and 'c' in opt[1:]) or (python and opt[1:2] != '-' and opt[-1:] == 'c'):
+                if python and opt == '-m' and i + 1 < len(argv):
+                    return argv[i + 1 :]
+                return None
+            i += 2 if opt in (('-o', '+o', '-O', '+O', '--rcfile', '--init-file') if shell else ('-X', '-W', '-Q')) else 1
+        if i < len(argv) and argv[i] == '--':
+            i += 1
+    if i >= len(argv) or os.path.basename(argv[i]) in RUNQ_PROGRAMS:
+        return None
+    return argv[i:]
+
+
+def runs(patterns, args):
+    """Whether the program ARGS runs (program_args) matches one of PATTERNS (regex strings or
+    compiled) at the program itself: qa.sh's pattern matches `/x/scripts/qa.sh verify`, not
+    `grep scripts/qa.sh` or `timeout 60 scripts/qa.sh` (timeout's child is the qa.sh)."""
+    argv = program_args(args)
+    if not argv:
+        return False
+    line, head = ' '.join(argv), len(argv[0])
+    for p in patterns:
+        m = re.search(p, line)
+        if m and m.start() <= head:
+            return True
+    return False
 
 
 def perf_processes(lines=None, patterns=None):
@@ -1701,8 +1750,7 @@ def perf_processes(lines=None, patterns=None):
     found = []
     for line in lines:
         parts = line.strip().split(None, 2)
-        args = re.sub(r'^(/usr/bin/env )?(ba)?sh ', '', parts[2].strip()) if len(parts) == 3 else ''
-        if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit() and int(parts[0]) != os.getpid() and any(re.search(p, args) for p in patterns):
+        if len(parts) == 3 and parts[0].isdigit() and parts[1].isdigit() and int(parts[0]) != os.getpid() and runs(patterns, parts[2]):
             found.append((int(parts[0]), int(parts[1]), parts[2]))
     return found
 

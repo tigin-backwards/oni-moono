@@ -29,6 +29,7 @@ unit_check_seconds = 1
 scan_seconds = 1
 idle_flag_minutes = 0.03
 idle_stop_minutes = 0.08
+outside_stall_minutes = 0.02
 [capacity]
 lane_first = 101
 lane_last = 104
@@ -171,6 +172,35 @@ class Daemon(unittest.TestCase):
         self.h.wait_for(lambda: 'Windows' in (self.h.show(a)['waits'] or ''), what='the reason it waits')
         self.h.runq('cancel', a)
         self.assertEqual(self.h.show(a)['state'], 'cancelled')
+
+    def test_cancel_records_who_cancelled(self):
+        a = self.h.submit('--kind', 'windows', '--label', 'to cancel', '--', 'true')  # no Windows backend: waits
+        self.assertEqual(self.h.runq('cancel', a).returncode, 0)
+        job = self.h.show(a)
+        self.assertEqual((job['state'], job['reason']), ('cancelled', 'cancelled'))
+        by = job['cancelled_by']
+        self.assertEqual((by['owner'], by['cwd']), (self.h.env['RUNQ_OWNER'], self.h.tmp))
+        self.assertIsInstance(by['pid'], int)
+        self.assertIn('at', by)
+        line = next(x for x in self.h.runq('history', '--owner', self.h.env['RUNQ_OWNER']).stdout.splitlines() if x.startswith(a))
+        self.assertIn(f'(cancelled)  by {self.h.env["RUNQ_OWNER"]} pid {by["pid"]} in {self.h.tmp}', line)
+
+    def test_status_warns_when_only_a_process_outside_runq_holds_the_queue(self):
+        # An exclusive perf.lock holder outside runq, and a due perf job: nothing can run.
+        locks = self.h.env['E2E_LOCK_DIR']
+        holder = subprocess.Popen(['flock', '-x', '-o', os.path.join(locks, 'perf.lock'), 'sleep', '120'])  # -o: sleep holds no fd
+        try:
+            job = self.h.submit('--level', 'issue', '--kind', 'perf', '--', 'true')
+            self.h.wait_for(lambda: 'WARNING: nothing has run' in self.h.runq('status').stdout, what='the warning')
+            out = self.h.runq('status').stdout
+            self.assertIn(f'due job(s) {job} wait only on processes outside runq', out)
+            self.assertIn(f'WARNING:   pid {holder.pid}: flock -x -o {locks}/perf.lock sleep 120', out)
+            self.assertEqual(self.h.runq('status', '--json').returncode, 0)
+        finally:
+            holder.kill()
+            holder.wait()
+        self.assertEqual(self.h.runq('wait', job, timeout=60).returncode, 0)
+        self.assertNotIn('WARNING: nothing has run', self.h.runq('status').stdout)
 
     def test_timeout(self):
         t = time.time()

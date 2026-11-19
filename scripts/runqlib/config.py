@@ -75,6 +75,9 @@ DEFAULTS = {
     # then the job starts flagged noisy. win-perf never starts while the user is in ONI.
     'quiet_cores': 2.0,
     'quiet_wait_minutes': 15,
+    # Nothing runs and a due job waits only on processes outside runq for this long: runq status
+    # warns, naming them (a deadlock between an outside process and the queue shows at once).
+    'outside_stall_minutes': 10,
     # Seconds between two looks at the legacy locks when nothing else happens.
     'scan_seconds': 5,
     # Seconds between the checks of running jobs' units (and idle holders).

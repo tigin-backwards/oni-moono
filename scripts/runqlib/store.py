@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     start REAL, end_ REAL, exit INTEGER, reason TEXT,
     lanes TEXT, noisy INTEGER DEFAULT 0, attempt INTEGER DEFAULT 0, boost INTEGER DEFAULT 0,
     unit TEXT, cgroup TEXT, phase TEXT, phase_seq INTEGER DEFAULT 0, quiet_since REAL,
-    cpu_s REAL, mem_peak REAL, warnings TEXT
+    cpu_s REAL, mem_peak REAL, warnings TEXT, cancelled_by TEXT
 );
 CREATE TABLE IF NOT EXISTS holds (
     job TEXT, needs TEXT, start REAL, end_ REAL
@@ -28,7 +28,9 @@ CREATE INDEX IF NOT EXISTS jobs_state ON jobs(state);
 CREATE INDEX IF NOT EXISTS holds_end ON holds(end_);
 """
 
-JSON_FIELDS = ('needs', 'argv', 'after', 'lanes', 'phase', 'warnings')
+JSON_FIELDS = ('needs', 'argv', 'after', 'lanes', 'phase', 'warnings', 'cancelled_by')
+# Columns added after the first release: a database made before gets them on open.
+ADDED = {'cancelled_by': 'TEXT'}
 
 
 class Store:
@@ -39,6 +41,10 @@ class Store:
         self.db.execute('PRAGMA journal_mode=WAL')
         self.db.execute('PRAGMA synchronous=NORMAL')
         self.db.executescript(SCHEMA)
+        have = {r[1] for r in self.db.execute('PRAGMA table_info(jobs)')}
+        for col, kind in ADDED.items():
+            if col not in have:
+                self.db.execute(f'ALTER TABLE jobs ADD COLUMN {col} {kind}')
 
     def new_id(self):
         row = self.db.execute("SELECT seq FROM sqlite_sequence WHERE name='jobs'").fetchone()
@@ -125,6 +131,20 @@ class Store:
 
     def close(self):
         self.db.close()
+
+
+def cancel_text(by):
+    """Who cancelled, in words, from a job's cancelled_by."""
+    if not by:
+        return 'unknown'
+    parts = [by.get('owner') or '?']
+    if by.get('pid'):
+        parts.append(f'pid {by["pid"]}')
+    if by.get('cwd'):
+        parts.append(f'in {by["cwd"]}')
+    if by.get('via'):
+        parts.append(f'({by["via"]})')
+    return ' '.join(parts)
 
 
 def now():

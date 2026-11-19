@@ -2,7 +2,7 @@
 the volume settings, the rules a game's command line must keep, cleanup through a fake backend
 that records calls, and the shim's take of the legacy locks."""
 
-import fcntl, json, os, subprocess, tempfile, unittest
+import fcntl, json, os, subprocess, tempfile, time, unittest
 
 import helpers  # noqa: F401
 from runqlib import cleanup, config, legacy, shim, winenv
@@ -344,8 +344,6 @@ class Bridge(unittest.TestCase):
             lane = subprocess.Popen(['flock', os.path.join(locks, 'lane-102.lock'), 'sleep', '30'])
             win = subprocess.Popen(['flock', os.path.join(locks, 'windows-game.lock'), 'sleep', '30'])
             try:
-                import time
-
                 deadline = time.time() + 20  # until each flock holds its lock
                 names = ('perf.lock', 'lane-102.lock', 'windows-game.lock')
                 while not all(legacy.flock_holders(os.path.join(locks, n)) for n in names) and time.time() < deadline:
@@ -369,6 +367,82 @@ class Bridge(unittest.TestCase):
                 for p in (holder, lane, win):
                     p.kill()
                     p.wait()
+
+
+# Command lines as /proc shows them (arguments split on spaces), and whether each runs qa.sh.
+ROOT = '/home/u/projects/oni-brutal'
+QA_CASES = [
+    # runq's own processes: a client waiting for its queued qa.sh job, the installed client.
+    (f'python3 {ROOT}/scripts/runq run --kind qa --owner facade -- {ROOT}/scripts/qa.sh verify', False),
+    (f'/usr/bin/python3 -I {ROOT}/scripts/runq submit --kind qa -- scripts/qa.sh', False),
+    ('/usr/bin/python3 /home/u/.local/share/oni-runq/abc123/runq wait j0004385', False),
+    (f'/home/u/.local/share/oni-runq/abc123/runq run -- {ROOT}/scripts/qa.sh verify', False),
+    # An agent's shell that waits on runq: the string is only inside its command.
+    (f'/bin/bash -c -l source /home/u/.claude/shell-snapshots/s.sh && eval \'cd {ROOT} && scripts/runq run -- scripts/qa.sh verify\'', False),
+    ('bash -ec scripts/qa.sh verify', False),
+    # Other programs naming it.
+    ('grep -n scripts/qa.sh docs/RUNQ.md', False),
+    ('flock -x /tmp/l scripts/qa.sh', False),  # flock's child is the qa.sh
+    ('vim scripts/qa.sh', False),
+    # A qa.sh that runs.
+    (f'/bin/bash {ROOT}/scripts/qa.sh verify', True),
+    ('bash scripts/qa.sh u57', True),
+    ('/usr/bin/env bash ./scripts/qa.sh perf', True),
+    ('bash -o pipefail scripts/qa.sh', True),
+    (f'{ROOT}/scripts/qa.sh', True),
+]
+QA = [r'(^|/)scripts/qa\.sh\b']
+
+
+class OutsideRunq(unittest.TestCase):
+    """What counts as running outside runq: the program a process runs, never a string anywhere
+    in its arguments (a runq client waiting for its qa.sh job once held back the job it waited for)."""
+
+    def test_the_program_decides(self):
+        for line, expected in QA_CASES:
+            with self.subTest(line=line):
+                self.assertEqual(legacy.runs(QA, line), expected)
+                self.assertEqual(legacy.runs(QA, line.split()), expected)
+        perf = CFG['legacy_perf_patterns']
+        self.assertTrue(legacy.runs(perf, 'python3 -u -X dev scripts/flamegraph.py --pid 4'))
+        self.assertTrue(legacy.runs(perf, 'perf record -g -p 4'))
+        self.assertTrue(legacy.runs(perf, f'bash {ROOT}/out/local-tools/measure.sh'))
+        self.assertFalse(legacy.runs(perf, f'python3 {ROOT}/scripts/runq run --kind perf -- {ROOT}/out/local-tools/measure.sh'))
+        self.assertFalse(legacy.runs(perf, 'bash -c perf record -g -p 4'))
+        self.assertFalse(legacy.runs(perf, 'python3 -c import scripts/flamegraph.py'))
+        self.assertEqual(legacy.program_args('python3 -m flamegraph x'), ['flamegraph', 'x'])
+
+    def scan(self, locks, procs):
+        cfg = config.merge(CFG, {'legacy_perf_patterns': CFG['legacy_perf_patterns'], 'capacity': {'lane_first': 101, 'lane_last': 101}})
+        return legacy.scan(cfg, locks, procs=procs, port_busy=lambda p: False, display_busy=lambda d: False)
+
+    def test_scan_skips_runq_clients_and_their_callers(self):
+        # Pids that do not exist: no parent, no runq unit.
+        procs = [(999999901 + i, line) for i, (line, _) in enumerate(QA_CASES)]
+        with tempfile.TemporaryDirectory() as locks:
+            ext, _ = self.scan(locks, procs)
+        counted = sorted(pid for pid, _ in ext.procs)
+        self.assertEqual(counted, [pid for pid, (_, real) in zip((p for p, _ in procs), QA_CASES) if real])
+        self.assertEqual(ext.players, sum(real for _, real in QA_CASES))
+        self.assertIn(f'qa.sh pid 999999910: /bin/bash {ROOT}/scripts/qa.sh verify', ext.why)
+        self.assertFalse(ext.perf)
+
+    def test_a_player_outside_runq_is_named_with_its_command_line(self):
+        game = subprocess.Popen(['bash', '-c', 'exec -a OxygenNotIncluded sleep 30'])
+        try:
+            with tempfile.TemporaryDirectory() as locks:
+                for _ in range(100):  # until the exec
+                    if legacy.cmdline(game.pid).startswith('OxygenNotIncluded'):
+                        break
+                    time.sleep(0.05)
+                entry = {'pid': game.pid, 'start': legacy.process_start(game.pid), 'gb': 6, 'label': 'spec x', 'token': 't'}
+                legacy.write_ledger(locks, [entry])
+                ext, _ = self.scan(locks, [])
+        finally:
+            game.kill()
+            game.wait()
+        self.assertEqual(ext.players, 1)
+        self.assertEqual(ext.procs, ((game.pid, 'OxygenNotIncluded 30'),))
 
 
 class SharedWithE2e(unittest.TestCase):
@@ -406,6 +480,19 @@ class SharedWithE2e(unittest.TestCase):
                 self.assertEqual(legacy.flock_holders(path), [(os.getpid(), 'shared')])
         self.assertEqual(legacy.process_start(os.getpid()), e2e.process_start(os.getpid()))
         self.assertIn(f"r'{e2e.QA_JOBS[0]}'", inspect.getsource(legacy.scan))  # scan's qa.sh pattern
+
+    def test_same_program_rule(self):
+        import e2e
+
+        perf = CFG['legacy_perf_patterns']
+        lines = [line for line, _ in QA_CASES] + ['perf record -g', 'python3 -m flamegraph', 'bash -c perf stat', 'env A=1 python3 -u scripts/flamegraph.py']
+        for line in lines:
+            with self.subTest(line=line):
+                self.assertEqual(legacy.program_args(line), e2e.program_args(line))
+                self.assertEqual(legacy.runs(QA, line), e2e.runs(e2e.QA_JOBS, line))
+                self.assertEqual(legacy.runs(perf, line), e2e.runs(e2e.PERF_JOBS, line))
+        ps = [f' {100 + i} 60 {line}' for i, (line, _) in enumerate(QA_CASES)]
+        self.assertEqual([pid for pid, _, _ in e2e.qa_processes(ps)], [100 + i for i, (_, real) in enumerate(QA_CASES) if real])
 
 
 if __name__ == '__main__':

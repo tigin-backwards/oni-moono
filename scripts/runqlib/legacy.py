@@ -87,8 +87,67 @@ def processes():
     return found
 
 
-def strip_shell(args):
-    return re.sub(r'^(\S*/)?(env )?(\S*/)?(ba)?sh ', '', re.sub(r'^/usr/bin/env ', '', args.strip()))
+SHELLS = re.compile(r'^(ba|da|z|k|mk)?sh$')
+PYTHONS = re.compile(r'^python[0-9.]*$')
+RUNQ_PROGRAMS = ('runq', 'runq-submit.sh')
+
+
+def program_args(args):
+    """The argv that starts at the program a process runs, past the interpreters and env that
+    run it (`bash scripts/qa.sh verify` runs scripts/qa.sh; `/usr/bin/env python3 -u x.py` runs
+    x.py), or None when it runs no file of its own: a shell or python given a command string
+    (`bash -c "... qa.sh ..."`: what it starts shows up as processes of their own), or runq itself
+    (a `runq run -- scripts/qa.sh` client only waits for its job). ARGS: a list, or a command
+    line split on spaces. e2e.py's program_args is the same rule (SharedWithE2e checks it)."""
+    argv = list(args) if isinstance(args, (list, tuple)) else args.split()
+    i = 0
+    while i < len(argv):
+        name = os.path.basename(argv[i])
+        if name == 'env':
+            i += 1
+            while i < len(argv) and (argv[i].startswith('-') or '=' in argv[i]):
+                i += 2 if argv[i] in ('-u', '--unset', '-C', '--chdir') else 1
+            continue
+        shell, python = SHELLS.match(name), PYTHONS.match(name)
+        if not (shell or python):
+            break
+        i += 1
+        while i < len(argv) and argv[i][:1] in ('-', '+') and argv[i] != '--':
+            opt = argv[i]
+            if opt in ('-', '-c', '-m') or (shell and not opt.startswith('--') and 'c' in opt[1:]) or (python and opt[1:2] != '-' and opt[-1:] == 'c'):
+                if python and opt == '-m' and i + 1 < len(argv):
+                    return argv[i + 1 :]
+                return None
+            i += 2 if opt in (('-o', '+o', '-O', '+O', '--rcfile', '--init-file') if shell else ('-X', '-W', '-Q')) else 1
+        if i < len(argv) and argv[i] == '--':
+            i += 1
+    if i >= len(argv) or os.path.basename(argv[i]) in RUNQ_PROGRAMS:
+        return None
+    return argv[i:]
+
+
+def runs(patterns, args):
+    """Whether the program ARGS runs (program_args) matches one of PATTERNS (regex strings or
+    compiled) at the program itself: qa.sh's pattern matches `/x/scripts/qa.sh verify`, not
+    `grep scripts/qa.sh` or `timeout 60 scripts/qa.sh` (timeout's child is the qa.sh)."""
+    argv = program_args(args)
+    if not argv:
+        return False
+    line, head = ' '.join(argv), len(argv[0])
+    for p in patterns:
+        m = re.search(p, line)
+        if m and m.start() <= head:
+            return True
+    return False
+
+
+def cmdline(pid):
+    """PID's command line, spaces between the arguments, or ''."""
+    try:
+        with open(f'/proc/{pid}/cmdline', 'rb') as f:
+            return f.read().replace(b'\0', b' ').decode(errors='replace').strip()
+    except OSError:
+        return ''
 
 
 # ---------------------------------------------------------------- flocks
@@ -312,7 +371,7 @@ def scan(cfg, lock_dir, prefix='runq', daemon_pid=None, runq_lanes=(), procs=Non
     an old script run inside a runq job (taking the locks itself) is still an occupant runq did
     not grant. A process found by its command line (qa.sh, a perf job) is runq's when it runs in
     any runq unit."""
-    ext_why = []
+    ext_why, procs_seen = [], []
     ext = sched.External()
     shims = set(shims)
     ours = lambda pid: pid == os.getpid() or pid == daemon_pid or pid in shims
@@ -330,6 +389,7 @@ def scan(cfg, lock_dir, prefix='runq', daemon_pid=None, runq_lanes=(), procs=Non
             else:
                 ext.perf_shared += 1
                 ext_why.append(f'perf.lock shared by pid {pid}')
+            procs_seen.append((pid, cmdline(pid)))
         wanted = wanted_pid(lock_dir)
         if wanted is not None and alive(wanted) and not ours(wanted):
             # A perf job outside runq waits for the load to end: old spec runners start nothing
@@ -337,10 +397,12 @@ def scan(cfg, lock_dir, prefix='runq', daemon_pid=None, runq_lanes=(), procs=Non
             ext.perf = True
             ext.load += 1
             ext_why.append(f'perf.wanted names pid {wanted} (a perf job outside runq waits)')
+            procs_seen.append((wanted, cmdline(wanted)))
         for pid, _ in flock_holders(os.path.join(lock_dir, 'windows-game.lock')):
             if not ours(pid):
                 ext.windows = True
                 ext_why.append(f'windows-game.lock held by pid {pid}')
+                procs_seen.append((pid, cmdline(pid)))
         for e in read_ledger(lock_dir):
             if ours(e['pid']):
                 continue
@@ -349,31 +411,37 @@ def scan(cfg, lock_dir, prefix='runq', daemon_pid=None, runq_lanes=(), procs=Non
             ext.cpu += float(cfg['legacy_player_cpu'])
             ext.load += 1
             ext_why.append(f'player {e.get("label", "?")} ({float(e.get("gb", 0)):g} GB, pid {e["pid"]})')
+            procs_seen.append((e['pid'], cmdline(e['pid'])))
     procs = processes() if procs is None else procs
     patterns = [re.compile(p) for p in cfg['legacy_perf_patterns']]
     qa = {}
+    # Matched on the program each process runs (runs()), never on a string anywhere in its
+    # arguments: a `runq run -- scripts/qa.sh` client, or an agent's `bash -c "... qa.sh"` that
+    # waits on it, is no qa.sh (counting one held back the very job it waits for).
     for pid, args in procs:
         if pid == os.getpid():
             continue
-        bare = strip_shell(args)
-        is_qa = re.search(r'(^|/)scripts/qa\.sh\b', bare) and not bare.startswith(('flock', 'grep'))
-        is_perf = any(p.search(bare) for p in patterns)
+        is_qa = runs([r'(^|/)scripts/qa\.sh\b'], args)
+        is_perf = runs(patterns, args)
         if not (is_qa or is_perf) or in_unit(pid):
             continue
+        line = ' '.join(args) if isinstance(args, (list, tuple)) else args
         if is_perf:
             ext.perf = True
             ext.load += 1
-            ext_why.append(f'perf job pid {pid}: {bare[:80]}')
+            ext_why.append(f'perf job pid {pid}: {line[:160]}')
+            procs_seen.append((pid, line))
         elif is_qa:
-            qa[pid] = bare
+            qa[pid] = line
     # A qa.sh's subshells carry its command line: only the top one counts.
-    for pid in qa:
+    for pid, line in qa.items():
         if parent(pid) in qa or float(cfg['legacy_qa_gb']) <= 0:
             continue
         ext.mem += float(cfg['legacy_qa_gb'])
         ext.players += 1
         ext.load += 1
-        ext_why.append(f'qa.sh pid {pid}')
+        ext_why.append(f'qa.sh pid {pid}: {line[:160]}')
+        procs_seen.append((pid, line))
     ports, displays = reservations(lock_dir or '/nonexistent', os.environ.get('E2E_RESERVED', ''))
     c = cfg['capacity']
     free = []
@@ -389,6 +457,7 @@ def scan(cfg, lock_dir, prefix='runq', daemon_pid=None, runq_lanes=(), procs=Non
             continue
         free.append(lane)
     ext.why = tuple(dict.fromkeys(ext_why))
+    ext.procs = tuple(dict.fromkeys(procs_seen))
     return ext, tuple(free)
 
 
