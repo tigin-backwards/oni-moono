@@ -96,6 +96,57 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void ACritterWhoseTestThrowsIsDroppedOnce()
+        {
+            // #93: a colony left for the main menu frees its critters' state machines without
+            // their states' exits, so they stay tracked; reading a freed one throws. Each must
+            // cost one test, not an exception every frame, and the live critters still get turns.
+            var turns = new ThreatTurns<Critter>();
+            var freed = new List<Critter>();
+            for (int i = 0; i < 10; i++)
+            {
+                freed.Add(new Critter { Name = "old" + i });
+                turns.Track(freed[i], 0f);
+            }
+            var live = new Critter { Name = "live" };
+            turns.Track(live, 0f);
+            Func<Critter, bool> test = c =>
+            {
+                c.Tests++;
+                if (c.Name.StartsWith("old")) throw new NullReferenceException();
+                return c.Ready;
+            };
+            for (int frame = 0; frame < 20; frame++) turns.Serve(1f + frame, 1f, 5, test, ask);
+            Assert.All(freed, c => Assert.Equal(1, c.Tests));
+            Assert.Equal(10, turns.Dropped);
+            Assert.IsType<NullReferenceException>(turns.LastError);
+            Assert.Equal(1, turns.Count);
+            Assert.True(live.Asks > 0);
+        }
+
+        [Fact]
+        public void ClearForgetsTheLastGamesCritters()
+        {
+            // A new game: every critter of the last one is forgotten, none is tested again.
+            var turns = new ThreatTurns<Critter>();
+            var a = new Critter { Name = "a" };
+            turns.Track(a, 0f);
+            turns.Serve(1f, 10f, 5, c => throw new InvalidOperationException(), ask);
+            var b = new Critter { Name = "b" };
+            turns.Track(b, 0f);
+            turns.Clear();
+            Assert.Equal(0, turns.Count);
+            Assert.Equal(0, turns.Dropped);
+            Assert.Null(turns.LastError);
+            Assert.Equal(0, turns.Serve(100f, 10f, 5, ready, ask));
+            Assert.Equal(0, b.Tests);
+            // Tracked again in the new game: a place of its own.
+            turns.Track(b, 101f);
+            Assert.Equal(1, turns.Serve(101f, 10f, 5, ready, ask));
+            Assert.Equal(1, b.Asks);
+        }
+
+        [Fact]
         public void AtMostOneAskInFiveOfTheGroupsTurnsAndFourTestsAFrame()
         {
             var turns = new ThreatTurns<Critter>();

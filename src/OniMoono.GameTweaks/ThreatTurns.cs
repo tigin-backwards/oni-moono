@@ -18,6 +18,9 @@ namespace OniMoono.GameTweaks
     /// one. So threat turns take at most one in TurnsPerAsk of the group's turns (one of the
     /// game's 5 a frame), however many critters are due, and the round robin keeps the rest. A
     /// critter asked for or tested is not tested again before a gap has passed.
+    ///
+    /// A critter whose `ready` test throws is dropped (counted, the exception kept): a bad key
+    /// costs one test, not an exception every frame (#93).
     public sealed class ThreatTurns<T> where T : class
     {
         public const int ChecksPerFrame = 4;
@@ -43,6 +46,10 @@ namespace OniMoono.GameTweaks
 
         /// The critters tracked.
         public int Count => slots.Count;
+
+        /// The keys dropped since the last Clear because `ready` threw, and the last exception.
+        public int Dropped { get; private set; }
+        public Exception LastError { get; private set; }
 
         /// A critter starts looking for a target or is under threat: due at `due`.
         public void Track(T key, float due)
@@ -73,6 +80,8 @@ namespace OniMoono.GameTweaks
             queue.Clear();
             slots.Clear();
             credit = 0f;
+            Dropped = 0;
+            LastError = null;
         }
 
         /// One frame: `turns` is the group's turns this frame. Tests the critters due at `now`, in
@@ -105,7 +114,15 @@ namespace OniMoono.GameTweaks
                 if (checks == ChecksPerFrame) break;
                 checks++;
                 queue.Dequeue();
-                bool isReady = ready(entry.Key);
+                bool isReady;
+                try { isReady = ready(entry.Key); }
+                catch (Exception e)
+                {
+                    slots.Remove(entry.Key);
+                    Dropped++;
+                    LastError = e;
+                    continue;
+                }
                 if (slots.TryGetValue(entry.Key, out slot) && slot.Stamp == entry.Stamp)
                 {
                     slot.Due = entry.Due = now + gap;
