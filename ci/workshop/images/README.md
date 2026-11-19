@@ -4,3 +4,6 @@ Images the Workshop item's description shows, linked by their raw GitHub URLs.
   Copyright GitHub Inc.), rendered white at 32 px. Used unmodified to link to this repository, as
   GitHub's logo guidelines allow.
 - `onimaxxing-mark-48.png`: onimaxxing's mark (the site's favicon, transparent) at 48 px high.
+- `moono-workshop-teaser.webp`: a 10-second side-by-side (original game above, Moono below) of
+  a 200-Duplicant colony at speed 3 with an autosave, recorded on Windows; the numbers are those
+  measured while recording.
