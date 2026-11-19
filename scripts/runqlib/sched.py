@@ -65,6 +65,7 @@ class External:
     windows: bool = False  # windows-game.lock, a legacy run's game, a leftover game
     load: int = 0  # jobs outside runq that load the machine (players, perf jobs)
     why: tuple = ()  # what they are, in words, for the reasons
+    procs: tuple = ()  # (pid, command line) of the processes found occupying it
 
 
 @dataclasses.dataclass
@@ -98,6 +99,7 @@ class Plan:
     drain: bool  # a perf job waits for load to end: legacy spec runners should not start more
     order: list  # the queued jobs' ids in start order
     quiet_ended: list = dataclasses.field(default_factory=list)  # ids whose wait for quiet is over (see plan)
+    outside_only: list = dataclasses.field(default_factory=list)  # due jobs that only what runs outside runq holds back
 
 
 def capacity(cfg, lanes_total):
@@ -242,7 +244,7 @@ def plan(state):
     running_per_owner = {}
     for r in state.running:
         running_per_owner[r.owner] = running_per_owner.get(r.owner, 0) + 1
-    grants, reasons, starts, quiet_started, quiet_ended = [], {}, {}, {}, []
+    grants, reasons, starts, quiet_started, quiet_ended, outside_only = [], {}, {}, {}, [], []
     reservations = []
     drain = False
     order = ordered(state)
@@ -336,8 +338,14 @@ def plan(state):
         # A due job held up by a perf job outside runq: perf.wanted asks the old perf claimers to
         # start no new run, so the wait ends with the current one instead of a chain of them.
         due = job.boost or now - job.order >= float(cfg['due_minutes'].get(job.level, 0)) * 60
+        # Due, and it would start now if the processes outside runq were gone: when nothing runs,
+        # they are all that holds the queue (the daemon warns after a while).
+        if due and gate is None and blocked and state.external.procs:
+            alone = fits_window(u, now, end, entries, cap) is None
+            if blocked in ('lane', 'perf-shared') or (alone and fits_window(u, now, end, entries, cap, ext, now)):
+                outside_only.append(job.id)
         if gate is None and due and u[LOAD] and state.external.perf:
             fits_alone = fits_window(u, now, end, entries, cap) is None
             if fits_alone and fits_window(u, now, end, entries, cap, ext, now):
                 drain = True
-    return Plan(grants, reasons, starts, quiet_started, drain, [j.id for j in order], quiet_ended)
+    return Plan(grants, reasons, starts, quiet_started, drain, [j.id for j in order], quiet_ended, outside_only)

@@ -387,7 +387,7 @@ def follow(c, job_id, log_path, stream=True, cancel_on_detach=False, quiet=False
     except KeyboardInterrupt:
         if cancel_on_detach:
             try:
-                connect(start=False).call({'op': 'cancel', 'id': job_id})
+                connect(start=False).call({'op': 'cancel', 'id': job_id, 'by': canceller('--cancel-on-detach')})
                 print(f'runq: {job_id} cancelled', file=sys.stderr)
             except Exception:
                 pass
@@ -474,6 +474,17 @@ def cmd_status(argv):
     stale = stale_daemon(st['version'])
     if stale:
         print(f'WARNING: {stale}')
+    stall = st.get('stall')
+    if stall:
+        print(
+            f'WARNING: nothing has run for {mins(now - stall["since"])}: due job(s) {", ".join(stall["jobs"])} wait only on processes outside runq '
+            '(a deadlock if one of them waits on the queue; runq show ID, then end that process or its job)'
+        )
+        for pid, line in stall.get('procs') or []:
+            print(f'WARNING:   pid {pid}: {line[:300] or "(gone)"}')
+        if not stall.get('procs'):
+            for line in stall.get('external') or []:
+                print(f'WARNING:   {line}')
     print('RUNNING')
     for d in st['running'] or []:
         ran = now - (d['start'] or now)
@@ -521,12 +532,27 @@ def cmd_show(argv):
     return 0
 
 
+def canceller(via=None):
+    """Who cancels, for the job's cancelled_by (runq show, history): owner, pid, cwd and the
+    parent's command line (the agent's shell or script that ran runq cancel)."""
+    cwd = os.getcwd()
+    try:
+        with open(f'/proc/{os.getppid()}/cmdline', 'rb') as f:
+            parent = f.read().replace(b'\0', b' ').decode(errors='replace').strip()
+    except OSError:
+        parent = ''
+    by = {'owner': owner_default(cwd), 'pid': os.getpid(), 'ppid': os.getppid(), 'parent': parent[:300], 'cwd': cwd}
+    if via:
+        by['via'] = via
+    return by
+
+
 def cmd_cancel(argv):
     if not argv:
         die('runq cancel ID')
     code = 0
     for job_id in argv:
-        reply = connect().call({'op': 'cancel', 'id': job_id})
+        reply = connect().call({'op': 'cancel', 'id': job_id, 'by': canceller()})
         if not reply.get('ok'):
             print(f'runq: {reply.get("error")}', file=sys.stderr)
             code = 2
@@ -550,6 +576,8 @@ def cmd_log(argv):
 
 
 def cmd_history(argv):
+    from runqlib import store
+
     owner = argv[argv.index('--owner') + 1] if '--owner' in argv else None
     since = 0.0
     if '--since' in argv:
@@ -560,6 +588,7 @@ def cmd_history(argv):
         print(
             f'{d["id"]} {when(d["submit"])} {d["state"]:<9} exit {"-" if d["exit"] is None else d["exit"]:<4} {d["owner"]:<14} {d["level"]:<8} {d["kind"]:<12} {mins(took) if took else "-":<8} {d["label"][:50]}'
             + (f'  ({d["reason"]})' if d.get('reason') else '')
+            + (f'  by {store.cancel_text(d["cancelled_by"])}' if d.get('cancelled_by') else '')
         )
     return 0
 

@@ -28,7 +28,7 @@ can `runq wait ID` later: stopping `runq run` does not cancel the job unless it 
 | `runq run [OPTIONS] -- CMD` | queue, wait, stream the output, exit with the command's code |
 | `runq submit [OPTIONS] -- CMD` | queue, print the job id |
 | `runq wait ID...` | wait for each; exit with the first failure's code |
-| `runq cancel ID` | dequeue, or stop a running job (SIGTERM, SIGKILL after 30 s) |
+| `runq cancel ID` | dequeue, or stop a running job (SIGTERM, SIGKILL after 30 s); the job records who cancelled it |
 | `runq status [--json] [--owner X]` | what runs, what waits and why, what runs outside runq, warnings |
 | `runq show ID`, `runq log ID [-f]`, `runq history` | one job's record, its output, past jobs |
 | `runq phase --kind K` | inside a job: give back what it holds, then wait for K's resources |
@@ -41,7 +41,9 @@ Exit codes:
 - The command's own.
 - 124: timeout.
 - 137: cancelled, idle-held, no heartbeat, a self-deadlock, `windows-rules` or `steam-contact`
-  (`runq show ID` gives the reason).
+  (`runq show ID` gives the reason). A cancelled job's `cancelled_by` in `runq show ID` names who
+  cancelled it: owner, pid, working folder, the parent's command line, and `via` when
+  `--cancel-on-detach` did it. `runq history` adds "by OWNER pid N in FOLDER" to the line.
 - 75: refused at submit (a cap, an unknown level or kind).
 - 76: lost to a WSL restart.
 - 69: no daemon.
@@ -228,7 +230,19 @@ Until no script takes them directly, runq and the old locks see each other:
   `players.json` entry as a player, an exclusive holder or a live `perf.wanted` as a perf job,
   `windows-game.lock` or a test game started outside runq as the Windows slot taken. So do a
   running `qa.sh` (15 GB) and the sweep and measurement scripts `e2e.py` calls perf jobs.
-  `runq status` lists them under OUTSIDE RUNQ.
+  `runq status` lists them under OUTSIDE RUNQ, with their pids and command lines.
+- A process counts as `qa.sh` or a perf job by the program it runs, past `bash`, `sh`, `python3`
+  and `env` and their options: `bash scripts/qa.sh verify` is a `qa.sh`. A string elsewhere in
+  the arguments does not count. So these are not occupants: runq's own processes (`runq run`,
+  `submit` or `wait`, from the worktree or the installed copy, and the daemon), a shell given a
+  command string (`bash -c "... scripts/runq run -- scripts/qa.sh"`, an agent's shell waiting on
+  runq), and wrappers such as `flock`, `timeout` and `grep` (their child is the real process,
+  and counts). Processes in a runq job's unit or scope never count. `e2e.py` uses the same rule
+  for its own budget.
+- When nothing runs and a due job waits only on processes outside runq for 10 minutes
+  (`outside_stall_minutes`), `runq status` starts with a WARNING that names the due jobs and
+  each such process's pid and command line. If one of them waits on the queue itself, that is a
+  deadlock: end that process, or ask its owner to.
 - While a perf job waits for load to end, the daemon writes its own pid to `perf.wanted`, so old
   spec runners start no new spec. It does the same once a job is due and only a perf job outside
   runq holds it up, so the old perf claimers start no new run and the wait ends with theirs.

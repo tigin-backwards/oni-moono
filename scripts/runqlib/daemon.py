@@ -185,6 +185,7 @@ class Daemon:
         self.unit_checked = 0.0
         self.scanned = 0.0
         self.external, self.lanes_free = sched.External(), ()
+        self.stall = None  # {'since', 'jobs'}: nothing runs, due jobs wait only on what runs outside runq
         self.retention_at = 0.0
         self.windows_relevant = False
         self.user_in_oni = False  # a game of the user's runs (winenv.user_playing), as of the last pass
@@ -397,7 +398,7 @@ class Daemon:
         elif op == 'wait':
             self.wait(conn, req['id'])
         elif op == 'cancel':
-            conn.send(self.cancel(req['id']))
+            conn.send(self.cancel(req['id'], by=req.get('by')))
         elif op == 'show':
             job = self.store.get(req['id'])
             conn.send({'ok': bool(job), 'job': self.describe(job) if job else None, 'error': None if job else 'no such job'})
@@ -546,10 +547,17 @@ class Daemon:
             for conn in self.waiters.pop(job_id, []):
                 pass
 
-    def cancel(self, job_id, reason='cancelled', code=EXIT_KILLED):
+    def cancel(self, job_id, reason='cancelled', code=EXIT_KILLED, by=None):
+        """Dequeue or stop JOB_ID. BY: who asked ({owner, pid, cwd, parent} from `runq cancel`),
+        kept in the job's cancelled_by."""
         job = self.store.get(job_id)
         if not job:
             return {'ok': False, 'code': 2, 'error': f'no job {job_id}'}
+        if job['state'] in ('queued', 'running') and not job.get('cancelled_by'):  # the first asker stopped it
+            by = dict(by) if isinstance(by, dict) else {}
+            by['at'] = time.time()
+            self.store.update(job_id, cancelled_by=by)
+            log(f'{job_id}: cancel asked by {store.cancel_text(by)}')
         if job['state'] == 'queued':
             self.store.update(job_id, state='cancelled', end=time.time(), exit=code, reason=reason)
             self.forget(job_id)
@@ -589,6 +597,7 @@ class Daemon:
                 'attempt',
                 'phase',
                 'after',
+                'cancelled_by',
             )
         }
         d['waits'] = self.reasons.get(job['id'])
@@ -1030,6 +1039,7 @@ class Daemon:
                 elif winenv.legacy_test_game(cmd):
                     ext.windows = True
                     why.append(f'a test game outside runq, pid {g.get("pid")} ({g.get("name")})')
+                    ext.procs += ((g.get('pid'), f'Windows: {cmd}'),)
             interop = self.worker.interop
             if wants_windows and not (interop and os.path.exists(interop)):
                 ext.windows = True
@@ -1161,6 +1171,11 @@ class Daemon:
             background=('a game of another tool runs: ' + ', '.join(background)) if background else None,
         )
         p = sched.plan(state)
+        if not running_rows and not p.grants and p.outside_only:
+            since = self.stall['since'] if self.stall else now
+            self.stall = {'since': since, 'jobs': list(p.outside_only)}
+        else:
+            self.stall = None
         for jid, t in p.quiet_started.items():
             self.store.update(jid, quiet_since=t)
         for jid in p.quiet_ended:
@@ -1240,8 +1255,13 @@ class Daemon:
             running = [d for d in running if d['owner'] == owner]
             queued = [d for d in queued if d['owner'] == owner]
         ext = self.external
+        stall = None
+        minutes = float(self.cfg.get('outside_stall_minutes', 10))
+        if self.stall and now - self.stall['since'] >= minutes * 60:
+            stall = dict(self.stall, external=list(ext.why), procs=[list(p) for p in ext.procs])
         return {
             'version': self.version,
+            'stall': stall,
             'pid': os.getpid(),
             'now': now,
             'machine': {

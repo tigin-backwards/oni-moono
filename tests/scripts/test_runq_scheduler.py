@@ -156,6 +156,18 @@ class Resources(unittest.TestCase):
         self.assertEqual(granted(p), [])
         self.assertTrue(p.drain)
 
+    def test_outside_only_names_due_jobs_held_by_occupants_outside_runq(self):
+        # The deadlock of a runq client counted as a qa.sh: a due perf job waits on it alone.
+        ext = sched.External(mem=15, players=1, load=1, why=('qa.sh pid 9: bash scripts/qa.sh verify',), procs=((9, 'bash scripts/qa.sh verify'),))
+        p = sched.plan(state([job('perf', level='issue', kind='perf'), job('qa', 'b', level='study', kind='qa', order=1)], external=ext))
+        self.assertNotIn('perf', granted(p))
+        self.assertEqual(p.outside_only, ['perf'])  # qa is not due yet
+        # Not due, or not held by the outside occupants: not named.
+        p = sched.plan(state([job('perf', kind='perf')], external=ext))
+        self.assertEqual(p.outside_only, [])
+        p = sched.plan(state([job('perf', level='issue', kind='perf')], running=[run('r', 'b', kind='perf')], external=sched.External()))
+        self.assertEqual(p.outside_only, [])
+
 
 class Caps(unittest.TestCase):
     def test_running_per_owner(self):
