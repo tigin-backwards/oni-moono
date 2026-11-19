@@ -84,7 +84,7 @@ under Klei's mod guidelines).
 
 `ci/game-refs.json` lists each game build the branch supports, where its files come from and
 the SHA-256 of every file. `default_build` is the one the release builds against (U59 744825 on
-`master`, U60 763612 on `u60`).
+`master`, U60 763796 on `u60`).
 
 `scripts/fetch-game-refs.py OUT` fetches one build into `OUT/OxygenNotIncluded_Data/Managed`, a
 folder that works as `ONI_GAME_DIR`. It:
