@@ -128,7 +128,22 @@ load at all, in both players, comes first from [Load sweeps](#load-sweeps).
   after that frame (`src/OniMoono.Host/TestHang.cs`), to try the watchdog. `scripts/qa.sh`'s
   U57 runs have the same watchdog, keyed to PerfProbe's PERF lines (`QA_HANG_MIN`).
 - **Paused time.** The fixture loads paused. Time passes only in `run` steps. Take all UI evidence
-  before the first `run`, or right after an expectation that pins the state.
+  before the first `run`, or right after an expectation that pins the state. After the load the
+  game holds two pauses (`SpeedControlScreen.Instance.pauseCount` 2): the game's own and the
+  runner's. OniMcp's `resume` releases one, so a `wait_state` for `IsPaused: false` needs two
+  resumes (or a `run`) before it.
+- **The load's MOD DIFFERENCES dialog.** A save records the mods it was made with, and most
+  fixtures differ from a spec's mods: U57, 2minnow and decrew were saved with their players' mods,
+  the others by e2e.py with OniMcp and E2eDriver, so a test mod or Workshop mods differ too. The
+  game then opens MOD DIFFERENCES after the load, in both players. The runner closes it as a
+  player would: with its OK button, or with Escape when a long list pushes the button below the
+  screen (U57's 20 mods do at 1280x720 on U60, in the original as in ours; on U59 the button
+  fits in both: the game's dialog grows with its text and does not scroll). Both only close it.
+  The runner then checks that the pause menu is not open and that the dialog gave back its
+  pause, which leaves the game as a load without the dialog does
+  ([`load-mod-differences.yaml`](load-mod-differences.yaml)). A `shot`, `expect_state` or
+  `wait_state` while the dialog is still open fails at once with its title, and a `wait_state`
+  that times out names any dialog that is open.
 - **The build menu catches up over frames.** The game counts the colony's inventory one tag a
   frame, checks ten buildings' requirements a frame and repaints ten of the menu's buttons a
   frame, so a button can show a stale state (greyed, not affordable) for dozens of frames after
@@ -159,7 +174,7 @@ In the environment, or in `out/local-tools/qa.env`:
 |---|---|
 | `QA_U57_GAME`, `QA_U57_STEAM` | The game folder with the DLC content and a Steam double owning it, as for `qa.sh`'s U57 stages. |
 | `E2E_ONIMCP` | A build of OniMcp's mod folder at the commit `scripts/onimcp.py` pins and builds (its licence does not allow vendoring it). |
-| `E2E_DRIVER` | E2eDriver's mod folder (default `out/bin/E2eDriver/release`), for specs that use it. |
+| `E2E_DRIVER` | E2eDriver's mod folder (default `out/bin/E2eDriver/release`; `dotnet build tools/E2eDriver -c Release`), required for every spec but those at the main menu without driver steps. |
 | `E2E_ORIGINAL` | The original player's executable, with a DLC-owning Steam double in its Plugins, for `--player original` or `both`. |
 | `E2E_ORIGINAL_ENV` | `NAME=VALUE` settings for the original player only ([Run time](#run-time)). |
 | `E2E_ORIGINAL_ARGS` | More Unity player arguments for the original (`-force-glcore`). |
@@ -235,8 +250,9 @@ the display's, and a main-menu shot's crop and masks to its grab.
 
 Every spec gets OniMcp and, in both players, E2eDriver: `E2eDriver.dll` from its build
 (`E2E_DRIVER`, default `out/bin/E2eDriver/release`) with `tools/E2eDriver/mod.yaml` and
-`mod_info.yaml`, stamped 1399985550 in `mods.json`. A spec with driver steps fails without a
-build of it. Each Local mod's stamp is its folder name's Mono string hash
+`mod_info.yaml`, stamped 1399985550 in `mods.json`. A run with a fixture, or with driver steps,
+does not start without a build of it: without it nothing closes the load's MOD DIFFERENCES
+dialog, which a fixture saved with E2eDriver opens. Each Local mod's stamp is its folder name's Mono string hash
 (`ws-mods.py mono_hash`), the one KMod computes in both players. PLib reads options from
 `config.json` beside the mod's assembly, or from `mods/config/ASSEMBLY/` when the mod uses the
 shared location. The runner writes both, in every folder of the mod that holds a DLL, because KMod

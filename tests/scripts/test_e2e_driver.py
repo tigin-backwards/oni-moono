@@ -27,13 +27,13 @@ class FakeGame:
         centre (default the element itself)."""
         x, y, w, h = rect
         fields.setdefault('key', '/' + path)
+        fields.setdefault('onscreen', True)
         self.elements[as_name or path] = dict(
             path=path,
             name=path.rsplit('/', 1)[-1],
             active=True,
             rect={'x': x, 'y': y, 'w': w, 'h': h},
             center={'x': x + w / 2, 'y': y + h / 2},
-            onscreen=True,
             hit=hit or path,
             **fields,
         )
@@ -120,6 +120,10 @@ class FakeGame:
                 if any(p == r or p.startswith(r + '/') for r in roots)
             ]
             return {'roots': roots, 'count': len(lines), 'lines': lines}
+        if cmd == 'ui.wait' and args.get('cond') == 'gone':
+            if self.matches({'path': args['path']}):
+                raise Failure(f'timeout: gone not met within {args.get("frames", 300)} frames', {'frames': args.get('frames', 300)})
+            return {'frames': 1, 'count': 0, 'element': None}
         if cmd == 'ui.wait':
             found = self.matches({'path': args['path']})
             state = {'frames': 1 if found else args.get('frames', 300), 'count': len(found), 'element': self.describe(found[0]) if found else None}
@@ -201,8 +205,9 @@ class FakeServer(socketserver.ThreadingTCPServer):
 class FakeInput:
     """Records XTEST input; a click at a point runs the game's handler for it."""
 
-    def __init__(self, on_click=None):
+    def __init__(self, on_click=None, on_key=None):
         self.events, self.on_click = [], on_click or (lambda x, y, mods: None)
+        self.on_key = on_key or (lambda code: None)
 
     def click(self, x, y, button='left', mods=(), double=False):
         self.events.append(('double-click' if double else 'click', x, y, button, tuple(mods)))
@@ -210,6 +215,7 @@ class FakeInput:
 
     def key(self, code):
         self.events.append(('key', code))
+        self.on_key(code)
 
     def type_text(self, text):
         self.events.append(('type', text))
@@ -354,6 +360,89 @@ class DriverTests(unittest.TestCase):
         with self.assertRaises(e2e.DriverError) as caught:
             self.driver.dump('**/Nope')
         self.assertIn('no element matches **/Nope', str(caught.exception))
+
+    # -- the load's MOD DIFFERENCES dialog
+    DIALOG = 'Canvas/ConfirmDialog'
+
+    def mod_differences(self, ok_y=600, paused=2):
+        """The dialog as the game shows it after a load with other mods than the save's, the game
+        paused by e2e.py after the load and by the dialog."""
+        key = '/Canvas#0/ConfirmDialog#7'
+        self.game.add(self.DIALOG + '/GameObject/Header/Label', [420, 250, 439, 24], text='MOD DIFFERENCES', key=key + '/GameObject#1/Header#0/Label#0')
+        self.game.add(self.DIALOG + '/GameObject/Panel/OKButton', [452, ok_y, 375, 48], key=key + '/GameObject#1/Panel#3/OKButton#0', onscreen=ok_y + 48 <= 720)
+        self.game.state['SpeedControlScreen.Instance.pauseCount'] = paused
+
+    def close_dialog(self, releases=True, pause_menu=False):
+        for path in [p for p in self.game.elements if p.startswith(self.DIALOG + '/')]:
+            del self.game.elements[path]
+        if releases:
+            self.game.state['SpeedControlScreen.Instance.pauseCount'] -= 1
+        if pause_menu:
+            self.game.add('ScreenSpaceOverlayCanvas/PauseScreen', [0, 0, 1280, 720])
+
+    def test_load_dialog_is_closed_with_its_ok_button(self):
+        self.mod_differences()
+        logs = []
+        run = self.run_for(FakeInput(lambda x, y, mods: self.close_dialog()))
+        run.log = logs.append
+        run.dismiss_load_dialogs()
+        self.assertEqual(run.input.events, [('click', 640, 624, 'left', ())])
+        self.assertIn('  closed; pause count 2 -> 1', logs)
+        self.assertEqual(self.game.state['SpeedControlScreen.Instance.pauseCount'], 1)
+
+    def test_load_dialog_with_its_ok_button_off_screen_is_closed_with_escape(self):
+        # U57's 20 mods put the button at y 834 on a 720-pixel screen on U60, in the original as in ours.
+        self.mod_differences(ok_y=834)
+        run = self.run_for(FakeInput(on_key=lambda code: self.close_dialog()))
+        run.dismiss_load_dialogs()
+        self.assertEqual(run.input.events, [('key', 'Escape')])
+        self.assertIsNone(run.open_load_dialog())
+
+    def test_load_dialog_closed_into_a_wrong_state_fails(self):
+        self.mod_differences(ok_y=834)
+        run = self.run_for(FakeInput(on_key=lambda code: self.close_dialog(pause_menu=True)))
+        with self.assertRaises(e2e.SpecFailure) as caught:
+            run.dismiss_load_dialogs()
+        self.assertEqual(str(caught.exception), "closing 'MOD DIFFERENCES' left the pause menu open")
+        self.game.elements.clear()
+        self.mod_differences()
+        run = self.run_for(FakeInput(lambda x, y, mods: self.close_dialog(releases=False)))
+        with self.assertRaises(e2e.SpecFailure) as caught:
+            run.dismiss_load_dialogs()
+        self.assertEqual(str(caught.exception), "closing 'MOD DIFFERENCES' took the pause count from 2 to 2, not 1")
+
+    def test_an_open_load_dialog_fails_shots_and_state_steps_at_once(self):
+        self.mod_differences()
+        self.game.state['SpeedControlScreen.Instance.IsPaused'] = True
+        run = self.run_for()
+        expected = "the 'MOD DIFFERENCES' dialog the load opened is still open (Canvas/ConfirmDialog/GameObject/Header/Label)"
+        steps = [
+            ('shot', 'colony', 'shot colony'),
+            ('wait_state', {'state': {'SpeedControlScreen.Instance.IsPaused': False}, 'seconds': 420}, 'wait_state'),
+            ('expect_state', {'SpeedControlScreen.Instance.IsPaused': True}, 'expect_state'),
+        ]
+        for kind, value, what in steps:
+            began = time.monotonic()
+            with self.assertRaises(e2e.SpecFailure) as caught:
+                run.step(kind, value, 1)
+            self.assertEqual(str(caught.exception), f'{what}: {expected}')
+            self.assertLess(time.monotonic() - began, 5)
+
+    def test_a_wait_state_timeout_names_an_open_dialog(self):
+        self.game.add(self.DIALOG + '/GameObject/Header/Label', [420, 250, 439, 24], text='SAVE FAILED')
+        self.game.state['SpeedControlScreen.Instance.IsPaused'] = True
+        run = self.run_for()
+        with self.assertRaises(e2e.SpecFailure) as caught:
+            run.wait_state({'state': {'SpeedControlScreen.Instance.IsPaused': False}, 'seconds': 0})
+        self.assertEqual(
+            str(caught.exception), "wait_state: after 0 s SpeedControlScreen.Instance.IsPaused is true, wanted False (a dialog is open: 'SAVE FAILED')"
+        )
+
+    def test_a_spec_needs_a_built_e2edriver(self):
+        self.assertIn('E2eDriver is not built', e2e.driver_missing({}))
+        self.assertIn('no E2eDriver.dll in E2E_DRIVER', e2e.driver_missing({'E2E_DRIVER': self.temp.name}))
+        open(os.path.join(self.temp.name, 'E2eDriver.dll'), 'w').close()
+        self.assertIsNone(e2e.driver_missing({'E2E_DRIVER': self.temp.name}))
 
     # -- the steps
     def test_click_checks_occlusion(self):
