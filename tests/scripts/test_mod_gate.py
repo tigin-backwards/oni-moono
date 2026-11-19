@@ -134,6 +134,9 @@ class Gate(unittest.TestCase):
         results = self.run_gate(onimaxxing(), ['1', '../x'])
         self.assertEqual(results['1']['reason'], 'not downloaded')
         self.assertEqual(results['../x']['reason'], 'not a Workshop id')
+        # An empty folder, what a failed unpack left, is not a mod without binaries.
+        os.makedirs(os.path.join(self.ws, '1'))
+        self.assertEqual(self.run_gate(onimaxxing(), ['1'])['1']['reason'], 'not downloaded')
 
     def test_fast_track_is_skipped_on_u60(self):
         self.mod('9000000001', {'mod.yaml': b'title: Fast Track\n', 'FastTrack.dll': b'MZ fast track'})
@@ -177,6 +180,24 @@ class Profile(unittest.TestCase):
                     ws_mods.profile(os.path.join(temp, 'mods'), ['3823197258'])
             self.assertIn('3823197258: not reviewed', str(caught.exception))
             self.assertFalse(os.path.exists(os.path.join(temp, 'mods')))
+
+    def test_unpack_takes_the_main_checkouts_copy_and_leaves_no_empty_folder(self):
+        with tempfile.TemporaryDirectory() as temp:
+            ws, shared = os.path.join(temp, 'ws'), os.path.join(temp, 'main', 'ws')
+            os.makedirs(os.path.join(shared, '9000000001'))
+            with open(os.path.join(shared, '9000000001', 'FastTrack.dll'), 'wb') as f:
+                f.write(b'MZ fast track')
+            os.makedirs(os.path.join(ws, '9000000001'))  # left empty by an earlier failed unpack
+            with (
+                mock.patch.object(ws_mods, 'WS', ws),
+                mock.patch.object(ws_mods, 'CONTENT', os.path.join(temp, 'content')),
+                mock.patch.object(ws_mods, 'main_ws', lambda: shared),
+            ):
+                self.assertEqual(ws_mods.unpack('9000000001'), os.path.join(ws, '9000000001'))
+                self.assertEqual(os.listdir(os.path.join(ws, '9000000001')), ['FastTrack.dll'])
+                # Nowhere to take it from: no folder, so the gate says not downloaded.
+                self.assertIsNone(ws_mods.unpack('9000000002'))
+                self.assertFalse(os.path.exists(os.path.join(ws, '9000000002')))
 
 
 if __name__ == '__main__':

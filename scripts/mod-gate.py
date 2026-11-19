@@ -170,8 +170,8 @@ def check(mid, oni, handles, ws=WS):
     if mid in NOT_ON_THIS_UPDATE:
         return verdict(False, NOT_ON_THIS_UPDATE[mid])
     folder = os.path.join(ws, mid)
-    if not os.path.isdir(folder):
-        return verdict(False, 'not downloaded')
+    if not os.path.isdir(folder) or not os.listdir(folder):
+        return verdict(False, 'not downloaded')  # an empty folder is what a failed unpack left
     analysis = (oni.row(mid) or {}).get('analysis') or {}
     flags = [k for k in FLAGS if analysis.get(k)]
     if flags:
