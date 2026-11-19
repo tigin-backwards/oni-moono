@@ -326,6 +326,7 @@ namespace OniMoono.Tests
             "Search", // the game's own placeholder (UI.UISIDESCREENS.TREEFILTERABLESIDESCREEN.SEARCH_PLACEHOLDER)
             "MODS", // the game's main menu button
             "~OniMoono\" -- %command%", // the launch-option line, a path
+            @"/^Moono (\d{4}\.\d\d\.\d\d\.\d\d|[0-9a-f]{1,9})$/", // the header's version (UpdateCheck.VersionLabel)
         ];
 
         [Fact]
