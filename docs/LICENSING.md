@@ -100,7 +100,9 @@ Steamworks (`libsteam_api.so`, Steamworks.NET under MIT); `cimgui.so` (Dear ImGu
   (`crash_dialog.cpp`). The crash window also draws the GitHub mark from Octicons (© GitHub Inc.,
   MIT). Both notices are in `NOTICE.txt`.
 - Native libraries from BRUTAL's packages (GLFW, glad, stb, FreeType with libpng and zlib), under
-  their own licences as shipped in those packages.
+  their own licences as shipped in those packages: `Ahwoo.BRUTAL.Glfw.Native`,
+  `Ahwoo.BRUTAL.OpenGl.Native` (glad), `Ahwoo.BRUTAL.Stb.Native`, `Ahwoo.BRUTAL.FreeType`
+  (FreeType and libpng) and `Ahwoo.BRUTAL.ZLib`.
 
 ## Provenance of the bundled type trees
 
