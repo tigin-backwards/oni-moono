@@ -52,8 +52,9 @@ namespace OniMoono.Assets.Tests
             Assert.True(file.EnableTypeTree);
             foreach (var obj in file.Objects)
                 TypeTreeReader.ReadObject(file.TypeOf(obj).Tree!, file.OpenObject(obj));
-            // 390 high-resolution textures and their bundle's own objects: 395 in U59, 396 in U60.
-            Assert.InRange(file.Objects.Count, 395, 396);
+            // The high-resolution textures and their bundle's own objects: 395 in U59, 396 in the
+            // U60 betas, 407 from U60's release build 763796 on.
+            Assert.InRange(file.Objects.Count, 395, 407);
         }
 
         /// A node read in place (a window on the archive's data, as bundles are mounted) holds the

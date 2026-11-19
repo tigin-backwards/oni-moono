@@ -97,7 +97,7 @@ runtime, and each version carries its own (self-contained).
 The choice needs the game's build and the versions' `mod_info.yaml`, which the player reads:
 
 1. The game's build: `KleiVersion.ChangeList` in its `Assembly-CSharp.dll`, read from the
-   metadata without loading it (744825 for U59, 763612 for U60).
+   metadata without loading it (744825 for U59, 763796 for U60).
 2. From the source folders (`state\source` and Steam's copy of the item, see
    [Where updates come from](#where-updates-come-from)), the version the game itself would load
    (`ArchiveChoice`, the game's `KMod.Mod.GetMostSuitableArchive`):
@@ -194,7 +194,7 @@ The Workshop item carries the U60 build alone. U59 players install Moono from a
 takes a Workshop item only as a zip, so it lists this folder item as failed to download.
 
 ```
-<item>/                         the u60 build: minimumSupportedBuild 763612
+<item>/                         the u60 build: minimumSupportedBuild 763796
   mod_info.yaml  moono.json  oni-moono-…-u60-windows-x64.SHA256SUMS  oni-moono-…-u60-linux-x64.SHA256SUMS
   windows-x64/  linux-x64/      the release archives' oni-moono folders
   OniMoono.exe  OniMoono.sh     start here once (Windows: double-click; Linux: sh OniMoono.sh)
@@ -417,7 +417,7 @@ list anyway.
   `moono.pot` with the Moono Tweaks screen's, docs/TWEAKS.md), read from the item's player
   folder.
 - **Built** by `workshop.yml` from its run's commit, against U60's reference assemblies
-  (`ci/game-refs.json`, build 763612), and attested with the rest of the item.
+  (`ci/game-refs.json`, build 763796), and attested with the rest of the item.
 - **Tests:** `LoaderTests` (the install and the line, without the game); on u60,
   `tests/e2e/workshop-loader.yaml` in the original game with a made-up item as a local mod, and
   `workshop-loader-moono.yaml` in Moono with it also as a Workshop subscription.

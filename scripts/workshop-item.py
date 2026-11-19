@@ -8,7 +8,7 @@ checks their attestations first): its Windows zip, Linux tarball and their SHA25
 Each archive is extracted with every file checked against its manifest, and laid out as a mod's
 one version:
 
-    OUT/                         the U60 build (minimumSupportedBuild 763612)
+    OUT/                         the U60 build (minimumSupportedBuild 763796)
       mod_info.yaml  moono.json  oni-moono-*-windows-x64.SHA256SUMS  oni-moono-*-linux-x64.SHA256SUMS
       windows-x64/   linux-x64/  the archives' oni-moono folders
       OniMoono.exe  OniMoono.sh  verify.ps1  verify.sh  README.md   (root only)
@@ -37,7 +37,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "..", "ci", "workshop")
-BRANCHES = {"u60": 763612, "master": 744825}
+BRANCHES = {"u60": 763796, "master": 744825}
 PLATFORMS = {"windows-x64": ".zip", "linux-x64": ".tar.gz"}
 TAG = re.compile(r"v([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2})")
 COMPONENT = re.compile(r"[A-Za-z0-9._+-]+")
