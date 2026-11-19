@@ -364,7 +364,7 @@ namespace OniMoono.Tests
             var (message, error) = Assert.Single(told);
             Assert.False(error);
             Assert.Equal("Moono's Workshop item is for the U60 update (build 762230) of Oxygen Not Included and later. Your game is the U59 update (build 744825). " +
-                "Version 2026.11.08.01 plays on, without updates from the Workshop. Newer versions for your game are on GitHub: https://github.com/tigin-backwards/oni-moono/releases", message);
+                "Version 2026.11.08.01 plays on, without updates from the Workshop. Moono for your game is on GitHub: https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.19.03", message);
             Assert.Equal(["2026.11.08.01"], Versions());
             Assert.Equal(before, Hashes(u59));
             Assert.Equal("2026.11.08.01", Install().ReadState("current"));
@@ -396,7 +396,7 @@ namespace OniMoono.Tests
             Directory.CreateDirectory(bootstrap);
             Assert.Equal(2, Start(bootstrap, fromItem: true));
             Assert.Equal(("Moono's Workshop item is for the U60 update (build 762230) of Oxygen Not Included and later. Your game is the U59 update (build 744825). " +
-                "Install Moono for your game from a GitHub release instead: https://github.com/tigin-backwards/oni-moono/releases", true), Assert.Single(told));
+                "Install Moono for your game from a GitHub release instead: https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.19.03", true), Assert.Single(told));
             Assert.Empty(Versions());
             Assert.False(File.Exists(Entry.PathIn(Root)));
         }

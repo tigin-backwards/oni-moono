@@ -132,12 +132,12 @@ namespace OniMoono.Host.Install
                 // A first start from an item that is for a newer game: where this game's Moono is.
                 if (needsBuild != null)
                 {
-                    tell($"{OlderGame(build.Value, needsBuild.Value)} Install Moono for your game from a GitHub release instead: {VersionedInstall.ReleasesUrl}", true);
+                    tell($"{OlderGame(build.Value, needsBuild.Value)} Install Moono for your game from a GitHub release instead: {ReleasesFor(build.Value)}", true);
                     return 2;
                 }
                 return Fail(log, tell, refused != null ? $"{refusal}" : $"no version for game build {build}");
             }
-            // The item no longer has a version for this game (it carries the U60 build alone):
+            // The item no longer has a version for this game (it carries the current game's build alone):
             // the installed version plays on, and the player is told once per game build
             // (state/no-updates) where its updates are. A game update to the item's build clears it.
             if (needsBuild != null)
@@ -145,7 +145,7 @@ namespace OniMoono.Host.Install
                 if (install.ReadState("no-updates") != build.Value.ToString())
                 {
                     install.WriteState("no-updates", build.Value.ToString());
-                    tell($"{OlderGame(build.Value, needsBuild.Value)} Version {chosen.Name} plays on, without updates from the Workshop. Newer versions for your game are on GitHub: {VersionedInstall.ReleasesUrl}", false);
+                    tell($"{OlderGame(build.Value, needsBuild.Value)} Version {chosen.Name} plays on, without updates from the Workshop. Moono for your game is on GitHub: {ReleasesFor(build.Value)}", false);
                 }
             }
             else if (install.ReadState("no-updates") != null) install.WriteState("no-updates", null);
@@ -196,6 +196,10 @@ namespace OniMoono.Host.Install
         /// What a player whose game is older than every version in the Workshop item is told first.
         static string OlderGame(uint build, int needsBuild) =>
             $"Moono's Workshop item is for {Update(needsBuild)} of Oxygen Not Included and later. Your game is {Update((int)build)}.";
+
+        /// Where Moono for a game build is: U59's last release (the frozen u59 line's), else the
+        /// releases.
+        static string ReleasesFor(uint build) => build is >= 744825 and < 762230 ? VersionedInstall.ReleasesUrl + "/tag/v2026.11.19.03" : VersionedInstall.ReleasesUrl;
 
         /// A game build as players know it: its update's name and the number (GameBuild: U59 is
         /// 744825, U60 starts at 762230; a later update needs its line here).
