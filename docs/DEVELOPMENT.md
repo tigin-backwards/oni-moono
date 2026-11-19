@@ -10,8 +10,8 @@ How to build, run and test Moono from source. If you just want to play, the
   Windows x64 with an OpenGL 4.5 driver and the .NET 10 runtime.
 - The .NET SDK pinned in `global.json` (10.0.402, or a later patch release). The scripts use
   `~/.dotnet/dotnet` if it exists.
-- The Linux build of Oxygen Not Included, expected at `~/projects/oni-linux` (on the `u60`
-  branch, U60 build 763796 at `~/projects/oni-linux-763796`). To use another location, set
+- The Linux build of Oxygen Not Included, U60 build 763796, expected at
+  `~/projects/oni-linux-763796`. To use another location, set
   `ONI_GAME_DIR` for the scripts and tests, and pass `-p:OniGameDir=...` to `dotnet build`.
 - `python3` and binutils (`as`, `ld`), for the offline Steam stub.
 - Optionally `libvpx`, for the one test that compares our VP8 decoder against it. The test is
@@ -107,7 +107,7 @@ Before a release, its e2e run is the core list, both players on two lanes (about
 in `tests/e2e/periodic.txt`, run periodically and do not block a release.
 
 Releases are built by GitHub Actions, never on a workstation: run the **Release** workflow
-(`.github/workflows/release.yml`) on `master`, or on `u60` for a U60 beta, with the release's tag:
+(`.github/workflows/release.yml`) on `master` with the release's tag:
 
 ```sh
 gh workflow run release.yml --ref master -f tag=vYYYY.MM.DD.NN -f dry_run=false
@@ -116,12 +116,14 @@ gh workflow run release.yml --ref master -f tag=vYYYY.MM.DD.NN -f dry_run=false
 It builds both archives on GitHub's runners, signs their provenance and leaves a **draft**
 release with them:
 
-- The draft is titled `YYYY.MM.DD.NN` (`YYYY.MM.DD.NN (U60 Beta)`, a pre-release, from `u60`).
+- The draft is titled `YYYY.MM.DD.NN`, a normal release for the game's current update (U60).
   Its notes start with where it was built and how to verify it.
 - Write the notes in the draft on GitHub, then publish it there. Publishing creates the tag and
   makes the release immutable. The workflow never publishes.
 - The tag adds a two-digit counter for the day (`.01` for its first release), so releases sort
-  as text. The archives are named by the date of the commit (`-u60` on `u60`).
+  as text. The archives are named by the tag's date.
+- Since the U60 cut-over (2026-11-19) there is no beta line: `u59` is frozen at the last U59
+  release, and RELEASES.md says how a future beta would plug in.
 
 [RELEASES.md](RELEASES.md) has how the pipeline works, how to verify a release, how to add a new
 game build's reference assemblies and how reproducible the builds are.
@@ -326,8 +328,8 @@ StreamingAssets. It drops:
 
 Code reads texels only from readable textures, and all of those are stored inline, so they stay.
 `OUT/OxygenNotIncluded_Data/moono-stripped.txt` lists what was kept. A U59 copy is about 820 MB,
-and 110 MB with zstd. Make a U59 copy with master's tool and a U60 copy with u60's: the tool
-reads Unity's type trees for that game update.
+and 110 MB with zstd. Make a U60 copy with master's tool (a U59 copy with the frozen u59
+branch's): the tool reads Unity's type trees for that game update.
 
 The player runs a copy only in no-content mode, `ONI_NO_CONTENT=1`. A dropped texture keeps its
 declared size, the GL device draws a 1×1 grey placeholder for it, and a dropped video plays black
@@ -350,12 +352,12 @@ scripts/ci-game-tests.sh push OUT                 # what the game job runs (QA_U
 
 `scripts/ci-game-tests.sh` runs a list:
 
-- **push** (every push to master or u60, about 15 minutes): `check-tweaks.sh` against the game's
+- **push** (every push to master, about 15 minutes): `check-tweaks.sh` against the game's
   assemblies, the unit tests that need the game (the no-game unit test job skips them), and
   `ci/game-tests/push.txt`. That list holds load, simulate, save and reload runs on early-base
   (headless) and a Spaced Out colony with rockets (under Xvfb), a verify run with every tweak (zero
   wrong answers, read by `qa-tools.py verify`), and `exact-worldgen` under Xvfb.
-- **nightly** (the **Game tests (nightly)** workflow, on master; run it by hand on u60):
+- **nightly** (the **Game tests (nightly)** workflow, on master):
   `ci/game-tests/nightly.txt`, which holds UI specs that check their own expectations and dumps,
   mod loading with our own test mods, and a ten-minute verify run on a mid-game colony.
 

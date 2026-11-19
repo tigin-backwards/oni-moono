@@ -20,7 +20,7 @@ Moono 运行 Klei 原版的 DLL，并在加载时按照 Mono 与 .NET 的[差异
 
 1. 从[发布页面](https://github.com/tigin-backwards/oni-moono/releases/latest)下载最新版本：
    `oni-moono-…-windows-x64.zip` 或 `oni-moono-…-linux-x64.tar.gz`，并解压到任意位置。
-   （也可以直接克隆本仓库；此时安装脚本会自行构建 Moono 本体，如果你没有安装 .NET SDK，它还会为当前用户安装。）
+   （也可以直接克隆本仓库；此时安装脚本会自行构建 Moono 本体，如果你没有安装 .NET SDK，它还会为当前用户安装。）各版本适用于游戏当前的 U60 更新；U59 请使用 [2026.11.19.03](https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.19.03)。
 2. 在解压后的 `oni-moono` 文件夹中运行安装脚本：
    - Windows：双击 `setup.cmd`（它会运行 `setup.ps1`，并让窗口保持打开）
    - Linux：`./setup.sh`

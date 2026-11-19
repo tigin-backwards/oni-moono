@@ -31,7 +31,8 @@ from Steam as usual.
    [releases page](https://github.com/tigin-backwards/oni-moono/releases/latest):
    `oni-moono-…-windows-x64.zip` or `oni-moono-…-linux-x64.tar.gz`, and extract it anywhere.
    (Or clone this repository; the setup then builds the player itself, installing the .NET SDK
-   for your user if you don't have it.)
+   for your user if you don't have it.) Releases are for the game's current update, U60; for
+   U59, use [2026.11.19.03](https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.19.03).
 2. Run the setup script in the extracted `oni-moono` folder:
    - Windows: double-click `setup.cmd` (it runs `setup.ps1` and keeps the window open)
    - Linux: `./setup.sh`

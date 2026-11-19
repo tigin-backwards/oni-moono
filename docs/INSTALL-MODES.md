@@ -71,7 +71,7 @@ For a distribution that updates Moono in place, as the Steam Workshop would
 %LOCALAPPDATA%\oni-moono\versioned\        ~/.local/share/oni-moono/versioned/ on Linux
   OniMoono.exe                             the entry point (Linux: OniMoono, a shell script)
   Restarter.exe                            Windows: the entry point again, for the game's App.Restart
-  player\2026.11.08.01-u60\                one player per version, never written once there
+  player\2026.11.20.01\                    one player per version, never written once there
   player\2026.11.08.01\
   state\current  source  pin  switch       what the entry point and the player read
 ```
@@ -189,13 +189,15 @@ Windows.
 
 ## Workshop item
 
-The Workshop item carries the U60 build alone. U59 players install Moono from a
-[GitHub release](https://github.com/tigin-backwards/oni-moono/releases): the original U59 game
-takes a Workshop item only as a zip, so it lists this folder item as failed to download.
+The Workshop item carries one version: a master release, for the current game (U60). U59
+players install Moono's last U59 release,
+[v2026.11.19.03](https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.19.03): the
+original U59 game takes a Workshop item only as a zip, so it lists this folder item as failed to
+download.
 
 ```
-<item>/                         the u60 build: minimumSupportedBuild 763796
-  mod_info.yaml  moono.json  oni-moono-…-u60-windows-x64.SHA256SUMS  oni-moono-…-u60-linux-x64.SHA256SUMS
+<item>/                         the release: minimumSupportedBuild 763796
+  mod_info.yaml  moono.json  oni-moono-…-windows-x64.SHA256SUMS  oni-moono-…-linux-x64.SHA256SUMS
   windows-x64/  linux-x64/      the release archives' oni-moono folders
   OniMoono.exe  OniMoono.sh     start here once (Windows: double-click; Linux: sh OniMoono.sh)
   MoonoLoader.dll               the loader mod, which the original game loads (below)
@@ -207,8 +209,8 @@ takes a Workshop item only as a zip, so it lists this folder item as failed to d
   `APIVersion: 2`, `minimumSupportedBuild` and empty DLC lists, and nothing else at the top is
   content the game scans for (no other `.dll`, no `.po`, `strings`, `anim` and the like).
 - **No archived versions.** Until November 2026 the item also had the U59 build in
-  `archived_versions/u59`. The installer, `scripts/workshop-item.py` (`--master`) and the verify
-  scripts still handle an `archived_versions` folder, so a version can be added again.
+  `archived_versions/u59`. Since the U60 cut-over `scripts/workshop-item.py` lays out one version
+  and the verify scripts refuse an `archived_versions` folder; the installer still handles one.
 - **Under Moono, the mod manager skips it:** no mod, no broken-mod entry, no download-failed
   event. The patch is `OniMoono.GameTweaks.OwnWorkshopItem`, a guarded patch of
   `KMod.Steam.MakeModAndReportOutcome`, declared and checked as every game tweak is, and always
@@ -226,8 +228,8 @@ takes a Workshop item only as a zip, so it lists this folder item as failed to d
   update from Steam's copy of it ([Where updates come from](#where-updates-come-from)). The
   bootstrap copy checks the files as every start does, so a download Steam hasn't finished
   installs nothing even on the first start.
-- **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a u60 release tag):
-  - The release's assets are downloaded and verified against their provenance from u60.
+- **Built in CI** (`.github/workflows/workshop.yml`, run by hand with a release tag):
+  - The release's assets are downloaded and verified against their provenance from master.
   - `scripts/workshop-item.py` checks each archive against its manifest while laying them out.
   - `attest.yml` attests the item's `SHA256SUMS` and every file in it.
   - The Sigstore bundle of the attestation naming `SHA256SUMS` goes into the item as
@@ -237,7 +239,7 @@ takes a Workshop item only as a zip, so it lists this folder item as failed to d
   - `ci/workshop/verify.sh` or `verify.ps1`, taken from GitHub, checks the item against the
     attested release manifests and its own attested `SHA256SUMS`, the bundle included
     ([RELEASES.md](RELEASES.md#verifying-the-workshop-item)).
-- **Size:** about 230 MB in about 610 files (about 404 MB with the U59 build).
+- **Size:** about 230 MB in about 610 files (it was about 404 MB with the U59 build).
 - **Uninstall:** clear Oxygen Not Included's launch options in Steam, then delete
   `%LOCALAPPDATA%\oni-moono` (Linux: `~/.local/share/oni-moono`, or the sandboxed Steam's folder
   above).
@@ -302,13 +304,15 @@ nothing, and says so (`VersionedStart`, `VersionedInstall.SourceNeedsBuild`;
   told once per game build (`state\no-updates`), in a message box (Windows) or desktop dialog
   (Linux): "Moono's Workshop item is for the U60 update (build …) of Oxygen Not Included and
   later. Your game is the U59 update (build 744825). Version … plays on, without updates from
-  the Workshop. Newer versions for your game are on GitHub: …/releases". `ONI_HOST_NO_DIALOG=1`
+  the Workshop. Moono for your game is on GitHub: …/releases/tag/v2026.11.19.03", the u59
+  line's last release. `ONI_HOST_NO_DIALOG=1`
   keeps the dialog away, as for every message.
 - **When that game updates to U60,** the next start installs the item's version and switches to
   it, as before.
 - **A first start from the item on a U59 game** (`OniMoono.exe` or `OniMoono.sh` there) installs
   nothing and says: "Moono's Workshop item is for the U60 update … Your game is the U59 update
-  (build 744825). Install Moono for your game from a GitHub release instead: …/releases".
+  (build 744825). Install Moono for your game from a GitHub release instead:
+  …/releases/tag/v2026.11.19.03".
 - **U59 versions installed from the item** predate this and don't know it. With the
   U60-only item they install the U60 version beside their own (about 105 MB on Windows, unused
   until the game updates), keep playing the U59 version, and say nothing. They update with a
@@ -418,6 +422,6 @@ list anyway.
   folder.
 - **Built** by `workshop.yml` from its run's commit, against U60's reference assemblies
   (`ci/game-refs.json`, build 763796), and attested with the rest of the item.
-- **Tests:** `LoaderTests` (the install and the line, without the game); on u60,
+- **Tests:** `LoaderTests` (the install and the line, without the game);
   `tests/e2e/workshop-loader.yaml` in the original game with a made-up item as a local mod, and
   `workshop-loader-moono.yaml` in Moono with it also as a Workshop subscription.

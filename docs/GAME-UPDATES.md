@@ -2,8 +2,9 @@
 
 The procedure for a new build of Oxygen Not Included, drawn from the U60 updates
 (`docs/research/u60-762230.md`, `u60-763023.md`, `u60-763325.md`, `u60-763612.md`). It applies
-to the branch that plays the updated game: `u60` for the U60 beta, `master` for U59. BUILD is
-the new build, OLD the one the branch targets now. Run builds, players and checks through runq
+to `master`, the branch for the public game (U60 since the U60 cut-over, docs/RELEASES.md); a
+future beta would get its own branch (docs/RELEASES.md, "A future beta"). The frozen `u59`
+branch takes no updates. BUILD is the new build, OLD the one the branch targets now. Run builds, players and checks through runq
 (`RUNQ_OWNER=gameupdate RUNQ_LEVEL=release`, docs/RUNQ.md).
 
 Never write to the live Steam install, Steam's settings, Documents or `%LOCALAPPDATA%\oni-moono`:
@@ -60,17 +61,17 @@ don't read that one, tag it or add builds to it.
   database and version check, a much larger job.
 - [ ] **Steam build:** `buildid` and the depots' manifests in the live
   `steamapps/appmanifest_457140.acf`.
-- [ ] **Did the other branch change?** `py tools\archive.py add` (§3) reads the current
+- [ ] **Did the other Steam branch change?** `py tools\archive.py add` (§3) reads the current
   manifests of both public and public_testing in one Steam login and says which are new. The
-  store already records U59's 4837644823067158760 and U60's 5197059997116858289. If U59's is new,
-  `master` needs this procedure too.
+  store already records U59's 4837644823067158760 and U60's 5197059997116858289. A new
+  public_testing build matters only once Moono follows a beta again; `u59` takes no updates.
 
 ## 2. Freeze the build
 
 - [ ] **Windows and Linux:** DepotDownloader 3.x (`E:\oni-builds\depotdownloader`), the saved
   login, into new folders named for the build: `-app 457140 -os windows -all-platforms=false
   -beta public_testing -dir E:\oni-builds\oni-win-BUILD` and `-app 457140 -os linux -beta
-  public_testing -dir E:\oni-builds\oni-linux-BUILD` (no `-beta` for U59). One download at a
+  public_testing -dir E:\oni-builds\oni-linux-BUILD` (no `-beta` for a public build). One download at a
   time, and never beside oni-archives' `add`: two sessions on one login drop each other. 3.x warns that it did not use
   `-all-platforms=false`; one platform is its default. Retry a dropped connection; success is its
   `Total downloaded` line, not its exit code. Check that the main depot's manifest and
@@ -180,8 +181,7 @@ and `scripts/build-windows.sh release`, with the Windows Steam double in its
   u60/vk-gate ours player-args='--renderer vulkan'
   ```
 
-  then `scripts/e2e.py --player both --lanes 3 --list FILE`. On `master` (U59), which has
-  neither U60 spec, `game-update-smoke` alone.
+  then `scripts/e2e.py --player both --lanes 3 --list FILE`.
 - [ ] **Windows Vulkan smoke** on a late game, ours:
   `scripts/e2e-windows/run.py --player ours tests/e2e/game-update-smoke-late.yaml` (monitor 2,
   `--no-focus`, muted, `ONI_HOST_NO_DIALOG` through runq; never the background flag).

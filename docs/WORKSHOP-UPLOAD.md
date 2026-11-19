@@ -15,15 +15,15 @@ gh workflow run workshop-upload.yml -r master -f run=RUN_ID                 # dr
 gh workflow run workshop-upload.yml -r master -f run=RUN_ID -f mode=upload
 ```
 
-1. Checks that the run is a successful `workshop.yml` run on master or u60 and downloads its
+1. Checks that the run is a successful `workshop.yml` run on master and downloads its
    `workshop-item` artifact.
-2. Checks the item with `ci/workshop/verify.sh` from the checkout: the U60 release's
+2. Checks the item with `ci/workshop/verify.sh` from the checkout: the release's
    manifests by their provenance from `release.yml`, the item's `SHA256SUMS` by its provenance from
-   `workshop.yml` on master or u60, every file against it, and nothing extra. It also checks
+   `workshop.yml`, every file against it, and nothing extra. It also checks
    that the attestation was signed by that same run.
 3. Writes the VDF (`scripts/workshop-upload.py`):
    - **description:** master's `ci/workshop/description.bbcode`, as written;
-   - **change note:** the notes of the u60 release whose tag is in the item. A tag without a
+   - **change note:** the notes of the release whose tag is in the item. A tag without a
      published release is refused, so an item built from a dry run is never uploaded;
    - **preview:** master's `ci/workshop/preview.gif`, only with `-f preview=true`;
    - **visibility:** left out by default, so Steam keeps the item's current visibility.
@@ -60,15 +60,13 @@ without it. It must also own the item or be able to update it. `qigit` owns both
 ### 2. Create the GitHub Environment
 
 The `steam-workshop` environment keeps the secrets from every other job, and takes runs from
-master and u60 only:
+master only (until the U60 cut-over it took u60 too; that policy can go):
 
 ```sh
 gh api -X PUT repos/tigin-backwards/oni-moono/environments/steam-workshop --input - <<'EOF'
 {"deployment_branch_policy": {"protected_branches": false, "custom_branch_policies": true}}
 EOF
-for b in master u60; do
-  gh api -X POST repos/tigin-backwards/oni-moono/environments/steam-workshop/deployment-branch-policies -f name=$b -f type=branch
-done
+gh api -X POST repos/tigin-backwards/oni-moono/environments/steam-workshop/deployment-branch-policies -f name=master -f type=branch
 gh secret set STEAM_USERNAME --env steam-workshop -R tigin-backwards/oni-moono   # the account name, not the email
 ```
 
