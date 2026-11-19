@@ -932,6 +932,84 @@ series Instantiate measured 26% slower after the other members' loops, but alone
 world 30% (3,177 against 4,536): the slower figure follows the benchmark's earlier loops, not
 Instantiate. It allocates 64 bytes less.
 
+### Step 4: transforms keep their own state (landed)
+
+- **What moved.** `TransformNative`'s and `RectTransformNative`'s fields (local placement, the
+  world and inverse caches, the parent and the copy-on-write child array, the watch flags and
+  text-scale slot, the anchoring, the rect epoch cache, the driving object, serialized data)
+  are private fields of `Transform` and `RectTransform`, read through internal members of the
+  record's names. Both records are gone; transforms have no record.
+- **Construction.** A transform sets its starting state (identity rotation, unit scale,
+  `hasChanged`, dirty caches; a RectTransform's centred anchors, 100 × 100 size and
+  `sendChildDimensionsChange`) when it is bound, before its constructor body, so one the
+  loaders make without a constructor starts the same. Instantiate copies the placement and the
+  anchoring onto the clone after binding it.
+- **Transform to RectTransform.** Adding a RectTransform builds the new transform in the old
+  one's place: the same sibling index, the children re-parented, the local placement and the
+  text-scale slot moved, the old one destroyed.
+- **Destruction.** A destroyed transform drops its parent and its children, so one the game
+  keeps holds nothing of the hierarchy. Its local placement stays.
+- **Reflection.** The object driving a RectTransform is stored untyped. The parent is a
+  `Transform` and the children a `Transform[]`, which `Localization.SetFont`'s walk does not
+  follow, and the walk's cycle through a transform's record (`Object.m_Native` → `Managed`) is
+  gone.
+- **Found, not changed:** a child list read on a worker *while* the main thread removes a child
+  can show a null slot: `RemoveChildAt` publishes the new array before the new count. The code
+  is as it was before the merge, and the workers read the hierarchy only while nothing changes
+  it; a list read before a change keeps its children, as documented.
+- **Tests:** `MergedTransformStateTests`: the starting state (made and loaded from the game's
+  files), the conversion, SetParent and sibling order with world and local values,
+  invalidation below a changed ancestor and none beside it, the rect epoch, Instantiate, a
+  destroyed transform, and four worker threads reading the world values of 400 transforms at
+  once after each change, and a child list read before 2,000 changes. Five mutations (no
+  starting state, no placement copy, the parent kept at destruction, no
+  `sendChildDimensionsChange` default, the parent's list left at conversion) each fail them.
+
+**Verified** on master and u60 as for steps 2 and 3: `check.sh` and `ci-unit-tests.sh` green,
+the analyzer clean, the core e2e list (the same pre-existing `moono-tweaks-search` failures as
+the base, and on u60 `issue-52-fast-track-no-tiering`, which fails the same way on the base:
+the local Fast Track build does not load), the master mod specs (0 failures), `qa.sh verify`
+(0 wrong in every mode: parallel draws, text scales, raycast cache, pass states and the rest;
+no log signatures), and saves equal to the base's byte for byte on master, and on u60 but for
+`GameClock`'s real-time float.
+
+**Heap** (the late-game colony, HeapInv): master 22.93 M → 22.77 M reachable objects (−165 k,
+the transform records), 70.95 M → 70.28 M references, 4.992 → 4.980 GB. The transforms'
+facades and records were 80.4 MB together and are 68.7 MB (a Transform 376 bytes, a
+RectTransform 472). On u60 21.92 M → 21.75 M objects, 75.00 M → 74.33 M references, 4.390 → 4.380 GB.
+
+**Hot and cold paths** (the engine micro-benchmark, step 3 against step 4, ns a call, medians
+of six alternating rounds on a quiet machine; the world is 150,000 objects in a hierarchy of
+about nine levels, cold reads in random order, hot ones on 48 leaves):
+
+| Member | Hot step 3 | Hot step 4 | Cold step 3 | Cold step 4 |
+|---|---:|---:|---:|---:|
+| `position` | 1.81 | 1.48 | 26.0 | 20.1 |
+| `localPosition` | 1.60 | 1.17 | 15.5 | 9.8 |
+| `rotation` | 1.76 | 1.42 | 19.1 | 12.4 |
+| `lossyScale` | 1.70 | 1.36 | 18.9 | 12.3 |
+| `localToWorldMatrix` | 1.75 | 1.36 | 21.0 | 12.2 |
+| `worldToLocalMatrix` | 2.28 | 1.54 | 33.0 | 21.3 |
+| `parent` | 2.25 | 1.19 | 34.8 | 8.4 |
+| `GetChild(0)` | 2.83 | 1.26 | 24.3 | 6.5 |
+| `childCount` | 1.62 | 1.17 | 20.0 | 11.6 |
+| `localPosition` set | 10.75 | 10.68 | 206 | 181 |
+| `SetParent` out and back | 511 | 498 | 8,081 | 7,965 |
+| `component.transform.localPosition` | 1.98 | 1.58 | 43.3 | 29.0 |
+
+Every transform member is as fast or faster, hot and cold; the other members are unchanged.
+
+**Open: Instantiate of a 14-script object, measured alone, is about 12–20% slower** on the
+150,000-object world (3,012 against 3,362 ns over six alternating rounds; 2.9 k against 3.6 k
+in a second series of four), while it allocates 72 bytes less a clone. By shape, a bare
+GameObject is level or faster (about 800 against 750 ns) and one with eight child objects
+faster (5.7–8.9 k against 4.6–5.1 k); only the behaviours' object is slower, about 40 ns a
+behaviour. Ruled out: collections (the same counts and pause time, 1.1 s either side) and added
+work (the step adds one type check a component in the clone loop and a branch behaviours never
+reach). On a 2,000-object world the pairs are mixed (3,575 and 3,790 against 3,242 and 4,092).
+It looks like a memory-layout effect of the large world rather than the code; no profiler was
+available to settle it. Landed as is.
+
 ## Not measured
 
 - The merge built in the game.
