@@ -3440,8 +3440,7 @@ the monitor's size for this game) showed a fullscreen window for a moment before
   the start window and where it came from.
 - **Not handled:** the saved position (ours centres the window), the windowed size kept while
   fullscreen (`Resolution Window Width`/`Height`) and the refresh rate. The two players share
-  the values, so the first launch after updating from a Moono that kept its own prefs file
-  opens in the mode and size the original saved last.
+  the values, so Moono opens in the mode and size the original saved last.
 
 A fullscreen window (`FullScreenWindow`, the game's Fullscreen option) at a resolution smaller
 than the monitor's renders at that resolution and stretches it over the window, as Unity's player
@@ -3656,10 +3655,6 @@ formatting (D2).
   - Changes are written by `Save` and at quit. A key set with another type replaces the old
     value. Reading one as another type gives the default. The original reads a string's first
     bytes as `GetInt` (`"now"` gave 7827310); ours does not.
-  - Moono kept its prefs in that file on Windows too, until 2026-11. At the first start with
-    the registry, the keys the registry lacks come over from the file, so the registry, which
-    the original wrote, wins. The file is then renamed `prefs.imported`, and the log says so in
-    one line.
   - With `--run-home` (test runs) the key is
     `HKCU\Software\OniMoonoTests\<the run home's full path>\<company>\<product>`, so a test
     never reads or writes the game's key. runq deletes its jobs' keys with their Windows

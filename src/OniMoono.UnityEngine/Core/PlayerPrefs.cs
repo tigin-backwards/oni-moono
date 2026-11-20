@@ -34,39 +34,7 @@ namespace UnityEngine
             cleared = false;
             store ??= PrefsStore.ForConfig();
             store.Load(entries, order);
-            if (store is RegistryPrefsStore registry) ImportOldFile(registry);
             return entries;
-        }
-
-        /// Moono kept its prefs in the `prefs` file on Windows too, before it used the registry:
-        /// the keys the registry lacks come over once (the registry, which the original wrote,
-        /// wins), then the file is renamed `prefs.imported`.
-        static void ImportOldFile(RegistryPrefsStore registry)
-        {
-            var path = Path.Combine(EngineConfig.PersistentDataPath, "prefs");
-            if (!File.Exists(path)) return;
-            var old = new Dictionary<string, PrefsEntry>(StringComparer.Ordinal);
-            var oldOrder = new List<string>();
-            new FilePrefsStore(path).Load(old, oldOrder);
-            int imported = 0;
-            foreach (var name in oldOrder)
-            {
-                if (entries.ContainsKey(name) || old[name].Value == null) continue;
-                entries[name] = old[name];
-                order.Add(name);
-                changed.Add(name);
-                imported++;
-            }
-            try
-            {
-                if (imported > 0) SaveLocked();
-                File.Move(path, path + ".imported", true);
-                EngineLog.Engine($"PlayerPrefs: imported {imported} of {oldOrder.Count} keys from {path} into {registry.Describe()}; the file is now prefs.imported");
-            }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
-            {
-                EngineLog.Engine($"PlayerPrefs: could not import {path} into {registry.Describe()} ({e.Message})");
-            }
         }
 
         static void Set(string key, PrefsEntry entry)

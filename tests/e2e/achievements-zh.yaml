@@ -1,0 +1,70 @@
+# The colony achievements in the game's Simplified Chinese (zh_klei), both places a player sees
+# them: the pause menu's Colony Summary (殖民地概要) for the colony being played, with each
+# achievement's progress (RetiredColonyInfoScreen.PopulateAchievementProgress), and the main
+# menu's Colony Summaries for that colony after a save has written its summary
+# (RetiredColonies/NAME/NAME.json). Each view: its first achievements, a tooltip, an
+# achievement clicked open (its requirements and progress; in game only), and the list's end.
+# An early colony (most achievements under way), and a retired colony with two earned, for the
+# earned states on the main menu. (A mid-game colony is too slow in the original on the lanes.)
+from: early-base
+language: zh_klei
+retired_colonies: [retired-chart-colony]
+mask_text: ['\d{4}-\d\d-\d\d', '\d\d?:\d\d(:\d\d)?']
+steps:
+  - expect_state:
+      "Localization.GetLocale().Code": zh
+  # The pause menu's Colony Summary.
+  - key: {code: Escape, until: "**/PauseScreen"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {text: "殖民地概要", under: "**/PauseScreen/LayoutContent"}
+  - ui_wait: {path: "**/RetiredColonyInfoScreen/**/AchievementPrefab*", cond: stable, frames: 600}
+  - ui_wait: {path: "**/RetiredColonyInfoScreen", cond: stable, frames: 600}
+  - ui_dump: {name: game-screen, root: "**/RetiredColonyInfoScreen"}
+  - shot: {name: game-top, threshold: 0.04}
+  # A tooltip on the first achievement, then that achievement clicked open.
+  - scroll: {at: "**/RetiredColonyInfoScreen/**/AchievementPrefab*", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/LabelPrefab", cond: exists, frames: 600}
+  - ui_dump: {name: game-tip, root: "**/ToolTipScreen"}
+  - shot: {name: game-tip, pointer: stay, threshold: 0.04}
+  - click: {ui: "**/RetiredColonyInfoScreen/**/AchievementPrefab*"}
+  - ui_wait: {path: "**/RetiredColonyInfoScreen", cond: stable, frames: 600}
+  - ui_dump: {name: game-open, root: "**/RetiredColonyInfoScreen"}
+  - shot: {name: game-open, threshold: 0.04}
+  # A few notches down, then the list's end. A wheel past the end overshoots and the list springs
+  # back (KScrollRect's inertia, then the elastic ScrollRect): the end shots wait until it has
+  # settled.
+  - scroll: {at: "**/RetiredColonyInfoScreen/**/Achievements/AchievementScroll", notches: -6}
+  - ui_wait: {path: "**/RetiredColonyInfoScreen", cond: stable, frames: 600}
+  - shot: {name: game-mid, threshold: 0.04}
+  - scroll: {at: "**/RetiredColonyInfoScreen/**/Achievements/AchievementScroll", notches: -400}
+  - wait_state: {state: {"ui:**/Achievements/AchievementScroll::GetComponent<KScrollRect>.verticalNormalizedPosition": [">= -0.001", "<= 0.001"]}, seconds: 30}
+  - ui_dump: {name: game-end, root: "**/RetiredColonyInfoScreen"}
+  - shot: {name: game-end, threshold: 0.04}
+  # A save writes the colony's summary (the pause menu stays open); then Main Menu, Save and Quit.
+  - key: {code: Escape, until: "**/PauseScreen"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {text: "保存", under: "**/PauseScreen/LayoutContent"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton"}
+  - wait_state: {state: {"file:RetiredColonies/Orbit/Orbit.json": exists}, seconds: 300}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {text: "主菜单", under: "**/PauseScreen/LayoutContent"}
+  - ui_wait: {path: "**/ConfirmDialog/GameObject/Panel/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/GameObject/Panel/OKButton"}
+  - ui_wait: {path: "**/MainMenuButtons", cond: stable, frames: 60000}
+  # The main menu's Colony Summaries, that colony.
+  - click: {text: "殖民地概要", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/ColonyMenu/Grid/SelectColonyButton", cond: stable, frames: 600}
+  - click: {ui: "**/ColonyMenu/Grid/SelectColonyButton"}
+  - ui_wait: {path: "**/RetiredColonyInfoScreen/**/LoadedColony", cond: stable, frames: 600}
+  - ui_wait: {path: "**/RetiredColonyInfoScreen", cond: stable, frames: 600}
+  - ui_dump: {name: menu-screen, root: "**/RetiredColonyInfoScreen"}
+  - shot: {name: menu-top, threshold: 0.04}
+  - scroll: {at: "**/RetiredColonyInfoScreen/**/Achievements/AchievementScroll", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/LabelPrefab", cond: exists, frames: 600}
+  - ui_dump: {name: menu-tip, root: "**/ToolTipScreen"}
+  - shot: {name: menu-tip, pointer: stay, threshold: 0.04}
+  - scroll: {at: "**/RetiredColonyInfoScreen/**/Achievements/AchievementScroll", notches: -400}
+  - wait_state: {state: {"ui:**/Achievements/AchievementScroll::GetComponent<KScrollRect>.verticalNormalizedPosition": [">= -0.001", "<= 0.001"]}, seconds: 30}
+  - ui_dump: {name: menu-end, root: "**/RetiredColonyInfoScreen"}
+  - shot: {name: menu-end, threshold: 0.04}

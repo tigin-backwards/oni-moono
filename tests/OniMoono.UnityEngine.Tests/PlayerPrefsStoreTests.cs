@@ -47,14 +47,13 @@ namespace OniMoono.Tests
 
         const string Key = @"Software\Klei\Oxygen Not Included";
 
-        static void WithStore(FakeRegistry registry, Action<string> test, string oldFile = null)
+        static void WithStore(FakeRegistry registry, Action<string> test)
         {
             var dir = Directory.CreateTempSubdirectory("oni-moono-regprefs-").FullName;
             var saved = EngineConfig.PersistentDataPath;
             try
             {
                 EngineConfig.PersistentDataPath = dir;
-                if (oldFile != null) File.WriteAllText(Path.Combine(dir, "prefs"), "<unity_prefs version_major=\"1\" version_minor=\"1\">\n" + oldFile + "</unity_prefs>");
                 PlayerPrefs.Reload(new RegistryPrefsStore(Key, registry.Open));
                 test(dir);
             }
@@ -166,31 +165,6 @@ namespace OniMoono.Tests
                 PlayerPrefs.SaveOnQuit();
                 Assert.Empty(registry.Keys);
             });
-        }
-
-        [Fact]
-        public void OldFileFillsWhatTheKeyLacksOnce()
-        {
-            var registry = new FakeRegistry();
-            registry.Keys[Key] = new() { ("Screenmanager Fullscreen mode_h3630240806", RegistryPrefsStore.RegDword, BitConverter.GetBytes(3)) };
-            var old = "\t<pref name=\"Screenmanager Fullscreen mode\" type=\"int\">1</pref>\n"
-                + "\t<pref name=\"ModSetting\" type=\"string\">aMOpbGxv</pref>\n"
-                + "\t<pref name=\"ModFloat\" type=\"float\">0.333333</pref>\n";
-            WithStore(registry, dir =>
-            {
-                // The key, which the original wrote, wins; the rest comes over and is saved at once.
-                Assert.Equal(3, PlayerPrefs.GetInt("Screenmanager Fullscreen mode"));
-                Assert.Equal("héllo", PlayerPrefs.GetString("ModSetting"));
-                Assert.Equal(0.333333f, PlayerPrefs.GetFloat("ModFloat"));
-                Assert.Equal(3, registry.Keys[Key].Count);
-                Assert.False(File.Exists(Path.Combine(dir, "prefs")));
-                Assert.True(File.Exists(Path.Combine(dir, "prefs.imported")));
-                // A later start finds no file to import.
-                PlayerPrefs.SetString("ModSetting", "changed");
-                PlayerPrefs.Save();
-                PlayerPrefs.Reload(new RegistryPrefsStore(Key, registry.Open));
-                Assert.Equal("changed", PlayerPrefs.GetString("ModSetting"));
-            }, old);
         }
 
         [Fact]
