@@ -322,6 +322,8 @@ namespace OniMoono.Tests
             Assert.Null(Start(installed));
             Assert.Empty(told);
             Assert.Equal(["2026.11.08.01-u60"], Install().InstalledVersions().Select(v => v.Name).ToArray());
+            // It updates from the item: the update check is skipped (UpdateCheck.Start).
+            Assert.Equal(Path.GetFullPath(Source), VersionedStart.UpdatesFrom);
         }
 
         /// The item without a U59 build (the U60 build alone, as it is since U59 left it): an
@@ -369,6 +371,8 @@ namespace OniMoono.Tests
             Assert.Equal(before, Hashes(u59));
             Assert.Equal("2026.11.08.01", Install().ReadState("current"));
             Assert.Contains(log, l => l.Contains("has no version for game build 744825: it is for build 762230 and later") && l.Contains(VersionedInstall.ReleasesUrl));
+            // No updates from the item: the update check runs, as for a GitHub install.
+            Assert.Null(VersionedStart.UpdatesFrom);
             Assert.Empty(Directory.GetDirectories(Path.Combine(Root, "player"), ".incoming-*"));
             // Later starts and later items: logged, not told again; folders Steam left empty change nothing.
             U60Only("2026.11.15.01-u60");
@@ -388,6 +392,7 @@ namespace OniMoono.Tests
             Assert.Equal(["2026.11.15.01-u60", "2026.11.08.01"], Versions());
             Assert.Null(Start(Path.Combine(Root, "player", "2026.11.15.01-u60")));
             Assert.Null(Install().ReadState("no-updates"));
+            Assert.NotNull(VersionedStart.UpdatesFrom);
             Assert.Empty(told);
 
             // A first start from the U60-only item on a U59 game: nothing installed, and where to go.

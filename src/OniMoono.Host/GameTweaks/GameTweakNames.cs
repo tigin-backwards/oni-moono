@@ -115,9 +115,9 @@ namespace OniMoono.Host.GameTweaks
         [
             new(SplashRow, General, "Gassy Moo loading splash", "Gassy Moos rain over the window while the game starts, with a progress bar.", IsTweak: false),
             // (Not "Check for updates": the title font draws a lowercase f as a capital.)
-            new(UpdateCheckRow, General, "Update check", "The main menu shows when a newer Moono is out.",
+            new(UpdateCheckRow, General, "Update check", "For installs from GitHub releases: the main menu shows when a newer Moono is out.",
                 "Asks GitHub (api.github.com) for Moono's releases at most once every 6 hours, in the background. Nothing about you or your game is sent. "
-                + "The answer is kept in the oni-moono data folder. Off: Moono makes no network requests.", IsTweak: false),
+                + "The answer is kept in the oni-moono data folder. Installs from the Steam Workshop ask nothing: Steam updates them. Off: Moono makes no network requests.", IsTweak: false),
             new(FrameStatsRow, General, "Frame stats in the log", "Notes where the frame time goes in Player.log, for reporting slowness.",
                 "Every 60 frames.", IsTweak: false),
             new(LogPathsRow, General, "Hide personal paths in the log", "Player.log shows your user folder as %USERPROFILE% or ~ and hides your account IDs and name.",

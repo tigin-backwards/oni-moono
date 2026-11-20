@@ -277,6 +277,10 @@ An install updates from Steam's copy, wherever it was first started from (`Steam
 Without a Steam copy (a source folder of another kind, or a Steam install Moono can't find),
 the recorded folder alone is used, as before.
 
+Such an install has no update badge on the main menu: the
+[update check](TWEAKS.md#update-check) asks GitHub nothing, as the item brings the updates. It
+does ask when the item has no version for the game.
+
 A version older than the installed one for the game is not installed, so nothing downgrades:
 neither a start from the game's old copy (its `OniMoono.exe`, or the loader's install button) nor
 an item rolled back at Steam. `--use-version` still pins any installed version.

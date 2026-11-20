@@ -29,8 +29,10 @@ namespace OniMoono.Host
     /// checks nothing. A build for the current game looks at normal releases only, a build for a
     /// Steam beta (StartText.Updates) at pre-releases only; releases marked "Superseded" are
     /// skipped. Builds from before the U60 cut-over (docs/RELEASES.md) matched the same way, with
-    /// U60 the beta: their U60 builds see only pre-releases, their U59 builds normal releases. Failure of any kind shows no badge and logs one
-    /// line. Plain .NET with no game types (the tests compile it in).
+    /// U60 the beta: their U60 builds see only pre-releases, their U59 builds normal releases. An install
+    /// from the Workshop item (a versioned install, docs/INSTALL-MODES.md) checks nothing: Steam
+    /// updates the item and Moono installs from it at the next start. Failure of any kind shows
+    /// no badge and logs one line. Plain .NET with no game types (the tests compile it in).
     ///
     /// ONI_UPDATE_RELEASES_URL: the releases list from elsewhere (`file://` path, plain path or
     /// http(s) URL; `none` checks nothing), never cached: scripts/run.sh sets `none`, test specs a
@@ -202,14 +204,25 @@ namespace OniMoono.Host
         public static UpdateFound? Result => Volatile.Read(ref result);
         public static bool Done => Volatile.Read(ref done) != 0;
 
-        /// Starts the check on a background thread (once).
-        public static void Start(string persistentDataPath, bool beta, Action<string> log)
+        /// Starts the check on a background thread (once). `workshopSource`: the Workshop item a
+        /// versioned install updates from (Install.VersionedStart.UpdatesFrom); Steam brings its
+        /// updates, so nothing is checked.
+        public static void Start(string persistentDataPath, bool beta, Action<string> log, string? workshopSource) =>
+            Start(persistentDataPath, beta, log, workshopSource, CurrentTag(), Environment.GetEnvironmentVariable("ONI_UPDATE_RELEASES_URL"));
+
+        internal static void Start(string persistentDataPath, bool beta, Action<string> log, string? workshopSource, string? current, string? url)
         {
-            var current = CurrentTag();
-            var url = Environment.GetEnvironmentVariable("ONI_UPDATE_RELEASES_URL");
+            Volatile.Write(ref result, null);
+            Volatile.Write(ref done, 0);
             bool overridden = !string.IsNullOrEmpty(url);
             if (current == null || url == "none")
             {
+                Volatile.Write(ref done, 1);
+                return;
+            }
+            if (!string.IsNullOrEmpty(workshopSource))
+            {
+                log($"update check: not done, Steam updates this install from the Workshop item ({workshopSource})");
                 Volatile.Write(ref done, 1);
                 return;
             }

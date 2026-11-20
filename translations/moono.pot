@@ -177,12 +177,12 @@ msgstr ""
 
 #. The line under the title (update-check)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.EFFECT"
-msgid "The main menu shows when a newer Moono is out."
+msgid "For installs from GitHub releases: the main menu shows when a newer Moono is out."
 msgstr ""
 
 #. Tooltip: how it works (update-check)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.DETAIL"
-msgid "Asks GitHub (api.github.com) for Moono's releases at most once every 6 hours, in the background. Nothing about you or your game is sent. The answer is kept in the oni-moono data folder. Off: Moono makes no network requests."
+msgid "Asks GitHub (api.github.com) for Moono's releases at most once every 6 hours, in the background. Nothing about you or your game is sent. The answer is kept in the oni-moono data folder. Installs from the Steam Workshop ask nothing: Steam updates them. Off: Moono makes no network requests."
 msgstr ""
 
 #. Row title (frame-stats)

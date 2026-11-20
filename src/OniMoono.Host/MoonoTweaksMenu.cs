@@ -145,7 +145,7 @@ namespace OniMoono.Host
             // The update badge beside the button: the check runs in the background from now on.
             if (effective.UpdateCheck)
             {
-                UpdateCheck.Start(EngineConfig.PersistentDataPath, GameVersionCheck.ThisIsBeta, EngineLog.Engine);
+                UpdateCheck.Start(EngineConfig.PersistentDataPath, GameVersionCheck.ThisIsBeta, EngineLog.Engine, OniMoono.Host.Install.VersionedStart.UpdatesFrom);
                 Func<string[]?> poll = () => !UpdateCheck.Done ? null
                     : UpdateCheck.Result is { } found ? [found.Tag, found.Url, found.Notes, found.Truncated ? "1" : "0"] : [];
                 try

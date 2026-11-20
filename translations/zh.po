@@ -143,12 +143,12 @@ msgid "Update check"
 msgstr "检查更新"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.EFFECT"
-msgid "The main menu shows when a newer Moono is out."
-msgstr "有新版 Moono 时，主菜单会提示。"
+msgid "For installs from GitHub releases: the main menu shows when a newer Moono is out."
+msgstr "适用于从 GitHub 版本安装的 Moono：有新版时，主菜单会提示。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.DETAIL"
-msgid "Asks GitHub (api.github.com) for Moono's releases at most once every 6 hours, in the background. Nothing about you or your game is sent. The answer is kept in the oni-moono data folder. Off: Moono makes no network requests."
-msgstr "最多每 6 小时在后台向 GitHub（api.github.com）查询一次 Moono 的版本列表，不发送任何关于你或游戏的信息。结果保存在 oni-moono 数据文件夹中。关闭后，Moono 不发出任何网络请求。"
+msgid "Asks GitHub (api.github.com) for Moono's releases at most once every 6 hours, in the background. Nothing about you or your game is sent. The answer is kept in the oni-moono data folder. Installs from the Steam Workshop ask nothing: Steam updates them. Off: Moono makes no network requests."
+msgstr "最多每 6 小时在后台向 GitHub（api.github.com）查询一次 Moono 的版本列表，不发送任何关于你或游戏的信息。结果保存在 oni-moono 数据文件夹中。从 Steam 创意工坊安装的不查询：由 Steam 更新。关闭后，Moono 不发出任何网络请求。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_STATS.TITLE"
 msgid "Frame stats in the log"

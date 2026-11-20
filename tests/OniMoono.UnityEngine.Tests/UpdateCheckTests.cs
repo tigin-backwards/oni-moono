@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using OniMoono.Host;
 using Xunit;
 
@@ -11,8 +12,39 @@ namespace OniMoono.Tests
     /// releases count for each channel, and the notes the badge's tooltip shows.
     public class UpdateCheckTests
     {
-        static System.Collections.Generic.List<MoonoRelease> Fixture([CallerFilePath] string here = "") =>
-            UpdateCheck.Parse(File.ReadAllText(Path.Combine(Path.GetDirectoryName(here)!, "..", "e2e", "fixtures", "update-releases.json")));
+        static string FixturePath([CallerFilePath] string here = "") =>
+            Path.Combine(Path.GetDirectoryName(here)!, "..", "e2e", "fixtures", "update-releases.json");
+
+        static System.Collections.Generic.List<MoonoRelease> Fixture() => UpdateCheck.Parse(File.ReadAllText(FixturePath()));
+
+        /// An install from the Workshop item (VersionedStart.UpdatesFrom set) reads no releases
+        /// list and shows no badge, with one log line; any other install checks as before.
+        [Fact]
+        public void WorkshopInstallsCheckNothing()
+        {
+            var log = new System.Collections.Generic.List<string>();
+            var data = Path.Combine(Path.GetTempPath(), "moono-update-" + System.Guid.NewGuid().ToString("N"));
+            try
+            {
+                // A list that can't be read: a check that read it would log "no answer".
+                UpdateCheck.Start(data, false, log.Add, "/steam/workshop/content/457140/1", "v2026.11.01.01", Path.Combine(data, "missing.json"));
+                Assert.True(UpdateCheck.Done);
+                Assert.Null(UpdateCheck.Result);
+                Assert.Equal("update check: not done, Steam updates this install from the Workshop item (/steam/workshop/content/457140/1)", Assert.Single(log));
+
+                log.Clear();
+                UpdateCheck.Start(data, false, log.Add, null, "v2026.11.01.01", FixturePath());
+                Assert.True(SpinWait.SpinUntil(() => UpdateCheck.Done, 10_000));
+                Assert.NotNull(UpdateCheck.Result);
+                Assert.StartsWith("update check: ", Assert.Single(log));
+                Assert.DoesNotContain("not done", log[0]);
+                Assert.False(Directory.Exists(data));
+            }
+            finally
+            {
+                if (Directory.Exists(data)) Directory.Delete(data, true);
+            }
+        }
 
         [Fact]
         public void TagsCompareAsDateAndCounter()

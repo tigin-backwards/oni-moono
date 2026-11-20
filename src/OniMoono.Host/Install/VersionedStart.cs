@@ -16,6 +16,11 @@ namespace OniMoono.Host.Install
         /// Kept open while this version plays, so pruning leaves it alone.
         static FileStream? held;
 
+        /// The Workshop item this install updates from (state/source) once Run chose to play an
+        /// installed version the item still updates; null otherwise (no versioned start, or an
+        /// item with no version for this game). The update check skips such installs.
+        public static string? UpdatesFrom { get; private set; }
+
         /// The DLC subscribed is unknown before the game starts: versions are chosen as for a
         /// game with none, which only matters to one whose mod_info.yaml names DLC (Moono's don't).
         static readonly IReadOnlySet<string> NoDlc = new HashSet<string>();
@@ -33,6 +38,7 @@ namespace OniMoono.Host.Install
         public static int? Run(VersionedInstall install, string gameDir, string? useVersion, List<string> log, string playerDir, Action<string, bool> tell,
             Func<IReadOnlyList<SteamItem.Copy>>? steamItems = null)
         {
+            UpdatesFrom = null;
             var here = Path.GetFullPath(playerDir).TrimEnd(Path.DirectorySeparatorChar);
             string running = Path.GetFileName(here);
             bool inRoot = string.Equals(Path.GetDirectoryName(here), install.PlayerDir, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
@@ -174,6 +180,7 @@ namespace OniMoono.Host.Install
             held?.Dispose();
             held = VersionedInstall.Hold(chosen.Dir);
             install.Prune(chosen.Name, build.Value, NoDlc);
+            UpdatesFrom = needsBuild == null ? install.ReadState("source") : null;
             log.Add($"install: game build {build}: playing version {chosen.Name} (installed: {string.Join(", ", install.InstalledVersions().Select(v => v.Name))})");
             return null;
         }

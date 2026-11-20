@@ -122,7 +122,8 @@ the `NavGrid` constructor.
 
 ## Update check
 
-With **Update check** on (the default), Moono makes one network request of its own:
+With **Update check** on (the default), an install from a GitHub release (a release's zip or tar,
+setup, a source checkout) makes one network request of its own:
 
 - **The request.** In the background after start-up, a GET of
   `https://api.github.com/repos/tigin-backwards/oni-moono/releases` with a
@@ -133,6 +134,11 @@ With **Update check** on (the default), Moono makes one network request of its o
 - **The badge.** When a newer release for your build is out, a Gassy Moo badge next to **Moono
   Tweaks** on the main menu says so. Hovering it lists what changed in each newer release.
   Clicking it opens the release page in your browser.
+- **Workshop installs.** An install from the Steam Workshop item (a versioned install,
+  [INSTALL-MODES.md](INSTALL-MODES.md#versioned-install)) asks nothing and shows no badge:
+  Steam updates the item, and Moono installs the new version from it at the next start. The
+  log says `update check: not done, Steam updates this install from the Workshop item (…)`.
+  When the item has no version for your game, the check runs as for a GitHub install.
 - **Which releases.** A normal build looks at normal releases only, a U60 build at the U60
   pre-releases only. Releases marked "Superseded" are skipped.
 - **Offline,** or when GitHub doesn't answer, there is no badge and the log has one line about
