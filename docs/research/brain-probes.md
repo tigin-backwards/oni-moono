@@ -337,9 +337,20 @@ Beetas for 8 game seconds every 30–40; Linux, counts only, one run each):
 
 The study before it (a prototype in the test mod, Beetas counted per sting): 12 stings at speed
 1 and 30 fps, 0 at speed 3 and 15 fps, 12 with the prototype. On U59 a separate game bug also
-keeps Beetas from finding moving targets: a critter's attackable partitioner entry never moves,
-as `GameHashes.CellChanged` is never raised (fixed in U60-761015). The test mod raises it when it
-moves the Pip.
+changes which targets a critter finds: an attackable's partitioner entry stays in the cell where
+it spawned or the save loaded, whether it walks or is moved by `SetPosition`.
+`AttackableBase.OnSpawn` subscribes `OnCellChanged` to `GameHashes.CellChanged` on the object's
+event system (U59-744825 AttackableBase.cs:38), but nothing raises that event:
+`TransformExtensions.SetPosition` marks the transform dirty (TransformExtensions.cs:15) and
+`CellChangeMonitor.RenderEveryTick` calls only handlers registered with
+`RegisterCellChangedHandler` (CellChangeMonitor.cs:381–389). Only `IncapacitationRecovery`
+re-adds the entry at the current cell. `ThreatMonitor.GatherThreats` lists entries within 20
+cells of the critter (12 for Pokeshells), then tests `CanReach` on each target's current cell
+(ThreatMonitor.cs:331 onwards). A Beeta therefore attacks a reachable target whose spawn or load cell
+is near the Beeta, wherever the target is now, and ignores targets that registered elsewhere and
+walked into range. U60-761015 raises `CellChanged` from `CellChangeMonitor.RenderEveryTick`
+(CellChangeMonitor.cs:344) for every moved object with a KObject, so the entry follows the
+target. The test mod raises the event itself when it moves the Pip.
 
 ## `brain-rate`'s critter cap, kept with needs first (2026-11-15, issue #85)
 
