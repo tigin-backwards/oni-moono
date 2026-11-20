@@ -16,11 +16,11 @@ Moono 运行 Klei 原版的 DLL，并在加载时按照 Mono 与 .NET 的[差异
 
 你需要拥有 Steam 上的正版游戏，支持 Linux 或 Windows（不支持 macOS）。目前不支持 Epic Games Store 和 WeGame（中国）版本。由于本方案替换的是游戏引擎而非给游戏打补丁，因此无法作为普通 Harmony 模组发布。取而代之的是，创意工坊物品或安装脚本会把它挂接到游戏的 Steam 启动选项中，因此你仍然像往常一样从 Steam 启动游戏。
 
-### 通过 Steam 创意工坊安装
+### 通过 Steam 创意工坊安装（方式 A）
 
 在 Steam 创意工坊订阅 [Moono](https://steamcommunity.com/sharedfiles/filedetails/?id=3837112063)，然后照常从 Steam 启动游戏。Moono 询问时点击 **Install & copy launch option**，把这一行粘贴到 Steam 中《缺氧》的“启动选项”里，然后退出游戏并点击“开始游戏”。之后 Moono 会随创意工坊物品自动更新。
 
-### 简易安装
+### 通过 GitHub Releases 安装（方式 B）
 
 1. 从[发布页面](https://github.com/tigin-backwards/oni-moono/releases/latest)下载最新版本：
    `oni-moono-…-windows-x64.zip` 或 `oni-moono-…-linux-x64.tar.gz`，并解压到任意位置。

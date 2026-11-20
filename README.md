@@ -25,14 +25,14 @@ Moono replaces the engine instead of patching the game, so it can't ship as an o
 mod. The Workshop item or a setup script hooks it into the game's Steam launch options, and you still start the game
 from Steam as usual.
 
-### From the Steam Workshop
+### From the Steam Workshop (Option A)
 
 Subscribe to [Moono on the Steam Workshop](https://steamcommunity.com/sharedfiles/filedetails/?id=3837112063)
 and start the game from Steam. Click **Install & copy launch option** when Moono asks, paste the
 line into Oxygen Not Included's **Launch Options** in Steam, then quit and press Play. Moono then
 updates itself with the Workshop item.
 
-### Easy installation
+### From GitHub Releases (Option B)
 
 1. Download the latest release from the
    [releases page](https://github.com/tigin-backwards/oni-moono/releases/latest):
