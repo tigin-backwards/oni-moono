@@ -657,19 +657,19 @@ not_run_in_ours |= {
     '3821447025',
     '3828163036',
 }
-# Broken by members every U60 build lacks (761015 to 763796; docs/research/u60-763023.md, "Mods
+# Broken by members every U60 build lacks (761015 to 764025; docs/research/u60-763023.md, "Mods
 # broken by members U60 removed"): read from each mod's DLL references and onimaxxing's U60
 # analysis, not run on U60. Their sweeps and spec records are U59's, so on a U60 branch this note
 # stands in for them: id -> (Loads and Colony mark, note).
 YIELD = 'it reads `Database.PlantAttributes.YieldAmount`, which U60 renamed `YieldFactor`'
-YIELD_CRASH = ('❌', f'broken on U60 (builds 761015 to 763796): {YIELD} (onimaxxing: crashes at startup; not run here on U60)')
-YIELD_MAY = ('⬜', f'may crash on U60 (builds 761015 to 763796): {YIELD} (onimaxxing: may crash in play; not run here on U60)')
+YIELD_CRASH = ('❌', f'broken on U60 (builds 761015 to 764025): {YIELD} (onimaxxing: crashes at startup; not run here on U60)')
+YIELD_MAY = ('⬜', f'may crash on U60 (builds 761015 to 764025): {YIELD} (onimaxxing: may crash in play; not run here on U60)')
 broken_u60 = {
     '1818145851': YIELD_CRASH,
     '1914501780': YIELD_CRASH,
     '2778941969': (
         '❌',
-        f'broken on U60 (builds 761015 to 763796): {YIELD}; on build 763023 its patch on `SpaceTreeConfig.CreatePrefab` '
+        f'broken on U60 (builds 761015 to 764025): {YIELD}; on build 763023 its patch on `SpaceTreeConfig.CreatePrefab` '
         'throws a MissingFieldException in `Assets.OnPrefabInit` and the original exits while loading; not run in ours',
     ),
     '3292488355': YIELD_CRASH,
@@ -681,7 +681,7 @@ broken_u60 = {
     '3025506650': YIELD_MAY,
     '3390581599': YIELD_MAY,
     '3733686186': YIELD_MAY,
-    '3648432502': ('⬜', f'may crash on U60 (builds 761015 to 763796): {YIELD} (from its DLL; not flagged by onimaxxing, not run here on U60)'),
+    '3648432502': ('⬜', f'may crash on U60 (builds 761015 to 764025): {YIELD} (from its DLL; not flagged by onimaxxing, not run here on U60)'),
     '1960947963': (
         '❌',
         'broken on U60 (seen on builds 761211 and 763023): its patch on `SelectToolHoverTextCard.UpdateHoverElements` '
@@ -828,8 +828,9 @@ Workshop mods tried in this player, ranked by subscribers in
   first {FULL_RANKS}, that is about 2,000 mods that work in the original game.
 - **Mods players reported.**
 - **U60 public test:** the rest of its catalog, by U60 rank, tried on builds 761015 and 761211
-  (not run again on 763023, 763325, 763612 or 763796). Mods the catalog flags as malware are
-  left out; those it flags as broken by the update are listed from its analysis, not run.
+  (not run again on 763023, 763325, 763612, 763796 or 764025). Mods the catalog flags as
+  malware are left out; those it flags as broken by the update are listed from its analysis, not
+  run.
 - **Broken by U60:** Fast Track (GitHub) and 14 Workshop mods use game code U60 removed
   (`LocText.ModifyLinkStrings`, `PlantAttributes.YieldAmount`).{U60_NOTES}
 
