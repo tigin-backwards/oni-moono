@@ -52,7 +52,7 @@ namespace OniMoono.Host
         /// The mods' patch methods of the replacement UpdateWrapper is building on this thread.
         [ThreadStatic] static HashSet<(Module, int)>? building;
 
-        static void Prefix(PatchInfo patchInfo)
+        static void Prefix(MethodBase original, PatchInfo patchInfo)
         {
             var mods = new HashSet<(Module, int)>();
             foreach (var patches in new[] { patchInfo.prefixes, patchInfo.postfixes, patchInfo.finalizers, patchInfo.innerprefixes, patchInfo.innerpostfixes })
@@ -61,6 +61,7 @@ namespace OniMoono.Host
                     {
                         disableInlining(method);
                         mods.Add((method.Module, method.MetadataToken));
+                        if (original != null) PatchParameterTypes.Check(original, method, patch.owner); // D65
                     }
             building = mods;
         }

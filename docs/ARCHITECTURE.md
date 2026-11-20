@@ -215,7 +215,7 @@ and .NET 10 ships out-of-band. The host restores them the way .NET documents for
   (D29), in the same pass as its directory listings (D30), the double close in 0Harmony's
   MonoMod (D31) and its thread aborts (D47).
 - **The game's Harmony is adjusted** where patches would run differently on CoreCLR (D12–D14,
-  D17–D21, D33, D34, D43).
+  D17–D21, D33, D34, D43, D65).
 - **Mods' assemblies are rewritten as they load** where their IL relies on Mono (D11, D22, D23,
   D27–D32, D40, D42, D47, D50, D51, D57).
 
@@ -1703,6 +1703,33 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   mods (rewritten as they load, MonoConversions' pass) pass a delegate to a static method through
   `MonoMarshalledDelegates.Keep`: the first delegate of its type and method, kept for good, so
   native code gets one thunk that stays valid, as Mono's shared trampoline.
+- **D65 Patch parameters of a type their argument is not.** Harmony checks the type of a patch
+  method's `__result`, not of its other parameters, so a patch may declare a parameter of a type
+  its argument is not. New Skills 2.0.0 prefixes `Navigator.GetNavigationCost(int,
+  CellOffset[])` and `CanReach(int, CellOffset[])`, overloads U60 removed: Harmony's lookup
+  binds each to the `IReadOnlyList<CellOffset>` overload (an array converts to it), and the
+  game passes a `List<CellOffset>` to prefixes that declare `CellOffset[]`. They pass it on to a
+  method taking an `IReadOnlyList<CellOffset>`. Mono inlines only methods of under 20 bytes of
+  IL, so that method runs on its own and calls the list's interface methods on the list. In the
+  original player the mod runs the early-base colony for 120 game seconds without an exception,
+  and its array prefix is the one that works: Harmony runs it first, it returns false, and the
+  mod's own `IReadOnlyList` prefix of the same method is skipped (a probe mod counted one
+  filtered lookup per GetNavigationCost call, about 21,000, nearly all given a `List`). CoreCLR's JIT inlines the method into the prefix, takes the
+  declared array type as the argument's, and calls the array's `Count` and indexer on the list:
+  an AccessViolationException 2 to 5 s into a colony (issues #101 and #102). **Resolved in**
+  `PatchParameterTypes` and `PatchInliners.KeepCalls`: before Harmony builds a replacement,
+  each mod patch method's parameters are compared with the arguments Harmony passes them
+  (`__instance`, `__N`, the original's names and `[HarmonyArgument]`). For a reference type the
+  argument's declared type does not convert to, the host replaces the canInline slot of MonoMod's
+  `ICorJitInfo` wrapper (D34) the first time, and the JIT inlines nothing into that patch method
+  from then on; patch methods are not inlined themselves (D19). One line in the log names the
+  mod's assembly, its Harmony ID and the patch. Mods without such a patch pay the check at patch
+  time only: the slot stays MonoMod's. What the patch method's own IL does with the parameter is
+  left as it is: array instructions on a list read what they read on Mono too (New Skills' GoTo
+  prefix reads its `CellOffset[]` with array instructions; the probe saw the game pass it arrays
+  only).
+  An attribute scan of the downloaded Workshop mods (U60 764025) finds 57 such patches in 43
+  mods, most an `__instance` of a derived type on a base class's method.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.

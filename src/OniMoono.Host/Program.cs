@@ -814,6 +814,56 @@ namespace OniMoono.Host
                 }
                 return "the filter's patch throws InvalidOperationException and the method runs unpatched; the fault's patch runs its prefix, its block dropped; as on Mono";
             });
+            Check("A mod's prefix declaring int[] for an IReadOnlyList<int> argument, given a List<int> (PatchParameterTypes, #101)", () =>
+            {
+                PatchFrames.Install();
+                PatchDependents.Install();
+                // As New Skills prefixes Navigator.GetNavigationCost: Target(IReadOnlyList<int>) gets
+                // a prefix whose parameter is int[], which passes it to Helper(IReadOnlyList<int>).
+                // The prefix is compiled optimized at once; inlining Helper into it made the JIT
+                // read the list as an array (a wrong count here, an access violation in New Skills).
+                var module = System.Reflection.Emit.AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("ModCheck.ParameterTypes"),
+                    System.Reflection.Emit.AssemblyBuilderAccess.Run).DefineDynamicModule("ParameterTypes");
+                var type = module.DefineType("Mismatched", TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+                var list = typeof(IReadOnlyList<int>);
+                var target = type.DefineMethod("Target", MethodAttributes.Public | MethodAttributes.Static, typeof(int), [list]);
+                target.DefineParameter(1, ParameterAttributes.None, "values");
+                var il = target.GetILGenerator();
+                il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_M1); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                var helper = type.DefineMethod("Helper", MethodAttributes.Public | MethodAttributes.Static, typeof(int), [list]);
+                il = helper.GetILGenerator();
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                il.Emit(System.Reflection.Emit.OpCodes.Callvirt, typeof(IReadOnlyCollection<int>).GetProperty("Count")!.GetMethod!);
+                il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                var prefix = type.DefineMethod("Prefix", MethodAttributes.Public | MethodAttributes.Static, typeof(bool), [typeof(int[]), typeof(int).MakeByRefType()]);
+                prefix.DefineParameter(1, ParameterAttributes.None, "values");
+                prefix.DefineParameter(2, ParameterAttributes.None, "__result");
+                prefix.SetImplementationFlags(MethodImplAttributes.AggressiveOptimization);
+                il = prefix.GetILGenerator();
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1); il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                il.Emit(System.Reflection.Emit.OpCodes.Call, helper);
+                il.Emit(System.Reflection.Emit.OpCodes.Stind_I4);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_0); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                var mismatched = type.CreateType();
+                var targetMethod = mismatched.GetMethod("Target")!;
+                var prefixMethod = mismatched.GetMethod("Prefix")!;
+                var why = PatchParameterTypes.Mismatch(targetMethod, prefixMethod) ?? throw new InvalidOperationException("no mismatch found");
+                int found = PatchParameterTypes.Found;
+                new HarmonyLib.Harmony("OniMoono.Host.Check").Patch(targetMethod, prefix: new HarmonyLib.HarmonyMethod(prefixMethod));
+                if (PatchParameterTypes.Found != found + 1) throw new InvalidOperationException("the patch was not flagged");
+                var run = targetMethod.CreateDelegate<Func<IReadOnlyList<int>, int>>();
+                int count = run(new List<int> { 4, 5, 6 }), fromArray = run(new[] { 7, 8 });
+                // A matching patch: nothing found, at patch time only (timed over 10,000 checks).
+                var matching = typeof(Program).GetMethod(nameof(ListPrefix), BindingFlags.NonPublic | BindingFlags.Static)!;
+                if (PatchParameterTypes.Mismatch(targetMethod, matching) is { } wrong)
+                    throw new InvalidOperationException($"a matching prefix flagged: {wrong}");
+                long started = System.Diagnostics.Stopwatch.GetTimestamp();
+                for (int i = 0; i < 10_000; i++) PatchParameterTypes.Mismatch(targetMethod, matching);
+                double each = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds * 1000 / 10_000;
+                if (!PatchInliners.Available) return $"{why}; no JIT hook here, the list's count is {count}";
+                return count == 3 && fromArray == 2 ? $"{why}; the prefix counts the list's 3 items and the array's 2, as on Mono; a matching patch's check {each:F1} µs"
+                    : throw new InvalidOperationException($"the prefix counted {count} of the list's 3 items and {fromArray} of the array's 2");
+            });
             Check("A Harmony prefix on a method an earlier patch's replacement calls (PatchDependents)", () =>
             {
                 PatchDependents.Install();
@@ -2921,6 +2971,7 @@ namespace OniMoono.Host
         static int prefixedB, prefixedC, prefixedD, prefixedE, countedA;
         static void CountA() => countedA++;
         static void CountB() => prefixedB++;
+        static bool ListPrefix(IReadOnlyList<int> values, ref int __result) => true;
         static void CountC() => prefixedC++;
         static void CountD() => prefixedD++;
         static void CountE() => prefixedE++;

@@ -31,6 +31,13 @@ namespace OniMoono.Host
         // CorInfoInline's INLINE_PASS.
         const int ReportInliningDecision = 10;
         const int InlinePass = 0;
+        // D65: canInline's slot (two before reportInliningDecision), and CorInfoInline's
+        // INLINE_FAIL (this call site only; INLINE_NEVER would mark the callee for good).
+        const int CanInline = 8;
+        const int InlineFail = -1;
+        static IntPtr wrapperVtable;
+        // The handles of the methods nothing is inlined into (D65), replaced whole when one is added.
+        static volatile IntPtr[] keepCalls = [];
 
         static bool installed;
         static readonly object gate = new();
@@ -90,7 +97,53 @@ namespace OniMoono.Host
             delegate* unmanaged<IntPtr, IntPtr, IntPtr, int, IntPtr, void> report = &Report;
             report(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, InlinePass, IntPtr.Zero);
             ((IntPtr*)vtable)[ReportInliningDecision] = (IntPtr)report;
+            wrapperVtable = vtable;
             Available = true;
+        }
+
+        /// D65: from now on the JIT inlines no method into `method` (its earlier code, if any, is
+        /// kept). The wrapper's canInline slot is replaced the first time, so the JIT asks here
+        /// only once a mod needs it. False when the JIT's decisions are not seen here.
+        public static bool KeepCalls(MethodBase method)
+        {
+            if (!Available) return false;
+            IntPtr handle;
+            try
+            {
+                handle = method.MethodHandle.Value;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            lock (gate)
+            {
+                if (Array.IndexOf(keepCalls, handle) >= 0) return true;
+                if (keepCalls.Length == 0)
+                {
+                    delegate* unmanaged<IntPtr, IntPtr, IntPtr, int> canInline = &CanInlineInto;
+                    canInline(IntPtr.Zero, IntPtr.Zero, IntPtr.Zero); // compiled before the JIT calls it
+                    keepCalls = [handle];
+                    ((IntPtr*)wrapperVtable)[CanInline] = (IntPtr)canInline;
+                }
+                else
+                    keepCalls = [.. keepCalls, handle];
+            }
+            return true;
+        }
+
+        /// The JIT's question whether `callee` may be inlined into `caller` (the method compiled, or
+        /// one inlined into it), through MonoMod's wrapper (`self`): no for a method of keepCalls,
+        /// else the JIT's own ICorJitInfo answers.
+        [System.Runtime.InteropServices.UnmanagedCallersOnly]
+        static int CanInlineInto(IntPtr self, IntPtr caller, IntPtr callee)
+        {
+            if (self == IntPtr.Zero) return InlinePass;
+            var keep = keepCalls;
+            for (int i = 0; i < keep.Length; i++)
+                if (keep[i] == caller) return InlineFail;
+            IntPtr** wrapped = *(IntPtr***)((byte*)self + IntPtr.Size);
+            return ((delegate* unmanaged<IntPtr, IntPtr, IntPtr, int>)(*wrapped)[CanInline])((IntPtr)wrapped, caller, callee);
         }
 
         /// The JIT's report of a decision to inline `inlinee` (into `inliner`, the method being
