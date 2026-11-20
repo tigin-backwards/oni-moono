@@ -241,19 +241,19 @@ https://github.com/user-attachments/assets/5775cbda-42b6-49cb-b178-669fdbeb9f0a
 Starting the game to the main menu, every DLC, second launch: 17.5 s in the original, 9.8 s in
 Moono.
 
-https://github.com/user-attachments/assets/f73ebf1a-8440-4579-ab2a-0b2eaa2a6853
+https://github.com/user-attachments/assets/e5293dda-2aa1-4dd9-9ef8-eeaa8808e7dd
 
 An autosave on the late-game colony: the original freezes for about 25 s, Moono for about 2.1 s.
 
-https://github.com/user-attachments/assets/02076cf7-15ec-406a-889d-254ceb7a3e61
+https://github.com/user-attachments/assets/99767c1f-8600-467c-94c3-f92398aa833d
 
 The temperature overlay on the late-game colony, panning: about 7 fps in the original, about 57 in Moono.
 
-https://github.com/user-attachments/assets/99767c1f-8600-467c-94c3-f92398aa833d
+https://github.com/user-attachments/assets/02076cf7-15ec-406a-889d-254ceb7a3e61
 
 A mid-game colony at speed 3: about 28 fps in the original, about 126 in Moono.
 
-https://github.com/user-attachments/assets/e5293dda-2aa1-4dd9-9ef8-eeaa8808e7dd
+https://github.com/user-attachments/assets/f73ebf1a-8440-4579-ab2a-0b2eaa2a6853
 
 For a more detailed breakdown, see [docs/PERFORMANCE.md](docs/PERFORMANCE.md).
 

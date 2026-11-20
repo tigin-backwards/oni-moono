@@ -175,19 +175,19 @@ https://github.com/user-attachments/assets/5775cbda-42b6-49cb-b178-669fdbeb9f0a
 
 从启动游戏到主菜单（全部 DLC，第二次启动）：原版 17.5 秒，Moono 9.8 秒。
 
-https://github.com/user-attachments/assets/f73ebf1a-8440-4579-ab2a-0b2eaa2a6853
+https://github.com/user-attachments/assets/e5293dda-2aa1-4dd9-9ef8-eeaa8808e7dd
 
 该后期殖民地的自动存档：原版会卡住约 25 秒，Moono 约 2.1 秒。
 
-https://github.com/user-attachments/assets/02076cf7-15ec-406a-889d-254ceb7a3e61
+https://github.com/user-attachments/assets/99767c1f-8600-467c-94c3-f92398aa833d
 
 在该后期殖民地平移视角时的温度视图：原版约 7 fps，Moono 约 57 fps。
 
-https://github.com/user-attachments/assets/99767c1f-8600-467c-94c3-f92398aa833d
+https://github.com/user-attachments/assets/02076cf7-15ec-406a-889d-254ceb7a3e61
 
 一个游戏中期的殖民地，3 倍速：原版约 28 fps，Moono 约 126 fps。
 
-https://github.com/user-attachments/assets/e5293dda-2aa1-4dd9-9ef8-eeaa8808e7dd
+https://github.com/user-attachments/assets/f73ebf1a-8440-4579-ab2a-0b2eaa2a6853
 
 如需更详细的分析，请参阅 [docs/PERFORMANCE.md](docs/PERFORMANCE.md)。
 
