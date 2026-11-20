@@ -1,8 +1,32 @@
 {
   "schema": 1,
   "comment": "The game's reference assemblies the build compiles against, per game build (scripts/fetch-game-refs.py, docs/RELEASES.md).",
-  "default_build": "763796",
+  "default_build": "764025",
   "builds": {
+    "764025": {
+      "game": "U60 release",
+      "source": {
+        "kind": "git",
+        "host": "github.com",
+        "repository": "tigin-backwards/oni-moono-refs",
+        "commit": "2bb2dc25dfb5bbf0c0e0e2fe83d8ee0493320950",
+        "path": "764025"
+      },
+      "files": {
+        "0Harmony.dll": "3cf41290880d072dd87dd29ba0c9738376ad4548c817109eee4da2b03c631ded",
+        "Assembly-CSharp-firstpass.dll": "5ab0b16d4e297dc90b7073e6bb7edb48c6b2f43857133322111f2624210c66fd",
+        "Assembly-CSharp.dll": "4c4ca88060319bb7b2d7c93d8e25e2de05d538c806b7f933be9338c6025856c4",
+        "FMODUnity.dll": "70d9813734bef6aea281bf596cad0a51fdd91642b93a3ef054680585707f2ed4",
+        "Ionic.Zip.dll": "aa0b1f62928f3642c10a41da52857a2d0931d82684f702cf477ca7bc956bf6c1",
+        "Newtonsoft.Json.dll": "badc360b7eccbd9821d18842f58cd9ada8df3d6ec2f54535329f821374c9c7fd",
+        "Unity.TextMeshPro.dll": "7512f42a9eaa8ac6c15a497e2ccae4303c36410afa903f481fb8a79046c05954",
+        "UnityEngine.CoreModule.dll": "eaa60dc347bf732afc93451bc8cebb88f157dd332447b4b8e1ad5b9fc3e342ad",
+        "UnityEngine.TextRenderingModule.dll": "bb72f26cf405cdf095d54fe057c880c649ae9fcc0c110df49ffcb1ce8e52af01",
+        "UnityEngine.UI.dll": "c4de5ab688667486d3cb2897563a3917435cd11cad2791bb2ecfb592f86b443d",
+        "UnityEngine.UIModule.dll": "b7ea0e5bc8dcb52ffaed81b12ad9aef1e3960dbb180aa87b3f92607db7f049a1",
+        "UnityEngine.dll": "ebeeed7cde613d93a595320b95af655bfd31933ace86405c445e16b28007d049"
+      }
+    },
     "763796": {
       "game": "U60 release",
       "source": {

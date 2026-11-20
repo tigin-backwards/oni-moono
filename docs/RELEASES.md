@@ -84,7 +84,7 @@ private repository `tigin-backwards/oni-moono-refs`: one folder per game build w
 under Klei's mod guidelines).
 
 `ci/game-refs.json` lists each game build the branch supports, where its files come from and
-the SHA-256 of every file. `default_build` is the one the release builds against (U60 763796;
+the SHA-256 of every file. `default_build` is the one the release builds against (U60 764025;
 the frozen `u59` branch has U59 744825).
 
 `scripts/fetch-game-refs.py OUT` fetches one build into `OUT/OxygenNotIncluded_Data/Managed`, a
