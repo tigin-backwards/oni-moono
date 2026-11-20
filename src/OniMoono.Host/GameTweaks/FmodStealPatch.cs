@@ -76,7 +76,7 @@ namespace OniMoono.Host.GameTweaks
         /// The known modules, by game build.
         public static readonly FmodStealModule[] Known =
         [
-            new("windows", "fmodstudio.dll", "635b1f4836e8709a939245881020b31ef9aa91f93321bc0ef7917d63ee09eddb", "U59 744825, U60 763796",
+            new("windows", "fmodstudio.dll", "635b1f4836e8709a939245881020b31ef9aa91f93321bc0ef7917d63ee09eddb", "U59 744825, U60 763796 and 764025",
                 Site: 0x68A64,
                 // +0x68A64..+0x68A8A: the released test, the helper's call, the store, the epilogue.
                 Old: [0x8B, 0x83, 0xF8, 0x02, 0x00, 0x00, 0xC1, 0xE8, 0x03, 0xA8, 0x01, 0x74, 0x0C, 0x48, 0x8B, 0xCB, 0xE8, 0x17, 0x0D, 0x00, 0x00, 0x85, 0xC0, 0x75, 0x08, 0x89, 0xAB, 0xB0, 0x04, 0x00, 0x00, 0x33, 0xC0, 0x48, 0x8B, 0x7C, 0x24, 0x38],
@@ -103,7 +103,7 @@ namespace OniMoono.Host.GameTweaks
                     0xE9, 0x3C, 0x36, 0xE1, 0xFF,                       // jmp +0x68A85                      eax is 0: returned
                 ],
                 CaveSpace: 0x80, Counter: 0x336FF0, Return: 0x68A71, OldReturn: 0x68A79, Function: 0x6894E),
-            new("linux", "libfmodstudio.so", "a4eebdd6171fea7b308db6ecedd4e6db0db3840aed59b5dfbdc59570b58169db", "U59 744825, U60 763796",
+            new("linux", "libfmodstudio.so", "a4eebdd6171fea7b308db6ecedd4e6db0db3840aed59b5dfbdc59570b58169db", "U59 744825, U60 763796 and 764025",
                 Site: 0x1303A5,
                 // test eax, eax; jne epilogue; the store; xor eax, eax; jmp epilogue
                 Old: [0x85, 0xC0, 0x0F, 0x85, 0xBA, 0xFE, 0xFF, 0xFF, 0xC7, 0x83, 0xB0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x31, 0xC0, 0xE9, 0xA9, 0xFE, 0xFF, 0xFF],

@@ -26,7 +26,7 @@ namespace OniMoono.GameTweaks
     /// Off for the session once another Harmony owner patches GetSMI(Type) (checked at the first
     /// call, then every 2^18 lookups: a check costs more than a lookup).
     [GameMember(GameUse.Postfix, "System.Void Game::OnPrefabInit()")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "StateMachine/Instance StateMachineController::GetSMI(System.Type)", "d570e9bc4aade1e1 linux-744825 win-744825 linux-763796 win-763796", "bac4850e3c6abb42 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "StateMachine/Instance StateMachineController::GetSMI(System.Type)", "d570e9bc4aade1e1 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "bac4850e3c6abb42 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     public static class FastSmiLookups
     {
         public const string Name = "fast-smi-lookups";

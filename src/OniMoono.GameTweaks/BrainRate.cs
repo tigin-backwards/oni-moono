@@ -52,7 +52,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Postfix, "System.Void ThreatMonitor::InitializeStates(StateMachine/BaseState&)")]
     [GameMember(GameUse.Postfix, "System.Void Brain::UpdateBrain()", Conditional = true)]
     [GameMember(GameUse.Postfix, "System.Void Game::OnPrefabInit()")]
-    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Void BrainScheduler::RenderEveryTick(System.Single)", "6014ab20d776bb7b linux-744825 win-744825 linux-763796 win-763796", "0eafd0e3e60c8f62 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Postfix | GameUse.Replaces, "System.Void BrainScheduler::RenderEveryTick(System.Single)", "6014ab20d776bb7b linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "0eafd0e3e60c8f62 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     public static class BrainRate
     {
         public const string Name = "brain-rate";

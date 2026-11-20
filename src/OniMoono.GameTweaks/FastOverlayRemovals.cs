@@ -26,8 +26,8 @@ namespace OniMoono.GameTweaks
     ///
     /// Off for the session once another Harmony owner patches the handler or
     /// UniformGrid&lt;DecorProvider&gt;.Remove (checked at the first call, then every 4,096).
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void OverlayModes/Decor::OnSaveLoadRootUnregistered(SaveLoadRoot)", "4f8aa9bbabcfb043 linux-744825 win-744825", "3e7c816f6220e013 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612", "7a45102ddedf8914 linux-763796 win-763796")]
-    [GameMember(GameUse.Mirrors, "System.Void UniformGrid`1::Remove(!0)", "81a124a416e5a0f4 linux-744825 win-744825 linux-763796 win-763796", "30dd203307616f25 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void OverlayModes/Decor::OnSaveLoadRootUnregistered(SaveLoadRoot)", "4f8aa9bbabcfb043 linux-744825 win-744825", "3e7c816f6220e013 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612", "7a45102ddedf8914 linux-763796 win-763796 linux-764025 win-764025")]
+    [GameMember(GameUse.Mirrors, "System.Void UniformGrid`1::Remove(!0)", "81a124a416e5a0f4 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "30dd203307616f25 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     public static class FastOverlayRemovals
     {
         public const string Name = "fast-overlay-removals";

@@ -27,7 +27,7 @@ namespace OniMoono.GameTweaks
     /// same order and cleared when the method ends. Off for the session, back to the game's
     /// array, once another Harmony owner transpiles the method (checked at the first call, then
     /// every 65,536). With ONI_TWEAK_VERIFY=1 each kept array is compared with the game's.
-    [GameMember(GameUse.Transpiler | GameUse.Prefix | GameUse.Finalizer, "System.Void SaveLoadRoot::SaveWithoutTransform(System.IO.BinaryWriter)", "4847188af20e37a7 linux-744825 win-744825 linux-763796 win-763796", "32d81ac47c5cba37 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612", Rewrites = 4)]
+    [GameMember(GameUse.Transpiler | GameUse.Prefix | GameUse.Finalizer, "System.Void SaveLoadRoot::SaveWithoutTransform(System.IO.BinaryWriter)", "4847188af20e37a7 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "32d81ac47c5cba37 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612", Rewrites = 4)]
     public static class FastSaveTypeChecks
     {
         public const string Name = "fast-save-type-checks";

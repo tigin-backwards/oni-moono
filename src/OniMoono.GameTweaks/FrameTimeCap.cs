@@ -29,7 +29,7 @@ namespace OniMoono.GameTweaks
     /// with a postfix (it could change the sim's cap; checked at the first frame, then every
     /// 4,096). Without the engine's cap (not Moono's) its install fails, and the tweak's with it.
     [GameMember(GameUse.Postfix, "System.Void Game::SimEveryTick(System.Single)")]
-    [GameMember(GameUse.Mirrors, "System.Void Game::SimEveryTick(System.Single)", "0339e1b13ef02096 linux-744825 win-744825 linux-763796 win-763796", "5c36683191300649 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Mirrors, "System.Void Game::SimEveryTick(System.Single)", "0339e1b13ef02096 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "5c36683191300649 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     public static class FrameTimeCap
     {
         /// The tweak this is a part of (its game members are declared under that name), and the

@@ -34,7 +34,7 @@ namespace OniMoono.GameTweaks
     /// What differs: a save's call returns true before the file is written (SaveLoader.Save does
     /// not read it), and a failure to write is logged from the writer.
     /// ONI_TWEAK_VERIFY=1 makes the JSON on the main thread as well and compares the two.
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Boolean RetireColonyUtility::SaveColonySummaryData()", "12152414c207f347 linux-744825 win-744825 linux-763796 win-763796", "8182654e16ff4513 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Boolean RetireColonyUtility::SaveColonySummaryData()", "12152414c207f347 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "8182654e16ff4513 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     [GameMember(GameUse.Prefix, "RetiredColonyData[] RetireColonyUtility::LoadRetiredColonies(System.Boolean)")]
     public static class ColonySummaryWrite
     {
