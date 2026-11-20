@@ -224,6 +224,10 @@ class Rules(unittest.TestCase):
     def test_remove_only_job_folders(self):
         with self.assertRaises(ValueError):
             winenv.Windows().remove('C:\\Users\\u\\Documents')
+        with self.assertRaises(ValueError):
+            winenv.Windows().remove_test_prefs('C:\\Users\\u\\Documents')
+        # Never the game's key, only the tests' root.
+        self.assertEqual(winenv.test_prefs_key('C:\\T\\oni-runq\\j1'), 'HKCU\\Software\\OniMoonoTests\\C:\\T\\oni-runq\\j1')
 
 
 class Cleanup(unittest.TestCase):
@@ -257,7 +261,14 @@ class Cleanup(unittest.TestCase):
             ]
             lines = []
             cleanup.windows_cleanup(j, fake, lines.append)
-            self.assertEqual(fake.calls, [('kill', '\\oni-runq\\j0000042\\'), ('remove', TEMP + '\\oni-runq\\j0000042')])
+            self.assertEqual(
+                fake.calls,
+                [
+                    ('kill', '\\oni-runq\\j0000042\\'),
+                    ('remove', TEMP + '\\oni-runq\\j0000042'),
+                    ('prefs', 'HKCU\\Software\\OniMoonoTests\\' + TEMP + '\\oni-runq\\j0000042'),
+                ],
+            )
             self.assertEqual([p['pid'] for p in fake.procs], [2])
 
     def test_keep_home(self):

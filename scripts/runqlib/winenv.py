@@ -446,6 +446,21 @@ class Windows:
             raise ValueError(f'not a runq job folder: {win_path}')
         shutil.rmtree(path, ignore_errors=True)
 
+    def remove_test_prefs(self, win_path):
+        """Removes the PlayerPrefs keys of a job's run homes: our Windows player keeps a run home's
+        under HKCU\\Software\\OniMoonoTests\\<its full path> (PlayerPrefsStores.cs)."""
+        key = test_prefs_key(win_path)
+        r = subprocess.run([windows_exe('reg.exe'), 'delete', key, '/f'], capture_output=True, text=True, timeout=60, stdin=subprocess.DEVNULL, cwd='/mnt/c')
+        return r.returncode == 0
+
+
+def test_prefs_key(win_path):
+    """The registry key that holds the PlayerPrefs of the run homes in a job's Windows folder."""
+    if '\\oni-runq\\j' not in win_path:
+        raise ValueError(f'not a runq job folder: {win_path}')
+    parts = [p for p in win_path.replace('/', '\\').split('\\') if p and p not in ('?', '.')]
+    return 'HKCU\\Software\\OniMoonoTests\\' + '\\'.join(parts)
+
 
 class FakeWindows:
     """Records every call; games are what the test puts in .procs ({pid, name, cmdline})."""
@@ -485,6 +500,10 @@ class FakeWindows:
     def prefers_system32(self, interop):
         self.calls.append(('probe', interop))
         return self.policy.get(interop)
+
+    def remove_test_prefs(self, win_path):
+        self.calls.append(('prefs', test_prefs_key(win_path)))
+        return True
 
     def remove(self, win_path):
         self.calls.append(('remove', win_path))

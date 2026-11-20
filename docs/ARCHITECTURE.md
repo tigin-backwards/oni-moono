@@ -3429,8 +3429,8 @@ the monitor's size for this game) showed a fullscreen window for a moment before
   native 1, mode 1 for this game). Windows also holds `Screenmanager Window Position X/Y`,
   `Screenmanager Resolution Window Width`/`Height`, `Screenmanager Native RefreshRate
   Numerator`/`Denominator` and `Screenmanager Stereo 3D`.
-- **Ours** writes the first set to its prefs file (on Windows too, where our PlayerPrefs is a
-  file, not the registry) at each `Screen.SetResolution` and at quit (Screen.width/height, the
+- **Ours** writes the first set through PlayerPrefs, to the same store (§6), at each
+  `Screen.SetResolution` and at quit (Screen.width/height, the
   window's mode), and opens from them: a saved native size opens at the monitor's size, and a
   saved window with other `… Default` values (a build with other PlayerSettings), an invalid
   mode or a size not above 0 is ignored for PlayerSettings'. `-screen-width`/`-height`,
@@ -3439,8 +3439,9 @@ the monitor's size for this game) showed a fullscreen window for a moment before
   than the work area opens maximized, as at a `SetResolution`. The log's `window: opens` line names
   the start window and where it came from.
 - **Not handled:** the saved position (ours centres the window), the windowed size kept while
-  fullscreen (`Resolution Window Width`/`Height`) and the refresh rate. Ours does not read the
-  original's registry: the first run under ours opens from PlayerSettings.
+  fullscreen (`Resolution Window Width`/`Height`) and the refresh rate. The two players share
+  the values, so the first launch after updating from a Moono that kept its own prefs file
+  opens in the mode and size the original saved last.
 
 A fullscreen window (`FullScreenWindow`, the game's Fullscreen option) at a resolution smaller
 than the monitor's renders at that resolution and stretches it over the window, as Unity's player
@@ -3642,6 +3643,27 @@ formatting (D2).
   known folder), `temporaryCachePath` under `%TEMP%`, all paths with forward slashes as Unity
   reports them. The game itself keeps saves, mods and its settings under
   `Documents\Klei\OxygenNotIncluded` (`Environment.GetFolderPath`).
+- **PlayerPrefs** live where Unity's player keeps them, so ours and the original read and write
+  the same values (`PlayerPrefsStores`, measured in the original with a probe mod):
+  - Windows: the registry key `HKCU\Software\<company>\<product>`. Each value is named
+    `<name>_h<hash>`, the hash the 32-bit `h = h * 33 ^ byte` from 5381 over the name's UTF-8
+    bytes. Ints are a REG_DWORD; floats a REG_DWORD of 8 bytes holding a double (regedit calls
+    it an invalid DWORD); strings a REG_BINARY of their UTF-8 bytes and a NUL. A save writes
+    only the values that changed. Values of other names are left alone.
+  - Linux: the XML file `<persistentDataPath>/prefs` (`<pref name="…" type="int|float|string">`,
+    strings as base64 UTF-8, floats with six significant digits). macOS, groundwork only, uses
+    the same file, not Unity's plist.
+  - Changes are written by `Save` and at quit. A key set with another type replaces the old
+    value. Reading one as another type gives the default. The original reads a string's first
+    bytes as `GetInt` (`"now"` gave 7827310); ours does not.
+  - Moono kept its prefs in that file on Windows too, until 2026-11. At the first start with
+    the registry, the keys the registry lacks come over from the file, so the registry, which
+    the original wrote, wins. The file is then renamed `prefs.imported`, and the log says so in
+    one line.
+  - With `--run-home` (test runs) the key is
+    `HKCU\Software\OniMoonoTests\<the run home's full path>\<company>\<product>`, so a test
+    never reads or writes the game's key. runq deletes its jobs' keys with their Windows
+    folders. Unit tests use the file, or an in-memory key.
 - **The Windows build** is the same game build as the Linux one (ChangeList 744825). Its
   shaders carry OpenGL programs next to the Direct3D ones, so the same device runs its data.
 - **Natives** resolve per platform (`GameLayout`, which tells the layout from the install's
@@ -3877,7 +3899,8 @@ How the checks work:
 Test runs (not the product):
 
 - `--run-home DIR` keeps a run's per-user data under DIR (Unity's paths, and on Windows the
-  Documents and local application data folders the game asks .NET for).
+  Documents and local application data folders the game asks .NET for). On Windows its
+  PlayerPrefs go to a registry key of DIR's own (§6).
 - `--audio-wav DIR` sends the game's audio to `DIR/fmodoutput.wav` (FMOD's WAV writer) instead
   of the sound device.
 - The offline Steam double (`tools/SteamStub`, an ELF library or a PE DLL written directly)

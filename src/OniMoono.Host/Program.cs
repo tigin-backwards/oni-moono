@@ -3115,6 +3115,9 @@ namespace OniMoono.Host
             EngineConfig.PersistentDataPath = Unity(Path.Combine(localLow, EngineConfig.CompanyName, EngineConfig.ProductName));
             var temp = runHome != null ? Path.Combine(runHome, "AppData", "Local", "Temp") : Path.GetTempPath();
             EngineConfig.TemporaryCachePath = Unity(Path.Combine(temp, EngineConfig.CompanyName, EngineConfig.ProductName));
+            // Unity's registry key, or with a run home a test key of that run home's alone.
+            EngineConfig.PlayerPrefsRegistryKey = OniMoono.Engine.Platform.PrefsStore.RegistryKeyFor(EngineConfig.CompanyName, EngineConfig.ProductName,
+                runHome != null ? Path.GetFullPath(runHome) : null);
         }
     }
 

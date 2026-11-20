@@ -6,7 +6,8 @@
   e2e.py and qa.sh do) are stopped: the scopes whose processes carry RUNQ_JOB=<id>;
 - a job that held the Windows slot: its game is killed by its run home (never by name), and so are
   the job's own games the daemon recorded (by pid and start time); then its
-  Windows folder (%TEMP%\\oni-runq\\<id>) is removed, unless --keep-home;
+  Windows folder (%TEMP%\\oni-runq\\<id>) and its run homes' PlayerPrefs key are removed, unless
+  --keep-home;
 - cleanup.json records systemd's view of the end ($SERVICE_RESULT, $EXIT_CODE, $EXIT_STATUS),
   and the daemon frees the job's resources once it is there."""
 
@@ -92,6 +93,11 @@ def windows_cleanup(job, windows, log):
             log(f'removed {root}')
         except Exception as e:
             log(f'remove {root}: {e}')
+        try:
+            if windows.remove_test_prefs(root):
+                log(f'removed the PlayerPrefs key of {root}')
+        except Exception as e:
+            log(f'remove the PlayerPrefs key of {root}: {e}')
 
 
 def main(job_dir, windows=None, environ=None):

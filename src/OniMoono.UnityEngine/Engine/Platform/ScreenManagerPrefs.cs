@@ -8,8 +8,8 @@ namespace OniMoono.Engine.Platform
     /// (FullScreenMode as an int: 0 exclusive, 1 fullscreen window, 3 windowed),
     /// `Screenmanager Resolution Width/Height`, `Screenmanager Resolution Use Native` (1 when the
     /// size was the monitor's), and the PlayerSettings defaults they were saved under
-    /// (`… Default`). Unity's player opens its window from them; ours does too, keeping them in
-    /// our prefs file on every platform (PlayerPrefs). The window position Unity also saves
+    /// (`… Default`). Unity's player opens its window from them; ours does too, through PlayerPrefs,
+    /// which keeps them where the original does. The window position Unity also saves
     /// (`Screenmanager Window Position X/Y`) is neither saved nor used: ours centres the window.
     internal static class ScreenManagerPrefs
     {

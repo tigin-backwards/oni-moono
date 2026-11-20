@@ -1,111 +1,111 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
-using System.Text;
-using System.Xml;
 using OniMoono.Engine;
+using OniMoono.Engine.Platform;
 
 namespace UnityEngine
 {
-    /// Values kept between runs in the player's prefs file, as Unity's Linux player keeps them
-    /// (measured in the original player): `prefs` in the persistent data folder, an XML file of
-    /// `<pref name="…" type="int|float|string">` entries, strings as base64 UTF-8, floats with six
-    /// significant digits. The file also holds the player's own entries (screen settings and the
-    /// like), which are kept as read. Setting a key with another type replaces it; reading a key as
-    /// another type gives the default. On Windows, where Unity keeps them in the registry, the same
-    /// file is used.
+    /// Values kept between runs, in the store Unity's player keeps them in on each platform, so
+    /// the original and ours read and write the same values (PlayerPrefsStores): on Windows the
+    /// registry key HKCU\Software\<company>\<product>, elsewhere the `prefs` XML file in the
+    /// persistent data folder. The store also holds the player's own entries (screen settings and
+    /// the like), which are kept as read. Setting a key with another type replaces it; reading a
+    /// key as another type gives the default. Changes are written by Save and at quit.
     public partial class PlayerPrefs
     {
-        enum Kind { Int, Float, String }
-
         static readonly object gate = new();
-        static Dictionary<string, (Kind Kind, string Text)> entries;
-        // Entry order: as read from the file, new keys after.
+        static PrefsStore store;
+        static Dictionary<string, PrefsEntry> entries;
+        // Entry order: as read, new keys after.
         static List<string> order;
-        static bool dirty;
+        // What Save writes: the keys set and deleted since the last save, and whether DeleteAll ran.
+        static HashSet<string> changed;
+        static HashSet<string> deleted;
+        static bool cleared;
 
-        static string FilePath => Path.Combine(Application.persistentDataPath, "prefs");
-
-        static Dictionary<string, (Kind Kind, string Text)> Entries()
+        static Dictionary<string, PrefsEntry> Entries()
         {
             if (entries != null) return entries;
-            entries = new Dictionary<string, (Kind, string)>(StringComparer.Ordinal);
+            entries = new Dictionary<string, PrefsEntry>(StringComparer.Ordinal);
             order = new List<string>();
-            var path = FilePath;
-            if (!File.Exists(path)) return entries;
-            try
-            {
-                var doc = new XmlDocument();
-                doc.Load(path);
-                if (doc.DocumentElement == null) return entries;
-                foreach (XmlNode node in doc.DocumentElement.ChildNodes)
-                {
-                    if (node is not XmlElement { Name: "pref" } pref) continue;
-                    var name = pref.GetAttribute("name");
-                    Kind? kind = pref.GetAttribute("type") switch { "int" => Kind.Int, "float" => Kind.Float, "string" => Kind.String, _ => null };
-                    if (kind == null) continue;
-                    if (!entries.ContainsKey(name)) order.Add(name);
-                    entries[name] = (kind.Value, pref.InnerText);
-                }
-            }
-            catch (XmlException e)
-            {
-                EngineLog.Engine($"PlayerPrefs: {path} could not be read ({e.Message}); starting empty");
-            }
+            changed = new HashSet<string>(StringComparer.Ordinal);
+            deleted = new HashSet<string>(StringComparer.Ordinal);
+            cleared = false;
+            store ??= PrefsStore.ForConfig();
+            store.Load(entries, order);
+            if (store is RegistryPrefsStore registry) ImportOldFile(registry);
             return entries;
         }
 
-        static void Set(string key, Kind kind, string text)
+        /// Moono kept its prefs in the `prefs` file on Windows too, before it used the registry:
+        /// the keys the registry lacks come over once (the registry, which the original wrote,
+        /// wins), then the file is renamed `prefs.imported`.
+        static void ImportOldFile(RegistryPrefsStore registry)
+        {
+            var path = Path.Combine(EngineConfig.PersistentDataPath, "prefs");
+            if (!File.Exists(path)) return;
+            var old = new Dictionary<string, PrefsEntry>(StringComparer.Ordinal);
+            var oldOrder = new List<string>();
+            new FilePrefsStore(path).Load(old, oldOrder);
+            int imported = 0;
+            foreach (var name in oldOrder)
+            {
+                if (entries.ContainsKey(name) || old[name].Value == null) continue;
+                entries[name] = old[name];
+                order.Add(name);
+                changed.Add(name);
+                imported++;
+            }
+            try
+            {
+                if (imported > 0) SaveLocked();
+                File.Move(path, path + ".imported", true);
+                EngineLog.Engine($"PlayerPrefs: imported {imported} of {oldOrder.Count} keys from {path} into {registry.Describe()}; the file is now prefs.imported");
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                EngineLog.Engine($"PlayerPrefs: could not import {path} into {registry.Describe()} ({e.Message})");
+            }
+        }
+
+        static void Set(string key, PrefsEntry entry)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             lock (gate)
             {
                 var e = Entries();
                 if (!e.ContainsKey(key)) order.Add(key);
-                e[key] = (kind, text);
-                dirty = true;
+                e[key] = entry;
+                changed.Add(key);
+                deleted.Remove(key);
             }
         }
 
-        static string Get(string key, Kind kind)
+        static object Get(string key, PrefsKind kind)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
             lock (gate)
-                return Entries().TryGetValue(key, out var entry) && entry.Kind == kind ? entry.Text : null;
+                return Entries().TryGetValue(key, out var entry) && entry.Kind == kind ? entry.Value : null;
         }
 
-        public static void SetInt(string key, int value) => Set(key, Kind.Int, value.ToString(CultureInfo.InvariantCulture));
+        public static void SetInt(string key, int value) => Set(key, new PrefsEntry(PrefsKind.Int, value));
 
         public static int GetInt(string key) => GetInt(key, 0);
 
-        public static int GetInt(string key, int defaultValue)
-            => Get(key, Kind.Int) is { } text && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int v) ? v : defaultValue;
+        public static int GetInt(string key, int defaultValue) => Get(key, PrefsKind.Int) is int v ? v : defaultValue;
 
-        /// Six significant digits, as C's %g writes them (1.5, 0.333333, 1e+07).
-        public static void SetFloat(string key, float value) => Set(key, Kind.Float, value.ToString("G6", CultureInfo.InvariantCulture).Replace("E", "e"));
+        public static void SetFloat(string key, float value) => Set(key, new PrefsEntry(PrefsKind.Float, value));
 
         public static float GetFloat(string key) => GetFloat(key, 0f);
 
-        public static float GetFloat(string key, float defaultValue)
-            => Get(key, Kind.Float) is { } text && float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out float v) ? v : defaultValue;
+        public static float GetFloat(string key, float defaultValue) => Get(key, PrefsKind.Float) is float v ? v : defaultValue;
 
-        public static void SetString(string key, string value) => Set(key, Kind.String, Convert.ToBase64String(Encoding.UTF8.GetBytes(value ?? "")));
+        public static void SetString(string key, string value) => Set(key, new PrefsEntry(PrefsKind.String, value ?? ""));
 
         public static string GetString(string key) => GetString(key, "");
 
-        public static string GetString(string key, string defaultValue)
-        {
-            if (Get(key, Kind.String) is not { } text) return defaultValue;
-            try
-            {
-                return Encoding.UTF8.GetString(Convert.FromBase64String(text));
-            }
-            catch (FormatException)
-            {
-                return defaultValue;
-            }
-        }
+        public static string GetString(string key, string defaultValue) => Get(key, PrefsKind.String) is string v ? v : defaultValue;
 
         public static bool HasKey(string key)
         {
@@ -120,7 +120,8 @@ namespace UnityEngine
                 if (Entries().Remove(key))
                 {
                     order.Remove(key);
-                    dirty = true;
+                    changed.Remove(key);
+                    deleted.Add(key);
                 }
         }
 
@@ -130,43 +131,40 @@ namespace UnityEngine
             {
                 Entries().Clear();
                 order.Clear();
-                dirty = true;
+                changed.Clear();
+                deleted.Clear();
+                cleared = true;
             }
         }
 
-        /// Writes the file (Unity also saves on quit).
+        /// Writes the changes to the store (Unity also saves on quit).
         public static void Save()
         {
             lock (gate)
             {
-                var e = Entries();
-                var text = new StringBuilder("<unity_prefs version_major=\"1\" version_minor=\"1\">\n");
-                foreach (var name in order)
-                {
-                    var (kind, value) = e[name];
-                    var type = kind switch { Kind.Int => "int", Kind.Float => "float", _ => "string" };
-                    text.Append("\t<pref name=\"").Append(SecurityElementEscape(name)).Append("\" type=\"").Append(type).Append("\">")
-                        .Append(SecurityElementEscape(value)).Append("</pref>\n");
-                }
-                text.Append("</unity_prefs>");
-                var path = FilePath;
-                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-                File.WriteAllText(path, text.ToString(), new UTF8Encoding(false));
-                dirty = false;
+                Entries();
+                SaveLocked();
             }
         }
 
-        static string SecurityElementEscape(string s) => System.Security.SecurityElement.Escape(s) ?? "";
+        static void SaveLocked()
+        {
+            store.Save(entries, order, changed, deleted, cleared);
+            changed.Clear();
+            deleted.Clear();
+            cleared = false;
+        }
 
-        /// Forgets what was read; the file is read again at the next access (tests, a changed
-        /// persistent data folder).
-        internal static void Reload()
+        /// Forgets what was read; the store is read again at the next access (tests, a changed
+        /// persistent data folder or registry key). USE (tests): the store to read, else the
+        /// configured one.
+        internal static void Reload(PrefsStore use = null)
         {
             lock (gate)
             {
                 entries = null;
                 order = null;
-                dirty = false;
+                store = use;
             }
         }
 
@@ -175,15 +173,15 @@ namespace UnityEngine
         {
             lock (gate)
             {
-                if (!dirty) return;
-            }
-            try
-            {
-                Save();
-            }
-            catch (IOException e)
-            {
-                EngineLog.Engine($"PlayerPrefs: not saved at quit ({e.Message})");
+                if (entries == null || (changed.Count == 0 && deleted.Count == 0 && !cleared)) return;
+                try
+                {
+                    SaveLocked();
+                }
+                catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+                {
+                    EngineLog.Engine($"PlayerPrefs: not saved at quit ({e.Message})");
+                }
             }
         }
     }

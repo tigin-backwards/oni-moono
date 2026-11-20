@@ -177,7 +177,8 @@ alongside the Direct3D ones. `run-windows.sh` copies `out/win` to `%TEMP%\oni-br
 it on the Steam install (`ONI_WIN_GAME_DIR` to change that). Test runs stay away from your game
 data, Steam account and speakers:
 - `--run-home` gives the game its own Documents, AppData and LocalLow under
-  `%TEMP%\oni-brutal\run-home` (`ONI_RUN_HOME`)
+  `%TEMP%\oni-brutal\run-home` (`ONI_RUN_HOME`), and PlayerPrefs a registry key of its own,
+  `HKCU\Software\OniMoonoTests\<run home>` (runq removes its jobs' keys)
 - the Steam stub replaces `steam_api64.dll` (`ONI_STEAM_STUB` names another one)
 - `--audio-wav` writes the game's sound to `fmodoutput.wav` there
 

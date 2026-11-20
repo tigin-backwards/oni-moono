@@ -206,6 +206,10 @@ namespace OniMoono.Engine
         public static string ConsoleLogPath = "";
         public static string CompanyName = "";
         public static string ProductName = "";
+        /// The key under HKEY_CURRENT_USER that holds PlayerPrefs on Windows
+        /// (PrefsStore.RegistryKeyFor); null: the prefs file in the persistent data folder (other
+        /// platforms, tests).
+        public static string PlayerPrefsRegistryKey;
         public static string Version = "";
         public static string UnityVersion = "";
         public static bool IsBatchMode;
