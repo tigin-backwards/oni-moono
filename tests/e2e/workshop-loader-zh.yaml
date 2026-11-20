@@ -1,0 +1,33 @@
+# workshop-loader.yaml's dialog in the game's Simplified Chinese (zh_klei), its strings from the
+# made-up item's translations/zh.po, for a look at how the Chinese fits: before the install, the
+# Copy button's Copied ✓, and after the install with Close game.
+from: main-menu
+language: zh_klei
+moono_item: true
+expect_log:
+  - '\[MoonoLoader\] asked whether to play with Moono'
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MoonoDialog", cond: stable, frames: 600}
+  - expect_ui:
+      "**/MoonoDialog/**/Header/Label": {text: "使用 Moono 游玩？"}
+      "**/MoonoDialog/**/LaunchOptionRow/CopyLine/Text": {text: "复制"}
+      "**/MoonoDialog/**/LeftButton_Prefab/Text": {text: "以后再说"}
+      "**/MoonoDialog/**/RightButton_Prefab/Text": {text: "安装并复制启动选项"}
+  - ui_dump: {name: dialog, root: "**/MoonoDialog"}
+  - shot: {name: dialog}
+  - click: {ui: "**/MoonoDialog/**/LaunchOptionRow/CopyLine"}
+  - ui_wait: {path: "**/MoonoDialog/**/LaunchOptionRow/CopyLine/Text", cond: text, value: "已复制 ✓", frames: 120}
+  - shot: {name: copy-check}
+  - ui_dump: {name: copy-check, root: "**/MoonoDialog"}
+  - ui_wait: {path: "**/MoonoDialog/**/LaunchOptionRow/CopyLine/Text", cond: text, value: "复制", frames: 600}
+  - click: {ui: "**/MoonoDialog/**/RightButton_Prefab"}
+  - ui_wait: {path: "**/MoonoDialog/**/RightButton_Prefab/Text", cond: text, value: "退出游戏", frames: 600}
+  - expect_ui:
+      "**/MoonoDialog/**/Step1": {text: "1. Moono 已安装，启动选项已复制。"}
+  - shot: {name: copied}
+  - ui_dump: {name: copied, root: "**/MoonoDialog"}
+  - click: {text: "以后再说", under: "**/MoonoDialog"}
+  - ui_wait: {path: "**/MoonoDialog", cond: gone, frames: 600}

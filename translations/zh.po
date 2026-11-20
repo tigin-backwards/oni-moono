@@ -950,6 +950,14 @@ msgctxt "STRINGS.MOONO.LOADER.FAILED"
 msgid "Moono could not be installed: {0}"
 msgstr "无法安装 Moono：{0}"
 
+msgctxt "STRINGS.MOONO.LOADER.COPY_LINE"
+msgid "Copy"
+msgstr "复制"
+
+msgctxt "STRINGS.MOONO.LOADER.CLOSE_GAME"
+msgid "Close game"
+msgstr "退出游戏"
+
 msgctxt "STRINGS.MOONO.LOADER.MODS_BUTTON"
 msgid "Play with Moono"
 msgstr "使用 Moono"

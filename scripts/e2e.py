@@ -3811,6 +3811,11 @@ def moono_test_item(dest, loader=None):
         'player/OniMoono.dll': b'MZ dll',
         'player/packages/UnityEngine.UI.dll': b'MZ ui',
     }
+    # Moono's translations, as a release's player carries them: the loader's dialog reads them.
+    for name in sorted(os.listdir(os.path.join(ROOT, 'translations'))):
+        if name.endswith('.po'):
+            with open(os.path.join(ROOT, 'translations', name), 'rb') as f:
+                files['player/translations/' + name] = f.read()
     manifest = ''.join(f'{hashlib.sha256(d).hexdigest()}  {p}\n' for p, d in sorted(files.items()))
     version = '2026.11.10.01'
     os.makedirs(assets)

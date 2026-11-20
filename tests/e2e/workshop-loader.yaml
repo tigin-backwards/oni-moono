@@ -1,12 +1,15 @@
 # Moono's Workshop item in the original game (docs/INSTALL-MODES.md, "The loader mod"), run with
 # --player original: a made-up item (`moono_item`) as a Local mod, its loader mod enabled.
 # At the main menu the loader asks once whether to play with Moono, in the game's info dialog:
-# three numbered steps, the launch-option line in a box, and Not now and Install & copy launch
-# option. Not now leaves the game at its main menu. The item's row in the Mods screen has a Play
-# with Moono button that shows the dialog again; Install & copy launch option installs the item's
-# player into the profile's moono-install/versioned (ONI_MOONO_INSTALL_ROOT), the entry point and
-# the state Moono reads, off the main thread, then puts the line on the clipboard and says so,
-# and the dialog stays open until Not now.
+# three numbered steps, the launch-option line in a box with a Copy button beside it, and Not
+# now and Install & copy launch option. Copy puts the line on the clipboard and says Copied ✓
+# for a moment. Not now leaves the game at its main menu. The item's row in the Mods screen has
+# a Play with Moono button that shows the dialog again; Install & copy launch option installs
+# the item's player into the profile's moono-install/versioned (ONI_MOONO_INSTALL_ROOT), the
+# entry point and the state Moono reads, off the main thread, then puts the line on the
+# clipboard and says so, and becomes Close game; the dialog stays open until Not now, and
+# shown again it opens with Close game. Both buttons keep their width across their labels.
+# workshop-loader-zh.yaml is the same dialog in Simplified Chinese.
 from: main-menu
 moono_item: true
 expect_log:
@@ -24,10 +27,19 @@ steps:
       "**/MoonoDialog/**/LaunchOption/**/Text": {text: "~OniMoono\" -- %command%"}
       "**/MoonoDialog/**/Step3": {text: "3. Quit the game and press Play."}
       "**/MoonoDialog/**/Hint": {text: "To stop seeing this, disable the Moono mod."}
+      "**/MoonoDialog/**/LaunchOptionRow/CopyLine/Text": {text: "Copy"}
       "**/MoonoDialog/**/LeftButton_Prefab/Text": {text: "Not now"}
       "**/MoonoDialog/**/RightButton_Prefab/Text": {text: "Install & copy launch option"}
   - ui_dump: {name: dialog, root: "**/MoonoDialog"}
   - shot: {name: dialog}
+  # Copy works before the install too, and says so for a moment.
+  - click: {ui: "**/MoonoDialog/**/LaunchOptionRow/CopyLine"}
+  - ui_wait: {path: "**/MoonoDialog/**/LaunchOptionRow/CopyLine/Text", cond: text, value: "Copied ✓", frames: 120}
+  - shot: {name: copy-check}
+  - ui_dump: {name: copy-check, root: "**/MoonoDialog"}
+  - expect_state:
+      "type:MoonoLoader.MoonoDialog::LastCopied": {contains: "/moono-install/versioned/OniMoono\" -- %command%"}
+  - ui_wait: {path: "**/MoonoDialog/**/LaunchOptionRow/CopyLine/Text", cond: text, value: "Copy", frames: 600}
   - click: {text: "Not now", under: "**/MoonoDialog"}
   - ui_wait: {path: "**/MoonoDialog", cond: gone, frames: 600}
   - expect_state:
@@ -42,12 +54,14 @@ steps:
   - ui_wait: {path: "**/MoonoDialog", cond: stable, frames: 600}
   - click: {text: "Install & copy launch option", under: "**/MoonoDialog"}
   # The copy runs off the main thread; the button says Installing… until it ends.
-  - ui_wait: {path: "**/MoonoDialog/**/RightButton_Prefab/Text", cond: text, value: "Copied ✓", frames: 600}
+  - ui_wait: {path: "**/MoonoDialog/**/RightButton_Prefab/Text", cond: text, value: "Close game", frames: 600}
   - expect_ui:
-      "**/MoonoDialog/**/RightButton_Prefab/Text": {text: "Copied ✓"}
+      "**/MoonoDialog/**/RightButton_Prefab/Text": {text: "Close game"}
+      "**/MoonoDialog/**/RightButton_Prefab": {interactable: true}
       "**/MoonoDialog/**/Step1": {text: "1. Moono installed. Launch option copied."}
       "**/MoonoDialog/Layout": {active: true}
   - shot: {name: copied}
+  - ui_dump: {name: copied, root: "**/MoonoDialog"}
   - expect_state:
       "file:moono-install/versioned/player/2026.11.10.01/OniMoono": exists
       "file:moono-install/versioned/player/2026.11.10.01/packages/UnityEngine.UI.dll": exists
@@ -61,3 +75,14 @@ steps:
   - ui_wait: {path: "**/MoonoDialog", cond: gone, frames: 600}
   - expect_ui:
       "**/ModsScreen/Panel": {active: true}
+  # Shown again, it opens installed, with Close game.
+  - click: {ui: "**/ModsScreen/**/Content/Moono/**/MoonoButton"}
+  - ui_wait: {path: "**/MoonoDialog", cond: stable, frames: 600}
+  - expect_ui:
+      "**/MoonoDialog/**/RightButton_Prefab/Text": {text: "Close game"}
+      "**/MoonoDialog/**/Step1": {text: "1. Moono installed. Launch option copied."}
+      "**/MoonoDialog/**/LaunchOptionRow/CopyLine/Text": {text: "Copy"}
+  - shot: {name: reopened}
+  - ui_dump: {name: reopened, root: "**/MoonoDialog"}
+  - click: {text: "Not now", under: "**/MoonoDialog"}
+  - ui_wait: {path: "**/MoonoDialog", cond: gone, frames: 600}

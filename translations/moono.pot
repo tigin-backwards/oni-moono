@@ -1205,7 +1205,7 @@ msgctxt "STRINGS.MOONO.LOADER.INSTALLING"
 msgid "Installing…"
 msgstr ""
 
-#. The main button's text once it has copied the line
+#. The small Copy button's text for a moment after it (or the main button) copied the line
 msgctxt "STRINGS.MOONO.LOADER.COPIED"
 msgid "Copied ✓"
 msgstr ""
@@ -1218,6 +1218,16 @@ msgstr ""
 #. Step 1's text when the install fails; {0}: why (in English)
 msgctxt "STRINGS.MOONO.LOADER.FAILED"
 msgid "Moono could not be installed: {0}"
+msgstr ""
+
+#. The small button beside the launch-option line: it copies the line again
+msgctxt "STRINGS.MOONO.LOADER.COPY_LINE"
+msgid "Copy"
+msgstr ""
+
+#. The main button's text once it installed Moono and copied the line: it quits the game
+msgctxt "STRINGS.MOONO.LOADER.CLOSE_GAME"
+msgid "Close game"
 msgstr ""
 
 #. The button on the item's row in the Mods screen that shows the dialog

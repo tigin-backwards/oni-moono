@@ -384,6 +384,8 @@ list anyway.
     game's launch options; quit the game and press Play.
   - The launch-option line under step 1, in the box of the game's text field. It is one line,
     shortened in the middle when long: `"…\oni-moono\versioned\OniMoono.exe" -- %command%`.
+    A small **Copy** button beside it puts the whole line on the clipboard at any time, before
+    the install too, and says "Copied ✓" for two seconds.
   - A muted line: "To stop seeing this, disable the Moono mod."
 
   It stays open until **Not now** (or Escape), and the game carries on. Nothing is added to the
@@ -409,9 +411,12 @@ list anyway.
   game runs as it runs any mod. The GitHub releases stay the root of trust, as for the first
   install above.
 
-  Then the whole line goes on the clipboard, the button says "Copied ✓" and step 1 says "Moono
-  installed. Launch option copied." (or why it could not be installed), so the player can switch
-  to Steam, paste and come back. The line is the entry point with its full path, as setup uses:
+  Then the whole line goes on the clipboard, the Copy button says "Copied ✓", step 1 says "Moono
+  installed. Launch option copied." (or why it could not be installed), and the button becomes
+  **Close game**, so the player can switch to Steam, paste and come back. Close game quits as
+  the main menu's Quit to Desktop does (`App.Quit`). Shown again in the same start, the dialog
+  opens that way. Each button keeps one width for all its labels, so nothing moves between
+  states. The line is the entry point with its full path, as setup uses:
   `"C:\Users\<you>\AppData\Local\oni-moono\versioned\OniMoono.exe" -- %command%` (Linux:
   `"/home/<you>/.local/share/oni-moono/versioned/OniMoono" -- %command%`, the sandboxed Steam's
   folder for a Flatpak or snap Steam, as `OniMoono.sh` picks it; `ONI_MOONO_INSTALL_ROOT` moves it).
@@ -427,5 +432,6 @@ list anyway.
 - **Built** by `workshop.yml` from its run's commit, against U60's reference assemblies
   (`ci/game-refs.json`, build 764025), and attested with the rest of the item.
 - **Tests:** `LoaderTests` (the install and the line, without the game);
-  `tests/e2e/workshop-loader.yaml` in the original game with a made-up item as a local mod, and
+  `tests/e2e/workshop-loader.yaml` in the original game with a made-up item as a local mod
+  (`workshop-loader-zh.yaml` in Simplified Chinese), and
   `workshop-loader-moono.yaml` in Moono with it also as a Workshop subscription.

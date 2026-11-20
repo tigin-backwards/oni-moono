@@ -280,8 +280,17 @@ namespace OniMoono.Tests
             ("workshop-loader.yaml", "To stop seeing this, disable the Moono mod.", s => Loader(s, "DISABLE_HINT")),
             ("workshop-loader.yaml", "Not now", s => Loader(s, "NOT_NOW")),
             ("workshop-loader.yaml", "Install & copy launch option", s => Loader(s, "COPY")),
+            ("workshop-loader.yaml", "Copy", s => Loader(s, "COPY_LINE")),
             ("workshop-loader.yaml", "Copied ✓", s => Loader(s, "COPIED")),
+            ("workshop-loader.yaml", "Close game", s => Loader(s, "CLOSE_GAME")),
             ("workshop-loader.yaml", "1. Moono installed. Launch option copied.", s => "1. " + Loader(s, "INSTALLED")),
+            ("workshop-loader-zh.yaml", "使用 Moono 游玩？", s => Loader(s, "TITLE")),
+            ("workshop-loader-zh.yaml", "复制", s => Loader(s, "COPY_LINE")),
+            ("workshop-loader-zh.yaml", "以后再说", s => Loader(s, "NOT_NOW")),
+            ("workshop-loader-zh.yaml", "安装并复制启动选项", s => Loader(s, "COPY")),
+            ("workshop-loader-zh.yaml", "已复制 ✓", s => Loader(s, "COPIED")),
+            ("workshop-loader-zh.yaml", "退出游戏", s => Loader(s, "CLOSE_GAME")),
+            ("workshop-loader-zh.yaml", "1. Moono 已安装，启动选项已复制。", s => "1. " + Loader(s, "INSTALLED")),
         ];
 
         /// The double-quoted YAML scalars of a spec, as YAML reads them, with where each starts.

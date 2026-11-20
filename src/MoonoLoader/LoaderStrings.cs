@@ -16,6 +16,7 @@ namespace MoonoLoader
 
         public const string Title = "TITLE", Intro = "INTRO", StepCopy = "STEP_COPY", StepPaste = "STEP_PASTE", StepRestart = "STEP_RESTART",
             DisableHint = "DISABLE_HINT", NotNow = "NOT_NOW", Copy = "COPY", Installing = "INSTALLING", Copied = "COPIED", Installed = "INSTALLED", Failed = "FAILED",
+            CopyLine = "COPY_LINE", CloseGame = "CLOSE_GAME",
             ModsButton = "MODS_BUTTON", ModsTip = "MODS_TIP";
 
         /// Each string's name (the key's last part), English and where it shows.
@@ -30,9 +31,11 @@ namespace MoonoLoader
             (NotNow, "Not now", "The dialog's button that closes it"),
             (Copy, "Install & copy launch option", "The dialog's main button: it installs Moono and copies the launch-option line"),
             (Installing, "Installing…", "The main button's text while it installs Moono (a few seconds the first time)"),
-            (Copied, "Copied ✓", "The main button's text once it has copied the line"),
+            (Copied, "Copied ✓", "The small Copy button's text for a moment after it (or the main button) copied the line"),
             (Installed, "Moono installed. Launch option copied.", "Step 1's text once the button installed Moono and copied the line"),
             (Failed, "Moono could not be installed: {0}", "Step 1's text when the install fails; {0}: why (in English)"),
+            (CopyLine, "Copy", "The small button beside the launch-option line: it copies the line again"),
+            (CloseGame, "Close game", "The main button's text once it installed Moono and copied the line: it quits the game"),
             (ModsButton, "Play with Moono", "The button on the item's row in the Mods screen that shows the dialog"),
             (ModsTip, "Install Moono and copy the launch option for Steam", "That button's tooltip"),
         };
