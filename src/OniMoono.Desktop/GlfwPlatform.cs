@@ -10,8 +10,8 @@ using static Brutal.GlfwApi.Glfw.Constants;
 
 namespace OniMoono.Desktop
 {
-    /// Window startup settings: Unity's player defaults from PlayerSettings, overridable with
-    /// Unity's player arguments -screen-width, -screen-height, -screen-fullscreen, -monitor and
+    /// Window startup settings: the window saved at the last run, else Unity's player defaults
+    /// from PlayerSettings (ScreenManagerPrefs), overridable with Unity's player arguments -screen-width, -screen-height, -screen-fullscreen, -monitor and
     /// -window-mode. Unity documents -window-mode exclusive|borderless, for Windows only; ours
     /// takes them everywhere (exclusive is a fullscreen window off Windows), and windowed too.
     internal sealed record WindowSettings(string Title, int Width, int Height, FullScreenMode Mode)

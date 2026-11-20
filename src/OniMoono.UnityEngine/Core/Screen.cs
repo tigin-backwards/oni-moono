@@ -37,11 +37,15 @@ namespace UnityEngine
         static Resolution ToResolution(DisplayMode m)
             => new() { width = m.Width, height = m.Height, refreshRateRatio = new RefreshRate { numerator = m.RefreshNumerator, denominator = m.RefreshDenominator } };
 
+        /// Unity's player saves the new mode and size for its next start (ScreenManagerPrefs).
         public static void SetResolution(int width, int height, FullScreenMode fullscreenMode, RefreshRate preferredRefreshRate)
-            => P.SetResolution(width, height, fullscreenMode, preferredRefreshRate.numerator, preferredRefreshRate.denominator);
+        {
+            P.SetResolution(width, height, fullscreenMode, preferredRefreshRate.numerator, preferredRefreshRate.denominator);
+            OniMoono.Engine.Platform.ScreenManagerPrefs.RecordCurrent(width, height);
+        }
 
         public static void SetResolution(int width, int height, FullScreenMode fullscreenMode)
-            => P.SetResolution(width, height, fullscreenMode, 0, 1);
+            => SetResolution(width, height, fullscreenMode, new RefreshRate { numerator = 0, denominator = 1 });
 
         public static void SetResolution(int width, int height, bool fullscreen)
             => SetResolution(width, height, fullscreen ? FullScreenMode.FullScreenWindow : FullScreenMode.Windowed);

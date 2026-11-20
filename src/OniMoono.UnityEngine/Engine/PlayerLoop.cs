@@ -281,12 +281,14 @@ namespace OniMoono.Engine
         }
 
         /// Unity sends OnApplicationQuit to every active MonoBehaviour before shutting down, then
-        /// raises Application.quitting (UnityProbe's quitevents), then saves PlayerPrefs.
+        /// raises Application.quitting (UnityProbe's quitevents), then saves PlayerPrefs, with the
+        /// window's mode and size (ScreenManagerPrefs).
         public static void SendApplicationQuit()
         {
             foreach (var go in Finder.AllSceneGameObjects())
                 Messages.SendToComponents(go, s => s.OnApplicationQuit);
             Application.RaiseQuitting();
+            Platform.ScreenManagerPrefs.RecordCurrent();
             PlayerPrefs.SaveOnQuit();
         }
 

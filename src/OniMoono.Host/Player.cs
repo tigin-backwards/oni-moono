@@ -257,32 +257,23 @@ namespace OniMoono.Host
         [System.Runtime.InteropServices.DllImport("kernel32.dll")]
         static extern bool TerminateProcess(IntPtr process, uint exitCode);
 
-        /// The player window from PlayerSettings (native resolution when so configured),
+        /// The player window as Unity's player opens it: the mode and size saved at the last run
+        /// (ScreenManagerPrefs), else PlayerSettings' (native resolution when so configured),
         /// overridden by Unity's -screen-* / -window-mode arguments.
         static OniMoono.Desktop.WindowSettings WindowSettingsFor(Options options)
         {
-            var ps = ProjectSettings.PlayerSettings;
-            bool native = ps.Bool("defaultIsNativeResolution");
-            int width = native ? -1 : ps.Int("defaultScreenWidth");
-            int height = native ? -1 : ps.Int("defaultScreenHeight");
-            var mode = (FullScreenMode)ps.Int("fullscreenMode");
-            if (options.ScreenWidth > 0) width = options.ScreenWidth;
-            if (options.ScreenHeight > 0) height = options.ScreenHeight;
-            if (options.ScreenFullscreen == 0) mode = FullScreenMode.Windowed;
-            else if (options.ScreenFullscreen == 1 && mode == FullScreenMode.Windowed) mode = FullScreenMode.FullScreenWindow;
-            mode = options.WindowMode switch
-            {
-                "exclusive" => FullScreenMode.ExclusiveFullScreen,
-                "borderless" => FullScreenMode.FullScreenWindow,
-                "windowed" => FullScreenMode.Windowed,
-                _ => mode,
-            };
+            var defaults = OniMoono.Engine.Platform.ScreenManagerPrefs.ProjectDefaults() ?? throw new InvalidOperationException("project settings not loaded");
+            var saved = OniMoono.Engine.Platform.ScreenManagerPrefs.Saved(defaults);
+            var (width, height, mode) = OniMoono.Engine.Platform.ScreenManagerPrefs.Start(saved, options.ScreenWidth, options.ScreenHeight, options.ScreenFullscreen, options.WindowMode);
+            EngineLog.Engine($"window: opens {Size(width, height)} {mode} (from {(saved == defaults.Window ? "PlayerSettings" : "the saved window")}: {Size(saved.Width, saved.Height)} {saved.Mode})");
             return new OniMoono.Desktop.WindowSettings(EngineConfig.ProductName, width, height, mode)
             {
                 IgnoreUserInput = options.Input.Any || options.Background, DebugContext = options.GlDebug, Monitor = options.Monitor, NoFocus = options.NoFocus,
                 ContextFreeWindow = OperatingSystem.IsWindows() && options.Dxgi != false
             };
         }
+
+        static string Size(int width, int height) => width > 0 && height > 0 ? $"{width}x{height}" : "monitor-sized";
 
         /// Frame pacing as in Unity's desktop player: with vSync the swap paces frames (the
         /// presenter's wait for the previous frame), otherwise Application.targetFrameRate when

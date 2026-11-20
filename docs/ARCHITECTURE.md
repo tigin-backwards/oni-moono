@@ -3416,6 +3416,32 @@ or restarts, and GLFW then lists none), the desktop mode and DPI are the last on
 `SetResolution` does nothing: GLFW's monitor functions read a null monitor without checking, which
 crashed in `ntdll` (#87).
 
+**Start window.** The window opens in the mode and size it had at the last run, as Unity's player
+does (`ScreenManagerPrefs`), then the game applies the resolution in its own settings
+(`GraphicsOptionsScreen.SetResolutionFromPrefs`). Opening from PlayerSettings alone (borderless at
+the monitor's size for this game) showed a fullscreen window for a moment before a windowed one.
+- **The original's keys** (measured: its Linux `prefs` file, and on Windows its registry key
+  `HKCU\Software\<company>\<product>`, each value name suffixed `_h<hash>`, the 32-bit
+  `h = h * 33 ^ byte` hash from 5381 of the name, values REG_DWORD): `Screenmanager Fullscreen
+  mode` (the `FullScreenMode` value: 0 exclusive, 1 fullscreen window, 3 windowed), `Screenmanager
+  Resolution Width`/`Height`, `Screenmanager Resolution Use Native` (1 when the size was the
+  monitor's), and the PlayerSettings defaults they were saved under (`… Default`: 1024, 768,
+  native 1, mode 1 for this game). Windows also holds `Screenmanager Window Position X/Y`,
+  `Screenmanager Resolution Window Width`/`Height`, `Screenmanager Native RefreshRate
+  Numerator`/`Denominator` and `Screenmanager Stereo 3D`.
+- **Ours** writes the first set to its prefs file (on Windows too, where our PlayerPrefs is a
+  file, not the registry) at each `Screen.SetResolution` and at quit (Screen.width/height, the
+  window's mode), and opens from them: a saved native size opens at the monitor's size, and a
+  saved window with other `… Default` values (a build with other PlayerSettings), an invalid
+  mode or a size not above 0 is ignored for PlayerSettings'. `-screen-width`/`-height`,
+  `-screen-fullscreen` (0 windowed; 1 makes a windowed start a fullscreen window) and
+  `-window-mode` (over `-screen-fullscreen`) take precedence over either. A windowed size larger
+  than the work area opens maximized, as at a `SetResolution`. The log's `window: opens` line names
+  the start window and where it came from.
+- **Not handled:** the saved position (ours centres the window), the windowed size kept while
+  fullscreen (`Resolution Window Width`/`Height`) and the refresh rate. Ours does not read the
+  original's registry: the first run under ours opens from PlayerSettings.
+
 A fullscreen window (`FullScreenWindow`, the game's Fullscreen option) at a resolution smaller
 than the monitor's renders at that resolution and stretches it over the window, as Unity's player
 does.
@@ -3442,8 +3468,8 @@ does.
   `renderingWidth`/`Height`, 2560x1440 for `systemWidth`/`Height`, and, unlike on Linux,
   1280x720 for `Screen.currentResolution` (`GlfwPlatform.CurrentResolutionOf`). Ours matches,
   through DXGI and SwapBuffers.
-- **At start-up** a fullscreen window renders at the monitor's size (the game applies its saved
-  resolution on its first frames).
+- **At start-up** a fullscreen window renders at the monitor's size, also when a smaller size was
+  saved (the game applies its saved resolution on its first frames).
 - **Not measured:** the pointer's mapping on Windows; exclusive fullscreen (on Linux the
   original reported `ExclusiveFullScreen` with a centred 960x720 window; ours keeps a
   fullscreen window there); and whether Unity scales a hardware cursor with the picture (ours
@@ -3464,7 +3490,7 @@ Known limitations, not handled:
   restored window: about 11 pixels higher at 100% scaling). The original on Windows starts where
   it saved its window last (its registry key's `Screenmanager Window Position X/Y`: measured with
   the U59 copy, which held 0,0, as a 1024x768 client at 2561,31 on a second monitor at 2560,0);
-  ours saves no position, and the original's first start, with none saved, is unmeasured.
+  ours saves the mode and size but no position (*Start window* above), and the original's first start, with none saved, is unmeasured.
 
 ### 3.7 Text and fonts
 
