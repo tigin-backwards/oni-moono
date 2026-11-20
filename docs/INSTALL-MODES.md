@@ -97,7 +97,7 @@ runtime, and each version carries its own (self-contained).
 The choice needs the game's build and the versions' `mod_info.yaml`, which the player reads:
 
 1. The game's build: `KleiVersion.ChangeList` in its `Assembly-CSharp.dll`, read from the
-   metadata without loading it (744825 for U59, 763796 for U60).
+   metadata without loading it (744825 for U59, 764025 for U60, 763796 before its hotfix).
 2. From the source folders (`state\source` and Steam's copy of the item, see
    [Where updates come from](#where-updates-come-from)), the version the game itself would load
    (`ArchiveChoice`, the game's `KMod.Mod.GetMostSuitableArchive`):
@@ -421,7 +421,7 @@ list anyway.
   `moono.pot` with the Moono Tweaks screen's, docs/TWEAKS.md), read from the item's player
   folder.
 - **Built** by `workshop.yml` from its run's commit, against U60's reference assemblies
-  (`ci/game-refs.json`, build 763796), and attested with the rest of the item.
+  (`ci/game-refs.json`, build 764025), and attested with the rest of the item.
 - **Tests:** `LoaderTests` (the install and the line, without the game);
   `tests/e2e/workshop-loader.yaml` in the original game with a made-up item as a local mod, and
   `workshop-loader-moono.yaml` in Moono with it also as a Workshop subscription.
