@@ -181,6 +181,12 @@ namespace OniMoono.Engine.Rendering
 
         public override bool IsReadable => Readable;
 
+        /// The device copy follows QualitySettings' global mipmap limit (TextureQuality): a 2D
+        /// texture or array loaded from an asset file that does not ignore it. Textures made by
+        /// scripts ignore it, as Unity's do by default, and so does a loaded one whose texels a
+        /// script replaced (Allocate, Adopt) or made non-readable: the file no longer has them.
+        public bool FollowsMipmapLimit;
+
         /// The texels are missing from a stripped copy (NoContent): the device draws a placeholder
         /// and a CPU read sees zeros of the declared size.
         public bool Placeholder { get; private set; }
@@ -311,6 +317,31 @@ namespace OniMoono.Engine.Rendering
             }
         }
 
+        /// The global mipmap limit changed (TextureQuality.Apply, main thread): a texture on the
+        /// device is uploaded again at the new limit, as Unity re-uploads every loaded texture
+        /// the limit affects. One whose CPU copy is gone (non-readable, or queued for a background
+        /// upload that took it) reads its texels from its asset file again; its other fields stay
+        /// as they are. False when nothing is uploaded again: the texture is not on the device
+        /// yet (its first upload takes the new limit), or was unloaded, or its asset bundle is no
+        /// longer mounted (it keeps what it has).
+        public bool MipmapLimitChanged()
+        {
+            if (Gpu == null || unloaded || Destroyed) return false;
+            AwaitCopy();
+            if (memory == null && source == null)
+            {
+                var file = Source.File;
+                if (!IsPersistent || file == null) return false;
+                if (file.StartsWith("archive:/", StringComparison.Ordinal) && !AssetSystem.IsMounted(AssetSystem.Canonical(file))) return false;
+                var s = TexelSource.From(ObjectLoader.ReadFields(Source));
+                if (s.Missing) return false;
+                source = s;
+            }
+            ContentChanged();
+            GraphicsDevice.QueueUpload(this);
+            return true;
+        }
+
         /// Texels from an asset file. As in Unity, a loaded texture is uploaded to the graphics
         /// device as part of loading (on the main thread before the next frame renders), not on
         /// its first draw.
@@ -329,6 +360,8 @@ namespace OniMoono.Engine.Rendering
         /// Replaces the texels with freshly allocated memory of `size` bytes, filled with `fill`.
         public void Allocate(long size, byte fill)
         {
+            // Texels a script made: full size on the device whatever the mipmap limit.
+            FollowsMipmapLimit = false;
             AwaitCopy();
             memory?.Free();
             source = null;
@@ -342,6 +375,8 @@ namespace OniMoono.Engine.Rendering
         /// SliceSize bytes: LoadImage's decode).
         public void Adopt(PixelMemory texels)
         {
+            // Texels a script made: full size on the device whatever the mipmap limit.
+            FollowsMipmapLimit = false;
             AwaitCopy();
             memory?.Free();
             source = null;
@@ -377,6 +412,11 @@ namespace OniMoono.Engine.Rendering
 
         public abstract long SliceSize { get; }
 
+        /// A loaded texture follows the global mipmap limit unless it ignores it. Bundles older
+        /// than Unity 2022.2 have no m_IgnoreMipmapLimit: their textures followed the limit then
+        /// (masterTextureLimit), and still do.
+        protected static bool FollowsLimit(Fields f) => !(f.Contains("m_IgnoreMipmapLimit") && f.Bool("m_IgnoreMipmapLimit"));
+
         public override void ReleaseResources()
         {
             base.ReleaseResources();
@@ -411,6 +451,7 @@ namespace OniMoono.Engine.Rendering
                 throw new System.IO.InvalidDataException($"Texture2D {Name}: {images} images.");
             // Older bundles (Unity 2019.4's) have no m_MipsStripped: none stripped.
             if (f.Contains("m_MipsStripped") && f.Int("m_MipsStripped") != 0) throw new System.IO.InvalidDataException($"Texture2D {Name}: stripped mips are not supported.");
+            FollowsMipmapLimit = FollowsLimit(f);
             SetSource(TexelSource.From(f));
         }
     }
@@ -437,6 +478,7 @@ namespace OniMoono.Engine.Rendering
             ReadSettings(f.Struct("m_TextureSettings"));
             // Older bundles (Unity 2019.4's) have no m_MipsStripped: none stripped.
             if (f.Contains("m_MipsStripped") && f.Int("m_MipsStripped") != 0) throw new System.IO.InvalidDataException($"Texture2DArray {Name}: stripped mips are not supported.");
+            FollowsMipmapLimit = FollowsLimit(f);
             SetSource(TexelSource.From(f));
         }
     }

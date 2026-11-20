@@ -1232,6 +1232,9 @@ namespace OniMoono.Desktop.Gl
             t.Gpu = g;
             GraphicsDevice.Adopt(t, g);
             var (format, width, height, levels) = (t.Format, t.Width, t.Height, Math.Max(1, t.MipCount));
+            // The storage the upload will make: without the levels the mipmap limit leaves out.
+            int skip = TextureQuality.SkippedLevels(t);
+            if (skip > 0) (width, height, levels) = (Math.Max(1, width >> skip), Math.Max(1, height >> skip), levels - skip);
             GlAhead.Enqueue(() => GlTextures.SpecifyAhead(g, format, width, height, levels));
             // Now: a texture made during a long frame (a load's) is made while the frame goes on.
             GlAhead.Wake();

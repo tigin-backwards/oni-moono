@@ -353,8 +353,8 @@ namespace OniMoono.Desktop.Vulkan
                 int w = Math.Max(1, u.Width >> m), h = Math.Max(1, u.Height >> m);
                 if (type == VkImageViewType._2DArray)
                 {
-                    long sliceSize = TextureFormats.ImageSize(u.Format, u.Width, u.Height, u.MipCount);
-                    long mipOffset = TextureFormats.MipOffset(u.Format, u.Width, u.Height, m);
+                    long sliceSize = u.SliceBytes;
+                    long mipOffset = u.MipOffset(m);
                     long mipSize = TextureFormats.MipSize(u.Format, w, h);
                     for (int s = 0; s < layers; s++)
                         regions.Add(Stage(memory.Pointer + s * sliceSize + mipOffset, mipSize, u.Format, f, w, h, 1, m, s, 0));
@@ -406,7 +406,7 @@ namespace OniMoono.Desktop.Vulkan
         {
             long length = u.MipSize(0);
             if (levels != 1 || f.Conversion != TexelConversion.None || f.BlockSize > 1 || length > UploadedTexelsLimit || length % u.Height != 0) return false;
-            var now = new ReadOnlySpan<byte>(u.Memory.Pointer, (int)length);
+            var now = new ReadOnlySpan<byte>(u.Memory.Pointer + u.Base, (int)length);
             var before = vt.UploadedTexels;
             if (before == null || before.Length != length)
             {

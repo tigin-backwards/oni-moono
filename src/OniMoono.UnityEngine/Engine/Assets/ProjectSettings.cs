@@ -63,6 +63,9 @@ namespace OniMoono.Engine.Assets
             EngineConfig.Version = PlayerSettings.String("bundleVersion");
 
             QualitySettings = Read("QualitySettings");
+            var qualityLevels = QualitySettings.Array("m_QualitySettings");
+            int current = QualitySettings.Int("m_CurrentQuality");
+            if ((uint)current < (uint)qualityLevels.Length) Rendering.TextureQuality.Configure((Fields)qualityLevels[current]);
             GraphicsSettings = Read("GraphicsSettings");
             var shaderNames = new Dictionary<string, PPtr>(StringComparer.Ordinal);
             foreach (Fields pair in Read("ShaderNameRegistry").Struct("m_Shaders").Array("m_ObjectToName"))

@@ -114,9 +114,22 @@ namespace OniMoono.Desktop.Gl
                     Format = tt.Format, Width = tt.Width, Height = tt.Height, Depth = tt.Depth, MipCount = tt.MipCount,
                     Target = tt is Texture2DArrayNative ? TexTarget2DArray : TexTarget2D,
                 },
-                Sampler = new GlTextures.SamplerSettings(t.FilterMode, t.WrapU, t.WrapV, t.WrapW, t.MipBias, t.Aniso),
+                Sampler = new GlTextures.SamplerSettings(t.FilterMode, t.WrapU, t.WrapV, t.WrapW, t.MipBias, TextureQuality.Aniso(t.Aniso)),
                 Bytes = tt.SliceSize * tt.Depth,
             };
+            int skip = TextureQuality.SkippedLevels(tt);
+            if (skip > 0)
+            {
+                job.Upload.SkipLevels(skip);
+                // A 2D texture still in its file: only the levels uploaded are read.
+                if (memory == null && source is { StreamPath: not null } s && tt is Texture2DNative)
+                {
+                    long skipped = job.Upload.Base;
+                    job.Source = s with { Offset = s.Offset + skipped, Size = s.Size - skipped };
+                    job.Upload.Base = job.Upload.SliceStride = 0;
+                    job.Bytes -= skipped;
+                }
+            }
             g.Background = job;
             g.RecordedEmpty = false;
             g.RecordedContent = tt.ContentVersion;

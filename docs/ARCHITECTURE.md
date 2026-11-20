@@ -2860,6 +2860,23 @@ second and throw off the game's time-based UI animation.
   the main thread before the next frame renders. When many are pending at once their texels are
   read on worker threads first and the uploads go to the GL thread in batches.
 - `ONI_BACKGROUND_UPLOADS=0` turns the background uploads off.
+- **The quality level's texture settings** (`TextureQuality`). The game's Low Res Textures
+  option is `QualitySettings.SetQualityLevel(1)`: the project's level "Low", with a global mipmap
+  limit of 1 and anisotropic filtering off. Level 0 has limit 0 and per-texture anisotropy.
+  - *What the limit applies to.* 2D textures and 2D arrays loaded from asset files, with mips,
+    that do not ignore it (`m_IgnoreMipmapLimit`). Textures made by scripts ignore it, as do
+    loaded ones whose texels a script replaced (`LoadImage`, `Reinitialize`) or made
+    non-readable (`Apply(…, true)`). So do render textures, 3D textures and textures with one level.
+  - *What it does.* The device copy starts at level `limit`, and at least one level is kept.
+    `width`, `height`, `mipmapCount` and the CPU copy stay the asset's.
+    - Both renderers take the uploaded levels from the texels' memory (`TexelUpload.SkipLevels`).
+    - OpenGL's background uploads read only those levels of a 2D texture from its file.
+    - The device ledger counts the smaller storage.
+  - *Changing the level at run time* uploads every affected texture on the device again. One
+    with no CPU copy reads its texels from its asset file again. A changed anisotropic mode
+    applies every sampler again.
+  - At level 0 none of this runs: `SkippedLevels` returns 0 at its first test, and anisotropy
+    passes through.
 
 What scripts make is put on the device ahead of its first draw (`GlAhead`):
 

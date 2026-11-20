@@ -474,7 +474,13 @@ namespace UnityEngine
         {
             var t = Readable();
             if (updateMipmaps) TexelAddressing.BuildMips(t);
-            if (makeNoLongerReadable) t.Readable = false;
+            if (makeNoLongerReadable)
+            {
+                t.Readable = false;
+                // Unity's global mipmap limit leaves textures made non-readable at run time alone
+                // (TextureQuality): their texels exist nowhere else to upload again from.
+                t.FollowsMipmapLimit = false;
+            }
             if (!t.TexelsChanged && !makeNoLongerReadable)
             {
                 if (RawTextureLoads.Verify) RawTextureLoads.VerifySkip(t);

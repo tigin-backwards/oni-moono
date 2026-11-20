@@ -226,8 +226,50 @@ re-uploaded texture under 4 MiB also keeps a copy of its last texels, by design:
   has), and the device gets that many levels. The game asks for no mipmapped render target
   (`set_useMipMap` and `set_mipCount` appear in neither game assembly), so this saves nothing in
   the base game. A 4096x4096 ARGB32 target asking for 2 levels saves 5.3 MB.
-- Unity's texture quality settings play no part: `streamingMipmapsActive` is false and the
-  mipmap limit is 0 in the original, so neither player drops levels.
+- Unity's texture quality settings play no part at the default quality level:
+  `streamingMipmapsActive` is false and the mipmap limit is 0, so neither player drops levels.
+  The game's Low Res Textures option selects level 1, whose limit is 1 (next section).
+
+## Low Res Textures (added 2026-11-20)
+
+The figures above (2,928 MB of textures at the menu in Unity's counter, 2,944 MB in our ledger)
+were measured on U60 761211, before 763023's optimized building atlases. They are stale for
+later builds.
+
+The options screen's Low Res Textures checkbox calls `QualitySettings.SetQualityLevel(1)`. The
+game's level 1 ("Low") has a global mipmap limit of 1 and anisotropic filtering off; level 0
+("Default") has limit 0 and per-texture anisotropy. Before this change ours stored the index and
+nothing else, so the option saved no memory. A reporter with 8 GB of RAM and integrated graphics
+ran out of memory at the menu with it on (#100). Ours now drops the largest level of every loaded
+2D texture and array with mips, as Unity does (ARCHITECTURE.md, texture upload).
+
+Measured on U60 764025: the Linux test install, debug build, OpenGL under Xvfb (Mesa d3d12),
+1024x768, one run each. The menu figures are from the 600-frame line, with the menu showing. The
+colony figures are from a 15-Duplicant base-game colony, resumed from the menu, at the
+1,800-frame line.
+
+| | Low Res off | Low Res on |
+|---|---|---|
+| Menu: texture ledger (2,656 textures) | 2,057 MB | 755 MB |
+| Menu: DXT5 textures | 1,450 MB | 409 MB |
+| Menu: private bytes | 4,437 MB | 3,773 MB |
+| Colony: texture ledger | 2,783 MB | 1,361 MB |
+| Colony: private bytes | 15,512 MB | 14,028 MB |
+
+- **The ledger falls by 63% at the menu.** A level-1 limit leaves about a quarter of each
+  limited texture. The RGBAFloat and render-target memory is unchanged: those textures have
+  no mips or are made by scripts.
+- **Private bytes fall by 664 MB at the menu.** Mesa's d3d12 driver under WSL keeps textures
+  in the process's memory, and background uploads read only the levels they upload from the
+  asset files. What a Windows driver saves in process memory was not measured.
+- **Start-up cost.** The game applies the option in `LaunchInitializer`, after 2,323 textures
+  have loaded. Those are uploaded again at the limit, as Unity re-uploads on a limit change.
+  On OpenGL the ledger's peak before the menu stayed at the menu's 755 MB: most of them were
+  still queued for background upload, and the queued uploads were replaced. Vulkan has no
+  background uploads. A Vulkan run with the option on (llvmpipe) peaked at 1,030 MB before the
+  menu and held 838 MB at it (DXT5 410 MB).
+- **Pictures.** The menu and the colony look as with the option off, slightly softer, on both
+  renderers.
 
 ## The NVIDIA eviction counter
 

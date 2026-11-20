@@ -166,6 +166,10 @@ namespace OniMoono.Desktop.Gl
         public int Width, Height, Depth, MipCount;
         public uint Target;
         public PixelMemory Memory;
+        /// Where the first level uploaded starts in Memory (in each slice of an array), and the
+        /// bytes from one slice to the next when they are not the levels uploaded: both set when
+        /// the global mipmap limit leaves the largest levels out (SkipLevels), 0 otherwise.
+        public long Base, SliceStride;
 
         public static TexelUpload Take(TexelTextureNative t, FrameArena arena)
         {
@@ -179,6 +183,8 @@ namespace OniMoono.Desktop.Gl
             u.Memory = null;
             u.Pooled = false;
             u.Copying = default;
+            u.Base = u.SliceStride = 0;
+            u.SkipLevels(TextureQuality.SkippedLevels(t));
             if (t.Placeholder)
             {
                 // A stripped copy's texture (NoContent): 1×1 grey texels, each slice, instead of
@@ -204,12 +210,29 @@ namespace OniMoono.Desktop.Gl
         /// The copy into Memory, when it is still being made on another thread (TexelCopies).
         public TexelCopy Copying;
 
+        /// Uploads levels `skip`… of the texels only, as the device's levels 0…: the size and
+        /// level count become those of level `skip`, and Memory keeps every level (Base and
+        /// SliceStride find the ones uploaded). Nothing for 0.
+        public void SkipLevels(int skip)
+        {
+            if (skip <= 0) return;
+            SliceStride = TextureFormats.ImageSize(Format, Width, Height, MipCount);
+            Base = TextureFormats.MipOffset(Format, Width, Height, skip);
+            Width = Math.Max(1, Width >> skip);
+            Height = Math.Max(1, Height >> skip);
+            MipCount -= skip;
+        }
+
+        /// Bytes from one slice of an array to the next in Memory.
+        public long SliceBytes => SliceStride != 0 ? SliceStride : TextureFormats.ImageSize(Format, Width, Height, MipCount);
+
         public long MipSize(int mip) => TextureFormats.MipSize(Format, Math.Max(1, Width >> mip), Math.Max(1, Height >> mip))
                                         * (Target == TexTarget3D ? Math.Max(1, Depth >> mip) : 1);
 
+        /// Start of an uploaded level in Memory (in the first slice of an array).
         public long MipOffset(int mip)
         {
-            if (Target != TexTarget3D) return TextureFormats.MipOffset(Format, Width, Height, mip);
+            if (Target != TexTarget3D) return Base + TextureFormats.MipOffset(Format, Width, Height, mip);
             long offset = 0;
             for (int m = 0; m < mip; m++) offset += MipSize(m);
             return offset;
@@ -502,7 +525,7 @@ namespace OniMoono.Desktop.Gl
             if (!g.RecordedEmpty && g.RecordedSampler != t.SamplerVersion)
             {
                 g.RecordedSampler = t.SamplerVersion;
-                PostSampler(worker, g, new SamplerSettings(t.FilterMode, t.WrapU, t.WrapV, t.WrapW, t.MipBias, t.Aniso));
+                PostSampler(worker, g, new SamplerSettings(t.FilterMode, t.WrapU, t.WrapV, t.WrapW, t.MipBias, TextureQuality.Aniso(t.Aniso)));
             }
             return g;
         }
@@ -711,7 +734,7 @@ namespace OniMoono.Desktop.Gl
         {
             long length = t.MipSize(0);
             if (levels != 1 || f.Compressed || f.Decompress || length > UploadedTexelsLimit || length % t.Height != 0) return false;
-            var now = new ReadOnlySpan<byte>(t.Memory.Pointer, (int)length);
+            var now = new ReadOnlySpan<byte>(t.Memory.Pointer + t.Base, (int)length);
             var before = g.UploadedTexels;
             if (before == null || before.Length != length)
             {
@@ -734,7 +757,7 @@ namespace OniMoono.Desktop.Gl
             {
                 while (now.Slice(last * rowBytes, rowBytes).SequenceEqual(before.AsSpan(last * rowBytes, rowBytes))) last--;
                 int rows = last - first + 1;
-                N.glTexSubImage2D(TexTarget2D, 0, 0, first, t.Width, rows, f.Format, f.Type, t.Memory.Pointer + (long)first * rowBytes);
+                N.glTexSubImage2D(TexTarget2D, 0, 0, first, t.Width, rows, f.Format, f.Type, t.Memory.Pointer + t.Base + (long)first * rowBytes);
                 now.Slice(first * rowBytes, rows * rowBytes).CopyTo(before.AsSpan(first * rowBytes));
                 Uploads++;
                 UploadBytes += (long)rows * rowBytes;
@@ -767,11 +790,11 @@ namespace OniMoono.Desktop.Gl
             BindlessVerify.Specify(g, "glTexImage3D (2D array)");
             var memory = t.Memory;
             int levels = Math.Max(1, t.MipCount);
-            long sliceSize = TextureFormats.ImageSize(t.Format, t.Width, t.Height, t.MipCount);
+            long sliceSize = t.SliceBytes;
             for (int m = 0; m < levels; m++)
             {
                 int w = Math.Max(1, t.Width >> m), h = Math.Max(1, t.Height >> m);
-                long mipOffset = TextureFormats.MipOffset(t.Format, t.Width, t.Height, m);
+                long mipOffset = t.MipOffset(m);
                 int mipSize = (int)TextureFormats.MipSize(t.Format, w, h);
                 if (f.Compressed) N.glCompressedTexImage3D(TexTarget2DArray, m, f.Internal, w, h, t.Depth, 0, mipSize * t.Depth, null);
                 else N.glTexImage3D(TexTarget2DArray, m, (int)f.Internal, w, h, t.Depth, 0, f.Format, f.Type, null);

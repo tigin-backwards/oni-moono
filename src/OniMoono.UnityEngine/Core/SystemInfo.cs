@@ -173,6 +173,11 @@ namespace UnityEngine
             var levels = Levels.Array("m_QualitySettings");
             s_Current = Mathf.Clamp(index, 0, levels.Length - 1);
             s_VSync = -1;
+            // The level's texture settings: its mipmap limit (textures uploaded again when it
+            // changes) and anisotropic mode. Unity's documentation names anti-aliasing as the
+            // expensive change applyExpensiveChanges is for and says nothing of textures; they
+            // apply either way (the game always passes true).
+            OniMoono.Engine.Rendering.TextureQuality.Apply((OniMoono.Assets.TypeTrees.Fields)levels[s_Current]);
         }
 
         public static string[] names => Levels.Array("m_QualitySettings").Cast<OniMoono.Assets.TypeTrees.Fields>().Select(q => q.String("name")).ToArray();
