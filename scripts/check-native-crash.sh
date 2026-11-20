@@ -156,11 +156,13 @@ PY
     local linked; linked=$(python3 -I - "$stage/url.txt" <<'PY'
 import sys, urllib.parse
 u = open(sys.argv[1], encoding='utf-8').read(); q = urllib.parse.parse_qs(urllib.parse.urlsplit(u).query)
-if not u.startswith('https://github.com/tigin-backwards/oni-moono/issues/new?'): print('not the issue page'); sys.exit()
+if not u.startswith('https://github.com/tigin-backwards/oni-moono/issues/new?template=crash.yml&'): print('not the crash form'); sys.exit()
 if len(u) > 7500: print('%d characters' % len(u)); sys.exit()
 if q.get('title') != ['Crash: 0xC0000005 (access violation) in nvoglv64.dll']: print('title', q.get('title')); sys.exit()
-body = q['body'][0]
-print('ok %d characters' % len(u) if '\u2026' in body and 'OniMoono-crash-20261107-1415.zip' in body and 'game build 762230' in body else 'body: ' + body[:200])
+if sorted(q) != ['details', 'doing', 'template', 'title']: print('fields', sorted(q)); sys.exit()
+details, doing = q['details'][0], q['doing'][0]
+if not details.startswith('0xC0000005 (access violation) in nvoglv64.dll\n') or 'game build 762230' not in details: print('details: ' + details[:200]); sys.exit()
+print('ok %d characters' % len(u) if doing.startswith('what I was doing') and doing.endswith('\u2026') else 'doing: ' + doing[:200])
 PY
 )
     [ "${linked%% *}" = ok ] && pass "windows crash window link: $linked" || fail "windows crash window link: $linked"

@@ -3993,11 +3993,13 @@ Reporting:
    between) and the dump if ticked into `OniMoono-crash-YYYYMMDD-hhmm.zip` beside the log (our
    own deflate; under 24 MB, else without the dump: GitHub takes no `.dmp` and files up to
    25 MB).
-2. It opens `issues/new` of this repository in the default browser with the title
-   `Crash: <error>` and the note, the details and a line asking for the zip as the body (under
-   7,500 characters; a long note is cut with "…").
-3. It shows the zip as a chip to drag into the page (a shell data object, as Explorer drags a
-   file; clicking it shows it in Explorer).
+2. It opens the crash issue form (`.github/ISSUE_TEMPLATE/crash.yml`) in the default browser,
+   `issues/new?template=crash.yml`, with its fields filled in from the link: the title
+   `Crash: <error>`, `details` (the error line and the English details, shown as a code block)
+   and `doing` (the note). The link stays under 7,500 characters; a long note is cut with "…".
+   The form's `zip` field is required and left empty, so GitHub takes no report without the zip.
+3. It shows the zip as a chip to drag into the form's zip field (a shell data object, as
+   Explorer drags a file; clicking it shows it in Explorer).
 
 Nothing is sent by the window: the player submits the issue, or not.
 

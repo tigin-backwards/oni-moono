@@ -1,0 +1,28 @@
+name: Crash report
+description: The game closed unexpectedly. Use "Report on GitHub" in Moono's crash window.
+title: "Crash: "
+body:
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: Filled in by the crash window. 由崩溃窗口自动填写。
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: doing
+    attributes:
+      label: What were you doing?
+      description: Optional. 可选。
+    validations:
+      required: false
+  - type: textarea
+    id: zip
+    attributes:
+      label: Crash zip
+      description: >-
+        Drag OniMoono-crash-….zip here from the crash window (or from the folder it opens).
+        将 OniMoono-crash-….zip 从崩溃窗口（或它打开的文件夹）拖到这里。
+    validations:
+      required: true

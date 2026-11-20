@@ -182,9 +182,10 @@ crash.
 - **Show details** lists what a report needs: Moono's version, the game's build, Windows, the
   GPU and its driver, memory, how long you played, how many mods are on, and the files.
 - **Report on GitHub** packs `Player.log` and, if ticked, the crash dump into
-  `OniMoono-crash-….zip` beside the log. It opens a new GitHub issue in your browser with the
-  error, the details and your note filled in. Drag the zip from the window into the issue, then
-  submit it. Nothing is sent unless you submit the issue yourself.
+  `OniMoono-crash-….zip` beside the log. It opens the crash report form on GitHub in your
+  browser with the error, the details and your note filled in. Drag the zip from the window into
+  the form's "Crash zip" box, then submit it; the form needs the zip. Nothing is sent unless you
+  submit the issue yourself.
 - **The dump** can hold bits of what the game had in memory. Untick it to leave it out.
 - **The window.** The error and the details can be selected and copied. The window follows
   Windows' dark or light mode and its text size.

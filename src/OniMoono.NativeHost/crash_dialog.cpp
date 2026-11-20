@@ -61,7 +61,7 @@ enum
 {
     S_HEADLINE, S_SHOW_DETAILS, S_HIDE_DETAILS, S_NOTE, S_INCLUDE_DUMP, S_CLOSE, S_REPORT, S_REPORTED,
     S_DRAG, S_EXIT_CODE, S_GAME_BUILD, S_PLAYED, S_MODS, S_FILES, S_LIST, S_HOURS, S_MINUTES, S_SECONDS,
-    S_ATTACH, S_COUNT
+    S_COUNT
 };
 
 /* Every string the window shows, in English and Simplified Chinese (the game's language). */
@@ -71,14 +71,12 @@ const wchar_t *const strings[2][S_COUNT] = {
         L"Include the crash dump (%ls)", L"Close", L"Report on GitHub", L"Opened in browser \u2713",
         L"Drag this into the GitHub page", L"Exit code %lu", L", game build %ls", L"Played %ls", L"%ld mods",
         L"Files: %ls", L", ", L"%llu h %llu min", L"%llu min", L"%llu s",
-        L"Please attach %ls (drag it from the crash window)",
     },
     {
         L"游戏意外关闭", L"显示详细信息", L"隐藏详细信息", L"你当时在做什么？（可选）",
         L"附上崩溃转储（%ls）", L"关闭", L"在 GitHub 上报告", L"已在浏览器中打开 \u2713",
         L"将此文件拖到 GitHub 页面中", L"退出代码 %lu", L"，游戏版本 %ls", L"游戏时长 %ls", L"%ld 个模组",
         L"文件：%ls", L"、", L"%llu 小时 %llu 分钟", L"%llu 分钟", L"%llu 秒",
-        L"请附上 %ls（从崩溃窗口拖入）",
     },
 };
 
@@ -1331,28 +1329,34 @@ void url_encode(const wchar_t *text, char *out, size_t most, size_t *n)
     out[*n] = 0;
 }
 
-/* The new-issue URL: "Crash: <error>", and the note, the details and where the zip is. Under
- * 7,500 characters (what browsers and GitHub take in a link): the note is cut short with "…". */
-void issue_url(const wchar_t *note, const wchar_t *attach_name, wchar_t *url, size_t most)
+/* The new-issue URL on the crash form (.github/ISSUE_TEMPLATE/crash.yml): the title
+ * "Crash: <error>", its "details" field (the error and the details, which the form shows as a code
+ * block) and its "doing" field (the note). Its "zip" field is left empty: the form takes no
+ * report until the player drops the zip there. Under 7,500 characters (what browsers and GitHub
+ * take in a link): the note is cut short with "…". */
+void issue_url(const wchar_t *note, wchar_t *url, size_t most)
 {
-    static wchar_t title[1200], body[16384], english[2048], cut_note[8192];
+    static wchar_t title[1200], details[4096], english[2048], cut_note[8192];
     static char encoded[8000];
     swprintf_s(title, L"Crash: %ls", g.error);
     details_text(&g.report, &g.system, CRASH_ENGLISH, english, _countof(english));
-    wchar_t attach[400];
-    swprintf_s(attach, g.t[S_ATTACH], attach_name);
+    swprintf_s(details, L"%ls\n%ls", g.error, english);
     size_t note_n = wcslen(note);
     for (;;)
     {
         wcsncpy_s(cut_note, note, note_n < _countof(cut_note) - 2 ? note_n : _countof(cut_note) - 2);
         if (note_n < wcslen(note)) wcscat_s(cut_note, L"\u2026");
-        swprintf_s(body, L"%ls%ls```\n%ls\n%ls\n```\n\n%ls", cut_note, cut_note[0] ? L"\n\n" : L"", g.error, english, attach);
         size_t n = 0;
-        int prefix = sprintf_s(encoded, "%ls?title=", kIssueUrl);
+        int prefix = sprintf_s(encoded, "%ls?template=crash.yml&title=", kIssueUrl);
         n = (size_t)prefix;
         url_encode(title, encoded, sizeof encoded, &n);
-        n += sprintf_s(encoded + n, sizeof encoded - n, "&body=");
-        url_encode(body, encoded, sizeof encoded, &n);
+        n += sprintf_s(encoded + n, sizeof encoded - n, "&details=");
+        url_encode(details, encoded, sizeof encoded, &n);
+        if (cut_note[0])
+        {
+            n += sprintf_s(encoded + n, sizeof encoded - n, "&doing=");
+            url_encode(cut_note, encoded, sizeof encoded, &n);
+        }
         if (n <= 7500 || note_n == 0) break;
         note_n = note_n > 200 ? note_n - note_n / 4 : note_n - 1;
     }
@@ -1746,7 +1750,7 @@ void report_crash()
     }
     static wchar_t note[4096], url[8192];
     GetWindowTextW(g.child[C_NOTE], note, _countof(note));
-    issue_url(note, file_name(g.chip_path), url, _countof(url));
+    issue_url(note, url, _countof(url));
     ShellExecuteW(g.hwnd, L"open", url, NULL, NULL, SW_SHOWNORMAL);
     SetCursor(old);
 
@@ -2190,7 +2194,7 @@ extern "C" int crash_dialog_render(int argc, wchar_t **argv)
     {
         static wchar_t url[8192];
         static char utf8[16384];
-        issue_url(note, L"OniMoono-crash-20261107-1415.zip", url, _countof(url));
+        issue_url(note, url, _countof(url));
         int n = WideCharToMultiByte(CP_UTF8, 0, url, -1, utf8, sizeof utf8, NULL, NULL);
         HANDLE f = CreateFileW(url_out, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
         DWORD done;
