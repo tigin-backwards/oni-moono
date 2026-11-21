@@ -1,0 +1,11 @@
+# A loaded colony's frames from loading through play while the camera pans
+# (tools/UnpauseProbeTestMod): a measurement in both players, not a check. The probe holds the
+# save's view for 60 paused frames, unpauses and pans 3 cells a frame 96 cells either side of it,
+# 384 frames each at speed 1 and ortho 20, speed 1 and ortho 50 (screenshot mode), speed 3 and
+# ortho 20, speed 3 and ortho 50. Its `Unpause:` lines give each frame's phase, chunk crossings,
+# real time, the game's parts, the JIT's and the GC's work; its summary lines sum each phase's
+# first ten frames and give the median and max of its later crossings and other frames.
+from: U57
+test_mods: [UnpauseProbeTestMod]
+steps:
+  - wait_state: {state: {"type:UnpauseProbeTestMod.Mod::Done": 1}, seconds: 600}

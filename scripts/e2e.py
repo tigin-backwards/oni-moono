@@ -190,6 +190,7 @@ NO_SHOTS = os.environ.get('E2E_NO_SHOTS') == '1'
 MOONO_ITEM_ID = '3999999999'
 TEST_MODS = (
     'OverlapTestMod',
+    'UnpauseProbeTestMod',
     'SelectCycleTestMod',
     'CommandLineTestMod',
     'ReachStressTestMod',
