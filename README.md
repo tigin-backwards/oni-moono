@@ -230,10 +230,6 @@ speed up (particularly on very large custom maps).
 Garbage-collection hitches are mostly gone: collections now run in the background, spread
 across every core, and their pauses are about a quarter as long.
 
-**Note:** This uses more memory compared to the original. On a mid-game colony, memory peaked at
-around 11 GB resident compared to 7 GB in the original. This is expected behavior for faster,
-parallel collection.
-
 The late-game colony at speed 3: about 11 fps in the original, about 136 in Moono.
 
 https://github.com/user-attachments/assets/5775cbda-42b6-49cb-b178-669fdbeb9f0a
