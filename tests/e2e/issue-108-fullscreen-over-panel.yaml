@@ -1,0 +1,40 @@
+# Issue #108: the Graphics options' Fullscreen under a window manager with a panel at the bottom of
+# the screen (scripts/e2e-wm.py, a model of KDE Plasma's: undecorated windows are kept above the
+# panel, a window in _NET_WM_STATE_FULLSCREEN covers it). The fullscreen window covers the whole
+# 1280x720 display and the game renders at its size; an undecorated monitor-sized window alone
+# was kept 1280x644, and the game rendered at that. Then back to a window of the size asked.
+from: main-menu
+window_manager: true
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: OPTIONS, under: "**/MainMenuButtons"}
+  - click: {ui: "**/OptionsMenu/**/GraphicsButton"}
+  - ui_wait: {path: "**/GraphicsOptionsScreen", cond: stable}
+  - dropdown: {ui: "**/GraphicsOptionsScreen/**/Resolution/Resolution/Dropdown", option: "1280 x 720 @ 60Hz"}
+  - click: {ui: "**/GraphicsOptionsScreen/**/FullscreenToggle"}
+  - click: {ui: "**/GraphicsOptionsScreen/**/Buttons/Apply"}
+  - ui_wait: {path: "**/ConfirmDialog/**/OKButton", cond: stable}
+  - expect_state:
+      "UnityEngine.Screen.width": 1280
+      "UnityEngine.Screen.height": 720
+      "UnityEngine.Screen.fullScreen": true
+      "UnityEngine.Display.main.renderingHeight": 720
+      "UnityEngine.Display.main.systemHeight": 720
+  - click: {ui: "**/ConfirmDialog/**/OKButton"}
+  - ui_wait: {path: "**/ConfirmDialog", cond: gone}
+  - expect_state:
+      "KPlayerPrefs.GetInt(\"FullScreen\")": 1
+      "UnityEngine.Screen.height": 720
+  # Back to a window: the window manager's fullscreen is left, and the window is the size asked.
+  - click: {ui: "**/GraphicsOptionsScreen/**/FullscreenToggle"}
+  - click: {ui: "**/GraphicsOptionsScreen/**/Buttons/Apply"}
+  - ui_wait: {path: "**/ConfirmDialog/**/OKButton", cond: stable}
+  - click: {ui: "**/ConfirmDialog/**/OKButton"}
+  - ui_wait: {path: "**/ConfirmDialog", cond: gone}
+  - expect_state:
+      "UnityEngine.Screen.fullScreen": false
+      "UnityEngine.Screen.width": 1280
+      "UnityEngine.Screen.height": 720

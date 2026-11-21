@@ -3475,14 +3475,32 @@ does.
   fullscreen window there); and whether Unity scales a hardware cursor with the picture (ours
   does not).
 
+Off Windows a fullscreen window asks the window manager for fullscreen, as the original does: it
+is the monitor's window in GLFW (`glfwSetWindowMonitor` at the monitor's current video mode, which
+changes no mode), and GLFW sets `_NET_WM_STATE_FULLSCREEN` on X11 and xdg_toplevel's fullscreen on
+Wayland, so it covers the desktop's panels.
+- **The original** runs on SDL 2 (bundled in its `UnityPlayer.so`, Unity 6000.3) as an X11 client,
+  XWayland under a Wayland compositor; native Wayland only with `-force-wayland` ("Activate
+  experimental Wayland support", Unity's player command-line reference). Its Fullscreen option asks
+  the window manager for `_NET_WM_STATE_FULLSCREEN` (measured under the model below, and taken off
+  again for a window). Ours prefers GLFW's X11 backend too (DISPLAY set).
+- **Before (issue #108)**, the window was only undecorated and monitor-sized: KDE Plasma 6 on
+  Wayland kept it above its panel, 1920x1004 on a 1920x1080 monitor, and the game rendered at that
+  size. `tests/e2e/issue-108-fullscreen-over-panel.yaml` plays the Fullscreen option under
+  `scripts/e2e-wm.py`, a model of that desktop (EWMH, a 76-pixel panel, undecorated windows kept
+  above it), in both players. KDE itself is not measured.
+- GLFW minimizes a monitor's window when it loses the focus; that is off (`GLFW_AUTO_ICONIFY`), as
+  SDL leaves a fullscreen-desktop window up.
+- At start a fullscreen window is shown before it takes the monitor (GLFW maps it then anyway), so
+  for a moment a window manager may still keep it above its panel.
+- **On Windows** the fullscreen window stays a monitor-sized popup, which covers the taskbar.
+
 Known limitations, not handled:
 - X11 layouts with several groups (us,ru and a group switch) are unmeasured in the original;
   ours maps keys through the group in effect at each press.
 - Wayland has no window positions (`-monitor`, centring and restore placement do nothing there),
   no window icons, and a layout's first level only for key codes; the original's Wayland app ID
   is unmeasured.
-- On X11 a fullscreen window is an undecorated monitor-sized window, without
-  `_NET_WM_STATE_FULLSCREEN`, so a window manager may keep its panels above it.
 - Outside the window the pointer is read each frame (`FollowCursorOutside`); over another window
   that covers ours it is inside our client area, where GLFW reports no movement, so
   `Input.mousePosition` stays where the pointer was last over ours.

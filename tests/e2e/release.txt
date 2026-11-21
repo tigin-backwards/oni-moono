@@ -47,6 +47,7 @@ overlap-manual                      # 51+47: pause-menu save and Save and Quit d
 # Windowing and the host
 screen-dpi                          # 24+31: Screen.dpi
 fullscreen-window-resolution        # 28+22: fullscreen at a lower resolution, pointer mapping
+issue-108-fullscreen-over-panel     # est 22+25: fullscreen over a model desktop panel (#108)
 
 # Ours only
 path-probe-repair ours              # 168: the default-on tweak, every repair checked

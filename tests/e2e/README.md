@@ -220,6 +220,8 @@ ours_needs: {libOniMoonoNative.so: "FMOD's quarantine allocator"}   # ours is sk
                                  # reason, when the file is not beside our release host
 scaled_screen: true              # the game may render smaller than the display (below)
 display_dpi: 144                 # the lane's Xvfb runs with -dpi 144 (the X screen's mm size)
+window_manager: true             # the lane runs scripts/e2e-wm.py: a 76-pixel panel, undecorated windows
+                                 # kept above it, EWMH fullscreen over it (issue-108-fullscreen-over-panel.yaml)
 blocked_plugins: {libSimDLL.so: missing}   # each player runs a copy of its install (out/e2e/.blocked-LANE)
                                  # with these native plugins `missing` or `unreadable` (mode 000)
 stray_plugins: [x86_64/SimDLL.dll]   # and these paths under Plugins added, empty (`DIR/` a folder),

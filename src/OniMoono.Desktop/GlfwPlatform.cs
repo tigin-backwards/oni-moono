@@ -163,6 +163,10 @@ namespace OniMoono.Desktop
             int width = settings.Width > 0 ? settings.Width : desktop.Width;
             int height = settings.Height > 0 ? settings.Height : desktop.Height;
             if (mode is FullScreenMode.FullScreenWindow) Glfw.WindowHint(GlfwWindowHint.Decorated, GLFW_FALSE);
+            // GLFW minimizes a monitor's window when it loses the focus (X11's FocusOut); off
+            // Windows that is every fullscreen window (WindowManagerFullscreen), and SDL, which
+            // Unity's Linux player runs on, keeps a fullscreen-desktop window up.
+            if (WindowManagerFullscreen) Glfw.WindowHint(GlfwWindowHint.AutoIconify, GLFW_FALSE);
             // The window is created where it will be placed, so that the placement it restores to
             // after being maximized while hidden is on its monitor. GLFW maximizes a hidden
             // window by hand (maximizeWindowManually: WS_MAXIMIZE and a move to the work area),
@@ -238,6 +242,9 @@ namespace OniMoono.Desktop
             // Showing it focuses it unless FocusOnShow is off (glfwShowWindow). An exclusive
             // fullscreen window is already shown and focused (_glfwCreateWindowWin32).
             window.Visible = true;
+            // Shown first: GLFW maps a hidden window as it gives it a monitor (X11's
+            // glfwSetWindowMonitor), before the context above existed.
+            if (WindowManagerFullscreen && mode == FullScreenMode.FullScreenWindow) TakeMonitor(monitor);
 
             // Scripted runs (host --input) take input only from the script.
             scripted = settings.IgnoreUserInput;
@@ -592,6 +599,21 @@ namespace OniMoono.Desktop
             _ => mode,
         };
 
+        /// Off Windows a fullscreen window is the monitor's in GLFW (glfwSetWindowMonitor at the
+        /// monitor's current video mode, so the mode does not change): GLFW then asks the window
+        /// manager for fullscreen, `_NET_WM_STATE_FULLSCREEN` on X11 and xdg_toplevel's fullscreen
+        /// on Wayland, as SDL does for Unity's Linux player (its UnityPlayer.so is SDL 2 on X11,
+        /// Wayland only with -force-wayland). An undecorated window of the monitor's size alone
+        /// was kept out of the panels by KDE Plasma (XWayland: 1920x1004 on a 1920x1080 monitor,
+        /// issue #108). Windows keeps its monitor-sized popup, which covers the taskbar.
+        static bool WindowManagerFullscreen => !OperatingSystem.IsWindows();
+
+        void TakeMonitor(GlfwMonitor monitor)
+        {
+            var desktop = monitor.VideoMode;
+            window.SetFullscreen(monitor, new int2(desktop.Width, desktop.Height), desktop.RefreshRate);
+        }
+
         /// Windows keeps a window within the monitor's size with its frame: a windowed request as
         /// tall as the monitor (the game's windowed mode at the native resolution) came out shorter
         /// than asked, its title bar above the screen and the desktop showing below it (measured:
@@ -652,7 +674,8 @@ namespace OniMoono.Desktop
                     // A maximized window keeps its maximized placement under the new size.
                     if (window.IsMaximised) window.Restore();
                     window.SetAttribute(GlfwWindowAttribute.Decorated, GLFW_FALSE);
-                    window.SetWindowed(monitor.Position, new int2(desktop.Width, desktop.Height));
+                    if (WindowManagerFullscreen) TakeMonitor(monitor);
+                    else window.SetWindowed(monitor.Position, new int2(desktop.Width, desktop.Height));
                     break;
                 }
                 default:
