@@ -53,6 +53,10 @@ namespace OniMoono.Desktop.Vulkan
         public string Failure => failure ?? chain?.Failure;
         public long LastWait => chain?.LastWait ?? 0;
 
+        /// Show failed because D3D11's AcquireSync(1) timed out: Vulkan's release of the picture
+        /// did not reach D3D11 within MutexTimeoutMilliseconds.
+        public bool HandoverTimedOut { get; private set; }
+
         /// The next picture waits for one more to retire first (DxgiSwapChain.HoldBack).
         public void HoldBack() => chain?.HoldBack();
 
@@ -296,6 +300,7 @@ namespace OniMoono.Desktop.Vulkan
             if (Failure != null) return false;
             acquires++;
             int hr = DxgiSwapChain.Faulty("lock", acquires) ? Dxgi.WaitTimedOut : Dxgi.AcquireSync(keyedMutex, 1, MutexTimeoutMilliseconds);
+            HandoverTimedOut = hr == Dxgi.WaitTimedOut;
             if (hr != Dxgi.S_OK) return Fail($"IDXGIKeyedMutex::AcquireSync(1) failed ({(hr == Dxgi.WaitTimedOut ? "timed out" : hr == Dxgi.WaitAbandoned ? "abandoned" : Dxgi.Hr(hr))})");
             chain.CopyToBackBuffer(shared);
             hr = Dxgi.ReleaseSync(keyedMutex, 0);

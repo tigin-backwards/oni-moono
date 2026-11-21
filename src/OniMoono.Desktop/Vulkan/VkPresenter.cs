@@ -734,7 +734,16 @@ namespace OniMoono.Desktop.Vulkan
             AfterLoading(s);
             if (!dxgi.Show(interval))
             {
+                // No picture has ever come through: the keyed mutex's handover from Vulkan to
+                // D3D11 does not work on this device (Intel UHD on driver 101.7092 timed out on
+                // every one of ten starts, one D3D11CreateDevice between them failing with
+                // DXGI_ERROR_DEVICE_REMOVED, before the session froze; #107). Restarting only
+                // repeats that.
+                bool neverWorked = dxgi.HandoverTimedOut && !dxgiRestarts.EverPresented;
+                if (neverWorked) dxgiRestarts.GiveUp();
                 DxgiFailed();
+                if (neverWorked)
+                    EngineLog.Engine("present: DXGI has not presented a picture from Vulkan (the keyed mutex's first handover timed out): no restarts, Vulkan's swapchain from here on");
                 return;
             }
             lastWait = dxgi.LastWait;

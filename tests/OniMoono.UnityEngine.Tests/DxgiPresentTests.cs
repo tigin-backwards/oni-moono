@@ -197,6 +197,29 @@ namespace OniMoono.Tests
             Assert.True(r.MayTry(now + 61 * s));
         }
 
+        /// Given up (Vulkan's first handover timed out, #107): no try is left, however long after,
+        /// and presenting does not bring one back.
+        [Fact]
+        public void AGivenUpDxgiIsNotRestarted()
+        {
+            long s = System.Diagnostics.Stopwatch.Frequency, now = 1000 * s;
+            var r = new DxgiRestarts();
+            Assert.False(r.EverPresented);
+            r.GiveUp();
+            Assert.True(r.Exhausted);
+            Assert.False(r.MayTry(now + 3600 * s));
+
+            r = new DxgiRestarts();
+            r.Tried(now);
+            r.Started(now);
+            r.Presented(now + 61 * s);
+            Assert.True(r.EverPresented);
+            Assert.True(r.MayTry(now + 61 * s));
+            r.GiveUp();
+            r.Presented(now + 200 * s);
+            Assert.False(r.MayTry(now + 3600 * s));
+        }
+
         /// Vulkan's own path, minimized with vsync: pictures a period apart from when the last was
         /// due, so a late wake-up shortens the next wait; one more than a period late starts over.
         [Fact]

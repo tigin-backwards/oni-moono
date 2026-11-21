@@ -2628,7 +2628,11 @@ never completes is not known to happen; if one did, the game would freeze (the p
 device thread wait for the queue, which cannot finish the batch), and nothing here handles it.
 Restarts come in bursts of ten tries,
 1, 2, 4 then 8 s apart (about a minute, outlasting a slow driver reset); a restart that presents
-for 60 s ends its burst, so a later failure gets ten tries again. Until a restart succeeds
+for 60 s ends its burst, so a later failure gets ten tries again. On Vulkan, a keyed-mutex
+timeout before DXGI has presented any picture in the session gives DXGI up at once: the
+handover does not work on that device (an Intel UHD on driver 101.7092 timed out on each of ten
+starts and once failed `D3D11CreateDevice` with `DXGI_ERROR_DEVICE_REMOVED`, #107), and Vulkan's
+swapchain presents from then on. Until a restart succeeds
 Vulkan's own swapchain stands in and reaches the screen (measured); OpenGL's window keeps its
 last picture, and once no restart is left SwapBuffers stands in, which does not reach the screen
 on a window whose flip-model swap chain has presented (measured: the window kept DXGI's last
