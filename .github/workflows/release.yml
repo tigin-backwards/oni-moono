@@ -39,7 +39,6 @@ jobs:
     outputs:
       draft_tag: ${{ steps.plan.outputs.draft_tag }}
       title: ${{ steps.plan.outputs.title }}
-      version_date: ${{ steps.plan.outputs.version_date }}
     steps:
       - id: plan
         env:
@@ -55,9 +54,7 @@ jobs:
           title="${TAG#v}"
           draft_tag="$TAG"
           if [ "$DRY_RUN" = true ]; then draft_tag="vtest-${TAG#v}-$GITHUB_RUN_ID"; title="TEST $title (dry run, deleted at its end)"; fi
-          # The archives are named by the tag's date (scripts/release-version.sh), not the commit's.
-          version_date="${TAG#v}"; version_date="${version_date%.*}"
-          { echo "draft_tag=$draft_tag"; echo "title=$title"; echo "version_date=$version_date"; } >> "$GITHUB_OUTPUT"
+          { echo "draft_tag=$draft_tag"; echo "title=$title"; } >> "$GITHUB_OUTPUT"
           echo "Draft $draft_tag, \"$title\", from $GITHUB_SHA ($GITHUB_REF_NAME)"
 
   build:
@@ -68,7 +65,6 @@ jobs:
     with:
       release_tag: ${{ inputs.tag }}
       use_cache: false
-      version_date: ${{ needs.plan.outputs.version_date }}
     secrets:
       REFS_APP_KEY: ${{ secrets.REFS_APP_KEY }}
 
@@ -86,12 +82,18 @@ jobs:
           pattern: release-*
           merge-multiple: true
           path: dist
-      # Each archive holds exactly the files its manifest lists, with those digests.
+      # Each archive is named by the tag's version (scripts/release-version.sh) and holds exactly
+      # the files its manifest lists, with those digests.
       - name: Check the archives against their manifests
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
           shopt -s nullglob
+          for f in dist/*; do
+            [[ "$f" == dist/oni-moono-"${TAG#v}"-* ]] || { echo "::error::$f is not named by ${TAG#v}"; exit 1; }
+          done
           for plat in windows-x64 linux-x64; do
-            files=(dist/oni-moono-*-"$plat".zip dist/oni-moono-*-"$plat".tar.gz dist/oni-moono-*-"$plat".SHA256SUMS)
+            files=(dist/oni-moono-"${TAG#v}"-"$plat".zip dist/oni-moono-"${TAG#v}"-"$plat".tar.gz dist/oni-moono-"${TAG#v}"-"$plat".SHA256SUMS)
             [ "${#files[@]}" -eq 2 ] && [[ "${files[1]}" == *.SHA256SUMS ]] || { echo "::error::expected one $plat archive and manifest"; exit 1; }
             archive="${files[0]}"; manifest="${files[1]}"
             x="$RUNNER_TEMP/$plat"; mkdir "$x"

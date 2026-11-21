@@ -17,9 +17,12 @@ commit of `master`, for the game's current update (U60 since the
 | `.github/workflows/workshop.yml` | Run by hand with a release tag (or, for a dry run, the release.yml run that built it). Downloads the release's assets and verifies their provenance from master, lays out the Workshop item (that release alone) (`scripts/workshop-item.py`, [INSTALL-MODES.md](INSTALL-MODES.md#workshop-item)), has `attest.yml` attest its `SHA256SUMS` and every file in it, puts the bundle for `SHA256SUMS` in the item (`attestation/`), checks it with gh, and keeps it as the `workshop-item` artifact. Nothing is uploaded to Steam. |
 | `.github/workflows/workshop-upload.yml` | Run by hand with a `workshop.yml` run's number. Checks that run's item as `verify.sh` does and that its attestation is that run's, writes the VDF, and (mode `upload`, in the `steam-workshop` environment, which alone holds the Steam secrets) signs in with a cached steamcmd session and uploads it to the Steam Workshop. [WORKSHOP-UPLOAD.md](WORKSHOP-UPLOAD.md). |
 
-`<version>` in the archives' names is the release tag's date: `oni-moono-2026.11.10-…` for
-`v2026.11.10.01` (the U60 beta's pre-releases had `-u60` after it). A build of a plain push is
-named by its commit's date (`scripts/release-version.sh`).
+`<version>` in the archives' names is the release tag without its `v`:
+`oni-moono-2026.11.20.05-…` for `v2026.11.20.05`, so each release of a day has names of its own.
+Releases up to `v2026.11.20.04` were named by the tag's date alone (`oni-moono-2026.11.10-…` for
+`v2026.11.10.01`, with `-u60` after it for the U60 beta's pre-releases); they verify the same
+way, since attestations go by digest, not name. A build of a plain push is named by its commit's
+date (`scripts/release-version.sh`).
 
 Each archive comes with a manifest, `oni-moono-<version>-windows-x64.SHA256SUMS` or
 `…-linux-x64.SHA256SUMS`. It lists the SHA-256 of every file in the archive, with paths relative
@@ -174,7 +177,7 @@ Each archive, each manifest and every file in the archives has SLSA provenance s
 `attest.yml`:
 
 ```sh
-gh attestation verify oni-moono-YYYY.MM.DD-windows-x64.zip -R tigin-backwards/oni-moono \
+gh attestation verify oni-moono-YYYY.MM.DD.NN-windows-x64.zip -R tigin-backwards/oni-moono \
   --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
 ```
 
@@ -190,9 +193,9 @@ To check a whole folder at once, verify its manifest and run `sha256sum -c` agai
 `oni-moono` folder:
 
 ```sh
-gh attestation verify oni-moono-YYYY.MM.DD-linux-x64.SHA256SUMS -R tigin-backwards/oni-moono \
+gh attestation verify oni-moono-YYYY.MM.DD.NN-linux-x64.SHA256SUMS -R tigin-backwards/oni-moono \
   --signer-workflow tigin-backwards/oni-moono/.github/workflows/attest.yml
-(cd oni-moono && sha256sum -c ../oni-moono-YYYY.MM.DD-linux-x64.SHA256SUMS)
+(cd oni-moono && sha256sum -c ../oni-moono-YYYY.MM.DD.NN-linux-x64.SHA256SUMS)
 ```
 
 Verification shows the commit and workflow run that built a file. `--source-ref
@@ -202,7 +205,7 @@ GitHub's immutable release attestation:
 
 ```sh
 gh release verify vYYYY.MM.DD.NN -R tigin-backwards/oni-moono
-gh release verify-asset vYYYY.MM.DD.NN oni-moono-YYYY.MM.DD-windows-x64.zip -R tigin-backwards/oni-moono
+gh release verify-asset vYYYY.MM.DD.NN oni-moono-YYYY.MM.DD.NN-windows-x64.zip -R tigin-backwards/oni-moono
 ```
 
 Releases before the first one built by Actions (2026.11.06.02 and older) were built locally and
@@ -359,7 +362,7 @@ How close the builds are to reproducible, as checked on the first dry run (2026-
 
   ```sh
   python3 -I scripts/fetch-game-refs.py out/game-refs
-  ContinuousIntegrationBuild=true MOONO_RELEASE=vYYYY.MM.DD.NN RELEASE_DATE=YYYY.MM.DD \
+  ContinuousIntegrationBuild=true MOONO_RELEASE=vYYYY.MM.DD.NN \
     MOONO_PLATFORMS=linux ONI_GAME_DIR=out/game-refs scripts/release.sh "$(scripts/release-version.sh)"
   ```
 

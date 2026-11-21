@@ -4,7 +4,8 @@
 # Linux, each with its setup script, the README and BRUTAL's NOTICE.txt, under one top folder
 # named oni-moono (extracting a newer release over an older one keeps the paths the same).
 #   MOONO_RELEASE=vYYYY.MM.DD.NN scripts/release.sh [VERSION]
-#                                     (VERSION defaults to the date of HEAD's commit)
+#                                     (VERSION defaults to scripts/release-version.sh's: the
+#                                     tag without its v, or HEAD's commit date)
 # MOONO_PLATFORMS="windows linux" (the default) picks the archives: GitHub Actions
 # (.github/workflows/build.yml, docs/RELEASES.md) builds each on its own runner, the Windows one
 # natively there. MOONO_RELEASE=none builds a development player (it checks for no updates).
@@ -26,7 +27,7 @@ platforms="${MOONO_PLATFORMS:-windows linux}"
 release_prop=(); [ "$tag" = none ] || release_prop=(-p:MoonoRelease="$tag")
 # python3, or on a Windows runner python.
 py=python3; python3 -c "" 2>/dev/null || py=python
-version="${1:-$(git -C "$root" log -1 --format=%cd --date=format:%Y.%m.%d)}"
+version="${1:-$("$root/scripts/release-version.sh")}"
 out="$root/out/release"
 rm -rf "$out"; mkdir -p "$out"
 # Each build starts from an empty output folder, so nothing stale (the host from before it was

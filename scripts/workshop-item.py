@@ -125,6 +125,10 @@ def version_folder(assets, tag, out):
             fail(f"{assets}: expected one {platform} archive and its manifest, found {found + manifests}")
         if "-u60-" in found[0]:
             fail(f"{found[0]} is a U60 beta build, not a master release")
+        # Named by the tag's version (scripts/release-version.sh), or by its date alone for
+        # releases up to v2026.11.20.04.
+        if found[0] not in (f"oni-moono-{v}-{platform}{ext}" for v in (version, version[:10])):
+            fail(f"{found[0]} is not named by {tag}'s version")
         n = extract(os.path.join(assets, found[0]), os.path.join(assets, manifests[0]), os.path.join(out, platform))
         shutil.copyfile(os.path.join(assets, manifests[0]), os.path.join(out, manifests[0]))
         platforms[platform] = {"folder": platform, "manifest": manifests[0], "archive": found[0]}

@@ -2,7 +2,8 @@
 makes them) become the Workshop item's folder: the release at the root with its mod_info.yaml,
 moono.json, manifests and players, no archived_versions, nothing at the top the game would load
 but the loader mod, and SHA256SUMS over every file. A tampered archive, one with a path outside
-its folder, and a U60 beta build (-u60) are refused."""
+its folder, a U60 beta build (-u60) and another release's assets are refused; older releases' date-only
+names are taken."""
 
 import hashlib, io, json, os, subprocess, sys, tarfile, tempfile, unittest, zipfile
 
@@ -82,7 +83,7 @@ class WorkshopItemTests(unittest.TestCase):
         return listed
 
     def test_layout(self):
-        release(os.path.join(self.dir, 'assets'), '2026.11.08')
+        release(os.path.join(self.dir, 'assets'), '2026.11.08.02')
         p, out = self.run_script()
         self.assertEqual(p.returncode, 0, p.stderr)
         self.assertIn('minimumSupportedBuild: 763796\nAPIVersion: 2\n', read(os.path.join(out, 'mod_info.yaml')))
@@ -93,7 +94,7 @@ class WorkshopItemTests(unittest.TestCase):
             sorted(os.listdir(out)),
             sorted(
                 ['MoonoLoader.dll', 'OniMoono.exe', 'OniMoono.sh', 'README.md', 'SHA256SUMS', 'linux-x64', 'mod_info.yaml', 'moono.json', 'verify.ps1']
-                + ['verify.sh', 'windows-x64', 'oni-moono-2026.11.08-linux-x64.SHA256SUMS', 'oni-moono-2026.11.08-windows-x64.SHA256SUMS']
+                + ['verify.sh', 'windows-x64', 'oni-moono-2026.11.08.02-linux-x64.SHA256SUMS', 'oni-moono-2026.11.08.02-windows-x64.SHA256SUMS']
             ),
         )
         self.assertFalse([p_ for p_ in self.check_sums(out) if p_.startswith('archived_versions/')])
@@ -102,7 +103,7 @@ class WorkshopItemTests(unittest.TestCase):
 
         # The release manifests check the players as verify.sh checks them.
         subprocess.run(
-            ['sha256sum', '--quiet', '--strict', '-c', os.path.join(out, 'oni-moono-2026.11.08-linux-x64.SHA256SUMS')],
+            ['sha256sum', '--quiet', '--strict', '-c', os.path.join(out, 'oni-moono-2026.11.08.02-linux-x64.SHA256SUMS')],
             cwd=os.path.join(out, 'linux-x64'),
             check=True,
         )
@@ -122,6 +123,19 @@ class WorkshopItemTests(unittest.TestCase):
         release(os.path.join(self.dir, 'assets'), '2026.11.08')
         p, _ = self.run_script(loader='Other.dll')
         self.assertIn('the loader is MoonoLoader.dll', p.stderr)
+
+    def test_date_only_names_of_older_releases(self):
+        # Releases up to v2026.11.20.04 were named by the tag's date alone.
+        release(os.path.join(self.dir, 'assets'), '2026.11.08')
+        p, out = self.run_script()
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(json.loads(read(os.path.join(out, 'moono.json')))['platforms']['linux-x64']['archive'], 'oni-moono-2026.11.08-linux-x64.tar.gz')
+
+    def test_another_releases_assets_are_refused(self):
+        release(os.path.join(self.dir, 'assets'), '2026.11.08.01')
+        p, _ = self.run_script()
+        self.assertNotEqual(p.returncode, 0)
+        self.assertIn("is not named by v2026.11.08.02's version", p.stderr)
 
     def test_a_u60_beta_build_is_refused(self):
         release(os.path.join(self.dir, 'assets'), '2026.11.08-u60')
