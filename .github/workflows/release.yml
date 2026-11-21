@@ -93,7 +93,7 @@ jobs:
             [[ "$f" == dist/oni-moono-"${TAG#v}"-* ]] || { echo "::error::$f is not named by ${TAG#v}"; exit 1; }
           done
           for plat in windows-x64 linux-x64; do
-            files=(dist/oni-moono-"${TAG#v}"-"$plat".zip dist/oni-moono-"${TAG#v}"-"$plat".tar.gz dist/oni-moono-"${TAG#v}"-"$plat".SHA256SUMS)
+            files=(dist/oni-moono-*-"$plat".zip dist/oni-moono-*-"$plat".tar.gz dist/oni-moono-*-"$plat".SHA256SUMS)
             [ "${#files[@]}" -eq 2 ] && [[ "${files[1]}" == *.SHA256SUMS ]] || { echo "::error::expected one $plat archive and manifest"; exit 1; }
             archive="${files[0]}"; manifest="${files[1]}"
             x="$RUNNER_TEMP/$plat"; mkdir "$x"
