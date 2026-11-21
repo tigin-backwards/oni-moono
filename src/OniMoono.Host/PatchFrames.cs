@@ -47,6 +47,7 @@ namespace OniMoono.Host
             var rewrite = AccessTools.Method("HarmonyLib.FaultBlockRewriter:Rewrite")
                 ?? throw new MissingMethodException("HarmonyLib.FaultBlockRewriter", "Rewrite");
             harmonyPatches.Patch(rewrite, postfix: new HarmonyMethod(typeof(PatchFrames), nameof(RewritePostfix)));
+            PatchParameterTypes.Install(harmonyPatches); // D65: unrelated classes get null
         }
 
         /// The mods' patch methods of the replacement UpdateWrapper is building on this thread.

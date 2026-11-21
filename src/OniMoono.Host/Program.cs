@@ -865,6 +865,80 @@ namespace OniMoono.Host
                 return count == 3 && fromArray == 2 ? $"{why}; the prefix counts the list's 3 items and the array's 2, as on Mono; a matching patch's check {each:F1} µs"
                     : throw new InvalidOperationException($"the prefix counted {count} of the list's 3 items and {fromArray} of the array's 2");
             });
+            Check("A mod's postfix declaring HashSet<int> for a field of an unrelated class (PatchParameterTypes, #109)", () =>
+            {
+                PatchFrames.Install();
+                // As Pipe Color Overlay's postfix of ConduitMode.Update: ___layerTargets declared
+                // HashSet<SaveLoadRoot>, a HybridListHashSet in U60. On Mono its HashSet calls read
+                // the other class's fields and throw; here they read past it (an access violation).
+                // Such a field gets null, so the postfix throws an exception of its own. Arguments,
+                // __instance and ref fields of an unrelated class keep the real object, as on Mono,
+                // and so does a field declared List<int> for an IEnumerable<int> one (as #101).
+                var module = System.Reflection.Emit.AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("ModCheck.UnrelatedTypes"),
+                    System.Reflection.Emit.AssemblyBuilderAccess.Run).DefineDynamicModule("UnrelatedTypes");
+                var type = module.DefineType("Unrelated", TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+                var set = typeof(HashSet<int>);
+                var seen = type.DefineField("Seen", typeof(int), FieldAttributes.Public | FieldAttributes.Static);
+                // Postfix(HashSet<int> __instance, HashSet<int> ___layerTargets, HashSet<int> extra):
+                // counts its null parameters, then calls Contains on the field.
+                var postfix = type.DefineMethod("Postfix", MethodAttributes.Public | MethodAttributes.Static, typeof(void), [set, set, set]);
+                postfix.DefineParameter(1, ParameterAttributes.None, "__instance");
+                postfix.DefineParameter(2, ParameterAttributes.None, "___layerTargets");
+                postfix.DefineParameter(3, ParameterAttributes.None, "extra");
+                var il = postfix.GetILGenerator();
+                foreach (var arg in new[] { System.Reflection.Emit.OpCodes.Ldarg_0, System.Reflection.Emit.OpCodes.Ldarg_1, System.Reflection.Emit.OpCodes.Ldarg_2 })
+                {
+                    il.Emit(arg); il.Emit(System.Reflection.Emit.OpCodes.Ldnull); il.Emit(System.Reflection.Emit.OpCodes.Ceq);
+                    if (arg != System.Reflection.Emit.OpCodes.Ldarg_0) il.Emit(System.Reflection.Emit.OpCodes.Add);
+                }
+                il.Emit(System.Reflection.Emit.OpCodes.Stsfld, seen);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1); il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_1);
+                il.Emit(System.Reflection.Emit.OpCodes.Callvirt, set.GetMethod("Contains")!);
+                il.Emit(System.Reflection.Emit.OpCodes.Pop); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                // RefPostfix(ref HashSet<int> ___layerTargets): records whether it is null.
+                var refPostfix = type.DefineMethod("RefPostfix", MethodAttributes.Public | MethodAttributes.Static, typeof(void), [set.MakeByRefType()]);
+                refPostfix.DefineParameter(1, ParameterAttributes.None, "___layerTargets");
+                il = refPostfix.GetILGenerator();
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0); il.Emit(System.Reflection.Emit.OpCodes.Ldind_Ref); il.Emit(System.Reflection.Emit.OpCodes.Ldnull); il.Emit(System.Reflection.Emit.OpCodes.Ceq);
+                il.Emit(System.Reflection.Emit.OpCodes.Stsfld, seen); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                // ListPostfix(List<int> ___sequence, ref int __result): counts the real list.
+                var listPostfix = type.DefineMethod("ListPostfix", MethodAttributes.Public | MethodAttributes.Static, typeof(void), [typeof(List<int>), typeof(int).MakeByRefType()]);
+                listPostfix.DefineParameter(1, ParameterAttributes.None, "___sequence");
+                listPostfix.DefineParameter(2, ParameterAttributes.None, "__result");
+                il = listPostfix.GetILGenerator();
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_1); il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0);
+                il.Emit(System.Reflection.Emit.OpCodes.Callvirt, typeof(List<int>).GetProperty("Count")!.GetMethod!);
+                il.Emit(System.Reflection.Emit.OpCodes.Stind_I4); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                var mod = type.CreateType();
+                int Seen() => (int)mod.GetField("Seen")!.GetValue(null)!;
+                var update = typeof(UnrelatedOverlay).GetMethod(nameof(UnrelatedOverlay.Update))!;
+                var refresh = typeof(UnrelatedOverlay).GetMethod(nameof(UnrelatedOverlay.Refresh))!;
+                var count = typeof(UnrelatedOverlay).GetMethod(nameof(UnrelatedOverlay.Count))!;
+                var unrelated = PatchParameterTypes.Mismatches(update, mod.GetMethod("Postfix")!);
+                if (unrelated.Count != 3 || unrelated.Count(m => m.Unrelated) != 1 || !unrelated.Single(m => m.Unrelated).Name.StartsWith("___", StringComparison.Ordinal))
+                    throw new InvalidOperationException($"Postfix: {string.Join(", ", unrelated)}");
+                if (PatchParameterTypes.Mismatches(refresh, mod.GetMethod("RefPostfix")!) is not [{ Unrelated: false }])
+                    throw new InvalidOperationException("RefPostfix: the ref field found unrelated");
+                if (PatchParameterTypes.Mismatches(count, mod.GetMethod("ListPostfix")!) is not [{ Unrelated: false }] related)
+                    throw new InvalidOperationException("ListPostfix: the interface field not found related");
+                var harmony = new HarmonyLib.Harmony("OniMoono.Host.CheckUnrelated");
+                harmony.Patch(update, postfix: new HarmonyLib.HarmonyMethod(mod.GetMethod("Postfix")));
+                harmony.Patch(refresh, postfix: new HarmonyLib.HarmonyMethod(mod.GetMethod("RefPostfix")));
+                harmony.Patch(count, postfix: new HarmonyLib.HarmonyMethod(mod.GetMethod("ListPostfix")));
+                var overlay = new UnrelatedOverlay();
+                var hybrid = overlay.layerTargets;
+                string thrown = "nothing";
+                try { overlay.Update(new UnrelatedSet()); }
+                catch (NullReferenceException) { thrown = "NullReferenceException"; }
+                if (thrown != "NullReferenceException" || Seen() != 1)
+                    throw new InvalidOperationException($"Postfix: threw {thrown}, {Seen()} of its 3 parameters null (the field alone should be)");
+                overlay.Refresh();
+                if (Seen() != 0 || !ReferenceEquals(overlay.layerTargets, hybrid))
+                    throw new InvalidOperationException($"RefPostfix: got {(Seen() == 1 ? "null" : "the field")}, the field {(ReferenceEquals(overlay.layerTargets, hybrid) ? "kept" : "overwritten")}");
+                int counted = overlay.Count();
+                return counted == 3 ? "the unrelated field gets null (the postfix throws NullReferenceException), __instance, the argument and a ref field the real object; a List<int> field declared for an IEnumerable<int> one counts its 3 items"
+                    : throw new InvalidOperationException($"ListPostfix counted {counted} of the list's 3 items");
+            });
             Check("A Harmony prefix on a method an earlier patch's replacement calls (PatchDependents)", () =>
             {
                 PatchDependents.Install();
@@ -2973,6 +3047,25 @@ namespace OniMoono.Host
         static void CountA() => countedA++;
         static void CountB() => prefixedB++;
         static bool ListPrefix(IReadOnlyList<int> values, ref int __result) => true;
+
+        /// The #109 check's patched class: a field and an argument of a class unrelated to HashSet<int>.
+        sealed class UnrelatedSet
+        {
+            public Dictionary<int, int> dict = new() { [1] = 0 };
+            public List<int> list = [1];
+        }
+
+        sealed class UnrelatedOverlay
+        {
+            public UnrelatedSet layerTargets = new();
+            public IEnumerable<int> sequence = new List<int> { 4, 5, 6 };
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            public void Update(UnrelatedSet extra) { }
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            public void Refresh() { }
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            public int Count() => -1;
+        }
         static void CountC() => prefixedC++;
         static void CountD() => prefixedD++;
         static void CountE() => prefixedE++;

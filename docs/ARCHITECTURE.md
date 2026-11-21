@@ -1744,7 +1744,27 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   prefix reads its `CellOffset[]` with array instructions; the probe saw the game pass it arrays
   only).
   An attribute scan of the downloaded Workshop mods (U60 764025) finds 57 such patches in 43
-  mods, most an `__instance` of a derived type on a base class's method.
+  mods, most an `__instance` of a derived type on a base class's method. `___field` parameters
+  are compared with the field's type the same way.
+  **A field of an unrelated class gets null.** When a `___field` parameter's class and the
+  field's share no base class but `object`, no object is both, and the patch gets null for it.
+  Pipe Color Overlay (3678142367) postfixes `OverlayModes.ConduitMode.Update` with
+  `HashSet<SaveLoadRoot> ___layerTargets`; U60 made the field a `HybridListHashSet<SaveLoadRoot>`,
+  a class of its own. In the original player the postfix's `HashSet` calls read the other class's
+  fields and throw IndexOutOfRangeException every frame, which Unity logs, and the mod does
+  nothing; CoreCLR read past the object and the process died of an AccessViolationException
+  (issue #109). With null the postfix throws a NullReferenceException. `PatchParameterTypes`
+  postfixes Harmony's `MethodCreatorTools.EmitCallParameter`: for such a patch the values from
+  the first such parameter on are stored in locals and loaded back, null in its place; other
+  patches' IL is not touched. Everything else keeps the real object, with no method inlined into
+  the patch, because the original may work there: arguments (MaterialColor and Big Storage
+  declare `Tag[] tags` for the `HashSet<Tag>` of `FilteredStorage.OnFilterChanged` and only
+  check its length, which reads non-zero on both runtimes), `__instance` (often a sibling class
+  that only uses the common base's members, or not used at all), `ref` fields (WannaPrint's
+  `ref CarePackageInfo[] ___carePackages`) and interface or base-class mismatches. A scan of
+  the downloaded Workshop mods (U60 764025) finds 4 such patches in 3 mods: Pipe Color
+  Overlay, Multi Channel Utilities and Pinned Resource List Extended (which fails to load in the
+  original player). Five more take such a field by `ref` and keep it.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
