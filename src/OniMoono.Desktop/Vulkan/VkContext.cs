@@ -39,9 +39,12 @@ namespace OniMoono.Desktop.Vulkan
         public string DeviceName = "", DriverName = "", DriverInfo = "";
         public bool TextureCompressionBC, SamplerAnisotropy, MirrorClampToEdge, PushDescriptors;
         /// Windows: the device's LUID (0 when the driver gives none), and whether the DXGI
-        /// interop extensions are on (VK_KHR_external_memory_win32, VK_KHR_win32_keyed_mutex).
+        /// interop extensions are on (VK_KHR_external_memory_win32, VK_KHR_win32_keyed_mutex),
+        /// with which of them (and VK_KHR_external_semaphore_win32, not used) the driver has.
         public long Luid;
-        public bool DxgiInterop;
+        public bool DxgiInterop, ExternalMemoryWin32, Win32KeyedMutex, ExternalSemaphoreWin32;
+        /// The driver's ID, raw driverVersion and conformance version (VkPhysicalDeviceDriverProperties).
+        public string DriverIdentity = "";
         public VkPipelineCache PipelineCache;
         VkDebugUtilsMessengerEXT messenger;
         readonly string pipelineCachePath;
@@ -239,8 +242,14 @@ namespace OniMoono.Desktop.Vulkan
             PushDescriptors = Physical.SupportsExtension("VK_KHR_push_descriptor"u8);
             // Windows, presenting through DXGI (VkDxgiTarget): a D3D11 texture imported as an
             // image, its keyed mutex taken and given back by the presenter's submissions.
+            if (OperatingSystem.IsWindows())
+            {
+                ExternalMemoryWin32 = Physical.SupportsExtension("VK_KHR_external_memory_win32"u8);
+                Win32KeyedMutex = Physical.SupportsExtension("VK_KHR_win32_keyed_mutex"u8);
+                ExternalSemaphoreWin32 = Physical.SupportsExtension("VK_KHR_external_semaphore_win32"u8);
+            }
             DxgiInterop = OperatingSystem.IsWindows() && OniMoono.Desktop.Gl.DxgiSwapChain.Enabled
-                          && Physical.SupportsExtension("VK_KHR_external_memory_win32"u8) && Physical.SupportsExtension("VK_KHR_win32_keyed_mutex"u8);
+                          && VkDxgiSupport.MissingExtensions(ExternalMemoryWin32, Win32KeyedMutex) == null;
             DriverInfo = DriverDescription(out int driverId);
             Identity = new VkGpuIdentity((uint)Properties.VendorID, (uint)Properties.DeviceID, (uint)Properties.DriverVersion, driverId, DriverName, DeviceName);
             if (admit?.Invoke(Identity) is { } refused) throw new VulkanUnavailableException(refused);
@@ -279,7 +288,13 @@ namespace OniMoono.Desktop.Vulkan
             FailAt("context");
             EngineLog.Engine($"vulkan: using {why}; {DriverInfo}; BC textures {(TextureCompressionBC ? "sampled" : "decoded on upload")}, "
                              + $"descriptors {(PushDescriptors ? "pushed" : "from per-frame pools")}");
+            // What tells drivers apart when the DXGI handover fails (#107); once per session.
+            if (OperatingSystem.IsWindows())
+                EngineLog.Engine($"vulkan: {DriverIdentity}; VK_KHR_external_memory_win32 {YesNo(ExternalMemoryWin32)}, VK_KHR_win32_keyed_mutex {YesNo(Win32KeyedMutex)}, "
+                                 + $"VK_KHR_external_semaphore_win32 {YesNo(ExternalSemaphoreWin32)} (not used){(DxgiInterop ? "" : "; DXGI interop off")}");
         }
+
+        static string YesNo(bool b) => b ? "yes" : "no";
 
         /// Descriptors a pushed set may hold.
         public int MaxPushDescriptors;
@@ -300,6 +315,10 @@ namespace OniMoono.Desktop.Vulkan
             MaxPushDescriptors = PushDescriptors ? push.MaxPushDescriptors : 0;
             DriverName = Utf8(driver.DriverName, 256);
             driverId = (int)driver.DriverID;
+            var c = driver.ConformanceVersion;
+            string idName = driver.DriverID.ToString();
+            if (idName.EndsWith("KHR", StringComparison.Ordinal)) idName = idName[..^3];
+            DriverIdentity = $"driver ID {idName} ({driverId}), driverVersion 0x{(uint)Properties.DriverVersion:X8}, conformance {c.Major}.{c.Minor}.{c.Subminor}.{c.Patch}";
             return $"Vulkan {Version(Properties.ApiVersion)}, driver {DriverName} {Utf8(driver.DriverInfo, 256)}".TrimEnd();
         }
 

@@ -739,6 +739,7 @@ namespace OniMoono.Desktop.Vulkan
                 // every one of ten starts, one D3D11CreateDevice between them failing with
                 // DXGI_ERROR_DEVICE_REMOVED, before the session froze; #107). Restarting only
                 // repeats that.
+                if (dxgi.HandoverTimedOut) EngineLog.Engine(HandoverReport(s) + MadeUp);
                 bool neverWorked = dxgi.HandoverTimedOut && !dxgiRestarts.EverPresented;
                 if (neverWorked) dxgiRestarts.GiveUp();
                 DxgiFailed();
@@ -748,6 +749,27 @@ namespace OniMoono.Desktop.Vulkan
             }
             lastWait = dxgi.LastWait;
             dxgiRestarts.Presented(GlTimings.Now);
+        }
+
+        /// D3D11's AcquireSync(1) timed out on the picture slot `s` submitted (#107): whether that
+        /// batch, which releases key 1, had completed on the GPU then (its fence), and if not
+        /// whether it does within VkDxgiSupport.LateWaitMilliseconds; then which key is free and
+        /// D3D11's device-removed reason. One line per timeout.
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        string HandoverReport(int s)
+        {
+            var device = vk.Device.Handle;
+            var fence = fences[s];
+            var atTimeout = vk.Device.PInvoke.vkGetFenceStatus.Invoke(device, fence);
+            var later = atTimeout == VkResult.NotReady
+                ? vk.Device.PInvoke.vkWaitForFences.Invoke(device, 1, &fence, true, (nint)VkDxgiSupport.LateWaitMilliseconds * 1_000_000)
+                : atTimeout;
+            var (key1, key0, removed) = dxgi.ProbeAfterTimeout();
+            uint t = VkDxgiTarget.MutexTimeout;
+            return $"present: DXGI handover timed out (picture {dxgi.Acquires} of this swap chain{(dxgiRestarts.EverPresented ? "" : ", none presented yet")}): "
+                   + $"Vulkan's batch (acquire key 0 within {t} ms, release key 1; vkQueueSubmit2 VK_SUCCESS) fence {atTimeout} at D3D11's AcquireSync(1, {t} ms) timeout, "
+                   + $"{later} after; then key 1 {VkDxgiTarget.KeyResult(key1)}" + (key1 == Dxgi.S_OK ? "" : $", key 0 {VkDxgiTarget.KeyResult(key0)}")
+                   + $"; D3D11 device removed reason {(removed == Dxgi.S_OK ? "S_OK (not removed)" : Dxgi.Hr(removed))}: {VkDxgiSupport.Verdict(atTimeout, later, key1, key0)}";
         }
 
         /// DXGI failed while running: everything it held is released, and it is restarted, or

@@ -2553,6 +2553,37 @@ which would cap the frame rate; the interop lock or keyed mutex bounds what is i
     thread until Vulkan's release is done (Microsoft: the calling CPU thread stalls while another
     device owns the surface).
   - No VkSwapchainKHR is made while DXGI presents.
+  - Checked before DXGI is chosen (`VkDxgiSupport`; any failure keeps Vulkan's swapchain, with
+    the reason in the `present:` line): both device extensions (the reason names the missing
+    one); `vkGetPhysicalDeviceImageFormatProperties2` with `VkPhysicalDeviceExternalImageFormatInfo`
+    for `D3D11_TEXTURE` (the NT handle we import) at our format, tiling and usage must succeed,
+    give `IMPORTABLE` and list `D3D11_TEXTURE` in `compatibleHandleTypes` (creating the image with that handle type is
+    valid only then, VUID-VkImageCreateInfo-pNext-00990); `DEDICATED_ONLY` needs nothing, as the import is always a
+    dedicated allocation; `vkGetMemoryWin32HandlePropertiesKHR` on the handle and the image's
+    `memoryTypeBits` must share a type (device-local first). `VK_KHR_external_semaphore_win32` is
+    not used (the keyed mutex orders the two APIs) and only reported.
+  - Not knowable by query: whether the keyed mutex works. `VK_KHR_win32_keyed_mutex` has no
+    feature or property struct; the extension being there is the whole of the driver's claim, so a
+    driver that advertises it and does not honour the acquire or release (#107, below) is found
+    only by the first picture's timeout.
+  - Logged once per session: `vulkan: driver ID … (N), driverVersion 0x…, conformance a.b.c.d;
+    VK_KHR_external_memory_win32 yes|no, VK_KHR_win32_keyed_mutex yes|no,
+    VK_KHR_external_semaphore_win32 yes|no (not used)` at device creation, and at the first
+    import `present: Vulkan imports the shared texture by D3D11_TEXTURE …` with the query's
+    features, compatible and exportable handle types, both memory-type masks, the type chosen
+    and whether the image requires or prefers a dedicated allocation.
+  - On D3D11's `AcquireSync(1)` timeout, one `present: DXGI handover timed out …` line: the
+    picture's number, the keys and timeouts used (Vulkan acquires key 0 within 1000 ms and
+    releases key 1; D3D11 waits 1000 ms), the submit's result (`vkQueueSubmit2` throws on any
+    other than `VK_SUCCESS`), the batch's fence status at the timeout (`vkGetFenceStatus`:
+    `Success`, `NotReady`, or `ErrorDeviceLost`) and after up to 2 s more, then whether key 1 and
+    key 0 are free (`AcquireSync` with a zero timeout, handed back at once), D3D11's
+    `GetDeviceRemovedReason`, and a verdict: the release came late (key 1 free once the batch
+    was done), the driver did not apply the batch's acquire and release (batch done, key 1 never
+    released, key 0 free), it took key 0 and did not release key 1 (neither free), the GPU work
+    itself is stuck (the fence still unsignalled), or the device is lost. D3D11 calls that fail
+    with a removed device add `GetDeviceRemovedReason` to their line; a `D3D11CreateDevice` that
+    fails has no device to ask.
 
 A size change calls `ResizeBuffers` before the next picture; between the window's resize and that
 picture DXGI stretches the last one. A minimized window keeps its framebuffer size (§3.6), so the

@@ -89,7 +89,7 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (DxgiSwapChain.RestartRefused) return "a restart that fails";
             DxgiWindowReport.NoteModulesBeforeDxgi();
-            if (!vk.DxgiInterop) return "the Vulkan driver has no VK_KHR_external_memory_win32 and VK_KHR_win32_keyed_mutex";
+            if (!vk.DxgiInterop) return VkDxgiSupport.MissingExtensions(vk.ExternalMemoryWin32, vk.Win32KeyedMutex) ?? "the Vulkan device was made without the interop extensions";
             if (DxgiSwapChain.Faulty("adapter") || vk.Luid == 0) return "the Vulkan device gives no LUID to find its DXGI adapter by";
             if (!Importable(out string why)) return why;
             // The device and the import first, the swap chain last: once the window has had one,
@@ -119,10 +119,10 @@ namespace OniMoono.Desktop.Vulkan
             InitialLayout = VkImageLayout.Undefined,
         };
 
-        /// The driver can import a D3D11 texture as such an image.
+        /// The driver can import a D3D11 texture as such an image (VkDxgiSupport.NotImportable).
         bool Importable(out string why)
         {
-            var external = new VkPhysicalDeviceExternalImageFormatInfo { HandleType = VkExternalMemoryHandleTypeFlags.D3D11TextureBit };
+            var external = new VkPhysicalDeviceExternalImageFormatInfo { HandleType = VkDxgiSupport.HandleType };
             var info = new VkPhysicalDeviceImageFormatInfo2
             {
                 Next = &external, Format = Format, Type = VkImageType._2D, Tiling = VkImageTiling.Optimal,
@@ -131,19 +131,15 @@ namespace OniMoono.Desktop.Vulkan
             var externalProps = new VkExternalImageFormatProperties();
             var props = new VkImageFormatProperties2 { Next = &externalProps };
             var r = vk.Instance.PInvoke.vkGetPhysicalDeviceImageFormatProperties2.Invoke(vk.Physical.Handle, &info, &props);
-            if (r != VkResult.Success)
-            {
-                why = $"the Vulkan driver cannot import a D3D11 texture as an image ({r})";
-                return false;
-            }
-            if ((externalProps.ExternalMemoryProperties.ExternalMemoryFeatures & VkExternalMemoryFeatureFlags.ImportableBit) == 0)
-            {
-                why = "the Vulkan driver does not import D3D11 textures";
-                return false;
-            }
-            why = null;
-            return true;
+            externalMemory = externalProps.ExternalMemoryProperties;
+            why = VkDxgiSupport.NotImportable(r, externalMemory);
+            return why == null;
         }
+
+        // The external image-format query's answer (Importable), for the import's log line.
+        VkExternalMemoryProperties externalMemory;
+        // The import's log line went out (once per session).
+        static bool importDescribed;
 
         public bool Fail(string reason)
         {
@@ -195,33 +191,35 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (DxgiSwapChain.Faulty("import")) return Fail("the Vulkan import of the shared texture failed");
             var device = vk.Device.Handle;
-            var external = new VkExternalMemoryImageCreateInfo { HandleTypes = VkExternalMemoryHandleTypeFlags.D3D11TextureBit };
+            var external = new VkExternalMemoryImageCreateInfo { HandleTypes = VkDxgiSupport.HandleType };
             var info = ImageInfo(capacityWidth, capacityHeight, &external);
             VkImage img;
             var r = vk.Device.PInvoke.vkCreateImage.Invoke(device, &info, null, &img);
             if (r != VkResult.Success) return Fail($"vkCreateImage (shared texture) failed ({r})");
             image = img;
             var handleProps = new VkMemoryWin32HandlePropertiesKHR();
-            r = vk.Device.PInvoke.vkGetMemoryWin32HandlePropertiesKHR.Invoke(device, VkExternalMemoryHandleTypeFlags.D3D11TextureBit, handle, &handleProps);
+            r = vk.Device.PInvoke.vkGetMemoryWin32HandlePropertiesKHR.Invoke(device, VkDxgiSupport.HandleType, handle, &handleProps);
             if (r != VkResult.Success) return Fail($"vkGetMemoryWin32HandlePropertiesKHR failed ({r})");
-            VkMemoryRequirements requirements;
-            vk.Device.PInvoke.vkGetImageMemoryRequirements.Invoke(device, image, &requirements);
-            uint types = (uint)requirements.MemoryTypeBits & (uint)handleProps.MemoryTypeBits;
+            var dedicatedNeeds = new VkMemoryDedicatedRequirements();
+            var requirements2 = new VkMemoryRequirements2 { Next = &dedicatedNeeds };
+            var requirementsInfo = new VkImageMemoryRequirementsInfo2 { Image = image };
+            vk.Device.PInvoke.vkGetImageMemoryRequirements2.Invoke(device, &requirementsInfo, &requirements2);
+            var requirements = requirements2.MemoryRequirements;
+            uint imageTypes = (uint)requirements.MemoryTypeBits, handleTypes = (uint)handleProps.MemoryTypeBits;
             var memoryProperties = vk.Physical.GetMemoryProperties();
-            int type = -1;
-            for (int i = 0; i < memoryProperties.MemoryTypeCount; i++)
+            Span<VkMemoryPropertyFlags> typeFlags = stackalloc VkMemoryPropertyFlags[(int)Math.Min(32u, (uint)memoryProperties.MemoryTypeCount)];
+            for (int i = 0; i < typeFlags.Length; i++) typeFlags[i] = memoryProperties.MemoryTypes[i].PropertyFlags;
+            int type = VkDxgiSupport.MemoryType(imageTypes, handleTypes, typeFlags);
+            if (!importDescribed)
             {
-                if ((types & (1u << i)) == 0) continue;
-                if (type < 0) type = i;
-                if ((memoryProperties.MemoryTypes[i].PropertyFlags & VkMemoryPropertyFlags.DeviceLocalBit) != 0)
-                {
-                    type = i;
-                    break;
-                }
+                importDescribed = true;
+                EngineLog.Engine(VkDxgiSupport.DescribeImport(externalMemory, imageTypes, handleTypes, type, type >= 0 ? typeFlags[type] : default,
+                    dedicatedNeeds.RequiresDedicatedAllocation, dedicatedNeeds.PrefersDedicatedAllocation));
             }
-            if (type < 0) return Fail($"no memory type for the shared texture (image {requirements.MemoryTypeBits:X}, handle {handleProps.MemoryTypeBits:X})");
+            if (type < 0) return Fail($"no memory type for the shared texture (image {imageTypes:X}, handle {handleTypes:X})");
+            // Always dedicated: D3D11_TEXTURE imports may be DEDICATED_ONLY.
             var dedicated = new VkMemoryDedicatedAllocateInfo { Image = image };
-            var import = new VkImportMemoryWin32HandleInfoKHR { Next = &dedicated, HandleType = VkExternalMemoryHandleTypeFlags.D3D11TextureBit, Handle = handle };
+            var import = new VkImportMemoryWin32HandleInfoKHR { Next = &dedicated, HandleType = VkDxgiSupport.HandleType, Handle = handle };
             var allocate = new VkMemoryAllocateInfo { Next = &import, AllocationSize = requirements.Size, MemoryTypeIndex = type };
             VkDeviceMemory mem;
             r = vk.Device.PInvoke.vkAllocateMemory.Invoke(device, &allocate, null, &mem);
@@ -308,6 +306,30 @@ namespace OniMoono.Desktop.Vulkan
             holdsPicture = chain.PresentCopied(interval);
             return holdsPicture;
         }
+
+        /// After a handover timeout: what AcquireSync with a zero timeout gives for key 1 and for
+        /// key 0 now (a key taken is handed back at once as it was), and D3D11's device-removed
+        /// reason (S_OK: not removed). Diagnostics only; the target is released next.
+        public (int Key1, int Key0, int Removed) ProbeAfterTimeout()
+        {
+            int key1 = Probe(1), key0 = key1 == Dxgi.S_OK ? Dxgi.WaitTimedOut : Probe(0);
+            return (key1, key0, chain?.Device != null ? Dxgi.GetDeviceRemovedReason(chain.Device) : Dxgi.S_OK);
+        }
+
+        int Probe(ulong key)
+        {
+            if (keyedMutex == null) return Dxgi.WaitTimedOut;
+            int hr = Dxgi.AcquireSync(keyedMutex, key, 0);
+            if (hr == Dxgi.S_OK) Dxgi.ReleaseSync(keyedMutex, key);
+            return hr;
+        }
+
+        public static string KeyResult(int hr) => hr == Dxgi.S_OK ? "free" : hr == Dxgi.WaitTimedOut ? "held" : hr == Dxgi.WaitAbandoned ? "abandoned" : Dxgi.Hr(hr);
+
+        public const uint MutexTimeout = MutexTimeoutMilliseconds;
+
+        /// Pictures D3D11 has tried to take from Vulkan since this target was made.
+        public int Acquires => acquires;
 
         /// Whether a repeat may go now: the shared texture holds the last picture and the display
         /// has taken it (DxgiSwapChain.LastPictureRetired).

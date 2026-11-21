@@ -220,6 +220,70 @@ namespace OniMoono.Tests
             Assert.False(r.MayTry(now + 3600 * s));
         }
 
+        static Brutal.VulkanApi.VkExternalMemoryProperties Import(Brutal.VulkanApi.VkExternalMemoryFeatureFlags features, Brutal.VulkanApi.VkExternalMemoryHandleTypeFlags compatible)
+            => new() { ExternalMemoryFeatures = features, CompatibleHandleTypes = compatible };
+
+        /// What decides DXGI or Vulkan's swapchain before DXGI starts (VkDxgiSupport): DXGI only
+        /// with both extensions and a D3D11 texture the driver imports for our image.
+        [Fact]
+        public void VulkanPresentsThroughDxgiOnlyWhenTheDriverImportsTheTexture()
+        {
+            const Brutal.VulkanApi.VkExternalMemoryFeatureFlags importable = Brutal.VulkanApi.VkExternalMemoryFeatureFlags.ImportableBit;
+            const Brutal.VulkanApi.VkExternalMemoryFeatureFlags dedicatedOnly = Brutal.VulkanApi.VkExternalMemoryFeatureFlags.DedicatedOnlyBit;
+            const Brutal.VulkanApi.VkExternalMemoryHandleTypeFlags d3d11 = OniMoono.Desktop.Vulkan.VkDxgiSupport.HandleType;
+            const Brutal.VulkanApi.VkExternalMemoryHandleTypeFlags kmt = Brutal.VulkanApi.VkExternalMemoryHandleTypeFlags.D3D11TextureKmtBit;
+            var ok = Brutal.VulkanApi.VkResult.Success;
+
+            Assert.Null(OniMoono.Desktop.Vulkan.VkDxgiSupport.MissingExtensions(true, true));
+            Assert.Contains("VK_KHR_win32_keyed_mutex", OniMoono.Desktop.Vulkan.VkDxgiSupport.MissingExtensions(true, false));
+            Assert.DoesNotContain("external_memory", OniMoono.Desktop.Vulkan.VkDxgiSupport.MissingExtensions(true, false));
+            Assert.Contains("VK_KHR_external_memory_win32", OniMoono.Desktop.Vulkan.VkDxgiSupport.MissingExtensions(false, true));
+            Assert.Contains("and no VK_KHR_win32_keyed_mutex", OniMoono.Desktop.Vulkan.VkDxgiSupport.MissingExtensions(false, false));
+
+            // Importable, with or without DEDICATED_ONLY (the import is always dedicated), and
+            // with other handle types compatible too.
+            Assert.Null(OniMoono.Desktop.Vulkan.VkDxgiSupport.NotImportable(ok, Import(importable, d3d11)));
+            Assert.Null(OniMoono.Desktop.Vulkan.VkDxgiSupport.NotImportable(ok, Import(importable | dedicatedOnly, d3d11 | kmt)));
+            // Not supported for the format and usage, not importable, or an answer the spec rules out.
+            Assert.Contains("ErrorFormatNotSupported", OniMoono.Desktop.Vulkan.VkDxgiSupport.NotImportable(Brutal.VulkanApi.VkResult.ErrorFormatNotSupported, default));
+            Assert.NotNull(OniMoono.Desktop.Vulkan.VkDxgiSupport.NotImportable(ok, Import(dedicatedOnly, d3d11)));
+            Assert.NotNull(OniMoono.Desktop.Vulkan.VkDxgiSupport.NotImportable(ok, Import(0, 0)));
+            Assert.Contains("lack D3D11_TEXTURE", OniMoono.Desktop.Vulkan.VkDxgiSupport.NotImportable(ok, Import(importable, kmt)));
+        }
+
+        /// The imported memory's type: in both masks, device-local first; none in both, -1.
+        [Fact]
+        public void TheImportTakesADeviceLocalTypeBothMasksAllow()
+        {
+            const Brutal.VulkanApi.VkMemoryPropertyFlags local = Brutal.VulkanApi.VkMemoryPropertyFlags.DeviceLocalBit;
+            const Brutal.VulkanApi.VkMemoryPropertyFlags host = Brutal.VulkanApi.VkMemoryPropertyFlags.HostVisibleBit;
+            Brutal.VulkanApi.VkMemoryPropertyFlags[] types = [host, local, host | local, local];
+            Assert.Equal(1, OniMoono.Desktop.Vulkan.VkDxgiSupport.MemoryType(0xF, 0xF, types));
+            Assert.Equal(2, OniMoono.Desktop.Vulkan.VkDxgiSupport.MemoryType(0xD, 0x5, types));
+            Assert.Equal(0, OniMoono.Desktop.Vulkan.VkDxgiSupport.MemoryType(0x1, 0xF, types));
+            Assert.Equal(-1, OniMoono.Desktop.Vulkan.VkDxgiSupport.MemoryType(0x3, 0xC, types));
+            Assert.Equal(-1, OniMoono.Desktop.Vulkan.VkDxgiSupport.MemoryType(0x10, 0x10, types));
+        }
+
+        /// A handover timeout's verdict tells a late release, a release the driver dropped and
+        /// stuck GPU work apart (#107).
+        [Fact]
+        public void AHandoverTimeoutSaysWhereTheReleaseWent()
+        {
+            var done = Brutal.VulkanApi.VkResult.Success;
+            var running = Brutal.VulkanApi.VkResult.NotReady;
+            var waited = Brutal.VulkanApi.VkResult.Timeout;
+            const int free = 0, held = Dxgi.WaitTimedOut;
+            Assert.Contains("came late", OniMoono.Desktop.Vulkan.VkDxgiSupport.Verdict(done, done, free, held));
+            Assert.Contains("did not apply", OniMoono.Desktop.Vulkan.VkDxgiSupport.Verdict(done, done, held, free));
+            Assert.Contains("did not release key 1", OniMoono.Desktop.Vulkan.VkDxgiSupport.Verdict(done, done, held, held));
+            Assert.Contains("completed later", OniMoono.Desktop.Vulkan.VkDxgiSupport.Verdict(running, done, free, held));
+            Assert.Contains("stuck", OniMoono.Desktop.Vulkan.VkDxgiSupport.Verdict(running, waited, held, held));
+            Assert.Contains("lost", OniMoono.Desktop.Vulkan.VkDxgiSupport.Verdict(Brutal.VulkanApi.VkResult.ErrorDeviceLost, Brutal.VulkanApi.VkResult.ErrorDeviceLost, held, held));
+            Assert.Equal("DedicatedOnly|Importable", OniMoono.Desktop.Vulkan.VkDxgiSupport.Names(Brutal.VulkanApi.VkExternalMemoryFeatureFlags.ImportableBit | Brutal.VulkanApi.VkExternalMemoryFeatureFlags.DedicatedOnlyBit));
+            Assert.Equal("none", OniMoono.Desktop.Vulkan.VkDxgiSupport.Names(default(Brutal.VulkanApi.VkExternalMemoryFeatureFlags)));
+        }
+
         /// Vulkan's own path, minimized with vsync: pictures a period apart from when the last was
         /// due, so a late wake-up shortens the next wait; one more than a period late starts over.
         [Fact]
