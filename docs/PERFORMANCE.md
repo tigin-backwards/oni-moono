@@ -564,7 +564,7 @@ That gives the CPU side's direction, not player-facing frame rates.
 | `fast-particle-collision`<br>a radbolt skips the collider gather when no other radbolt is nearby | radbolts 0.27–0.31 → 0.07–0.09 ms | exact |
 | `fast-offset-tables`<br>fetch updates recheck only items whose work spots can have changed | Duplicant brains 3.19–3.38 → 2.85–3.04 ms | exact |
 | `fast-anim-cleanup`<br>the sweep for destroyed animations skips chunks that can't hold any | animation updates (`Global.LateUpdate`, the sweep inside) 1.86–2.19 → 1.78–1.83 ms | exact |
-| `fast-partitioner-cleanup`<br>the spatial index's cleanup looks only at removed entries | the spatial index's cleanup 0.25–0.29 → 0.06 ms | exact |
+| `fast-partitioner-cleanup`<br>the spatial index's cleanup looks only at removed entries | the spatial index's cleanup 0.25–0.29 → 0.06 ms<br>Windows, 2026-11-21: its first scan after a load took 1.4 s on a late-game Spaced Out colony and 0.56 s on another (the first frames after unpausing, #105), each dropped handle checked against all dropped before it; 0.15 and 0.11 s since | exact |
 | `fast-symbol-overrides`<br>unchanged symbol-override blocks aren't uploaded again | animation batch uploads (`World.LateUpdate`) 1.48–1.52 → 0.90–0.98 ms<br>frame 40.9–44.8 → 32.8–36.1 ms | exact |
 | `fast-anim-batches`<br>animation batches are written on worker threads | `World.LateUpdate` 0.96–1.01 → 0.90–0.98 ms | exact |
 | `fast-conveyor-paths`<br>the conveyor network's rebuild finds its paths from an index | the load, from the menu to the colony, 28.3–29.0 → 25.4–27.6 s | exact |

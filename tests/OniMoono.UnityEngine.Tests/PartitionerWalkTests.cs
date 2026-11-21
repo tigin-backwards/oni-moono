@@ -58,11 +58,46 @@ namespace OniMoono.Tests
                 PartitionerWalkCore.Walk(walked, h => freed.Contains(h));
 
                 var dropping = new List<(int Place, int Handle)>();
+                var pending = removed.FindAll(h => node.Place.ContainsKey(h) && !freed.Contains(h));
                 PartitionerWalkCore.FreedPlaces(node.Place, removed, h => freed.Contains(h), dropping);
                 foreach (var (_, h) in dropping) node.Remove(h);
 
                 Assert.Equal(walked, node.List);
+                // The record keeps only the handles still in the node and not freed, in order; so
+                // a second call drops nothing, and once those are freed it drops them as the walk.
+                Assert.Equal(pending, removed);
+                PartitionerWalkCore.FreedPlaces(node.Place, removed, h => freed.Contains(h), dropping);
+                Assert.Empty(dropping);
+                foreach (var h in pending) freed.Add(h);
+                walked = new List<int>(node.List);
+                PartitionerWalkCore.Walk(walked, h => freed.Contains(h));
+                PartitionerWalkCore.FreedPlaces(node.Place, removed, h => freed.Contains(h), dropping);
+                foreach (var (_, h) in dropping) node.Remove(h);
+                Assert.Equal(walked, node.List);
+                Assert.Empty(removed);
             }
+        }
+
+        /// A node a load freed tens of thousands of handles in, some recorded twice: one pass
+        /// (it was a search of the dropped list for each, 1.4 s at a late-game colony's first scan).
+        [Fact]
+        public void ManyFreedHandlesInOneNode()
+        {
+            var node = new Node();
+            for (int i = 0; i < 120000; i++) node.Add(i);
+            var removed = new List<int>();
+            for (int i = 0; i < 120000; i += 2) removed.Add(i);
+            for (int i = 0; i < 120000; i += 6) removed.Add(i);
+            var walked = new List<int>(node.List);
+            PartitionerWalkCore.Walk(walked, h => h % 2 == 0);
+            var dropping = new List<(int Place, int Handle)>();
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            PartitionerWalkCore.FreedPlaces(node.Place, removed, h => h % 2 == 0, dropping);
+            Assert.True(clock.Elapsed.TotalSeconds < 2, $"{clock.Elapsed.TotalMilliseconds:F0} ms");
+            Assert.Equal(60000, dropping.Count);
+            foreach (var (_, h) in dropping) node.Remove(h);
+            Assert.Equal(walked, node.List);
+            Assert.Empty(removed);
         }
 
         /// TriggerEventInternal's node bounds as the game writes them (GetNodeExtents, the clamps).

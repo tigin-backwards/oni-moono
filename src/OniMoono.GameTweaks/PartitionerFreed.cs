@@ -21,7 +21,8 @@ namespace OniMoono.GameTweaks
         /// are complete for it alone, from its first removal on.
         public static ScenePartitioner Owner { get; private set; }
 
-        /// The handles removed since the last Sim1000ms, by node (layer, y, x).
+        /// The handles removed since the last Sim1000ms, by node (layer, y, x); each DropFreed of a
+        /// node keeps only those still in it and not yet freed (PartitionerWalkCore.FreedPlaces).
         public static readonly Dictionary<(int, int, int), List<Handle>> Removed = new();
 
         /// Lists `Removed` let go of, cleared, with their storage.
