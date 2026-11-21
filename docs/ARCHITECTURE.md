@@ -357,8 +357,10 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   `GetObjectUnderCursor`'s three, `this` and it; on Linux in other shapes, such as a static method
   with four), the walk stops at the stub, and code compiled for the instantiation calls the shared
   code without it. The shared code had been compiled when MonoMod prepared the method, before the
-  detour existed, so the original ran until the first recompile: tiering counts 30 calls, and only
-  once the JIT has been idle for 100 ms, which after a load can take many seconds. Fast Track's
+  detour existed, so the original ran until the first recompile: tiering counts 30 calls, and with
+  the runtime's default only once the JIT has been idle for 100 ms, which after a load can take
+  many seconds (Moono now sets that delay to 0, so counting starts at once; see "Tier-up timing"
+  under D34). Fast Track's
   click prefix is the method's only caller (its `LateUpdate` replaces the game's), so the first 30
   or so clicks of each session selected the topmost object every time (issue #52, reported with the
   automation overlay open; on Linux the walk reaches its shared code, and clicks cycled from the
@@ -938,6 +940,19 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   prefix runs from the running loop on every later call when the method is marked, and on none
   when it is not; `tests/e2e/issue-52-fast-track-no-tiering.yaml` loads a colony with Fast Track
   with tiering off and checks that PLib's later stage made Fast Track's `DescriptorSorter`.
+  **Tier-up timing.** The runtime counts a tier-0 method's calls only after a call-counting
+  delay, 100 ms by default, which every new tier-0 compile starts again; during a load the JIT
+  never idles that long, so nothing tiers up and the colony's first big pass
+  (`World.UpdateCellInfo`) runs tier-0 code. `OniMoono.Host.csproj` sets
+  `System.Runtime.TieredCompilation.CallCountingDelayMs` to 0 in the runtimeconfig, so a method
+  goes to tier 1 from its 30th call (the load 5 to 7 s shorter, its slow frame 3 to 5 times
+  faster: [research/tiered-compilation.md](research/tiered-compilation.md)). A
+  `DOTNET_TC_CallCountingDelayMs` in the environment (hexadecimal) still wins, and the log's
+  `tiering:` line names the delay in effect. Exactness: methods reach tier 1 sooner, some while
+  mods load; frames already running keep their code (Live frames above), a late patch
+  of a method inlined into tier-1 code takes the copy path above, and tier-1 tail calls are D41's.
+  `--check-types`, `late-patch`, the `issue-52-*` specs that run on U60 and ten Harmony-heavy
+  mod specs pass with it.
 - **D35 Strings of fields and events.** Mono prints a field as its type's full name and its name
   (`RuntimeFieldInfo.ToString`, `String.Format("{0} {1}", FieldType, name)`), an event likewise
   (`RuntimeEventInfo.ToString`, `EventHandlerType + " " + Name`; Unity's fork, branch

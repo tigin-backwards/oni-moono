@@ -10,7 +10,10 @@ delay, which every new tier-0 compile extends, nothing tiers up during a load: t
 the load itself run unoptimised, PGO-instrumented code, while 1.2 s of tier-1 JIT happens on
 background threads during that frame. Each of the three knobs cut the frame by 2 to 5 times. They
 cut the load by 4 to 8 s, and steady frames did not get worse. `DOTNET_TC_CallCountingDelayMs=0`
-did best. No default was changed.
+did best.
+
+**Shipped:** a call-counting delay of 0, set in the runtimeconfig (see
+[The repeat and the decision](#the-repeat-and-the-decision)).
 
 ## How it was run
 
@@ -76,9 +79,82 @@ U57:
   loaders' frames run optimised code compiled before the mods patched (§3.1, "Live frames",
   #52), and calls before `ret` become tail calls (D41). Not a candidate.
 
+## The repeat and the decision
+
+Repeat, 2026-11-21, same build and probes. Two runq `win-perf` jobs per save (j0007590 to
+j0007593), each a discarded warm-up launch and then two rounds of base, delay 0 and a middle
+delay, in turn (the second job in the reverse order): four second launches per arm and save.
+The middle arm was `DOTNET_TC_CallCountingDelayMs=20`, which the runtime reads as hexadecimal:
+32 ms. Medians of the four, with the range where it matters:
+
+The #105 colony:
+
+| Arm | Menu | Load | Frame 2 | UpdateCellInfo | JIT in frame 2, all / main | JIT by the load's end, all / main | First 10 | Steady `Game` |
+|---|---|---|---|---|---|---|---|---|
+| base (100 ms) | 16.4 s | 15.3 s (14.3–15.6) | 1,443 ms (1,402–1,642) | 1,340 ms | 760 / 10 ms | 9.8 / 4.6 s | 515 ms (383–1,048) | 2.6 ms |
+| 32 ms | 15.5 s | 13.3 s (12.9–14.0) | 1,322 ms (1,209–1,389) | 1,231 ms | 950 / 11 ms | 13.1 / 4.6 s | 201 ms | 2.3 ms |
+| 0 | 14.0 s | 8.7 s (8.4–9.1) | 270 ms (259–344) | 195 ms | 111 / 11 ms | 18.3 / 4.7 s | 201 ms (184–281) | 2.3 ms |
+
+U57:
+
+| Arm | Menu | Load | Frame 2 | UpdateCellInfo | JIT in frame 2, all / main | JIT by the load's end, all / main | First 10 (its JIT) | Steady frame / `Game` |
+|---|---|---|---|---|---|---|---|---|
+| base (100 ms) | 17.3 s | 20.9 s (20.4–22.3) | 2,047 ms (2,018–2,129) | 1,884 ms | 1,276 / 13 ms | 12.8 / 4.7 s | 912 ms (0.18 s) | 19.2 / 6.8 ms |
+| 32 ms | 15.6 s | 18.0 s (17.2–18.5) | 858 ms (695–987) | 651 ms | 600 / 14 ms | 14.7 / 4.5 s | 700 ms (0.23 s) | 18.9 / 6.4 ms |
+| 0 | 14.1 s | 15.5 s (14.9–20.3) | 726 ms (637–829) | 593 ms | 121 / 11 ms | 18.8 / 4.6 s | 945 ms (1.1 s) | 20.4 / 7.0 ms |
+
+"JIT by the load's end" is the start-up stats' cumulative compile time at the end of the colony's
+frame 3 (all threads / the main thread), so it includes start-up. The first table's "JIT to colony"
+measured from another point and is not comparable.
+
+- **Delay 0** holds up: the load is 5 to 7 s shorter on both saves, the slow frame 3 to 5 times
+  faster, and the main menu comes 2.5 to 3 s sooner too (start-up's own code tiers up). The
+  main thread compiles no more; the extra compiling, 1.5 to 1.9 times the total, is on
+  background threads. The single run's slow first ten frames on the colony (1,029 ms) did not
+  repeat (184–281 ms, against 383–1,048 ms for the base). On U57 they are about the same as the
+  base's (870–1,030 ms against 818–996 ms), with 1.1 s of background JIT in them.
+- **32 ms** keeps little of the gain on the colony (the load 2 s shorter, frame 2 barely
+  faster): the load's compiles keep restarting the delay. On U57 it gets most of the frame-2
+  gain but under half of the load's.
+- **Steady frames** in the probe (its speed-3 pan, with the probe's timing patches) were within
+  the bases' spread, so the frame rate was measured separately.
+
+**Frame rate.** U57 at speed 3 (PerfProbe, `awake`, `noautosave`, `novictory`, `frametimes`), the
+same build in both arms: delay 0 from the runtimeconfig, the base with
+`DOTNET_TC_CallCountingDelayMs=64` (100 ms) in the environment. Two runq `win-perf` jobs
+(j0007611, j0007613), each a warm-up launch then base, 0, 0, base (the second 0, base, base, 0),
+1280×720 on the second monitor, unfocused, High priority, `--game-tweak exact`, vsync off. 9
+windows of 600 frames, the first 3 left out.
+
+| Arm | fps (each launch) | Median | p50 | p99 |
+|---|---|---|---|---|
+| base (100 ms) | 98.6, 87.3, 94.9, 80.8 | 91.1 | 9.6 ms | 33.7 ms |
+| 0 | 89.7, 92.4, 97.1, 102.1 | 94.8 | 9.3 ms | 29.5 ms |
+
+(p50 and p99 are the medians of the launches' own.) No loss: the arms overlap and the bases spread
+by 18 fps. The first window after a load was faster with delay 0 in every launch (52 to 56 fps
+against 27 to 28).
+
+**Decision: delay 0, shipped.** `OniMoono.Host.csproj` sets the runtimeconfig knob
+`System.Runtime.TieredCompilation.CallCountingDelayMs` to 0 (a `RuntimeHostConfigurationOption`;
+CoreCLR's `EEConfig` reads it through `Configuration::GetKnobDWORDValue`, which takes
+`DOTNET_TC_CallCountingDelayMs` from the environment first). So it applies to every start that
+reads `OniMoono.runtimeconfig.json`: OniMoono.exe on Windows (Steam, the versioned install,
+test runs) and the apphost on Linux, and a user's own variable still wins. The log's `tiering:`
+line gives the delay in effect and where it came from. Exactness, with the change: `--check-types`
+(debug and release builds) and `scripts/check.sh` pass; `late-patch`,
+`issue-52-click-cycle-patched` and `issue-52-automation-overlay` pass
+(`issue-52-fast-track-no-tiering` is skipped on U60: Fast Track does not load there; it runs with
+tiering off anyway); and ten mod specs pass in ours: Resource Calculator (a late patch of an inlined
+method), Mod Updater (D12's transpiled calls), DGSM, WGSM, Research Queue, Better Automation
+Overlay, Falling Sand, Bigger Camera Zoom Out, Customizable Speed and Better Info Cards Plus.
+Stock Bug Fix, Mod Origin Info Display and `plib-options-copies` failed to load their mods with
+the delay at 0 and at 100 ms alike (the local Workshop copies name fields U60 764025 no longer
+has), so not the change.
+
 ## What shipping one would take
 
-Not done; for the owner's decision.
+Before the repeat; kept for the reasons. Delay 0 shipped (above).
 
 - `TieredPGO`: the runtimeconfig property `System.Runtime.TieredPGO`, which
   `OniMoono.runtimeconfig.json` already sets to `true`. Shipping it means setting that to
@@ -97,5 +173,6 @@ Not done; for the owner's decision.
   check at speed 3.
 
 Evidence: `out/tiering/out/e2e/unpause-probe{,-ice}/tier-*/ours-1/win-player.log` (runq jobs
-j0007576 and j0007580). The probe's environment line was a local change to
+j0007576 and j0007580), the repeat's `rep-*` folders beside them (j0007590 to j0007593), and the
+frame-rate jobs' `~/oni-runs/j0007611` and `j0007613`. The probe's environment line was a local change to
 `tools/UnpauseProbeTestMod` and is not committed.

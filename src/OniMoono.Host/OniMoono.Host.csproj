@@ -21,6 +21,12 @@
     <ApplicationIcon>Moo.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Tier-up from the 30th call at once, not after the JIT has been idle for 100 ms: a load's
+         hot code is optimised before the colony's first big pass (docs/research/tiered-compilation.md).
+         A DOTNET_TC_CallCountingDelayMs in the environment still wins (TieringLine logs which). -->
+    <RuntimeHostConfigurationOption Include="System.Runtime.TieredCompilation.CallCountingDelayMs" Value="0" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../OniMoono.UnityEngine/OniMoono.UnityEngine.csproj" />
     <!-- Comparisons of engine records and facades by reference (IdentityAnalyzer). -->
     <ProjectReference Include="../OniMoono.Analyzers/OniMoono.Analyzers.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

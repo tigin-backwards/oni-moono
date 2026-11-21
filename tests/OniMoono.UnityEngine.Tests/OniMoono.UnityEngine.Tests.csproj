@@ -51,6 +51,7 @@
     <Compile Include="../../src/OniMoono.Host/NativeCrashTestOption.cs" Link="Host/NativeCrashTestOption.cs" />
     <!-- The garbage collection option's decisions (GcModeTests). -->
     <Compile Include="../../src/OniMoono.Host/GcMode.cs" Link="Host/GcMode.cs" />
+    <Compile Include="../../src/OniMoono.Host/Tiering.cs" Link="Host/Tiering.cs" />
     <!-- The frame cap's deadlines (FramePaceTests). -->
     <Compile Include="../../src/OniMoono.Host/FramePace.cs" Link="Host/FramePace.cs" />
     <!-- SIGTERM and SIGINT quit at a frame boundary, with a deadline (QuitSignalsTests). -->

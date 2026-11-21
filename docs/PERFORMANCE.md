@@ -1079,8 +1079,24 @@ itself, from the menu's load to the colony, is 18.1–18.3 s, and the garbage co
 2.8–3.3 s of the whole. The earlier 35–36 s were first launches, which also rewrite the game's
 assemblies once (see Start-up). Profiled on Linux,
 about two thirds of it is the game's own work (reading the save and setting up each object), and about a quarter is the engine
-creating those objects. Unloading unused assets during the load takes another 1.2 s. The JIT
-isn't the bottleneck: compiling ahead of time (ReadyToRun) saved nothing measurable.
+creating those objects. Unloading unused assets during the load takes another 1.2 s.
+Compiling ahead of time (ReadyToRun) saved nothing measurable, so the JIT's compile time isn't
+the bottleneck. The speed of the code it runs during a load was: with the runtime's default
+tiering, nothing tiers up while a load compiles, so the load ran unoptimised tier-0 code.
+
+Since 2026-11-21 Moono sets tiered compilation's call-counting delay to 0
+([research/tiered-compilation.md](research/tiered-compilation.md)), so hot code is optimised
+after its 30th call. Medians of four second launches each on Windows (U60 764025, from
+"Loading save file" to the end of the colony's third frame):
+
+| Save | Load before | Load with delay 0 | Slow load frame before | With delay 0 | Main menu before | With delay 0 |
+|---|---|---|---|---|---|---|
+| The late-game colony above | 20.9 s | 15.5 s | 2.0 s | 0.73 s | 17.3 s | 14.1 s |
+| A large ice colony (issue #105's) | 15.3 s | 8.7 s | 1.4 s | 0.27 s | 16.4 s | 14.0 s |
+
+These launches ran a timing probe and start-up stats, so their menu times are longer than the
+start-up figures below. The late-game colony's frame rate at speed 3 did not drop (91.1 fps before, 94.8 after,
+medians of four launches; p99 33.7 and 29.5 ms).
 
 ## Start-up
 
