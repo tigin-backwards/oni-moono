@@ -43,8 +43,8 @@ finished unit, after every done criterion below passes and the user says so.
    cleanly with the error shown; alt-tab, resize, monitor changes; the GPU choice rule.
 6. Mods: all 38 mods with shaders draw; the 8 D3D11-only mods newly work; the Windows-bundle mods are
    verified; the 2020.3 mod program layout is read (2018's is a stretch).
-7. Performance: CPU frame time and fps against Vulkan on the same saves (Windows, speed 3, a quiet
-   machine). The numbers decide default or fallback; the user makes that call.
+7. Performance: CPU frame time and fps against Vulkan on the same saves, measured and decided by the
+   default/fallback rule below.
 8. Correctness gates: the MSVC slot/struct check; no open UNVERIFIED notes; every milestone's review
    resolved; a final full independent review.
 9. QA: check.sh, the release e2e list, a D3D11 twin of `vk-gate`, `u60-p2-renderer` with
@@ -65,7 +65,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
-| M6 | Performance | Threading design measured and tuned; table; the user's default/fallback call | |
+| M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
 | M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
 
