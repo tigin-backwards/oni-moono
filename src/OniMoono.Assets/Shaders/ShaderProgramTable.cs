@@ -5,9 +5,14 @@ using OniMoono.Assets.TypeTrees;
 
 namespace OniMoono.Assets.Shaders
 {
-    /// ShaderCompilerPlatform values of the graphics APIs this project reads programs for.
+    /// ShaderCompilerPlatform values of the graphics APIs this project reads programs for (the
+    /// values of AssetStudio's ShaderCompilerPlatform enum, `AssetStudio/Classes/Shader.cs`; each
+    /// confirmed by the programs U60's data keeps under it).
     public static class ShaderCompilerPlatform
     {
+        /// Direct3D 11: DXBC programs (measured: every platform-4 program entry of U60's Windows
+        /// data holds one DXBC container, docs/research/d3d11/programs.md §2).
+        public const uint D3D11 = 4;
         public const uint Metal = 14;
         public const uint OpenGLCore = 15;
         public const uint Vulkan = 18;
@@ -18,6 +23,13 @@ namespace OniMoono.Assets.Shaders
     public static class GpuProgramTypes
     {
         public const int GLCore32 = 6, GLCore41 = 7, GLCore43 = 8;
+        /// Direct3D 11, one stage per program (AssetStudio's ShaderGpuProgramType: DX11VertexSM40
+        /// 15 … DX11DomainSM50 22). Measured on U60's data (docs/research/d3d11/programs.md §2):
+        /// 15–19 occur, each program's DXBC version token names the stage and shader model its
+        /// type says, and every subprogram of these types names an entry of the platform-4 table.
+        /// 20–22 do not occur; they are listed from the enum only.
+        public const int D3D11VertexSM40 = 15, D3D11VertexSM50 = 16, D3D11PixelSM40 = 17, D3D11PixelSM50 = 18,
+            D3D11GeometrySM40 = 19, D3D11GeometrySM50 = 20, D3D11HullSM50 = 21, D3D11DomainSM50 = 22;
         public const int MetalVertex = 23, MetalFragment = 24;
         /// Vulkan's SPIR-V: one program holds every stage (measured: in U60's data every
         /// subprogram of this type names an entry of the platform-18 table, and the Vulkan table
@@ -28,9 +40,11 @@ namespace OniMoono.Assets.Shaders
 
         public static bool IsMetal(int type) => type is MetalVertex or MetalFragment;
 
+        public static bool IsD3D11(int type) => type is >= D3D11VertexSM40 and <= D3D11DomainSM50;
+
         /// The platform whose blob table holds a program of this type (0 for other platforms).
         public static uint PlatformOf(int type) => IsGlCore(type) ? ShaderCompilerPlatform.OpenGLCore : IsMetal(type) ? ShaderCompilerPlatform.Metal
-            : type == SpirV ? ShaderCompilerPlatform.Vulkan : 0u;
+            : type == SpirV ? ShaderCompilerPlatform.Vulkan : IsD3D11(type) ? ShaderCompilerPlatform.D3D11 : 0u;
     }
 
     /// One platform's program data in a Shader (class 48): LZ4-compressed segments, the first of

@@ -133,6 +133,8 @@ namespace OniMoono.Assets.Tests
             Assert.Equal(ShaderCompilerPlatform.Metal, GpuProgramTypes.PlatformOf(GpuProgramTypes.MetalVertex));
             Assert.Equal(ShaderCompilerPlatform.OpenGLCore, GpuProgramTypes.PlatformOf(GpuProgramTypes.GLCore43));
             Assert.Equal(ShaderCompilerPlatform.Vulkan, GpuProgramTypes.PlatformOf(GpuProgramTypes.SpirV));
+            foreach (int type in new[] { 15, 16, 17, 18, 19, 20, 21, 22 }) Assert.Equal(ShaderCompilerPlatform.D3D11, GpuProgramTypes.PlatformOf(type));
+            Assert.Equal(0u, GpuProgramTypes.PlatformOf(14)); // DX10Level9Pixel: not read
         }
 
         [Fact]
