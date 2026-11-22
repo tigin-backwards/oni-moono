@@ -227,6 +227,16 @@ Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so 
   NVIDIA 610.88.
 - **Tooling.** RenderDoc 1.43 installed; Windows SDK 10.0.26100.0 with fxc/dxc; the D3D11 debug layer
   is not installed (Graphics Tools optional feature; the user's install, needed by M2).
-- **Open (M0 items):** RenderDoc captures (swap chain, per-draw state, depth-bias mapping), threading
-  support on the AMD iGPU, the original's per-frame draw counts; the probes' UNVERIFIED list in
-  `d3d11-unity-probes.md`.
+- **Frames of the original** (2026-11-22, RTX 3090, results in `docs/research/d3d11-captures.md`;
+  an in-process recorder, as RenderDoc's launch lost the run's isolation). Swap chain: 2 buffers,
+  FLIP_SEQUENTIAL, R8G8B8A8_UNORM, flags ALLOW_MODE_SWITCH | FRAME_LATENCY_WAITABLE_OBJECT |
+  ALLOW_TEARING, maximum frame latency 2; `Present(1, 0)` with vsync, `Present(0, ALLOW_TEARING)`
+  without. Depth bias: DepthBias = −units (fraction dropped), SlopeScaledDepthBias = −factor, clamp
+  0, unscaled on D32_S8 and D16. ZTest reversed (LEqual → GREATER_EQUAL), FrontCounterClockwise 1.
+  Input layouts always 14 elements, absent channels R8_UNORM at slot 0 offset 0. Shaders created
+  from the shipped DXBC (416/420 by checksum). DriverCommandLists 1 on the RTX 3090, **0 on the
+  AMD iGPU** (runtime-emulated); both offer constant-buffer offsetting and NO_OVERWRITE. Colony
+  frame (2minnow): 1,296 draws, 1,832 constant-buffer `Map(WRITE_DISCARD)` (507 KB), 116 shader
+  pairs, 88 depth-stencil and 47 blend changes, all on the immediate context.
+- **Open (M0 items):** the UNVERIFIED lists of `d3d11-unity-probes.md` and `d3d11-captures.md`
+  (RenderDoc under the isolation, depth-bias rounding, the original on the AMD iGPU).
