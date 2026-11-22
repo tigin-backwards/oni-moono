@@ -5,6 +5,7 @@ using Brutal.GlfwApi;
 using OniMoono.Engine;
 using static OniMoono.Desktop.Gl.GlConst;
 using N = Brutal.OpenGlApi.OpenGl.Native;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop.Gl
 {
@@ -56,10 +57,15 @@ namespace OniMoono.Desktop.Gl
         // through delegates with SetLastError, so the runtime saves the error at once and
         // Marshal.GetLastPInvokeError reads it: calling GetLastError afterwards may read an error
         // the runtime's own calls left (Marshal.GetLastPInvokeError, DllImportAttribute.SetLastError).
+        [NotNative("a WGL_NV_DX_interop function from wglGetProcAddress; wglext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/NV/WGL_NV_DX_interop.txt)")]
         [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate IntPtr OpenDevice(void* device);
+        [NotNative("a WGL_NV_DX_interop function from wglGetProcAddress; wglext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/NV/WGL_NV_DX_interop.txt)")]
         [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate int CloseDevice(IntPtr device);
+        [NotNative("a WGL_NV_DX_interop function from wglGetProcAddress; wglext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/NV/WGL_NV_DX_interop.txt)")]
         [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate IntPtr RegisterObject(IntPtr device, void* resource, uint name, uint type, uint access);
+        [NotNative("a WGL_NV_DX_interop function from wglGetProcAddress; wglext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/NV/WGL_NV_DX_interop.txt)")]
         [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate int UnregisterObject(IntPtr device, IntPtr obj);
+        [NotNative("a WGL_NV_DX_interop function from wglGetProcAddress; wglext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/NV/WGL_NV_DX_interop.txt)")]
         [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate int LockObjects(IntPtr device, int count, IntPtr* objects);
 
         OpenDevice dxOpenDevice;

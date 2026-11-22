@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using OniMoono.Engine;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop.Gl
 {
@@ -501,7 +502,7 @@ namespace OniMoono.Desktop.Gl
             fixed (Dxgi.DisplayConfigPath* p = paths)
             fixed (byte* m = modes)
             {
-                if (Dxgi.QueryDisplayConfig(Dxgi.QdcOnlyActivePaths, &pathCount, p, &modeCount, m, IntPtr.Zero) != 0) return 0;
+                if (Dxgi.QueryDisplayConfig(Dxgi.QdcOnlyActivePaths, &pathCount, p, &modeCount, m, null) != 0) return 0;
                 for (int i = 0; i < pathCount; i++)
                 {
                     var request = new Dxgi.DisplayConfigSourceName { Header = new() { Type = Dxgi.DisplayConfigGetSourceName, Size = 84, Adapter = p[i].SourceAdapter, Id = p[i].SourceId } };

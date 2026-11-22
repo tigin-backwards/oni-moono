@@ -87,15 +87,19 @@ namespace OniMoono.Desktop.Gl
     /// The calling thread's CPU time in Stopwatch ticks; -1 where it is not read.
     internal static class ThreadCpuTime
     {
+        [OniMoono.Desktop.D3d11.NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
         [DllImport("kernel32")] static extern IntPtr GetCurrentThread();
+        [OniMoono.Desktop.D3d11.NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
         [DllImport("kernel32")] static extern bool GetThreadTimes(IntPtr thread, out long creation, out long exit, out long kernel, out long user);
 
         [StructLayout(LayoutKind.Sequential)]
+        [OniMoono.Desktop.D3d11.NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
         struct Timespec
         {
             public long Seconds, Nanoseconds;
         }
 
+        [OniMoono.Desktop.D3d11.NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
         [DllImport("libc", EntryPoint = "clock_gettime")] static extern int ClockGetTime(int clock, out Timespec time);
         const int ClockThreadCpuTime = 3;
 

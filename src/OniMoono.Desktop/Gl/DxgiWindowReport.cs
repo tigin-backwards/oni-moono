@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop.Gl
 {
@@ -176,40 +177,50 @@ namespace OniMoono.Desktop.Gl
             return $"window 0x{hwnd:X} {owner}; {styles}; client {f.ClientWidth}x{f.ClientHeight}; {monitor}; loaded before DXGI started: {modules ?? "not noted"}";
         }
 
+        [Native("RECT", Header = "windef.h")]
         [StructLayout(LayoutKind.Sequential)]
         struct Rect
         {
-            public int Left, Top, Right, Bottom;
+            [Native("left"), As("LONG")] public int Left;
+            [Native("top"), As("LONG")] public int Top;
+            [Native("right"), As("LONG")] public int Right;
+            [Native("bottom"), As("LONG")] public int Bottom;
         }
 
         const int GwlStyle = -16, GwlExStyle = -20;
         const uint MonitorDefaultToNearest = 2;
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "BOOL"), As(0, "HWND", Opaque = true)]
         static extern int IsWindow(IntPtr hwnd);
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "DWORD"), As(0, "HWND", Opaque = true), As(1, "LPDWORD")]
         static extern uint GetWindowThreadProcessId(IntPtr hwnd, uint* processId);
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG_PTR"), As(0, "HWND", Opaque = true)]
         static extern IntPtr GetWindowLongPtrW(IntPtr hwnd, int index);
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "BOOL"), As(0, "HWND", Opaque = true), As(1, "LPRECT")]
         static extern int GetClientRect(IntPtr hwnd, Rect* rect);
 
-        [DllImport("user32.dll")]
+        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "HMONITOR", Opaque = true), As(0, "HWND", Opaque = true), As(1, "DWORD")]
         static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
 
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll"), Native(Header = "processthreadsapi.h"), As(AsAttribute.Return, "DWORD")]
         static extern uint GetCurrentProcessId();
 
-        [DllImport("kernel32.dll")]
+        [DllImport("kernel32.dll"), Native(Header = "processthreadsapi.h"), As(AsAttribute.Return, "DWORD")]
         static extern uint GetCurrentThreadId();
 
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
-        static extern IntPtr GetModuleHandleW(string name);
+        [DllImport("kernel32.dll"), Native(Header = "libloaderapi.h"), As(AsAttribute.Return, "HMODULE", Opaque = true), Const(0)]
+        static extern IntPtr GetModuleHandleW(char* name);
 
-        [DllImport("kernel32.dll")]
+        /// GetModuleHandleW of a name: a fixed string is a pointer to its null-terminated text.
+        static IntPtr GetModuleHandleW(string name)
+        {
+            fixed (char* p = name) return GetModuleHandleW(p);
+        }
+
+        [DllImport("kernel32.dll"), Native(Header = "libloaderapi.h"), As(AsAttribute.Return, "DWORD"), As(0, "HMODULE", Opaque = true), As(1, "LPWSTR"), As(2, "DWORD")]
         static extern uint GetModuleFileNameW(IntPtr module, char* path, uint size);
     }
 }

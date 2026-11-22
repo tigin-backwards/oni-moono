@@ -460,15 +460,19 @@ namespace OniMoono.Desktop
             SetClassLongPtrW(hwnd, GCLP_HICONSM, small);
         }
 
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.DllImport("kernel32.dll")]
         static extern IntPtr GetModuleHandleW(IntPtr name);
 
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern IntPtr LoadImageW(IntPtr module, nint name, uint type, int width, int height, uint flags);
 
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern int GetSystemMetrics(int index);
 
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern IntPtr SetClassLongPtrW(IntPtr hwnd, int index, IntPtr value);
 
@@ -1172,9 +1176,11 @@ namespace OniMoono.Desktop
         internal static bool IsWithin(float seconds, Vector2 offset, float time, int width, int height)
             => seconds <= time && Math.Abs(offset.x) <= width / 2 && Math.Abs(offset.y) <= height / 2;
 
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern uint GetDoubleClickTime();
 
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern int GetSystemMetrics(int index);
 

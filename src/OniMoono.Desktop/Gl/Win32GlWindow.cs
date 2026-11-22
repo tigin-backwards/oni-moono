@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using OniMoono.Engine;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop.Gl
 {
@@ -32,6 +33,7 @@ namespace OniMoono.Desktop.Gl
         // On the visible window (false: the context stays on its hidden window and nothing is
         // swapped).
         readonly bool bound;
+        [NotNative("WGL_EXT_swap_control's wglSwapIntervalEXT from wglGetProcAddress; wglext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/EXT/WGL_EXT_swap_control.txt)")]
         delegate* unmanaged<int, int> swapIntervalExt;
         static bool logged;
 
@@ -173,6 +175,7 @@ namespace OniMoono.Desktop.Gl
         }
 
         [StructLayout(LayoutKind.Sequential)]
+        [OniMoono.Desktop.D3d11.NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
         struct PixelFormatDescriptor
         {
             public ushort Size, Version;
@@ -182,41 +185,67 @@ namespace OniMoono.Desktop.Gl
             public uint LayerMask, VisibleMask, DamageMask;
         }
 
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
+
         [DllImport("opengl32.dll")]
         static extern IntPtr wglGetCurrentContext();
+
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
 
         [DllImport("opengl32.dll")]
         static extern IntPtr wglGetCurrentDC();
 
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
+
         [DllImport("opengl32.dll", SetLastError = true)]
         static extern bool wglMakeCurrent(IntPtr dc, IntPtr context);
+
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
 
         [DllImport("opengl32.dll")]
         static extern bool wglDeleteContext(IntPtr context);
 
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
+
         [DllImport("opengl32.dll")]
         static extern void glGetIntegerv(uint name, int* value);
+
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
 
         [DllImport("gdi32.dll", SetLastError = true)]
         static extern int ChoosePixelFormat(IntPtr dc, PixelFormatDescriptor* pfd);
 
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
+
         [DllImport("gdi32.dll", SetLastError = true)]
         static extern int GetPixelFormat(IntPtr dc);
+
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
 
         [DllImport("gdi32.dll", SetLastError = true)]
         static extern int DescribePixelFormat(IntPtr dc, int format, uint size, PixelFormatDescriptor* pfd);
 
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
+
         [DllImport("gdi32.dll", SetLastError = true)]
         static extern bool SetPixelFormat(IntPtr dc, int format, PixelFormatDescriptor* pfd);
+
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
 
         [DllImport("gdi32.dll", EntryPoint = "SwapBuffers")]
         static extern bool SwapBuffersGdi(IntPtr dc);
 
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
+
         [DllImport("user32.dll", SetLastError = true)]
         static extern IntPtr GetDC(IntPtr hwnd);
 
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
+
         [DllImport("dwmapi.dll")]
         static extern int DwmFlush();
+
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
 
         [DllImport("user32.dll")]
         static extern int ReleaseDC(IntPtr hwnd, IntPtr dc);

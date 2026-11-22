@@ -49,11 +49,13 @@ sealed class Generator(Assembly assembly)
     readonly SortedSet<string> headers = new(StringComparer.Ordinal);
     readonly SortedSet<string> exports = new(StringComparer.Ordinal), opaque = new(StringComparer.Ordinal);
     readonly HashSet<MemberInfo> covered = [];
-    int interfaces, methods, structs, fields, enums, values, constants, guids, functions, pointers, notNative;
+    readonly SortedSet<string> expressions = new(StringComparer.Ordinal), notNatives = new(StringComparer.Ordinal);
+    readonly List<string> uncovered = [];
+    int interfaces, methods, structs, fields, enums, values, constants, guids, functions, pointers;
 
     public string Summary => $"{interfaces} interfaces ({methods} methods), {structs} structs ({fields} fields), {enums} enums ({values} values), " +
         $"{constants} constants, {guids} IIDs, {functions} DLL functions, {pointers} function pointers, {exports.Count} exports, " +
-        $"{opaque.Count} opaque [As], {notNative} [NotNative]";
+        $"{opaque.Count} opaque [As], {expressions.Count} expressions, {notNatives.Count} [NotNative]";
 
     static DeclarationException Error(string message) => throw new DeclarationException(message);
 
@@ -66,10 +68,34 @@ sealed class Generator(Assembly assembly)
     static string Named(CustomAttributeData a, string property)
         => a?.NamedArguments.FirstOrDefault(n => n.MemberName == property).TypedValue.Value as string;
 
+    /// The SDK name a declaration stands for: an identifier the headers declare (a dotted path
+    /// of identifiers for a struct field), never an expression or a literal, so a name cannot
+    /// carry a value of its own (the compile fails on a name the headers do not declare).
     static string NativeName(MemberInfo m)
     {
         var a = Attr(m, "NativeAttribute");
-        return a?.ConstructorArguments.Count > 0 && a.ConstructorArguments[0].Value is string s ? s : m.Name;
+        string name = a?.ConstructorArguments.Count > 0 && a.ConstructorArguments[0].Value is string s ? s : m.Name;
+        string pattern = m is FieldInfo { IsStatic: false } ? @"^[A-Za-z_]\w*(\.[A-Za-z_]\w*)*$" : @"^[A-Za-z_]\w*$";
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, pattern))
+            Error($"{Where(m)}: [Native(\"{name}\")] is not an identifier (an expression goes in [NativeExpression], on a constant)");
+        return name;
+    }
+
+    static readonly HashSet<string> notIdentifiers = ["sizeof", "alignof", "offsetof", "unsigned", "signed", "int", "long", "short", "char", "const"];
+
+    /// A constant's [NativeExpression]: the expression, which must name at least one SDK
+    /// identifier besides operators and keywords (the compile fails when the headers do not
+    /// declare it); listed at the top of com_check.cpp.
+    string ExpressionOf(FieldInfo f)
+    {
+        var a = Attr(f, "NativeExpressionAttribute");
+        if (a == null) return null;
+        string e = (string)a.ConstructorArguments[0].Value;
+        if (Attr(f, "NativeAttribute") is { ConstructorArguments: [{ Value: string }, ..] }) Error($"{Where(f)}: both a [Native] name and a [NativeExpression]");
+        var ids = System.Text.RegularExpressions.Regex.Matches(e, @"\b[A-Za-z_]\w*\b").Select(x => x.Value).Where(x => !notIdentifiers.Contains(x)).ToList();
+        if (ids.Count == 0) Error($"{Where(f)}: [NativeExpression(\"{e}\")] names no SDK identifier");
+        expressions.Add($"{Where(f)}: {e}");
+        return e;
     }
 
     static string HeaderOf(MemberInfo m) => Named(Attr(m, "NativeAttribute"), "Header");
@@ -226,20 +252,29 @@ sealed class Generator(Assembly assembly)
             else Error($"{t.FullName}: [Native] on something that is not an interface, struct, enum or static class");
             covered.Add(t);
         }
+        // A DllImport with its own [Native] in a class that is not one (its header on it).
+        foreach (var t in assembly.GetTypes().Where(t => !IsNative(t)).OrderBy(t => t.FullName, StringComparer.Ordinal))
+            foreach (var m in t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+                if (Attr(m, "NativeAttribute") != null && m.GetCustomAttribute<DllImportAttribute>() is { } import) EmitDllImport(m, import, null);
         // Every member that carries a declaration attribute must have been emitted above: none
         // may sit in a type the check does not read.
         const BindingFlags all = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
-        string[] marks = ["NativeAttribute", "AsAttribute", "ConstAttribute", "NotNativeAttribute"];
+        string[] marks = ["NativeAttribute", "AsAttribute", "ConstAttribute", "NativeExpressionAttribute"];
         foreach (var t in assembly.GetTypes())
             foreach (var m in t.GetMembers(all).Append(t))
                 if (marks.Any(k => Attr(m, k) != null) && !covered.Contains(m))
                     Error($"{Where(m)}: a declaration the check does not read (its type has no [Native], or it is not a constant, IID, DllImport or function pointer)");
+        Sweep();
         var o = new StringBuilder();
         o.Append($"// Generated by tools/ComCheckGen from OniMoono.Desktop's [Native] declarations: do not edit.\n// {Summary}\n");
         o.Append("// Each DLL entry point, checked by com_check.cmd against the DLL's export table (dumpbin /exports):\n");
         foreach (var e in exports) o.Append($"// export: {e}\n");
         o.Append("// Where [As(Opaque = true)] lets an untyped pointer or handle stand for a typed one:\n");
         foreach (var e in opaque) o.Append($"//   {e}\n");
+        o.Append("// Constants checked as an expression ([NativeExpression]), each naming SDK identifiers:\n");
+        foreach (var e in expressions) o.Append($"//   {e}\n");
+        o.Append("// [NotNative]: what the check leaves out, and why:\n");
+        foreach (var e in notNatives) o.Append($"//   {e}\n");
 
         o.Append("""
             // Compile without COM_CHECK_IIDS for the C vtables (CINTERFACE) and with it for the C++
@@ -277,14 +312,24 @@ sealed class Generator(Assembly assembly)
                 else if constexpr ((std::is_enum_v<N> && std::is_integral_v<O>) || (std::is_integral_v<N> && std::is_enum_v<O>)) return sizeof(N) == sizeof(O);
                 else return false;
             }
+            // What Opaque may stand for: an innermost pointee the code never looks into (void, or a
+            // struct such as HWND__ or SECURITY_ATTRIBUTES), never a pointer, so that Opaque keeps
+            // every level of indirection: void* for a T* (T a struct), IntPtr for a T* (a handle),
+            // IntPtr* for a HANDLE*; never void* for a T**, nor IntPtr for a HANDLE*.
+            template <class T0> constexpr bool opaque_target()
+            {
+                using T = std::remove_cv_t<T0>;
+                return std::is_void_v<T> || std::is_class_v<T> || std::is_union_v<T>;
+            }
             template <class N0, class O0, bool Opaque> constexpr bool pointee_ok()
             {
                 using N = std::remove_cv_t<N0>;
                 using O = std::remove_cv_t<O0>;
-                if constexpr (std::is_void_v<O>) return std::is_void_v<N> || Opaque;
+                if constexpr (std::is_void_v<O>) return std::is_void_v<N> || (Opaque && opaque_target<N>());
                 else if constexpr (std::is_pointer_v<N> && std::is_pointer_v<O>) return pointee_ok<std::remove_pointer_t<N>, std::remove_pointer_t<O>, Opaque>();
-                else if constexpr (std::is_pointer_v<N> || std::is_pointer_v<O>)
-                    return Opaque && sizeof(N) == sizeof(O) && (std::is_pointer_v<N> || std::is_integral_v<N>) && (std::is_pointer_v<O> || std::is_integral_v<O>);
+                else if constexpr (std::is_pointer_v<N> && std::is_integral_v<O>)
+                    return Opaque && sizeof(N) == sizeof(O) && opaque_target<std::remove_pointer_t<N>>();
+                else if constexpr (std::is_pointer_v<N> || std::is_pointer_v<O>) return false;
                 else return value_ok<N, O>();
             }
             template <class N0, class O0, bool Opaque> constexpr bool abi_ok()
@@ -293,8 +338,9 @@ sealed class Generator(Assembly assembly)
                 using O = std::remove_cv_t<O0>;
                 if constexpr (std::is_reference_v<N>) return std::is_pointer_v<O> && pointee_ok<std::remove_reference_t<N>, std::remove_pointer_t<O>, Opaque>();
                 else if constexpr (std::is_pointer_v<N> && std::is_pointer_v<O>) return pointee_ok<std::remove_pointer_t<N>, std::remove_pointer_t<O>, Opaque>();
-                else if constexpr (std::is_pointer_v<N> || std::is_pointer_v<O>)
-                    return Opaque && sizeof(N) == sizeof(O) && (std::is_pointer_v<N> || std::is_integral_v<N>) && (std::is_pointer_v<O> || std::is_integral_v<O>);
+                else if constexpr (std::is_pointer_v<N> && std::is_integral_v<O>)
+                    return Opaque && sizeof(N) == sizeof(O) && opaque_target<std::remove_pointer_t<N>>();
+                else if constexpr (std::is_pointer_v<N> || std::is_pointer_v<O>) return false;
                 else return value_ok<N, O>();
             }
 
@@ -439,6 +485,71 @@ sealed class Generator(Assembly assembly)
         }
     }
 
+    /// [NotNative("why")]: left out of the check, listed with its reason.
+    bool NotNative(MemberInfo m)
+    {
+        var a = Attr(m, "NotNativeAttribute");
+        if (a == null) return false;
+        covered.Add(m);
+        notNatives.Add($"{Where(m)}: {a.ConstructorArguments[0].Value}");
+        return true;
+    }
+
+    /// Everything native in the assembly, whether or not it says [Native]: every DllImport or
+    /// LibraryImport, every unmanaged function-pointer field, every [UnmanagedFunctionPointer]
+    /// delegate, every struct with a vtable pointer, and the structs those [NotNative] ones take,
+    /// must be [Native] (and emitted above) or [NotNative("why")]; else the generator fails,
+    /// listing them all.
+    void Sweep()
+    {
+        const BindingFlags all = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+        var structsUsed = new List<(Type Type, string Where)>();
+        void Uses(Type t, string where)
+        {
+            while (t.IsPointer || t.IsByRef || t.IsArray) t = t.GetElementType();
+            if (t != typeof(void) && t.IsValueType && !t.IsPrimitive && !t.IsEnum && t != typeof(IntPtr) && t != typeof(UIntPtr) && t != typeof(Guid)) structsUsed.Add((t, where));
+        }
+        void Signature(MethodInfo m, string where)
+        {
+            foreach (var p in m.GetParameters()) Uses(p.ParameterType, where);
+            Uses(m.ReturnType, where);
+        }
+        void FunctionPointer(Type t, string where)
+        {
+            foreach (var p in t.GetFunctionPointerParameterTypes()) Uses(p, where);
+            Uses(t.GetFunctionPointerReturnType(), where);
+        }
+        foreach (var t in assembly.GetTypes())
+        {
+            if (Generated(t) && t.DeclaringType != null && t.Name.StartsWith('<')) continue;
+            if (typeof(Delegate).IsAssignableFrom(t) && t.GetCustomAttribute<UnmanagedFunctionPointerAttribute>() != null && !covered.Contains(t) && !NotNative(t))
+                uncovered.Add($"{t.FullName}: an [UnmanagedFunctionPointer] delegate");
+            else if (typeof(Delegate).IsAssignableFrom(t) && covered.Contains(t) && t.GetMethod("Invoke") is { } invoke)
+                Signature(invoke, t.FullName);
+            if (t.IsValueType && t.GetField("lpVtbl", all) != null && !covered.Contains(t) && !NotNative(t))
+                uncovered.Add($"{t.FullName}: a struct with a vtable pointer");
+            foreach (var m in t.GetMethods(all))
+            {
+                bool native = (m.Attributes & MethodAttributes.PinvokeImpl) != 0 || Attr(m, "LibraryImportAttribute") != null;
+                if (!native || covered.Contains(m) && Attr(m, "NotNativeAttribute") == null) continue;
+                if (covered.Contains(m) || NotNative(m)) Signature(m, Where(m));
+                else uncovered.Add($"{Where(m)}: a DLL function");
+            }
+            foreach (var f in t.GetFields(all))
+            {
+                if (!f.FieldType.IsFunctionPointer || !f.FieldType.IsUnmanagedFunctionPointer) continue;
+                if (covered.Contains(f) && Attr(f, "NotNativeAttribute") == null) continue;
+                if (covered.Contains(f) || NotNative(f)) FunctionPointer(f.FieldType, Where(f));
+                else uncovered.Add($"{Where(f)}: an unmanaged function-pointer field");
+            }
+        }
+        foreach (var (type, where) in structsUsed)
+            if (!IsNative(type) && !covered.Contains(type) && !NotNative(type))
+                uncovered.Add($"{type.FullName}: a struct {where} takes");
+        if (uncovered.Count > 0)
+            Error($"native declarations neither [Native] nor [NotNative(\"why\")]:\n  {string.Join("\n  ", uncovered.Distinct())}");
+    }
+
     static bool Generated(MemberInfo m) => m.Name.StartsWith('<') || m.GetCustomAttribute<CompilerGeneratedAttribute>() != null;
 
     void EmitClass(Type t)
@@ -449,14 +560,15 @@ sealed class Generator(Assembly assembly)
             if (Generated(f)) continue;
             covered.Add(f);
             string where = Where(f);
-            if (Attr(f, "NotNativeAttribute") != null) { notNative++; continue; }
+            if (NotNative(f)) continue;
             if (f.IsLiteral)
             {
                 Header(f, classHeader);
                 var value = f.GetRawConstantValue();
                 if (value is not (int or uint or long or ulong or short or ushort or byte or sbyte)) Error($"{where}: a constant that is not an integer");
                 string v = value is ulong u ? $"{u}ULL" : $"{Convert.ToInt64(value)}LL";
-                Assert(c, $"(long long)({NativeName(f)}) == (long long)({v})", $"{where} = {value}");
+                string native = ExpressionOf(f) ?? NativeName(f);
+                Assert(c, $"(long long)({native}) == (long long)({v})", $"{where} = {value}");
                 constants++;
             }
             else if (f.FieldType == typeof(Guid) && f.IsInitOnly && f.IsStatic)
@@ -495,6 +607,16 @@ sealed class Generator(Assembly assembly)
                 if ((m.Attributes & MethodAttributes.PinvokeImpl) != 0) Error($"{where}: a P/Invoke the check cannot read");
                 continue;
             }
+            if (NotNative(m)) continue;
+            EmitDllImport(m, import, classHeader);
+        }
+    }
+
+    /// A DllImport: its function type against the header's, and its DLL's export.
+    void EmitDllImport(MethodInfo m, DllImportAttribute import, string classHeader)
+    {
+        {
+            string where = Where(m);
             covered.Add(m);
             Header(m, classHeader);
             if (!import.PreserveSig) Error($"{where}: PreserveSig off");

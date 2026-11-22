@@ -6,6 +6,7 @@ using Brutal.GlfwApi;
 using Brutal.VulkanApi;
 using Brutal.VulkanApi.Vma;
 using OniMoono.Engine;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop.Vulkan
 {
@@ -541,6 +542,7 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         // .NET keeps its own copy of the environment on Unix: the loader reads the C library's.
+        [NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
         [DllImport("libc", CharSet = CharSet.Ansi)]
         static extern int setenv(string name, string value, int overwrite);
 

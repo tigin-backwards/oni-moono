@@ -34,8 +34,8 @@ namespace OniMoono.Desktop.Gl
         [Native("DXGI_SCALING_STRETCH")] public const uint ScalingStretch = 0;
         [Native("DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL")] public const uint SwapEffectFlipSequential = 3;
         [Native("DXGI_SWAP_EFFECT_FLIP_DISCARD")] public const uint SwapEffectFlipDiscard = 4;
+        [Native("DXGI_ALPHA_MODE_IGNORE")] public const uint AlphaModeIgnore = 3;
         [Native("DXGI_ALPHA_MODE_UNSPECIFIED")] public const uint AlphaModeUnspecified = 0;
-        [Native("DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH")] public const uint SwapChainFlagAllowModeSwitch = 2;
         [Native("DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT")] public const uint SwapChainFlagFrameLatencyWaitable = 0x40;
         [Native("DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING")] public const uint SwapChainFlagAllowTearing = 0x800;
         [Native("DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH")] public const uint SwapChainFlagAllowModeSwitch = 2;
@@ -189,14 +189,14 @@ namespace OniMoono.Desktop.Gl
 
         [Native("QDC_ONLY_ACTIVE_PATHS", Header = "wingdi.h")] public const uint QdcOnlyActivePaths = 2;
         [Native("DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME", Header = "wingdi.h")] public const int DisplayConfigGetSourceName = 1;
-        [Native("sizeof(DISPLAYCONFIG_PATH_INFO)", Header = "wingdi.h")] public const uint DisplayConfigPathInfoSize = 72;
-        [Native("sizeof(DISPLAYCONFIG_MODE_INFO)", Header = "wingdi.h")] public const uint DisplayConfigModeInfoSize = 64;
+        [NativeExpression("sizeof(DISPLAYCONFIG_PATH_INFO)"), Native(Header = "wingdi.h")] public const uint DisplayConfigPathInfoSize = 72;
+        [NativeExpression("sizeof(DISPLAYCONFIG_MODE_INFO)"), Native(Header = "wingdi.h")] public const uint DisplayConfigModeInfoSize = 64;
 
         [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG")]
         public static extern int GetDisplayConfigBufferSizes(uint flags, uint* paths, uint* modes);
 
-        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG"), As(4, "DISPLAYCONFIG_MODE_INFO*", Opaque = true), As(5, "DISPLAYCONFIG_TOPOLOGY_ID*", Opaque = true)]
-        public static extern int QueryDisplayConfig(uint flags, uint* pathCount, DisplayConfigPath* paths, uint* modeCount, void* modes, IntPtr topology);
+        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG"), As(4, "DISPLAYCONFIG_MODE_INFO*", Opaque = true), As(5, "DISPLAYCONFIG_TOPOLOGY_ID*")]
+        public static extern int QueryDisplayConfig(uint flags, uint* pathCount, DisplayConfigPath* paths, uint* modeCount, void* modes, int* topology);
 
         [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG")]
         public static extern int DisplayConfigGetDeviceInfo(DisplayConfigDeviceInfoHeader* request);

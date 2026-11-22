@@ -5,6 +5,7 @@ using Brutal.GlfwApi;
 using Brutal.OpenGlApi;
 using N = Brutal.OpenGlApi.OpenGl.Native;
 using static OniMoono.Desktop.Gl.GlConst;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop.Gl
 {
@@ -27,11 +28,18 @@ namespace OniMoono.Desktop.Gl
 
         public static bool Enabled { get; private set; }
 
+        [NotNative("a GL_ARB_bindless_texture function from wglGetProcAddress; glext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/ARB/ARB_bindless_texture.txt)")]
+
         static delegate* unmanaged[Cdecl]<uint, uint, ulong> getTextureSamplerHandle;
+        [NotNative("a GL_ARB_bindless_texture function from wglGetProcAddress; glext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/ARB/ARB_bindless_texture.txt)")]
         static delegate* unmanaged[Cdecl]<ulong, void> makeResident, makeNonResident;
+        [NotNative("a GL_ARB_bindless_texture function from wglGetProcAddress; glext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/ARB/ARB_bindless_texture.txt)")]
         static delegate* unmanaged[Cdecl]<uint, int, ulong, void> programUniformHandle;
+        [NotNative("a GL_ARB_bindless_texture function from wglGetProcAddress; glext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/ARB/ARB_bindless_texture.txt)")]
         static delegate* unmanaged[Cdecl]<ulong, byte> isResident;
+        [NotNative("a GL_ARB_bindless_texture function from wglGetProcAddress; glext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/ARB/ARB_bindless_texture.txt)")]
         static delegate* unmanaged[Cdecl]<uint, uint, void> bindSampler;
+        [NotNative("a GL_ARB_bindless_texture function from wglGetProcAddress; glext.h is not in the Windows SDK (registry.khronos.org/OpenGL/extensions/ARB/ARB_bindless_texture.txt)")]
         static delegate* unmanaged[Cdecl]<uint, int, int, void> programUniform1i;
 
         /// AMD's Windows driver (GL_VENDOR "ATI Technologies Inc."; Mesa's AMD driver reports

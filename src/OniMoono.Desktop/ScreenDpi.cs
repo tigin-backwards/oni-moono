@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Brutal.GlfwApi;
 using Brutal.GlfwApi.Win32;
 using Brutal.GlfwApi.X11;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop
 {
@@ -44,11 +45,17 @@ namespace OniMoono.Desktop
         const uint MONITOR_DEFAULTTONEAREST = 2;
         const int MDT_EFFECTIVE_DPI = 0;
 
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+
         [DllImport("user32.dll")]
         static extern uint GetDpiForWindow(IntPtr hwnd);
 
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+
         [DllImport("user32.dll")]
         static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
 
         [DllImport("shcore.dll")]
         static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint dpiX, out uint dpiY);
@@ -90,6 +97,7 @@ namespace OniMoono.Desktop
 
         /// XRROutputInfo up to its size in millimetres.
         [StructLayout(LayoutKind.Sequential)]
+        [OniMoono.Desktop.D3d11.NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
         unsafe struct XRROutputInfo
         {
             public nuint Timestamp, Crtc;
@@ -98,17 +106,27 @@ namespace OniMoono.Desktop
             public nuint MillimetreWidth, MillimetreHeight;
         }
 
+        [NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
+
         [DllImport("libX11.so.6")]
         static extern nuint XDefaultRootWindow(nint display);
+
+        [NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
 
         [DllImport("libXrandr.so.2")]
         static extern nint XRRGetScreenResourcesCurrent(nint display, nuint window);
 
+        [NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
+
         [DllImport("libXrandr.so.2")]
         static extern unsafe XRROutputInfo* XRRGetOutputInfo(nint display, nint resources, nuint output);
 
+        [NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
+
         [DllImport("libXrandr.so.2")]
         static extern unsafe void XRRFreeOutputInfo(XRROutputInfo* info);
+
+        [NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
 
         [DllImport("libXrandr.so.2")]
         static extern void XRRFreeScreenResources(nint resources);

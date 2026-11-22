@@ -10,6 +10,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using N = Brutal.OpenGlApi.OpenGl.Native;
 using static OniMoono.Desktop.Gl.GlConst;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop.Gl
 {
@@ -310,6 +311,8 @@ namespace OniMoono.Desktop.Gl
             uint mb = 0;
             return info(id, GpuRamAmd, UnsignedIntType, 1, &mb) >= 1 && mb is > 0 and <= int.MaxValue ? (int)mb : 0;
         }
+
+        [NotNative("an OpenGL window, context or timing call (opengl32, gdi32, dwmapi, kernel32), outside the D3D11 binding: not declared to the check")]
 
         [DllImport("opengl32.dll", EntryPoint = "wglGetCurrentContext")]
         static extern IntPtr WglGetCurrentContext();

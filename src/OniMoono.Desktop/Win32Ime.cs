@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop
 {
@@ -237,37 +238,59 @@ namespace OniMoono.Desktop
         }
 
         [StructLayout(LayoutKind.Sequential)]
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         struct COMPOSITIONFORM { public uint dwStyle; public int x, y; public int left, top, right, bottom; }
 
         [StructLayout(LayoutKind.Sequential)]
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         struct CANDIDATEFORM { public uint dwIndex, dwStyle; public int x, y; public int left, top, right, bottom; }
+
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
 
         [DllImport("imm32.dll")]
         static extern nint ImmAssociateContext(nint hwnd, nint himc);
 
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+
         [DllImport("imm32.dll")]
         static extern bool ImmAssociateContextEx(nint hwnd, nint himc, uint flags);
+
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
 
         [DllImport("imm32.dll")]
         static extern nint ImmGetContext(nint hwnd);
 
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+
         [DllImport("imm32.dll")]
         static extern bool ImmReleaseContext(nint hwnd, nint himc);
+
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
 
         [DllImport("imm32.dll")]
         static extern int ImmGetCompositionStringW(nint himc, uint index, byte[] buffer, int bytes);
 
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+
         [DllImport("imm32.dll")]
         static extern bool ImmSetCompositionWindow(nint himc, ref COMPOSITIONFORM form);
+
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
 
         [DllImport("imm32.dll")]
         static extern bool ImmSetCandidateWindow(nint himc, ref CANDIDATEFORM form);
 
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+
         [DllImport("imm32.dll")]
         static extern bool ImmNotifyIME(nint himc, uint action, uint index, uint value);
 
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+
         [DllImport("user32.dll")]
         static extern nint SetWindowLongPtrW(nint hwnd, int index, nint value);
+
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
 
         [DllImport("user32.dll")]
         static extern nint CallWindowProcW(nint proc, nint hwnd, uint message, nint wParam, nint lParam);

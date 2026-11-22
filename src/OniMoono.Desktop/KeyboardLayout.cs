@@ -3,6 +3,7 @@ using System.Runtime.InteropServices;
 using Brutal.GlfwApi;
 using Brutal.GlfwApi.X11;
 using UnityEngine;
+using OniMoono.Desktop.D3d11;
 
 namespace OniMoono.Desktop
 {
@@ -151,8 +152,12 @@ namespace OniMoono.Desktop
             return FromCharacters(level1, level2);
         }
 
+        [NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
+
         [DllImport("libX11.so.6")]
         static extern int XkbGetState(nint display, uint device, ref byte state);
+
+        [NotNative("a Linux library (libX11, libXrandr, libxkbcommon, libc), not in the Windows SDK")]
 
         [DllImport("libX11.so.6")]
         static extern nuint XkbKeycodeToKeysym(nint display, byte keycode, int group, int level);
@@ -183,8 +188,12 @@ namespace OniMoono.Desktop
             return FromVirtualKey(MapVirtualKeyExW((uint)scancode & 0xff, MAPVK_VSC_TO_VK_EX, layout));
         }
 
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+
         [DllImport("user32.dll")]
         static extern nint GetKeyboardLayout(uint thread);
+
+        [NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
 
         [DllImport("user32.dll")]
         static extern uint MapVirtualKeyExW(uint code, uint mapType, nint layout);

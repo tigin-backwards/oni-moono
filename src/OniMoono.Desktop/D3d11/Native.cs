@@ -64,12 +64,23 @@ namespace OniMoono.Desktop.D3d11
         public int[] Indexes { get; } = indexes;
     }
 
-    /// A constant in a [Native] class that is not an SDK declaration (why: the text), so the check
-    /// leaves it out.
-    [AttributeUsage(AttributeTargets.Field)]
+    /// Native code the check leaves out, and why (the text, listed at the top of com_check.cpp):
+    /// a constant that is no SDK declaration, a DLL function, function pointer or delegate whose
+    /// header is not in the SDK, a struct only such ones take. Every DllImport, LibraryImport,
+    /// unmanaged function-pointer field, [UnmanagedFunctionPointer] delegate and vtable struct of
+    /// this assembly is [Native] or this (tools/ComCheckGen sweeps them all).
+    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method | AttributeTargets.Struct | AttributeTargets.Delegate | AttributeTargets.Class)]
     internal sealed class NotNativeAttribute(string why) : Attribute
     {
         public string Why { get; } = why;
+    }
+
+    /// A constant in a [Native] class checked against an expression of SDK identifiers rather
+    /// than one name (`sizeof(DISPLAYCONFIG_PATH_INFO)`); listed at the top of com_check.cpp.
+    [AttributeUsage(AttributeTargets.Field)]
+    internal sealed class NativeExpressionAttribute(string expression) : Attribute
+    {
+        public string Expression { get; } = expression;
     }
 
     /// IUnknown (unknwn.h): every COM interface's first three slots. Release goes through it for
