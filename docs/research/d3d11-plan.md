@@ -64,7 +64,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | # | Milestone | Ends when | Status |
 |---|---|---|---|
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | in progress |
-| M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | |
+| M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | built, review pending |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
@@ -72,6 +72,42 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
 | M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
+
+**M1 (2026-11-22, branch `d3d11-m1`).** Built in `src/OniMoono.Assets/Shaders`:
+
+- `ShaderCompilerPlatform.D3D11` (4) and `GpuProgramTypes` 15–22 (AssetStudio's enums; 15–19
+  occur).
+- `D3d11Program`: the entry (shared header and tail, the 38-byte prefix with bytes 1–3 as slot
+  counts and the rest raw, one DXBC ending the payload, nothing after the tail). The DXBC's
+  program type and major model must be the ones the GPU program type names.
+- `Dxbc.cs`: the container and signatures as vkd3d-shader's `dxbc.c` reads them (commit
+  698cbfbd); the checksum as its `checksum.c` computes it; the SHDR/SHEX token stream and the
+  `dcl_constantbuffer`, `dcl_resource(_raw/_structured)`, `dcl_sampler` and `dcl_globalFlags`
+  forms of models 4.0–5.0, from `d3d12TokenizedProgramFormat.hpp` (DirectX-Headers 61c77189).
+  Bytes stay unmodified; damaged input throws `InvalidDataException`.
+- `D3d11Bindings`: Unity's parameters (common plus blob) as t#, s#, b#, checked both ways against
+  the declarations (kind, texture dimension, cbuffer size) and the prefix counts. Mods with inline
+  sampler states record them in `m_Samplers`, now read by `ShaderParameters`.
+- `D3d11Variants`: per-stage lists selected by the existing rule, now `VariantSelection` (moved
+  unchanged).
+
+Survey (`ShaderSurvey d3d11` / `d3d11-bundles`), 0 failures in both:
+
+| Data | Shaders | Subprograms | Distinct entries | Vulkan keys mapped |
+|---|---|---|---|---|
+| U60 764025 Windows data | 121 | 1,070 | 960 | 590 of 590 |
+| out/ws mods, 2022.3/6000.3 layout | 82 | 656 | 652 | 5 |
+
+The 91 mod shaders serialized before 2021.2 are counted, not read. New measurements: every
+texture's declared dimension matches its TextureDimension (1,722 game, 497 mod); SM 4.0 programs
+sit in SHEX chunks too (UIRDefault); SV_Depth's signature register is 0xFFFFFFFF.
+
+UNVERIFIED (none is needed to read or check a program): the encoding of `m_Samplers`' `sampler`
+value (M2 must decode it for the two mod inline samplers, 2990227046's Hidden/Dither); the
+cbuffer binding's second int; prefix byte 0 and bytes 4–37; the entry statistics; the pair's
+component code. Decoding that no surveyed program exercises: `dcl_resource_raw`, OSG5, types
+20–22, model 4.1. The selection flattens hardware tiers (only the last is populated in all data
+read).
 
 User decisions: the merge (M8). The default is decided by the rule below.
 
