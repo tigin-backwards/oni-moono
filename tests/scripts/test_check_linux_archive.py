@@ -10,8 +10,9 @@ check = helpers.script('check-linux-archive.py')
 LAUNCHER = os.path.join(helpers.ROOT, 'oni-moono.desktop')
 
 
-def archive(path, skip=(), modes=None):
-    """A tar.gz of the release's Linux layout; `skip`: files left out, `modes`: {name: mode}."""
+def archive(path, skip=(), modes=None, host=b'\x7fELF..moono_crash_install\0..'):
+    """A tar.gz of the release's Linux layout; `skip`: files left out, `modes`: {name: mode};
+    `host`: player/OniMoono's bytes (by default, enough of Moono's own executable)."""
     modes = modes or {}
     with open(LAUNCHER, 'rb') as f:
         launcher = f.read()
@@ -19,7 +20,7 @@ def archive(path, skip=(), modes=None):
         for name in check.EXECUTABLE + check.PRESENT:
             if name in skip:
                 continue
-            data = launcher if name == 'oni-moono.desktop' else b'x'
+            data = launcher if name == 'oni-moono.desktop' else host if name == 'player/OniMoono' else b'x'
             info = tarfile.TarInfo(f'oni-moono/{name}')
             info.size, info.mode = len(data), modes.get(name, 0o755 if name in check.EXECUTABLE else 0o644)
             tar.addfile(info, io.BytesIO(data))
@@ -44,6 +45,10 @@ class ArchiveTest(unittest.TestCase):
     def test_missing_launcher_and_icon_fail(self):
         archive(self.path, skip=('oni-moono.desktop', 'player/Moo.png'))
         self.assertEqual(check.check(self.path), ['oni-moono/oni-moono.desktop missing', 'oni-moono/player/Moo.png missing'])
+
+    def test_the_sdk_apphost_as_player_fails(self):
+        archive(self.path, host=b'\x7fELF apphost')
+        self.assertEqual(check.check(self.path), ["oni-moono/player/OniMoono is the .NET SDK's apphost, not Moono's own executable"])
 
 
 class LauncherTest(unittest.TestCase):

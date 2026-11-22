@@ -3,7 +3,9 @@
 starts are there and executable (setup.sh, the launcher oni-moono.desktop, player/OniMoono and
 player/Restarter), the menu entry's icon player/Moo.png is there, and the launcher is a desktop
 entry that runs player/OniMoono beside itself (its Exec read as the Desktop Entry Specification
-says, with %k its own path) without a terminal (docs/INSTALL-MODES.md, Linux launcher).
+says, with %k its own path) without a terminal (docs/INSTALL-MODES.md, Linux launcher); and
+player/OniMoono is Moono's own executable (src/OniMoono.NativeHost, scripts/build-native-host-linux.sh),
+not the SDK's apphost, with SDL 3 and SDL3_ttf beside it for its crash window.
 
     scripts/check-linux-archive.py out/release/oni-moono-VERSION-linux-x64.tar.gz
 
@@ -15,7 +17,7 @@ import tarfile
 
 TOP = 'oni-moono'
 EXECUTABLE = ('setup.sh', 'oni-moono.desktop', 'player/OniMoono', 'player/Restarter')
-PRESENT = ('player/Moo.png', 'README.md', 'NOTICE.txt')
+PRESENT = ('player/Moo.png', 'README.md', 'NOTICE.txt', 'player/libSDL3.so.0', 'player/libSDL3_ttf.so.0')
 
 
 def desktop_entry(text):
@@ -121,6 +123,9 @@ def check(path):
                 problems.append(f'{TOP}/{name} missing')
             elif name in EXECUTABLE and member.mode & 0o111 != 0o111:
                 problems.append(f'{TOP}/{name} is not executable (mode {member.mode:o})')
+        host = members.get(f'{TOP}/player/OniMoono')
+        if host is not None and host.isfile() and b'moono_crash_install\0' not in archive.extractfile(host).read():
+            problems.append(f"{TOP}/player/OniMoono is the .NET SDK's apphost, not Moono's own executable")
         launcher = members.get(f'{TOP}/oni-moono.desktop')
         if launcher is not None and launcher.isfile():
             problems += [f'{TOP}/oni-moono.desktop: {p}' for p in launcher_problems(archive.extractfile(launcher).read().decode())]

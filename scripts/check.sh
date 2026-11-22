@@ -11,10 +11,20 @@ source "$root/scripts/runq-submit.sh"
 runq_self_submit --kind check --label "check.sh${*:+ $*}" -- "$root/scripts/check.sh" "$@"
 # Its builds and tests run in the memory-capped test slice (scripts/contain.sh).
 [ -n "${ONI_CONTAINED:-}" ] || exec "$root/scripts/contain.sh" "$root/scripts/check.sh" "$@"
+# The Linux player's own executable (scripts/build-native-host-linux.sh, in Docker, its ELF file
+# checked), which the host's build then puts over the debug and release builds' apphost.
+native_failed=
+if command -v docker > /dev/null; then
+    "$root/scripts/build-native-host-linux.sh" "$root/out/native/linux/OniMoono" > "$root/out/build-native-host-linux.log" 2>&1 || native_failed=1
+    echo "build-native-host-linux: $(tail -1 "$root/out/build-native-host-linux.log")"
+else
+    echo "build-native-host-linux skipped: no Docker (the Linux player stays the SDK's apphost)"
+fi
 dotnet build "$root/OniMoono.slnx" -v q -nologo
 # Every suite runs and reports; the gate fails at the end if any of them failed, or skipped a
 # test for want of the game (scripts/test-skips.py): this machine has it, as CI does not.
 failed=()
+[ -z "$native_failed" ] || failed+=(build-native-host-linux)
 reports=$(mktemp -d)
 trap 'rm -rf "$reports"' EXIT
 tests() { # tests NAME: run a test binary, print its totals and failures

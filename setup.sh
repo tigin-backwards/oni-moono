@@ -91,6 +91,25 @@ else
     rm -rf "$player"
     cp -r "$here/out/bin/OniMoono.Host/release_linux-x64" "$player"
     rm -f "$player"/FacadeGen*
+    # OniMoono for a player built here: Moono's own executable (src/OniMoono.NativeHost), which
+    # records a crash in native code in Player.log, with a dump, and shows the crash window. It
+    # needs a C compiler, which the .NET SDK doesn't include; without one the SDK's OniMoono
+    # stays, which plays the same but records no such crash (a release's player has ours).
+    if command -v cc > /dev/null; then
+        native=$(mktemp -d)
+        cp "$here/src/OniMoono.NativeHost/"*.c "$here/src/OniMoono.NativeHost/"*.h "$here/src/OniMoono.NativeHost/fonts_linux.S" \
+           "$here/src/OniMoono.NativeHost/exports_linux.list" "$here/src/OniMoono.NativeHost/build-linux.sh" \
+           "$here/src/OniMoono.NativeHost/fonts/"*.ttf "$here/src/OniMoono.Host/Moo.ico" "$native/"
+        if output=$(cd "$native" && CC=cc sh ./build-linux.sh 2>&1); then
+            cp "$native/OniMoono" "$player/OniMoono"
+        else
+            printf '%s\n' "$output" >&2
+            die "building OniMoono (src/OniMoono.NativeHost) failed"
+        fi
+        rm -rf "$native"
+    else
+        say "No C compiler (cc): OniMoono is the .NET SDK's, which records no crash in native code and shows no crash window (a release's player does)."
+    fi
 fi
 
 # Steam in a sandbox runs the game where only some of the home folder can be read: a Flatpak

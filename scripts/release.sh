@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Builds the release archives into out/release (from WSL: the Windows player's OniMoono.exe is
-# built with MSVC, scripts/build-native-host.sh): the self-contained player for Windows and for
+# built with MSVC, scripts/build-native-host.sh; the Linux player's OniMoono in Docker,
+# scripts/build-native-host-linux.sh): the self-contained player for Windows and for
 # Linux, each with its setup script, the README and BRUTAL's NOTICE.txt, under one top folder
 # named oni-moono (extracting a newer release over an older one keeps the paths the same).
 #   MOONO_RELEASE=vYYYY.MM.DD.NN scripts/release.sh [VERSION]
@@ -78,7 +79,7 @@ with zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as
 " "$out/oni-moono-$version-windows-x64.zip")
 fi
 
-# Linux: OniMoono with the Restarter script, and the launcher.
+# Linux: OniMoono (ours) with the Restarter script, and the launcher.
 if [[ " $platforms " == *" linux "* ]]; then
 build "$root/src/OniMoono.Host" linux-x64
 lin="$out/linux/oni-moono"
@@ -89,6 +90,10 @@ cp "$root/oni-moono.desktop" "$lin/"
 cp -r "$root/out/bin/OniMoono.Host/release_linux-x64/." "$lin/player/"
 cp "$root/src/OniMoono.Desktop/Moo.png" "$lin/player/"
 rm -f "$lin/player/"FacadeGen*
+# OniMoono: our executable (the native crash records and the crash window, ARCHITECTURE §2) in
+# place of the SDK's apphost; built in the Steam Runtime's SDK container (Docker), its ELF file
+# checked (glibc 2.31 at most, its exports).
+"$root/scripts/build-native-host-linux.sh" "$lin/player/OniMoono"
 chmod +x "$lin/setup.sh" "$lin/oni-moono.desktop" "$lin/player/OniMoono" "$lin/player/Restarter"
 # The Moono Tweaks screen's translations (translations/*.po from the build).
 [ -f "$lin/player/translations/zh.po" ] || { echo "$lin/player/translations/zh.po missing"; exit 1; }
