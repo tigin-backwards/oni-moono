@@ -34,7 +34,7 @@ namespace OniMoono.Desktop
         public bool ContextFreeWindow { get; init; }
     }
 
-    internal enum RenderApi { OpenGl, Vulkan }
+    internal enum RenderApi { OpenGl, Vulkan, Direct3D11 }
 
     /// The player window (GLFW, with an OpenGL 4.5 core context or for a Vulkan surface) and
     /// its input devices.
@@ -123,7 +123,7 @@ namespace OniMoono.Desktop
             Initialize();
             Glfw.DefaultWindowHints();
             bool contextFree = Api == RenderApi.OpenGl && settings.ContextFreeWindow && OperatingSystem.IsWindows();
-            if (Api == RenderApi.Vulkan) Glfw.WindowHint(GlfwWindowHint.ClientApi, GLFW_NO_API);
+            if (Api is RenderApi.Vulkan or RenderApi.Direct3D11) Glfw.WindowHint(GlfwWindowHint.ClientApi, GLFW_NO_API);
             else
             {
                 // A window has one flip-model swap chain at most (CreateSwapChainForHwnd), and an

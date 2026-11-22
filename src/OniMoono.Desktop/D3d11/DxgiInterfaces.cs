@@ -82,6 +82,27 @@ namespace OniMoono.Desktop.D3d11
         }
     }
 
+    [Native(Header = "dxgi1_6.h", Base = typeof(IDXGIFactory5))]
+    internal unsafe struct IDXGIFactory6
+    {
+        public static readonly Guid IID = new("c1b6694f-ff09-44a9-b03c-77900a0a1d17");
+        public Vtbl* lpVtbl;
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct Vtbl
+        {
+            [FieldOffset(29 * 8), As(3, "REFIID")] public delegate* unmanaged<IDXGIFactory6*, uint, DXGI_GPU_PREFERENCE, Guid*, void**, int> EnumAdapterByGpuPreference;
+        }
+    }
+
+    [Native(Header = "dxgi1_6.h")]
+    internal enum DXGI_GPU_PREFERENCE
+    {
+        DXGI_GPU_PREFERENCE_UNSPECIFIED = 0,
+        DXGI_GPU_PREFERENCE_MINIMUM_POWER = 1,
+        DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE = 2,
+    }
+
     [Native(Header = "dxgi.h", Base = typeof(IUnknown))]
     internal unsafe struct IDXGIAdapter
     {

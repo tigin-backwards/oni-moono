@@ -80,7 +80,7 @@ namespace OniMoono.Host
         /// --gpu default|discrete|integrated: the GPU of a laptop with two (GpuChoice), over the
         /// Moono Tweaks settings; null when not given.
         public string? Gpu;
-        /// --renderer auto|vulkan|opengl: the graphics API (OniMoono.Desktop.Renderers), over the
+        /// --renderer auto|vulkan|opengl|d3d11: the graphics API (OniMoono.Desktop.Renderers), over the
         /// Moono Tweaks settings; null when not given. After the options resolve, the effective
         /// choice and where it came from (RendererSource).
         public string? Renderer;
@@ -88,6 +88,8 @@ namespace OniMoono.Host
         /// Diagnostics (--vulkan-validation, or ONI_VULKAN_VALIDATION=1): the Khronos validation
         /// layer on the Vulkan device, its messages in the log.
         public bool VulkanValidation;
+        /// `--d3d11-debug`: the Direct3D 11 device with the debug layer (D3d11Context.Validation).
+        public bool D3d11Debug;
         /// --dxgi on|off: Windows, presenting through DXGI (OniMoono.Desktop.Gl.DxgiTarget), over
         /// the Moono Tweaks settings; null when not given (then the effective value).
         public bool? Dxgi;
@@ -323,6 +325,7 @@ namespace OniMoono.Host
                         }
                         break;
                     case "--vulkan-validation": o.VulkanValidation = true; break;
+                    case "--d3d11-debug": o.D3d11Debug = true; break;
                     case "--dxgi":
                     {
                         var value = args[++i];
@@ -499,7 +502,7 @@ namespace OniMoono.Host
                         break;
                     default:
                         Console.Error.WriteLine($"Unknown option {args[i]}");
-                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--bindless] [--no-ui-reorder] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--renderer auto|vulkan|opengl] [--vulkan-validation] [--dxgi on|off] [--stall-repeats on|off] [--gc fast|low-memory] [--dxgi-fault WHAT] [--crash-dumps on|off|full] [--crash-dialog on|off] [--test-native-crash WHERE[:FRAME]] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, passed to the game] [--check-types] [--check-tweaks check|review|declare [--tweak-listings DIR]] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [--game-arg ARG] [-- STEAM-COMMAND [ARG...]]");
+                        Console.Error.WriteLine("usage: OniMoono [--game DIR] [--log FILE] [--run-home DIR] [--audio-wav DIR] [--headless] [--batchmode] [--frames N] [--native-override NAME=PATH] [--trace-exceptions] [--gl-debug] [--background] [--no-focus] [--splash moo|none] [--log-pointer-hits] [--vsync-count N] [--gpu-profile] [--no-bindless] [--bindless] [--no-ui-reorder] [--input FRAME:ACTION[:ARGS]] [--input-file PATH] [--frame-stats] [--log-paths hidden|full] [--gpu default|discrete|integrated] [--renderer auto|vulkan|opengl|d3d11] [--vulkan-validation] [--d3d11-debug] [--dxgi on|off] [--stall-repeats on|off] [--gc fast|low-memory] [--dxgi-fault WHAT] [--crash-dumps on|off|full] [--crash-dialog on|off] [--test-native-crash WHERE[:FRAME]] [--no-tweaks-menu] [--max-frame-rate N[:FRAMES]] [--dump-render-textures FRAME:DIR] [-screen-width W] [-screen-height H] [-screen-fullscreen 0|1] [-window-mode exclusive|borderless|windowed] [-monitor N] [-logFile PATH] [other Unity player arguments, passed to the game] [--check-types] [--check-tweaks check|review|declare [--tweak-listings DIR]] [--game-tweak NAME|-NAME|all|exact|none] [--check-assets [--list-data-scripts FILE]] [--check-bind] [--check-shaders] [--check-natives [--native-arch x86_64|arm64] [--native-dir DIR]] [--dump-shader NAME:DIR] [--capture FRAME:PATH[:SCALE]] [--probe-ui FRAME:X,Y] [--dump-ui FRAME:PATH] [--dump-ui-vertices PATH-SUBSTRING] [--dump-hierarchy FRAME:PATH] [--report-builtin-assets FILE] [--dump-component FRAME:PATH|TYPE] [--game-arg ARG] [-- STEAM-COMMAND [ARG...]]");
                         return false;
                 }
                 // Unity's player arguments and stray words among ours, with their values: the

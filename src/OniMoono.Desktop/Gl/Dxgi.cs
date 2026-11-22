@@ -38,6 +38,7 @@ namespace OniMoono.Desktop.Gl
         [Native("DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH")] public const uint SwapChainFlagAllowModeSwitch = 2;
         [Native("DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT")] public const uint SwapChainFlagFrameLatencyWaitable = 0x40;
         [Native("DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING")] public const uint SwapChainFlagAllowTearing = 0x800;
+        [Native("DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH")] public const uint SwapChainFlagAllowModeSwitch = 2;
         [Native("DXGI_PRESENT_ALLOW_TEARING")] public const uint PresentAllowTearing = 0x200;
         [Native("DXGI_MWA_NO_WINDOW_CHANGES")] public const uint WindowAssociationNoWindowChanges = 1;
         [Native("DXGI_MWA_NO_ALT_ENTER")] public const uint WindowAssociationNoAltEnter = 2;

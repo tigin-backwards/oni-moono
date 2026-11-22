@@ -34,6 +34,8 @@ namespace OniMoono.Host
                 OniMoono.Desktop.Gl.GlDevice.SwapIntervalOverride = options.VSyncCount;
                 OniMoono.Desktop.Vulkan.VkDevice.SwapIntervalOverride = options.VSyncCount;
                 OniMoono.Desktop.Vulkan.VkContext.Validation = options.VulkanValidation;
+                OniMoono.Desktop.D3d11.D3d11Context.Validation = options.D3d11Debug;
+                OniMoono.Desktop.D3d11.D3d11Device.SwapIntervalOverride = options.VSyncCount;
                 OniMoono.Desktop.Gl.GlGpuProfile.Enabled = options.GpuProfile;
                 OniMoono.Desktop.Gl.GlBindless.Disabled = options.NoBindless;
                 if (options.NoUiReorder) OniMoono.Engine.UI.CanvasSystem.Reorder = false;
