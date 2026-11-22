@@ -59,7 +59,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 
 | # | Milestone | Ends when | Status |
 |---|---|---|---|
-| M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer; the user picks the binding (TerraFX package or its generated files vendored) | in progress |
+| M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | in progress |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | |
@@ -69,7 +69,16 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
 | M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
 
-User decisions: binding (M0), default vs fallback (M6), merge (M8).
+User decisions: default vs fallback (M6; proposed rule, not yet approved: D3D11 is the default if it is at
+least as fast as Vulkan in CPU frame time and fps on the same saves, else the fallback), merge (M8).
+
+**Decided 2026-11-22: the binding.** No new package ("22MB is way too big"). Extend our hand-written
+COM declarations (`src/OniMoono.Desktop/Gl/Dxgi.cs`, or a sibling for D3D11) to what the device
+needs, with a generated check in the Windows build: a generator reads every declaration and emits a
+C++ file MSVC compiles against the SDK headers, asserting each method's slot (`offsetof` into the
+header's vtable struct), its exact signature (`static_assert(std::is_same_v<...>)` on the header's
+function-pointer type), and each struct's size and field offsets. It covers the presenter's existing
+declarations too.
 
 ## Research so far (M0)
 
@@ -89,7 +98,7 @@ Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so 
   D3D11-only in every bundle (drawn by neither device today); 29 ship a D3D11-only Windows bundle.
   Layouts: 2022.3/6000.3 as U60's; 2020.3 a different one (magic 0x0C07513C, bindings inline); 2018
   an older table format.
-- **Bindings.** Recommended: TerraFX.Interop.Windows (MIT, ClangSharp-generated from the SDK
+- **Bindings** (superseded by the decision above). Recommended then: TerraFX.Interop.Windows (MIT, ClangSharp-generated from the SDK
   headers; trimmable, AOT-compatible; 28.4 MB DLL untrimmed, or vendor its generated d3d11/dxgi
   files), plus the MSVC static-assert check. MSVC 14.44 and SDK 10.0.26100 are installed;
   `ID3D11Device` 43 slots, `ID3D11DeviceContext` 115, existing Dxgi.cs D3D11 slots match.
