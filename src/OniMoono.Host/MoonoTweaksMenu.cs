@@ -42,24 +42,7 @@ namespace OniMoono.Host
         {
             // The rows, their sections and copy from the one catalog (GameTweakNames.Rows).
             var rows = GameTweakNames.Rows;
-            static int Flag(bool on) => on ? 1 : 0;
-            (int Value, bool Locked, int Default) State(TweakInfo row) => row.Id switch
-            {
-                GameTweakNames.SplashRow => (Flag(effective.Splash == "moo"), effective.SplashSource == OptionSource.CommandLine, Flag(EffectiveOptions.DefaultSplash == "moo")),
-                GameTweakNames.FrameStatsRow => (Flag(effective.FrameStats), effective.FrameStatsSource == OptionSource.CommandLine, 0),
-                GameTweakNames.LogPathsRow => (Flag(effective.HideLogPaths), effective.LogPathsSource == OptionSource.CommandLine, Flag(EffectiveOptions.DefaultLogPaths == "hidden")),
-                GameTweakNames.GpuRow => (Array.IndexOf(row.Choices!, effective.Gpu), effective.GpuSource == OptionSource.CommandLine,
-                    Array.IndexOf(row.Choices!, EffectiveOptions.DefaultGpu)),
-                GameTweakNames.RendererRow => (Array.IndexOf(row.Choices!, effective.Renderer), effective.RendererSource == OptionSource.CommandLine,
-                    Array.IndexOf(row.Choices!, EffectiveOptions.DefaultRenderer)),
-                GameTweakNames.DxgiRow => (Flag(effective.Dxgi), effective.DxgiSource == OptionSource.CommandLine, Flag(EffectiveOptions.DefaultDxgi)),
-                GameTweakNames.StallRepeatsRow => (Flag(effective.StallRepeats), effective.StallRepeatsSource == OptionSource.CommandLine, Flag(EffectiveOptions.DefaultStallRepeats)),
-                GameTweakNames.UpdateCheckRow => (Flag(effective.UpdateCheck), false, Flag(EffectiveOptions.DefaultUpdateCheck)),
-                GameTweakNames.GcRow => (Array.IndexOf(row.Choices!, effective.Gc), effective.GcSource == OptionSource.CommandLine,
-                    Array.IndexOf(row.Choices!, EffectiveOptions.DefaultGc)),
-                var name => (Flag(effective.Tweaks[name].On), effective.Tweaks[name].Source == OptionSource.CommandLine,
-                    Flag(EffectiveOptions.DefaultOn(name, GameTweakNames.OffByDefault))),
-            };
+            (int Value, bool Locked, int Default) State(TweakInfo row) => TweakRowState.Of(row, effective, file);
             // A tweak this game version can't run (GameTweaks.Unavailable): shown off, greyed out
             // and not changeable, its setting left as the file has it.
             var unavailable = GameTweaks.GameTweaks.Unavailable;
