@@ -487,7 +487,7 @@ def check_spec(spec):
         problems.append('`game_tweaks` is a list of `--game-tweak` values')
     needs = spec.get('ours_needs', {})
     if not isinstance(needs, dict) or not all(isinstance(f, str) and f and '/' not in f and isinstance(w, str) and w for f, w in needs.items()):
-        problems.append('`ours_needs` maps a file beside our host to what it is')
+        problems.append('`ours_needs` maps a file beside our host (FILE, or FILE:TEXT for a file holding TEXT) to what it is')
     game_args = spec.get('game_args', [])
     if not isinstance(game_args, list) or not all(isinstance(a, str) for a in game_args):
         problems.append('`game_args` is a list of strings')
@@ -2155,12 +2155,19 @@ class JobQueue:
 
 
 def ours_missing(spec, host_dir=None):
-    """Why ours can't run SPEC here (`ours_needs`: a file beside our release host, such as the
-    native allocator only Windows has), or None. Such a run is skipped, not failed."""
+    """Why ours can't run SPEC here (`ours_needs`: a file beside our release host, or FILE:TEXT,
+    a file holding TEXT, such as Moono's own executable with FMOD's allocator, which the SDK's
+    apphost has not), or None. Such a run is skipped, not failed."""
     host_dir = host_dir or os.path.join(ROOT, 'out', 'bin', 'OniMoono.Host', 'release')
     for name, what in spec.get('ours_needs', {}).items():
-        if not os.path.exists(os.path.join(host_dir, name)):
-            return f'needs {name} beside our host ({what}), not in {os.path.relpath(host_dir, ROOT)}'
+        file, _, text = name.partition(':')
+        path = os.path.join(host_dir, file)
+        if not os.path.exists(path):
+            return f'needs {file} beside our host ({what}), not in {os.path.relpath(host_dir, ROOT)}'
+        if text:
+            with open(path, 'rb') as f:
+                if text.encode() not in f.read():
+                    return f'needs {file} holding {text} ({what}), not the one in {os.path.relpath(host_dir, ROOT)}'
     return None
 
 
@@ -3445,8 +3452,10 @@ class Player:
             # OniMcp, in every spec, transpiles LoadScreen methods background-save patches: test
             # infrastructure, left out of the Moono Tweaks screen's mod overlaps.
             env['ONI_MOD_OVERLAPS_IGNORE'] = 'LIghtJUNction.OniMcp'
-            # A start-up failure goes to the log, never to a desktop dialog (DesktopDialog).
+            # A start-up failure goes to the log, never to a desktop dialog (DesktopDialog); a
+            # crash writes its record and ends the run, with no crash window to wait on.
             env['ONI_HOST_NO_DIALOG'] = '1'
+            env['ONI_MOONO_CRASH_DIALOG'] = 'off'
             env.update(self.extra_env)
             # `env: {ONI_TWEAK_SETTINGS: "1"}`: the tweaks as a player has them (the defaults and
             # the run home's settings, every tweak's row changeable), so no `--game-tweak` at all;

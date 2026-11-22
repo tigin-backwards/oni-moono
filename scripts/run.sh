@@ -20,6 +20,9 @@ export XDG_CONFIG_HOME="$home/config" XDG_CACHE_HOME="$home/cache"
 # Test runs never ask GitHub for releases (the main menu's update check): ONI_UPDATE_RELEASES_URL
 # names a releases file to use instead (tests/e2e/update-badge.yaml).
 export ONI_UPDATE_RELEASES_URL="${ONI_UPDATE_RELEASES_URL:-none}"
+# A crash writes its record with no crash window to wait on (a run home here is XDG_CONFIG_HOME,
+# not --run-home, which would keep it off too); ONI_MOONO_CRASH_DIALOG=on shows it.
+export ONI_MOONO_CRASH_DIALOG="${ONI_MOONO_CRASH_DIALOG:-off}"
 tweaks=(--game-tweak none --splash none --log-paths full)
 [ "${ONI_TWEAK_SETTINGS:-}" = 1 ] && tweaks=()
 exec "$root/scripts/contain.sh" "$root/out/bin/OniMoono.Host/${ONI_CONFIG:-debug}/OniMoono" --game "$game" "${tweaks[@]}" "$@"

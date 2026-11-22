@@ -216,8 +216,9 @@ tweaks_menu: true                # ours keeps the main menu's Moono Tweaks butto
 game_tweaks: [brain-rate]        # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
 env: {ONI_TWEAK_VERIFY: "1"}     # ours runs with these in its environment (ONI_TWEAK_SETTINGS: "1":
                                  # no --game-tweak at all, the tweaks as a player has them)
-ours_needs: {libOniMoonoNative.so: "FMOD's quarantine allocator"}   # ours is skipped, with this
-                                 # reason, when the file is not beside our release host
+ours_needs: {"OniMoono:moono_fmod_alloc": "FMOD's quarantine allocator"}   # ours is skipped, with
+                                 # this reason, when the file is not beside our release host
+                                 # (FILE:TEXT: or does not hold TEXT)
 scaled_screen: true              # the game may render smaller than the display (below)
 display_dpi: 144                 # the lane's Xvfb runs with -dpi 144 (the X screen's mm size)
 window_manager: true             # the lane runs scripts/e2e-wm.py: a 76-pixel panel, undecorated windows

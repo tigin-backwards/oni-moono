@@ -66,13 +66,27 @@ steps:
     def test_ours_needs_skips_without_the_file(self):
         s = spec('from: landing\nours_needs: {libX.so: "the X allocator"}\nsteps:\n  - run: {seconds: 1}\n')
         self.assertEqual(e2e.check_spec(s), [])
-        self.assertIn('`ours_needs` maps a file beside our host to what it is', e2e.check_spec(spec('from: landing\nours_needs: [libX.so]\n')))
+        self.assertIn(
+            '`ours_needs` maps a file beside our host (FILE, or FILE:TEXT for a file holding TEXT) to what it is',
+            e2e.check_spec(spec('from: landing\nours_needs: [libX.so]\n')),
+        )
         with tempfile.TemporaryDirectory() as host:
             reason = e2e.ours_missing(s, host)
             self.assertTrue(reason.startswith('needs libX.so beside our host (the X allocator)'), reason)
             open(os.path.join(host, 'libX.so'), 'w').close()
             self.assertIsNone(e2e.ours_missing(s, host))
         self.assertIsNone(e2e.ours_missing(spec('from: landing\n')))
+
+    def test_ours_needs_a_file_holding_text(self):
+        s = spec('from: landing\nours_needs: {"OniMoono:moono_fmod_alloc": "the allocator"}\nsteps:\n  - run: {seconds: 1}\n')
+        self.assertEqual(e2e.check_spec(s), [])
+        with tempfile.TemporaryDirectory() as host:
+            with open(os.path.join(host, 'OniMoono'), 'wb') as f:
+                f.write(b'\x7fELF apphost')
+            self.assertTrue(e2e.ours_missing(s, host).startswith('needs OniMoono holding moono_fmod_alloc (the allocator)'))
+            with open(os.path.join(host, 'OniMoono'), 'wb') as f:
+                f.write(b'\x7fELF moono_fmod_alloc')
+            self.assertIsNone(e2e.ours_missing(s, host))
 
     def test_setup_call_only_in_setup(self):
         s = spec('''
