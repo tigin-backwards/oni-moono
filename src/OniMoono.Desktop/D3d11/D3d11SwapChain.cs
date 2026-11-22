@@ -8,9 +8,11 @@ namespace OniMoono.Desktop.D3d11
     /// renders (CreateSwapChainForHwnd's pDevice "is a pointer to the Direct3D device for the swap
     /// chain"), so no shared texture, keyed mutex or interop is needed. Its settings are the
     /// original's, measured (docs/research/d3d11-captures.md §1): 2 buffers, FLIP_SEQUENTIAL,
-    /// R8G8B8A8_UNORM, flags ALLOW_MODE_SWITCH | FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING (the
-    /// last where the factory reports PRESENT_ALLOW_TEARING), maximum frame latency 2; Present(1, 0)
-    /// with vsync, Present(0, ALLOW_TEARING) without. Windowed only (full screen is M4).
+    /// R8G8B8A8_UNORM, BufferUsage SHADER_INPUT | RENDER_TARGET_OUTPUT (0x30; buffer 0 binds as SRV
+    /// and RTV), AlphaMode UNSPECIFIED, scaling STRETCH, flags ALLOW_MODE_SWITCH |
+    /// FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING (the last where the factory reports
+    /// PRESENT_ALLOW_TEARING), maximum frame latency 2; Present(1, 0) with vsync,
+    /// Present(0, ALLOW_TEARING) without. Windowed only (full screen is M4).
     internal sealed unsafe class D3d11SwapChain : IDisposable
     {
         const uint BufferCount = 2, MaximumFrameLatency = 2, WaitMilliseconds = 1000;
@@ -61,8 +63,8 @@ namespace OniMoono.Desktop.D3d11
             var desc = new Dxgi.SwapChainDesc1
             {
                 Width = (uint)w, Height = (uint)h, Format = Dxgi.FormatR8G8B8A8Unorm, SampleCount = 1,
-                BufferUsage = Dxgi.UsageRenderTargetOutput, BufferCount = BufferCount, Scaling = Dxgi.ScalingStretch,
-                SwapEffect = Dxgi.SwapEffectFlipSequential, AlphaMode = Dxgi.AlphaModeIgnore, Flags = flags,
+                BufferUsage = Dxgi.UsageShaderInput | Dxgi.UsageRenderTargetOutput, BufferCount = BufferCount, Scaling = Dxgi.ScalingStretch,
+                SwapEffect = Dxgi.SwapEffectFlipSequential, AlphaMode = Dxgi.AlphaModeUnspecified, Flags = flags,
             };
             IDXGISwapChain1* c;
             D3d11Context.Check(factory->lpVtbl->CreateSwapChainForHwnd(factory, (IUnknown*)device, hwnd, &desc, null, null, &c), "CreateSwapChainForHwnd");
@@ -117,17 +119,27 @@ namespace OniMoono.Desktop.D3d11
         /// Presents the back buffer: `interval` vertical blanks after the last (with vsync), or at
         /// once, tearing where allowed. A flip-model back buffer must be bound again after Present
         /// ("For best performance, use DXGI flip model"): the device sets its targets each frame.
-        /// Then waits for the frame-latency object, as an app made with
-        /// FRAME_LATENCY_WAITABLE_OBJECT does before rendering the next frame ("Reduce latency
-        /// with DXGI 1.3 swap chains"). Returns Present's result.
+        /// With vsync it then waits for the frame-latency object, as an app made with
+        /// FRAME_LATENCY_WAITABLE_OBJECT does before rendering its next frame ("Reduce latency with
+        /// DXGI 1.3 swap chains"); without vsync it does not wait, as the DXGI presenter
+        /// (DxgiSwapChain.PresentCopied: waiting was measured to cap the frame rate on the AMD
+        /// iGPU). Whether the original waits without vsync is UNVERIFIED. A wait that times out is
+        /// logged (the first three) and the frame goes on. Returns Present's result.
         public int Present(int interval)
         {
             interval = Math.Clamp(interval, 0, 4);
             uint presentFlags = interval == 0 && tearing ? Dxgi.PresentAllowTearing : 0;
             int hr = ((IDXGISwapChain*)chain)->lpVtbl->Present((IDXGISwapChain*)chain, (uint)interval, presentFlags);
-            if (hr >= 0) Dxgi.WaitForSingleObjectEx(waitable, WaitMilliseconds, 1);
+            presents++;
+            if (hr < 0 || interval == 0) return hr;
+            uint waited = Dxgi.WaitForSingleObjectEx(waitable, WaitMilliseconds, 0);
+            if (waited != Dxgi.WaitObject0 && timeouts++ < 3)
+                EngineLog.Engine($"d3d11: present {presents}: the frame-latency wait ended with 0x{waited:X} ({(waited == Dxgi.WaitTimeout ? $"timed out after {WaitMilliseconds} ms" : "not signalled")}); going on");
             return hr;
         }
+
+        long presents;
+        int timeouts;
 
         public string Describe()
             => $"swap chain {Width}x{Height} R8G8B8A8_UNORM, FLIP_SEQUENTIAL, {BufferCount} buffers, maximum frame latency {MaximumFrameLatency} (waitable), "
