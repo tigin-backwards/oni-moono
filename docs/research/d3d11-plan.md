@@ -69,8 +69,27 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
 | M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
 
-User decisions: default vs fallback (M6; proposed rule, not yet approved: D3D11 is the default if it is at
-least as fast as Vulkan in CPU frame time and fps on the same saves, else the fallback), merge (M8).
+User decisions: the merge (M8). The default is decided by the rule below.
+
+**Decided 2026-11-22: the default/fallback rule (M6).** D3D11 replaces Vulkan as the Windows default
+only if it is at least as fast; otherwise it is the fallback Vulkan falls back to (before OpenGL).
+
+- **When.** Only after done criteria 1–5 pass (a fast but incomplete device proves nothing), on a
+  quiet machine.
+- **Where.** The user's desktop on both GPUs: the RTX 3090 (NVIDIA) and the Radeon iGPU
+  (`--gpu integrated`, AMD), so two drivers decide, not one.
+- **What.** The saves and method of docs/PERFORMANCE.md "How it's measured": speed 3, 1280×720
+  windowed, PerfProbe, no autosaves, victory held off, a warm-up launch first, unfocused at High
+  priority, no frame stats.
+- **How.** Launches alternate D3D11 and Vulkan (ABAB…), at least 5 pairs per save and GPU. Per
+  pair: the fps ratio (D3D11/Vulkan, mean of kept windows) and the p99 frame-time ratio; also
+  logged, not judged: p50, the 1% low, the device thread's busy time.
+- **Pass.** In every (save, GPU) cell, the median fps ratio is ≥ 0.98 and the median p99 ratio is
+  ≤ 1.02.
+- **Noise.** A cell whose pair ratios spread more than ±5% around the median gets 5 more pairs.
+  Still undecided: it counts as a fail (a tie keeps Vulkan).
+- **Result.** Every cell passes: D3D11 is the default. Any cell fails: D3D11 is the fallback. The
+  table goes in the plan and PERFORMANCE.md either way.
 
 **Decided 2026-11-22: the binding.** No new package ("22MB is way too big"). Extend our hand-written
 COM declarations (`src/OniMoono.Desktop/Gl/Dxgi.cs`, or a sibling for D3D11) to what the device
