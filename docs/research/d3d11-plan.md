@@ -1,0 +1,111 @@
+# Direct3D 11 renderer: goal and plan
+
+Started 2026-11-22. This file is the goal's record: read it first when resuming the work.
+
+## Goal
+
+A Direct3D 11 renderer on Windows that runs the game's shipped D3D11 (DXBC) programs unmodified,
+equals the original's D3D11 behaviour wherever that can be measured, and lands on master once, as a
+finished unit, after every done criterion below passes and the user says so.
+
+## Rules
+
+- **Branch.** All work on the local `d3d11` branch (worktree `out/d3d11-wt`), never pushed; mirrored
+  to `~/projects/oni-brutal-d3d11-backup.git` (`git push ~/projects/oni-brutal-d3d11-backup.git
+  d3d11`). Rebased onto master regularly.
+- **Prep on master.** Small behaviour-neutral prep refactors may land on master (check.sh green), to
+  cut rebase conflicts.
+- **Priority.** Below GitHub issues, triage and the user's other requests, player slots included.
+  runq jobs use `RUNQ_LEVEL=burndown`.
+- **Discipline (as the Vulkan device).** Shipped programs, never our own translations. Unity's
+  conventions from public docs and measurement of the original only, never Unity engine source.
+  Every COM slot, struct and enum we use checked against the Windows SDK headers by an MSVC
+  static-assert check in the build; every return-code and behaviour assumption cited from
+  Microsoft's documentation or observed (with what, where, GPU and driver recorded).
+- **Reviews.** An adversarial review at the end of every milestone by a fresh agent given the code,
+  not conclusions: real bugs, defects, and invented API or cases. Each API use, guard, fallback and
+  fault hook is classed documented (cite), observed (evidence) or invented (remove). Open
+  UNVERIFIED notes block the milestone.
+
+## Done criteria (all required before merge)
+
+1. Every game shader (121 shaders, every pass and variant) draws through its shipped DXBC program;
+   the D3D11 debug layer reports zero errors and warnings over all QA runs.
+2. SystemInfo values, projection, `_ProjectionParams`/`_ZBufferParams`, render-texture formats,
+   orientation and ReadPixels, depth bias and swap-chain settings equal the original's D3D11 as
+   probed on the frozen build.
+3. Pixels match the OpenGL device within a stated tolerance over a fixed scene set: main menu, three
+   colonies with every overlay, starmap, loading screens, screenshots and timelapse, UI.
+4. Everything the Vulkan device does (the device inventory's checklist): textures, render textures,
+   readbacks and async readback, its own DXGI swap chain with repeats, splash, loading animation,
+   HDR, fullscreen and resize, start-up guard, deny list and fallback.
+5. Robustness: a fault hook per start-up step; device removed (`dxcap -forcetdr`) recovers or quits
+   cleanly with the error shown; alt-tab, resize, monitor changes; the GPU choice rule.
+6. Mods: all 38 mods with shaders draw; the 8 D3D11-only mods newly work; the Windows-bundle mods are
+   verified; the 2020.3 mod program layout is read (2018's is a stretch).
+7. Performance: CPU frame time and fps against Vulkan on the same saves (Windows, speed 3, a quiet
+   machine). The numbers decide default or fallback; the user makes that call.
+8. Correctness gates: the MSVC slot/struct check; no open UNVERIFIED notes; every milestone's review
+   resolved; a final full independent review.
+9. QA: check.sh, the release e2e list, a D3D11 twin of `vk-gate`, `u60-p2-renderer` with
+   `-force-d3d11` against the original, a full Windows dogfood on D3D11.
+10. Docs: ARCHITECTURE §3.5 for D3D11; a decision record superseding "No Direct3D renderer, by
+    choice" (`docs/research/unity-vs-moono.md`); options `--renderer d3d11` and `-force-d3d11`
+    honoured as Unity's player does.
+
+Out of scope: retiring OpenGL on Windows (decided later, on the results).
+
+## Milestones
+
+| # | Milestone | Ends when | Status |
+|---|---|---|---|
+| M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer; the user picks the binding (TerraFX package or its generated files vendored) | in progress |
+| M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | |
+| M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | |
+| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
+| M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
+| M6 | Performance | Threading design measured and tuned; table; the user's default/fallback call | |
+| M7 | Mods and compatibility | Mod set and SystemInfo parity | |
+| M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
+
+User decisions: binding (M0), default vs fallback (M6), merge (M8).
+
+## Research so far (M0)
+
+Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so they survive):
+
+- **Programs.** Every game shader carries D3D11 programs (121 shaders; 1,070 player subprograms,
+  960 distinct entries; vs/ps 4.0 and 5.0, one gs_4_0). Entries share the Vulkan entry layout
+  (magic 0x0C0A75BA, type, 4 statistics ints, keywords, payload, channel mask and pairs); the
+  payload is a 38-byte Unity prefix (byte 1 SRV count, byte 2 cbuffer count, byte 3 sampler count)
+  and one DXBC container (checksums valid 960/960). RDEF is stripped in 926/960; Unity's parameter
+  blob gives D3D registers directly (t#, s#, b# 960/960; cbuffer sizes 2,517/2,517). One entry per
+  stage; variants keyed per stage by the keywords it uses, and every Vulkan variant maps to an
+  exact D3D11 program for both stages (590/590). No D3D11 `DISABLE_TEMPERATURE_PARTICLES` variant of
+  LightBufferCompositor: the toggle does nothing on D3D11, as in the original Windows game.
+  Feature level 11_0 needed (SM5 in particle instancing, BlitToDepth*, the VR blit).
+- **Mods.** All 38 mods with shaders carry D3D11 programs (2,573 DXBC containers valid). 8 mods are
+  D3D11-only in every bundle (drawn by neither device today); 29 ship a D3D11-only Windows bundle.
+  Layouts: 2022.3/6000.3 as U60's; 2020.3 a different one (magic 0x0C07513C, bindings inline); 2018
+  an older table format.
+- **Bindings.** Recommended: TerraFX.Interop.Windows (MIT, ClangSharp-generated from the SDK
+  headers; trimmable, AOT-compatible; 28.4 MB DLL untrimmed, or vendor its generated d3d11/dxgi
+  files), plus the MSVC static-assert check. MSVC 14.44 and SDK 10.0.26100 are installed;
+  `ID3D11Device` 43 slots, `ID3D11DeviceContext` 115, existing Dxgi.cs D3D11 slots match.
+- **Conventions.** As Vulkan's: reversed Z, 0..w clip depth, UV origin at the top, render textures
+  rendered flipped, top-left viewport/scissor. Different: the viewport flips y (no shader-side
+  negation; UNVERIFIED that Unity's DXBC has none: disassemble), constant-buffer packing, inputs
+  bound by semantic, depth sampled through typeless formats. No half-texel offset; Gamma, so no sRGB.
+- **Device.** Implements `RenderDevice` (`OniMoono.UnityEngine/Engine/Rendering/RenderDevice.cs`)
+  and `IResourceWork`; draws arrive as `ProgramInputs` via `GlDrawRecorder`'s `RunDraw`. To change:
+  `ShaderCompilerPlatform` (Metal, GLCore, Vulkan only), `ShaderNative.ProgramsFor`,
+  `GlDrawRecorder.VariantsOf`, `RenderConventions(bool Vulkan, bool Flipped)`; turn off the OpenGL
+  device's D3D11 imitations (`Direct3DClip` for Klei/Stars, `AnimationLight`, #76) on a real D3D11
+  device. The flip swap chain is tied to its device, so the D3D11 device owns it (no shared
+  texture or keyed mutex). `-force-d3d11` is ignored today (`Options.cs`).
+- **Open (M0 items):** probes of the original (SystemInfo, projection, render-texture formats and
+  orientation, uploads, native pointers); RenderDoc captures (state, constant buffers, swap chain,
+  depth bias); driver command-list support and the original's CPU frame time; mods that branch on
+  the API and which bundle each loads on Windows; demand from issue logs; debug layer and RenderDoc
+  availability.
