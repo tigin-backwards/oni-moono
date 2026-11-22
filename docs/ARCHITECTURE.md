@@ -216,6 +216,24 @@ never one that lacks a requirement, and a software one only with `--renderer vul
 - `default` matches the original on each system. On Windows it takes a discrete GPU, as the
   exports ask the drivers. On Linux, where the original sets nothing and OpenGL draws on the
   driver's default GPU, it takes the first GPU the driver lists.
+- Under auto, `default` and `discrete` never move off a discrete GPU to a lesser one. When
+  discrete GPUs are listed and none meets the requirements (an old card or driver: Vulkan 1.2, no
+  dynamic rendering), Vulkan doesn't start and OpenGL does, which the exports and PRIME
+  variables steer to the discrete GPU as they steer the original's renderer. Taking the
+  integrated GPU instead cost such a laptop most of its frame rate, and nothing showed it. The
+  log says so (`renderer: OpenGL (Vulkan unavailable: GeForce GTX 680 (discrete, the GPU gpu
+  option default asks for): Vulkan 1.2.x, 1.3 needed; OpenGL draws on it instead (--renderer
+  vulkan uses Intel(R) HD Graphics 4000))`). On Linux under `default` this applies only when
+  the discrete GPU is the first listed, since otherwise OpenGL draws on the first one too.
+  Another discrete GPU that meets the requirements is still taken, and `--renderer vulkan` and
+  `integrated` keep the integrated GPU.
+- On Windows the log also names any hardware GPU that DXGI lists and Vulkan doesn't, matched by
+  LUID or by vendor and device id. DXGI can list one GPU twice: the RTX 3090 desktop has a
+  second entry whose LUID Vulkan never reports. (`vulkan: Windows lists the GPU …, which Vulkan does not; its Vulkan driver may be
+  missing or broken`). Without a Vulkan driver, that GPU is invisible to the choice above. It is
+  a log line only: DXGI also lists remote, indirect and virtual displays, and DXGI doesn't say
+  which adapters are discrete, so it changes nothing. Microsoft's adapters (Basic Render Driver,
+  WARP) are left out, and nothing is said when a Vulkan device gives no LUID.
 - The log names the devices Vulkan lists and the one taken (`vulkan: using NVIDIA GeForce RTX
   3090 (discrete, gpu option default)`, `…; gpu option integrated prefers an integrated GPU, and
   none is usable`, or on Linux `…: the first GPU the driver lists`).

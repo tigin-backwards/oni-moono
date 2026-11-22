@@ -296,6 +296,34 @@ namespace OniMoono.Desktop.Gl
             return (int)Math.Min(16384, Math.Max(needed, grown));
         }
 
+        /// An adapter as DXGI lists it.
+        public readonly record struct Adapter(string Name, uint VendorId, uint DeviceId, long Luid, bool Software);
+
+        /// The adapters DXGI lists, in its order (empty when DXGI can't list them).
+        public static IReadOnlyList<Adapter> Adapters()
+        {
+            var found = new List<Adapter>();
+            void* factory = null;
+            try
+            {
+                var iid = IIDFactory2;
+                if (Failed(CreateDXGIFactory2(0, &iid, &factory))) return found;
+                for (uint i = 0; ; i++)
+                {
+                    void* a;
+                    if (Failed(EnumAdapters1(factory, i, &a))) break;
+                    AdapterDesc1 desc = default;
+                    if (!Failed(GetDesc1(a, &desc))) found.Add(new Adapter(desc.Name, desc.VendorId, desc.DeviceId, desc.Luid, (desc.Flags & AdapterFlagSoftware) != 0));
+                    Release(ref a);
+                }
+                return found;
+            }
+            finally
+            {
+                Release(ref factory);
+            }
+        }
+
         /// The calling process's video memory use on the adapter `luid` (local, then non-local),
         /// in bytes; null when DXGI can't tell. Any thread: it makes and releases its own objects.
         public static (ulong Local, ulong NonLocal)? ProcessVideoMemory(long luid)

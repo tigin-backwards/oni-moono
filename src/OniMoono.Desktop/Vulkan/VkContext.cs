@@ -14,7 +14,8 @@ namespace OniMoono.Desktop.Vulkan
     internal sealed class VulkanUnavailableException(string message, Exception inner = null) : Exception(message, inner);
 
     /// A physical device as the selection sees it.
-    internal sealed record VkCandidate(string Name, VkPhysicalDeviceType Type, int ApiVersion, string Missing)
+    /// `Luid`: Windows' adapter LUID (0 when the driver gives none or off Windows).
+    internal sealed record VkCandidate(string Name, VkPhysicalDeviceType Type, int ApiVersion, string Missing, long Luid = 0, uint VendorId = 0, uint DeviceId = 0)
     {
         public bool Software => Type == VkPhysicalDeviceType.Cpu;
     }
@@ -79,9 +80,26 @@ namespace OniMoono.Desktop.Vulkan
         /// rasterizer (Mesa's lavapipe) only when `allowSoftware` (an explicit `--renderer
         /// vulkan`): auto would otherwise trade a hardware OpenGL device for a CPU one. Returns
         /// -1 with the reason when none fits.
+        ///
+        /// Under auto (not `allowSoftware`), "default" and "discrete" also never move off a
+        /// discrete GPU to a lesser one: when GPUs of that type are listed and none meets the
+        /// requirements, -1, so OpenGL starts, which the exports and PRIME variables steer to the
+        /// discrete GPU as they steer the original. Otherwise an old discrete GPU's driver
+        /// (Vulkan 1.2, say) would put the game on the integrated GPU. On Linux under "default"
+        /// only when the discrete GPU is the first listed (the driver's default, OpenGL's GPU).
         public static int Choose(IReadOnlyList<VkCandidate> candidates, string gpuChoice, bool allowSoftware, bool defaultInDriverOrder, out string reason)
         {
             bool driverOrder = defaultInDriverOrder && gpuChoice is not ("integrated" or "discrete");
+            var asked = candidates.FirstOrDefault(c => c.Type == VkPhysicalDeviceType.DiscreteGpu);
+            if (!allowSoftware && gpuChoice != "integrated" && asked != null
+                && !candidates.Any(c => c.Type == VkPhysicalDeviceType.DiscreteGpu && c.Missing == null)
+                && (!driverOrder || ReferenceEquals(candidates.FirstOrDefault(c => !c.Software), asked)))
+            {
+                var other = candidates.FirstOrDefault(c => !ReferenceEquals(c, asked) && c.Missing == null && !c.Software);
+                reason = $"{asked.Name} ({TypeName(asked.Type)}, the GPU gpu option {gpuChoice} asks for): {asked.Missing}; OpenGL draws on it instead"
+                         + (other != null ? $" (--renderer vulkan uses {other.Name})" : "");
+                return -1;
+            }
             int Rank(VkCandidate c) => (c.Type, gpuChoice) switch
             {
                 (VkPhysicalDeviceType.Cpu, _) => 4,
@@ -220,10 +238,13 @@ namespace OniMoono.Desktop.Vulkan
             foreach (var pd in Instance.PhysicalDevices)
             {
                 var p = pd.GetProperties();
-                candidates.Add(new VkCandidate(Utf8(p.DeviceName, 256), p.DeviceType, p.ApiVersion, MissingRequirements(pd, p)));
+                candidates.Add(new VkCandidate(Utf8(p.DeviceName, 256), p.DeviceType, p.ApiVersion, MissingRequirements(pd, p), OperatingSystem.IsWindows() ? LuidOf(pd, p) : 0, (uint)p.VendorID, (uint)p.DeviceID));
             }
             foreach (var c in candidates)
                 EngineLog.Engine($"vulkan: device {c.Name} ({TypeName(c.Type)}, Vulkan {Version(c.ApiVersion)}){(c.Missing != null ? ": " + c.Missing : "")}");
+            if (OperatingSystem.IsWindows())
+                foreach (var name in UnlistedByVulkan(OniMoono.Desktop.Gl.Dxgi.Adapters(), candidates))
+                    EngineLog.Engine($"vulkan: Windows lists the GPU {name}, which Vulkan does not; its Vulkan driver may be missing or broken");
             int chosen = Choose(candidates, gpuChoice, allowSoftware, OperatingSystem.IsLinux(), out var why);
             if (chosen < 0) throw new VulkanUnavailableException(why);
             Physical = Instance.PhysicalDevices[chosen];
@@ -327,6 +348,33 @@ namespace OniMoono.Desktop.Vulkan
             int n = 0;
             while (n < max && p[n] != 0) n++;
             return System.Text.Encoding.UTF8.GetString(p, n);
+        }
+
+        /// Windows' LUID for a physical device (0 when the driver gives none). Only asked of a
+        /// Vulkan 1.1 device: vkGetPhysicalDeviceProperties2 is core from 1.1, and the GPUs this
+        /// is about are old.
+        static long LuidOf(PhysicalDevice pd, VkPhysicalDeviceProperties p)
+        {
+            if (p.ApiVersion < ((1 << 22) | (1 << 12))) return 0;
+            var ids = new VkPhysicalDeviceIdProperties();
+            var props = new VkPhysicalDeviceProperties2 { Next = &ids };
+            pd.GetProperties2(ref props);
+            return ids.DeviceLUIDValid ? *(long*)ids.DeviceLUID : 0;
+        }
+
+        /// The hardware GPUs DXGI lists that no Vulkan device is (by LUID, or by vendor and
+        /// device id: DXGI may list one GPU twice, as on the RTX 3090 desktop, where a second
+        /// entry has a LUID Vulkan never reports): a GPU whose Vulkan driver is missing or
+        /// broken, which the choice above can't see. Only a log line, never a reason to change
+        /// renderer: DXGI also lists remote, indirect and virtual displays. Microsoft's own
+        /// adapters (Basic Render Driver, WARP) and software ones are left out, and nothing is
+        /// said when a Vulkan device gives no LUID (it might be any of them).
+        public static IEnumerable<string> UnlistedByVulkan(IReadOnlyList<OniMoono.Desktop.Gl.Dxgi.Adapter> dxgi, IReadOnlyList<VkCandidate> vulkan)
+        {
+            if (vulkan.Any(c => !c.Software && c.Luid == 0)) return [];
+            return dxgi.Where(a => !a.Software && a.VendorId != 0x1414 && a.Luid != 0
+                                && !vulkan.Any(c => c.Luid == a.Luid || (c.VendorId == a.VendorId && c.DeviceId == a.DeviceId)))
+                .Select(a => a.Name).ToList();
         }
 
         /// What a device lacks of this device's requirements (null: nothing).
