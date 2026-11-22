@@ -117,8 +117,8 @@ namespace OniMoono.Host
             if (root["renderer"] is JsonNode renderer)
             {
                 var value = renderer.GetValue<string>();
-                settings.Renderer = OniMoono.Desktop.Renderers.IsChoice(value) ? value
-                    : throw new FormatException($"renderer \"{value}\" is not one of: {string.Join(", ", OniMoono.Desktop.Renderers.Choices)}");
+                settings.Renderer = OniMoono.Desktop.Renderers.IsSettingsChoice(value) ? value
+                    : throw new FormatException($"renderer \"{value}\" is not one of: {string.Join(", ", OniMoono.Desktop.Renderers.SettingsChoices)}");
             }
             if (root["dxgi"] is JsonNode dxgi) settings.Dxgi = dxgi.GetValue<bool>();
             if (root["stallRepeats"] is JsonNode stallRepeats) settings.StallRepeats = stallRepeats.GetValue<bool>();

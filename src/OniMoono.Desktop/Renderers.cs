@@ -18,6 +18,11 @@ namespace OniMoono.Desktop
         public static readonly string[] Choices = [Auto, Vulkan, OpenGl, D3d11];
         public static bool IsChoice(string value) => Array.IndexOf(Choices, value) >= 0;
 
+        /// What settings.json may hold (the Tweaks screen's choices): d3d11 stays a command-line
+        /// choice until the device ships.
+        public static readonly string[] SettingsChoices = [Auto, Vulkan, OpenGl];
+        public static bool IsSettingsChoice(string value) => Array.IndexOf(SettingsChoices, value) >= 0;
+
         /// Opens the window and its device for a choice, logging which renderer it is and why.
         /// "auto" and "vulkan" try Vulkan first: the instance and a GPU that meets the
         /// requirements before a window exists, then the window's surface and swapchain; any

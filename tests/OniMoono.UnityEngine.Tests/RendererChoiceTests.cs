@@ -4,6 +4,7 @@ using Brutal.VulkanApi;
 using OniMoono.Desktop.Gl;
 using OniMoono.Desktop.Vulkan;
 using OniMoono.Host;
+using OniMoono.Host.GameTweaks;
 using Xunit;
 
 namespace OniMoono.Tests
@@ -11,6 +12,25 @@ namespace OniMoono.Tests
     /// The renderer option (settings file, command line) and the Vulkan device's GPU selection.
     public class RendererChoiceTests
     {
+        [Fact]
+        public void TheTweaksScreenTakesARendererItDoesNotOffer()
+        {
+            // --renderer d3d11 (not one of the row's choices): the row shows locked, at what the
+            // settings file keeps, else the default, and never indexes outside its choices.
+            var row = System.Linq.Enumerable.First(GameTweakNames.Rows, r => r.Id == GameTweakNames.RendererRow);
+            var file = PlayerSettings.Parse("""{ "renderer": "opengl" }""");
+            var o = EffectiveOptions.Resolve([], [], [], null, false, file, commandLineRenderer: "d3d11");
+            var state = TweakRowState.Of(row, o, file);
+            Assert.Equal((System.Array.IndexOf(row.Choices!, "opengl"), true), (state.Value, state.Locked));
+            Assert.Equal("auto", row.Choices![state.Default]);
+            o = EffectiveOptions.Resolve([], [], [], null, false, new PlayerSettings(), commandLineRenderer: "d3d11");
+            state = TweakRowState.Of(row, o, new PlayerSettings());
+            Assert.Equal(("auto", true), (row.Choices![state.Value], state.Locked));
+            // A choice the row offers is shown as before.
+            o = EffectiveOptions.Resolve([], [], [], null, false, file, commandLineRenderer: "vulkan");
+            Assert.Equal(("vulkan", true), (row.Choices![TweakRowState.Of(row, o, file).Value], TweakRowState.Of(row, o, file).Locked));
+        }
+
         [Fact]
         public void TheSettingsFileAndCommandLineChooseIt()
         {
@@ -23,8 +43,10 @@ namespace OniMoono.Tests
             Assert.Equal(("vulkan", OptionSource.CommandLine), (o.Renderer, o.RendererSource));
             Assert.Contains("renderer vulkan (the command line)", o.Describe());
             Assert.Throws<FormatException>(() => PlayerSettings.Parse("""{ "renderer": "metal" }"""));
-            // The Direct3D 11 device being built (Renderers.D3d11) is a choice, though not on the Tweaks screen.
-            Assert.Equal("d3d11", PlayerSettings.Parse("""{ "renderer": "d3d11" }""").Renderer);
+            // The Direct3D 11 device being built (Renderers.D3d11) is a command-line choice only.
+            Assert.Throws<FormatException>(() => PlayerSettings.Parse("""{ "renderer": "d3d11" }"""));
+            o = EffectiveOptions.Resolve([], [], [], null, false, file, commandLineRenderer: "d3d11");
+            Assert.Equal(("d3d11", OptionSource.CommandLine), (o.Renderer, o.RendererSource));
             // Saved only when it isn't the default; kept when the screen didn't set it.
             Assert.Equal("{\"renderer\":\"vulkan\"}", EffectiveOptions.Apply(new PlayerSettings(), [], new Dictionary<string, bool>(), null, null, renderer: "vulkan").ToJson(indented: false));
             Assert.Equal("{}", EffectiveOptions.Apply(file, [], new Dictionary<string, bool>(), null, null, renderer: "auto").ToJson(indented: false));
