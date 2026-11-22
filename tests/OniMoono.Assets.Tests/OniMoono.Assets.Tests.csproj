@@ -12,6 +12,8 @@
   <ItemGroup>
     <!-- What the tests need of the game install, and the skips without it (GameInstall). -->
     <Compile Include="../Shared/*.cs" Link="Shared/%(Filename)%(Extension)" />
+    <!-- ShaderSurvey's D3D11 check, run on the frozen data by D3d11DataTests. -->
+    <Compile Include="../../tools/ShaderSurvey/Data.cs;../../tools/ShaderSurvey/D3d11Survey.cs" Link="ShaderSurvey/%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/OniMoono.Assets/OniMoono.Assets.csproj" />

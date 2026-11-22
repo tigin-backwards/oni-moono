@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using OniMoono.Assets.Files;
 using OniMoono.Assets.Shaders;
 using OniMoono.Assets.TypeTrees;
@@ -18,10 +22,12 @@ namespace ShaderSurvey;
 ///   variant's keywords K, D3d11Variants.Select picks in every stage the program whose keywords
 ///   are exactly K ∩ (the keywords that stage's programs use).
 /// Mod shaders serialized before Unity 2021.2 (no shader-wide keyword names: 2020.3 and 2018
-/// bundles) are another entry layout and are counted, not read.
+/// bundles) are another entry layout and are counted, not read. A bundle, serialized file or
+/// shader that cannot be read is a failure. Its source is also compiled into
+/// OniMoono.Assets.Tests, whose D3d11DataTests run it on the frozen data.
 static class D3d11Survey
 {
-    sealed class Totals
+    public sealed class Totals
     {
         public int Shaders, Subprograms, Entries, VulkanKeys, Passes, LegacyShaders, Failures, Textures, TexturesWithoutSampler, InlineSamplers, ConstantBuffers;
         public long DxbcBytes;
@@ -32,14 +38,23 @@ static class D3d11Survey
         public readonly SortedDictionary<string, int> CbSecondInt = new(StringComparer.Ordinal);
     }
 
-    public static int RunGame(string dataDir, TextWriter o)
+    public static int RunGame(string dataDir, TextWriter o) => Report(Game(dataDir, o), o);
+
+    public static int RunBundles(string wsDir, TextWriter o)
     {
-        var t = new Totals();
-        foreach (var (file, shader) in Data.Shaders(dataDir)) Shader($"{file}", shader, t, o);
+        var t = Bundles(wsDir, o);
+        o.WriteLine($"{t.LegacyShaders} shaders with D3D11 programs serialized before Unity 2021.2 (another entry layout), not read");
         return Report(t, o);
     }
 
-    public static int RunBundles(string wsDir, TextWriter o)
+    public static Totals Game(string dataDir, TextWriter o)
+    {
+        var t = new Totals();
+        foreach (var (file, shader) in Data.Shaders(dataDir)) Shader($"{file}", shader, t, o);
+        return t;
+    }
+
+    public static Totals Bundles(string wsDir, TextWriter o)
     {
         var t = new Totals();
         foreach (var modDir in Directory.EnumerateDirectories(wsDir).Order(StringComparer.Ordinal))
@@ -53,7 +68,7 @@ static class D3d11Survey
                 try { archive = UnityFsArchive.Open(path); }
                 catch (Exception e)
                 {
-                    o.WriteLine($"# {mod}/{bundle}: not read: {e.GetType().Name}: {e.Message}");
+                    Fail(t, o, $"{mod}/{bundle}: bundle not read: {e.GetType().Name}: {e.Message}");
                     continue;
                 }
                 foreach (var node in archive.Nodes)
@@ -61,7 +76,11 @@ static class D3d11Survey
                     if (node.Path.EndsWith(".resS", StringComparison.Ordinal) || node.Path.EndsWith(".resource", StringComparison.Ordinal)) continue;
                     SerializedFile file;
                     try { file = SerializedFile.Parse(node.Path, archive.Read(node)); }
-                    catch (Exception e) when (e is InvalidDataException or NotSupportedException or ArgumentException) { continue; }
+                    catch (Exception e)
+                    {
+                        Fail(t, o, $"{mod}/{bundle} {node.Path}: serialized file not read: {e.GetType().Name}: {e.Message}");
+                        continue;
+                    }
                     foreach (var info in file.Objects)
                     {
                         var type = file.TypeOf(info);
@@ -70,7 +89,7 @@ static class D3d11Survey
                         try { shader = type.Tree != null ? TypeTreeReader.ReadObject(type.Tree, file.OpenObject(info), TypeTreeDatabase.TrailingBytes(48)) : TypeTreeReader.ReadNative(48, file.OpenObject(info)); }
                         catch (Exception e)
                         {
-                            o.WriteLine($"# {mod}/{bundle}: shader not read: {e.GetType().Name}: {e.Message}");
+                            Fail(t, o, $"{mod}/{bundle}: shader not read: {e.GetType().Name}: {e.Message}");
                             continue;
                         }
                         if (!shader.Contains("platforms") || Array.IndexOf(shader.Get<uint[]>("platforms"), ShaderCompilerPlatform.D3D11) < 0) continue;
@@ -84,8 +103,7 @@ static class D3d11Survey
                 }
             }
         }
-        o.WriteLine($"{t.LegacyShaders} shaders with D3D11 programs serialized before Unity 2021.2 (another entry layout), not read");
-        return Report(t, o);
+        return t;
     }
 
     static int Report(Totals t, TextWriter o)
@@ -104,16 +122,19 @@ static class D3d11Survey
     static void Shader(string where, Fields shader, Totals t, TextWriter o)
     {
         string name = Data.NameOf(shader);
-        ShaderProgramTable? table;
-        try { table = ShaderProgramTable.Load(shader, ShaderCompilerPlatform.D3D11); }
+        ShaderProgramTable? table, vulkanTable;
+        try
+        {
+            table = ShaderProgramTable.Load(shader, ShaderCompilerPlatform.D3D11);
+            vulkanTable = ShaderProgramTable.Load(shader, ShaderCompilerPlatform.Vulkan);
+        }
         catch (Exception e)
         {
-            Fail(t, o, $"{where} {name}: platform-4 table: {e.Message}");
+            Fail(t, o, $"{where} {name}: platform tables: {e.Message}");
             return;
         }
         if (table == null) return;
         t.Shaders++;
-        var vulkanTable = ShaderProgramTable.Load(shader, ShaderCompilerPlatform.Vulkan);
         var programs = new Dictionary<int, D3d11Program?>();
         var subprograms = Data.Subprograms(shader).ToList();
         foreach (var x in subprograms.Where(x => x.Sub.Platform == ShaderCompilerPlatform.D3D11))
