@@ -236,19 +236,24 @@ declarations too.
   side); `scripts/build-native-host.sh` stages it and `build.cmd` compiles it before the host
   (beside M1's `dxbc_check.cpp`), so a difference fails `build-windows.sh` and CI's Windows build;
   `check.sh` runs `com-check.sh`. `setup.ps1`'s from-source host build skips it (no generator).
-- **Proof** (j0008302, one job, `tools/ComCheckGen/mutation_proof.py` on a `git archive` copy of
-  7d07d39e2): the unchanged copy passes, first and last; each of 17 mutations, one per run, fails
-  the check itself (an MSVC static_assert, the export lookup, or the generator; none fails by
-  breaking the C# build):
-  slot (`Map` 14 → 15); signature (`DrawIndexed`'s `int` → `uint`); struct offset
-  (`D3D11_DEPTH_STENCIL_VIEW_DESC.Texture2D` at 8); IID (`ID3D11Device`'s last byte); a field's
-  `[As("LONG")]` over a `float`, and over a `uint` (signedness); a pointer `[As("UINT*")]` over
-  `D3D11_TEXTURE2D_DESC*`; `void*` for `const SECURITY_ATTRIBUTES*` without Opaque; an Opaque
-  not needed (REFIID); an `[As]` enum over another enum; an enumerator put in another enum; a
-  `char` in a DllImport; a static field that is not a declaration; a function-pointer field of the
-  wrong type; a `[Native]` DllImport in a class without `[Native]`; a LibraryImport; and
-  `CreateDXGIFactory2` declared in d3d11.dll ("d3d11.dll does not export CreateDXGIFactory2"). An
-  earlier run (j0008222) had three mutations that only broke the C# build; they were replaced.
+- **Proof** (j0008335, one job, `tools/ComCheckGen/mutation_proof.py` on a `git archive` copy of
+  219d022e0): the unchanged copy passes, first and last; each of 26 mutations, one per run, fails
+  the check itself (an MSVC static_assert, the export lookup, or the generator; none breaks the
+  C# build):
+  - the first review's: slot (`Map` 14 → 15); signature (`DrawIndexed`'s `int` → `uint`); struct
+    offset (`D3D11_DEPTH_STENCIL_VIEW_DESC.Texture2D` at 8); IID (`ID3D11Device`'s last byte); a
+    field's `[As("LONG")]` over a `float`, and over a `uint`; a pointer `[As("UINT*")]` over
+    `D3D11_TEXTURE2D_DESC*`; `void*` for `const SECURITY_ATTRIBUTES*` without Opaque; an Opaque not
+    needed; an `[As]` enum over another enum; an enumerator put in another enum; a `char` in a
+    DllImport; a static field that is not a declaration; a function-pointer field of the wrong
+    type; a `[Native]` DllImport in a class without `[Native]` (now checked, and wrong); a
+    LibraryImport; `CreateDXGIFactory2` declared in d3d11.dll;
+  - the second review's: an enumerator named by an expression (`(D3D11_USAGE)7`); a constant
+    named by a literal (`0x400`); an expression naming no SDK identifier; `ID3D11Debug` without
+    `[Native]` and its slot moved; a DllImport in a class the check does not read; a
+    `[UnmanagedFunctionPointer]` delegate and a function-pointer field without `[Native]` or
+    `[NotNative]`; IntPtr by value for a `HANDLE*`; `void*` for an `ID3D11DeviceContext**`.
+  - Earlier runs: j0008222 (three of its mutations only broke the C# build), j0008302.
 - **Smoke test** (`tools/D3d11Smoke`, j0008219, light): a device on all 4 adapters, flags
   BGRA_SUPPORT and BGRA_SUPPORT | DEBUG, every value printed. Each equals `d3d11-captures.md` §4:
   both RTX 3090 entries (LUIDs 125ad and 1f659) and the AMD iGPU at FL 11_1;
