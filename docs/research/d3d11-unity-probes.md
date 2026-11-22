@@ -161,7 +161,8 @@ All 16 captures, for each renderer:
 | `_ScreenParams` | (64, 32, 1.015625, 1.03125) | (1024, 768, 1.000977, 1.001302) | (64, 32, 1.015625, 1.03125) | (1024, 768, 1.000977, 1.001302) |
 | `unity_OrthoParams`, perspective | (6, 3, 0, 0) | (4, 3, 0, 0) | (6, 3, 0, 0) | (4, 3, 0, 0) |
 | `unity_OrthoParams`, ortho | (6, 3, 0, 1) | (4, 3, 0, 1) | (6, 3, 0, 1) | (4, 3, 0, 1) |
-| `unity_MatrixVP` y scale (perspective) | −2.1445 | +2.1445 | +2.1445 (column 0 only read, see UNVERIFIED) | |
+| `unity_MatrixVP` y scale (perspective) | −2.1445 | +2.1445 | +2.1445 | +2.1445 |
+| `unity_MatrixVP` y scale (ortho) | −0.33333 | +0.33333 | +0.33333 | +0.33333 |
 
 - **`_ZBufferParams`.**
   - Direct3D 11 has the reversed form: x = −1 + far/near, y = 1, z = x/far, w = 1/far.
@@ -295,7 +296,8 @@ triangles are wound in Unity's y-up pixel space.
 
 **Depth.** `Hidden/Internal-Colored` with ZTest LEqual: red at z 0.5, then green at z −0.5
 (left half) and blue at z 0.9 (right half). The read gives red on the left and blue on the right
-on both renderers: z is eye-space depth through LoadPixelMatrix's ortho.
+on both renderers: the larger z is nearer. z is a view-space coordinate (the camera looks down
+−z); that LoadPixelMatrix's ortho maps clip z from −z is inferred, not measured.
 
 **Stored depth after `GL.Clear(depth = v)`.** Read by sampling a `RenderTextureFormat.Depth`
 target (24 bits requested) through Blit into ARGBFloat:
@@ -421,7 +423,10 @@ internal format of each, from `glGetTextureLevelParameteriv`:
 3. **UV origin.** `graphicsUVStartsAtTop` is True on Direct3D 11 and False on GLCore.
 4. **Depth formats.** 24 bits becomes **D32_SFloat_S8_UInt** on Direct3D 11 (DXGI
    R32G8X24_TYPELESS) and D24_UNorm_S8_UInt on GLCore. `DefaultFormat.DepthStencil` follows.
-   D24_UNorm and S8 alone are unsupported on Direct3D 11.
+   Unity's `IsFormatSupported` reports GraphicsFormat D24_UNorm and S8_UInt unsupported on
+   Direct3D 11; that is Unity's answer, not the hardware's: both GPUs support DXGI
+   D24_UNORM_S8_UINT (45) (`CheckFormatSupport` 0x3310b0, [d3d11-captures.md](d3d11-captures.md)
+   §4). Unity chooses D32S8 for 24 bits.
 5. **Texture and RT storage.**
    - RT colour textures are TYPELESS resources with SRV|RTV bind; depth RTs are TYPELESS with
      SRV|DSV.
@@ -461,12 +466,20 @@ internal format of each, from `glGetTextureLevelParameteriv`:
 
 1. **What `GetNativeDepthBufferPtr` and `RenderBuffer.GetNativeRenderBufferPtr` point to on
    Direct3D 11.** They were not dereferenced.
-2. **Whether the "screen" camera's target is the swap chain's buffer or an intermediate
-   texture.** It is a 1024×768 R8G8B8A8_TYPELESS texture with SRV|RTV bind. No DXGI query was
-   made on it.
-3. **GLCore's `unity_MatrixVP` y sign in a render texture.** Only element 0 of each
-   `hlslcc_mtx4x4` array was read. `_ProjectionParams.x` = +1 and GetGPUProjectionMatrix being
-   the identity point to no flip.
+2. ~~Whether the "screen" camera's target is the swap chain's buffer.~~ **Settled by a
+   cross-run inference:** it is a 1024×768 R8G8B8A8_TYPELESS (27) texture, while the swap chain's
+   buffer 0 measured in part C is R8G8B8A8_UNORM (28) with the same bind flags
+   ([d3d11-captures.md](d3d11-captures.md) §1). One texture cannot report two formats, so the
+   camera draws to an intermediate texture, not buffer 0 (in those runs and window modes; the
+   pointers were not compared).
+3. ~~GLCore's `unity_MatrixVP` y sign in a render texture.~~ **Measured** in a re-run (job
+   j0008169, `-force-glcore`, raw lines in
+   [d3d11/unity-probes-glcore-2.txt](d3d11/unity-probes-glcore-2.txt)) that reads every element
+   of the `hlslcc_mtx4x4` arrays.
+   - The y scale is +2.1445 (perspective) and +0.33333 (ortho), the same in the 64×32 render
+     texture and on screen. GLCore does not flip render textures.
+   - The full perspective VP in the render texture is c0 (1.07225, 0, 0, 0), c1 (0, 2.14451, 0,
+     0), c2 (0, 0, 1.00501, 1), c3 (−1.07225, −4.28901, 9.04762, 10).
 4. **The exact float form of GetGPUProjectionMatrix's z row** (`0.5·p3 − 0.5·p2` against
    `0.5·(p3 − p2)`), and the sign of the zeros it produces in row 2. The six inputs agree with
    both forms.
