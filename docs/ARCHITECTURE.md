@@ -1258,6 +1258,17 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   or in a trampoline for a conditional branch). A method whose depths differ otherwise (two
   non-empty depths, a switch, code after the join taking the values) is left as it was, and
   each change is logged. `--check-types` transpiles a `foreach` so and runs it.
+  Mono's leniency is narrower than the pass's. `handle_stack_args` keeps the depth the first
+  path to bring values sets, so when that path comes first the values flow on past the join,
+  and a `ret` they reach fails (`if (sp != stack_start) UNVERIFIED` in `MONO_CEE_RET`); only a
+  `leave` empties the stack on the way. The pass evens such methods too, so they load in ours
+  where the original refuses them. Better Info Cards [AI FIX] (3843914778) is one: its
+  transpiler leaves a `KSelectable` on the stack before `GetComponent<PrimaryElement>()` in
+  `SelectToolHoverTextCard.UpdateHoverElements`. In U59 the loop body walked the status items
+  with two `foreach` loops, whose `leave` dropped it each pass. U60 made them indexed `for`
+  loops over `StatusItemGroup`, so the value now reaches the method's final `ret` and the
+  original refuses the patch at start (found by a model of Mono's check over the patched
+  method; no run). Ours pops it before the loop's increment, and the mod loads.
 - **D44 Nested types named with '/'.** Mono's lookup of a class by name takes '/' between a
   nested type and its outer type as well as '+' (`metadata/class.c`: the name is split at its
   first '/', and `return_nested_in` follows the rest one '/' at a time), so
