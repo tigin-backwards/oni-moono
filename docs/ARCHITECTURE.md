@@ -1267,8 +1267,9 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   `SelectToolHoverTextCard.UpdateHoverElements`. In U59 the loop body walked the status items
   with two `foreach` loops, whose `leave` dropped it each pass. U60 made them indexed `for`
   loops over `StatusItemGroup`, so the value now reaches the method's final `ret` and the
-  original refuses the patch at start (found by a model of Mono's check over the patched
-  method; no run). Ours pops it before the loop's increment, and the mod loads.
+  original refuses the patch at start (measured: InvalidProgramException "IL_227b: ret", the mod
+  disabled and the game exiting). Ours pops it before the loop's increment and, through D17's
+  try-entry pass, before a try block, and the mod loads and draws its cards.
 - **D44 Nested types named with '/'.** Mono's lookup of a class by name takes '/' between a
   nested type and its outer type as well as '+' (`metadata/class.c`: the name is split at its
   first '/', and `return_nested_in` follows the rest one '/' at a time), so
