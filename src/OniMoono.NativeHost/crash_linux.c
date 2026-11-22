@@ -1352,6 +1352,9 @@ static void watch(pid_t game, int pipe_read, int err_out, const char *exe, int a
     set_title(argc, argv);
     pthread_t reader;
     int reading = pipe_read >= 0 && pthread_create(&reader, NULL, pass_on, (void *)(intptr_t)pipe_read) == 0;
+    /* No reader: close the pipe, so the game's writes fail (the runtime ignores SIGPIPE) rather
+       than block once it fills. */
+    if (pipe_read >= 0 && !reading) close(pipe_read);
 
     int status = 0;
     while (waitpid(game, &status, 0) < 0 && errno == EINTR) { }
