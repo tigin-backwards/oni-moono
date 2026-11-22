@@ -4,8 +4,11 @@
 //   / CreateDeferredContext slots are hooked from pn_ctx_hook on: each shader is logged with its
 //   DXBC container checksum (bytes 4..19, which the shipped programs carry), each input layout
 //   with its elements, each deferred context made, so a frame's draws can be named afterwards.
-// - The immediate context's vtable (shared by every context of its class) has its draw, state,
-//   binding, Map/Unmap, update, copy and clear slots hooked. Outside a recorded frame the hooks
+// - The immediate context has its draw, state, binding, Map/Unmap, update, copy and clear slots
+//   hooked, and so does each deferred context made after the hook. Each context object holds its
+//   own copy of the vtable (measured: vtable = object + 8, PAGE_READWRITE, MEM_PRIVATE), so the
+//   forward targets are kept per vtable, and the runtime's rewrites of slots are followed
+//   (RepatchTable). Outside a recorded frame the hooks
 //   only forward. pn_ctx_arm() records the frame between the next two Present calls: every call
 //   is counted by entry point and context, state settings are counted as changes only when the
 //   object differs from the one the context had, Map and UpdateSubresource are classed by
@@ -191,110 +194,100 @@ typedef void(STDMETHODCALLTYPE *ResolveFn)(CTX *, ID3D11Resource *, UINT, ID3D11
 typedef void(STDMETHODCALLTYPE *ExecFn)(CTX *, ID3D11CommandList *, BOOL);
 typedef HRESULT(STDMETHODCALLTYPE *FinishFn)(CTX *, BOOL, ID3D11CommandList **);
 
-static DrawFn oDraw;
-static DrawIndexedFn oDrawIndexed;
-static DrawInstancedFn oDrawInstanced;
-static DrawIndexedInstancedFn oDrawIndexedInstanced;
-static DrawAutoFn oDrawAuto;
-static DrawIndirectFn oDrawIndexedInstancedIndirect, oDrawInstancedIndirect;
-static DispatchFn oDispatch;
-static SetVSFn oVSSetShader;
-static SetPSFn oPSSetShader;
-static SetGSFn oGSSetShader;
-static SetCBFn oVSSetCB, oPSSetCB, oGSSetCB;
-static SetCB1Fn oVSSetCB1, oPSSetCB1, oGSSetCB1;
-static SetSRVFn oVSSetSRV, oPSSetSRV, oGSSetSRV;
-static SetSamplersFn oVSSetSamp, oPSSetSamp, oGSSetSamp;
-static SetILFn oIASetInputLayout;
-static SetVBFn oIASetVertexBuffers;
-static SetIBFn oIASetIndexBuffer;
-static SetTopoFn oIASetTopology;
-static SetRSFn oRSSetState;
-static SetVPFn oRSSetViewports;
-static SetScissorFn oRSSetScissorRects;
-static SetBSFn oOMSetBlendState;
-static SetDSFn oOMSetDepthStencilState;
-static SetRTFn oOMSetRenderTargets;
-static SetRTUAVFn oOMSetRTUAV;
-static MapFn oMap;
-static UnmapFn oUnmap;
-static UpdateFn oUpdate;
-static Update1Fn oUpdate1;
-static CopyResFn oCopyResource;
-static CopyRegionFn oCopyRegion;
-static ClearRTVFn oClearRTV;
-static ClearDSVFn oClearDSV;
-static GenMipsFn oGenMips;
-static ResolveFn oResolve;
-static ExecFn oExec;
-static FinishFn oFinish;
 
 static void LogDraw(CTX *c, const char *what);
 
 #define REC (recording)
+// ID3D11DeviceContext1's vtable starts with ID3D11DeviceContext's (asserted below).
+#define SLOT1(m) (offsetof(ID3D11DeviceContext1Vtbl, m) / sizeof(void *))
+_Static_assert(sizeof(ID3D11DeviceContext1Vtbl) / sizeof(void *) <= 192, "slot table size");
 
 // The immediate context's vtable is a copy inside the object (measured: vtable = object + 8 on
 // the RTX 3090's runtime), and its Draw entries do not keep a hook (measured: a frame recorded
 // with them hooked once counted no draws while every Set and Map hook counted). So while a frame
 // is recorded, after every hooked call each hooked slot is checked and, when the runtime has put
 // another function there, that function becomes the slot's forward target and the hook goes back.
-#define HOOKS 64
-static struct { size_t slot; void *hook; void **orig; LONG rewrites; const char *name; } hooks[HOOKS];
-static int nhooks;
-static void Repatch(CTX *c)
+// The forward targets are kept per vtable (each context object has its own copy), by slot.
+#define VTS 4
+#define SLOTS 192
+static void **vts[VTS];
+static int nvts;
+static void *fwd[VTS][SLOTS];
+static volatile LONG unknownVtable;
+/// The index of a hooked context's vtable. A call through a vtable not hooked here (it can reach
+/// a hook only if the runtime copied a hooked table) forwards to the first table's targets and
+/// is counted (reported with each frame).
+static int VtIndex(const void *c)
 {
     void **vt = *(void ***)c;
+    for (int i = 0; i < nvts; i++)
+        if (vts[i] == vt) return i;
+    InterlockedIncrement(&unknownVtable);
+    return 0;
+}
+#define FWD(T, c, m) ((T)fwd[VtIndex(c)][SLOT1(m)])
+#define HOOKS 64
+static struct { size_t slot; void *hook; LONG rewrites, armRewrites; const char *name; } hooks[HOOKS];
+static int nhooks;
+/// Puts the hooks back into hooked vtable V where the runtime has replaced them; the runtime's
+/// function becomes that vtable's forward target for the slot.
+static void RepatchTable(int v, int arm)
+{
+    void **vt = vts[v];
     for (int i = 0; i < nhooks; i++)
         if (vt[hooks[i].slot] != hooks[i].hook)
         {
-            *hooks[i].orig = vt[hooks[i].slot];
+            fwd[v][hooks[i].slot] = vt[hooks[i].slot];
             vt[hooks[i].slot] = hooks[i].hook;
-            hooks[i].rewrites++;
+            if (arm) hooks[i].armRewrites++;
+            else hooks[i].rewrites++;
         }
 }
-static void STDMETHODCALLTYPE HDraw(CTX *c, UINT a, UINT b) { if (REC) { CtxCount(c, F_Draw, 1); LogDraw(c, "Draw"); } oDraw(c, a, b); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HDrawIndexed(CTX *c, UINT a, UINT b, INT d) { if (REC) { CtxCount(c, F_DrawIndexed, 1); LogDraw(c, "DrawIndexed"); } oDrawIndexed(c, a, b, d); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HDrawInstanced(CTX *c, UINT a, UINT b, UINT d, UINT e) { if (REC) { CtxCount(c, F_DrawInstanced, 1); LogDraw(c, "DrawInstanced"); } oDrawInstanced(c, a, b, d, e); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HDrawIndexedInstanced(CTX *c, UINT a, UINT b, UINT d, INT e, UINT f) { if (REC) { CtxCount(c, F_DrawIndexedInstanced, 1); LogDraw(c, "DrawIndexedInstanced"); } oDrawIndexedInstanced(c, a, b, d, e, f); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HDrawAuto(CTX *c) { if (REC) { CtxCount(c, F_DrawAuto, 1); LogDraw(c, "DrawAuto"); } oDrawAuto(c); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HDrawIII(CTX *c, ID3D11Buffer *b, UINT o) { if (REC) { CtxCount(c, F_DrawIndexedInstancedIndirect, 1); LogDraw(c, "DrawIndexedInstancedIndirect"); } oDrawIndexedInstancedIndirect(c, b, o); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HDrawII(CTX *c, ID3D11Buffer *b, UINT o) { if (REC) { CtxCount(c, F_DrawInstancedIndirect, 1); LogDraw(c, "DrawInstancedIndirect"); } oDrawInstancedIndirect(c, b, o); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HDispatch(CTX *c, UINT x, UINT y, UINT z) { if (REC) CtxCount(c, F_Dispatch, 0); oDispatch(c, x, y, z); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HVSSetShader(CTX *c, ID3D11VertexShader *s, ID3D11ClassInstance *const *i, UINT n) { if (REC) { CtxCount(c, F_VSSetShader, 0); CHANGED(F_VSSetShader, lastVS, s); } oVSSetShader(c, s, i, n); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HPSSetShader(CTX *c, ID3D11PixelShader *s, ID3D11ClassInstance *const *i, UINT n) { if (REC) { CtxCount(c, F_PSSetShader, 0); CHANGED(F_PSSetShader, lastPS, s); } oPSSetShader(c, s, i, n); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HGSSetShader(CTX *c, ID3D11GeometryShader *s, ID3D11ClassInstance *const *i, UINT n) { if (REC) { CtxCount(c, F_GSSetShader, 0); CHANGED(F_GSSetShader, lastGS, s); } oGSSetShader(c, s, i, n); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HVSSetCB(CTX *c, UINT s, UINT n, ID3D11Buffer *const *b) { if (REC) CtxCount(c, F_VSSetConstantBuffers, 0); oVSSetCB(c, s, n, b); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HPSSetCB(CTX *c, UINT s, UINT n, ID3D11Buffer *const *b) { if (REC) CtxCount(c, F_PSSetConstantBuffers, 0); oPSSetCB(c, s, n, b); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HGSSetCB(CTX *c, UINT s, UINT n, ID3D11Buffer *const *b) { if (REC) CtxCount(c, F_GSSetConstantBuffers, 0); oGSSetCB(c, s, n, b); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HVSSetCB1(CTX1 *c, UINT s, UINT n, ID3D11Buffer *const *b, const UINT *f, const UINT *k) { if (REC) CtxCount(c, F_VSSetConstantBuffers1, 0); oVSSetCB1(c, s, n, b, f, k); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HPSSetCB1(CTX1 *c, UINT s, UINT n, ID3D11Buffer *const *b, const UINT *f, const UINT *k) { if (REC) CtxCount(c, F_PSSetConstantBuffers1, 0); oPSSetCB1(c, s, n, b, f, k); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HGSSetCB1(CTX1 *c, UINT s, UINT n, ID3D11Buffer *const *b, const UINT *f, const UINT *k) { if (REC) CtxCount(c, F_GSSetConstantBuffers1, 0); oGSSetCB1(c, s, n, b, f, k); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HVSSetSRV(CTX *c, UINT s, UINT n, ID3D11ShaderResourceView *const *v) { if (REC) CtxCount(c, F_VSSetShaderResources, 0); oVSSetSRV(c, s, n, v); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HPSSetSRV(CTX *c, UINT s, UINT n, ID3D11ShaderResourceView *const *v) { if (REC) CtxCount(c, F_PSSetShaderResources, 0); oPSSetSRV(c, s, n, v); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HGSSetSRV(CTX *c, UINT s, UINT n, ID3D11ShaderResourceView *const *v) { if (REC) CtxCount(c, F_GSSetShaderResources, 0); oGSSetSRV(c, s, n, v); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HVSSetSamp(CTX *c, UINT s, UINT n, ID3D11SamplerState *const *v) { if (REC) CtxCount(c, F_VSSetSamplers, 0); oVSSetSamp(c, s, n, v); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HPSSetSamp(CTX *c, UINT s, UINT n, ID3D11SamplerState *const *v) { if (REC) CtxCount(c, F_PSSetSamplers, 0); oPSSetSamp(c, s, n, v); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HGSSetSamp(CTX *c, UINT s, UINT n, ID3D11SamplerState *const *v) { if (REC) CtxCount(c, F_GSSetSamplers, 0); oGSSetSamp(c, s, n, v); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HSetIL(CTX *c, ID3D11InputLayout *l) { if (REC) { CtxCount(c, F_IASetInputLayout, 0); CHANGED(F_IASetInputLayout, lastIL, l); } oIASetInputLayout(c, l); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HSetVB(CTX *c, UINT s, UINT n, ID3D11Buffer *const *b, const UINT *st, const UINT *o) { if (REC) CtxCount(c, F_IASetVertexBuffers, 0); oIASetVertexBuffers(c, s, n, b, st, o); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HSetIB(CTX *c, ID3D11Buffer *b, DXGI_FORMAT f, UINT o) { if (REC) CtxCount(c, F_IASetIndexBuffer, 0); oIASetIndexBuffer(c, b, f, o); if (REC) Repatch((CTX *)c); }
+static void Repatch(const void *c) { RepatchTable(VtIndex(c), 0); }
+
+static void STDMETHODCALLTYPE HDraw(CTX *c, UINT a, UINT b) { if (REC) { CtxCount(c, F_Draw, 1); LogDraw(c, "Draw"); } FWD(DrawFn, c, Draw)(c, a, b); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HDrawIndexed(CTX *c, UINT a, UINT b, INT d) { if (REC) { CtxCount(c, F_DrawIndexed, 1); LogDraw(c, "DrawIndexed"); } FWD(DrawIndexedFn, c, DrawIndexed)(c, a, b, d); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HDrawInstanced(CTX *c, UINT a, UINT b, UINT d, UINT e) { if (REC) { CtxCount(c, F_DrawInstanced, 1); LogDraw(c, "DrawInstanced"); } FWD(DrawInstancedFn, c, DrawInstanced)(c, a, b, d, e); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HDrawIndexedInstanced(CTX *c, UINT a, UINT b, UINT d, INT e, UINT f) { if (REC) { CtxCount(c, F_DrawIndexedInstanced, 1); LogDraw(c, "DrawIndexedInstanced"); } FWD(DrawIndexedInstancedFn, c, DrawIndexedInstanced)(c, a, b, d, e, f); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HDrawAuto(CTX *c) { if (REC) { CtxCount(c, F_DrawAuto, 1); LogDraw(c, "DrawAuto"); } FWD(DrawAutoFn, c, DrawAuto)(c); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HDrawIII(CTX *c, ID3D11Buffer *b, UINT o) { if (REC) { CtxCount(c, F_DrawIndexedInstancedIndirect, 1); LogDraw(c, "DrawIndexedInstancedIndirect"); } FWD(DrawIndirectFn, c, DrawIndexedInstancedIndirect)(c, b, o); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HDrawII(CTX *c, ID3D11Buffer *b, UINT o) { if (REC) { CtxCount(c, F_DrawInstancedIndirect, 1); LogDraw(c, "DrawInstancedIndirect"); } FWD(DrawIndirectFn, c, DrawInstancedIndirect)(c, b, o); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HDispatch(CTX *c, UINT x, UINT y, UINT z) { if (REC) CtxCount(c, F_Dispatch, 0); FWD(DispatchFn, c, Dispatch)(c, x, y, z); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HVSSetShader(CTX *c, ID3D11VertexShader *s, ID3D11ClassInstance *const *i, UINT n) { if (REC) { CtxCount(c, F_VSSetShader, 0); CHANGED(F_VSSetShader, lastVS, s); } FWD(SetVSFn, c, VSSetShader)(c, s, i, n); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HPSSetShader(CTX *c, ID3D11PixelShader *s, ID3D11ClassInstance *const *i, UINT n) { if (REC) { CtxCount(c, F_PSSetShader, 0); CHANGED(F_PSSetShader, lastPS, s); } FWD(SetPSFn, c, PSSetShader)(c, s, i, n); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HGSSetShader(CTX *c, ID3D11GeometryShader *s, ID3D11ClassInstance *const *i, UINT n) { if (REC) { CtxCount(c, F_GSSetShader, 0); CHANGED(F_GSSetShader, lastGS, s); } FWD(SetGSFn, c, GSSetShader)(c, s, i, n); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HVSSetCB(CTX *c, UINT s, UINT n, ID3D11Buffer *const *b) { if (REC) CtxCount(c, F_VSSetConstantBuffers, 0); FWD(SetCBFn, c, VSSetConstantBuffers)(c, s, n, b); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HPSSetCB(CTX *c, UINT s, UINT n, ID3D11Buffer *const *b) { if (REC) CtxCount(c, F_PSSetConstantBuffers, 0); FWD(SetCBFn, c, PSSetConstantBuffers)(c, s, n, b); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HGSSetCB(CTX *c, UINT s, UINT n, ID3D11Buffer *const *b) { if (REC) CtxCount(c, F_GSSetConstantBuffers, 0); FWD(SetCBFn, c, GSSetConstantBuffers)(c, s, n, b); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HVSSetCB1(CTX1 *c, UINT s, UINT n, ID3D11Buffer *const *b, const UINT *f, const UINT *k) { if (REC) CtxCount(c, F_VSSetConstantBuffers1, 0); FWD(SetCB1Fn, c, VSSetConstantBuffers1)(c, s, n, b, f, k); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HPSSetCB1(CTX1 *c, UINT s, UINT n, ID3D11Buffer *const *b, const UINT *f, const UINT *k) { if (REC) CtxCount(c, F_PSSetConstantBuffers1, 0); FWD(SetCB1Fn, c, PSSetConstantBuffers1)(c, s, n, b, f, k); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HGSSetCB1(CTX1 *c, UINT s, UINT n, ID3D11Buffer *const *b, const UINT *f, const UINT *k) { if (REC) CtxCount(c, F_GSSetConstantBuffers1, 0); FWD(SetCB1Fn, c, GSSetConstantBuffers1)(c, s, n, b, f, k); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HVSSetSRV(CTX *c, UINT s, UINT n, ID3D11ShaderResourceView *const *v) { if (REC) CtxCount(c, F_VSSetShaderResources, 0); FWD(SetSRVFn, c, VSSetShaderResources)(c, s, n, v); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HPSSetSRV(CTX *c, UINT s, UINT n, ID3D11ShaderResourceView *const *v) { if (REC) CtxCount(c, F_PSSetShaderResources, 0); FWD(SetSRVFn, c, PSSetShaderResources)(c, s, n, v); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HGSSetSRV(CTX *c, UINT s, UINT n, ID3D11ShaderResourceView *const *v) { if (REC) CtxCount(c, F_GSSetShaderResources, 0); FWD(SetSRVFn, c, GSSetShaderResources)(c, s, n, v); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HVSSetSamp(CTX *c, UINT s, UINT n, ID3D11SamplerState *const *v) { if (REC) CtxCount(c, F_VSSetSamplers, 0); FWD(SetSamplersFn, c, VSSetSamplers)(c, s, n, v); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HPSSetSamp(CTX *c, UINT s, UINT n, ID3D11SamplerState *const *v) { if (REC) CtxCount(c, F_PSSetSamplers, 0); FWD(SetSamplersFn, c, PSSetSamplers)(c, s, n, v); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HGSSetSamp(CTX *c, UINT s, UINT n, ID3D11SamplerState *const *v) { if (REC) CtxCount(c, F_GSSetSamplers, 0); FWD(SetSamplersFn, c, GSSetSamplers)(c, s, n, v); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HSetIL(CTX *c, ID3D11InputLayout *l) { if (REC) { CtxCount(c, F_IASetInputLayout, 0); CHANGED(F_IASetInputLayout, lastIL, l); } FWD(SetILFn, c, IASetInputLayout)(c, l); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HSetVB(CTX *c, UINT s, UINT n, ID3D11Buffer *const *b, const UINT *st, const UINT *o) { if (REC) CtxCount(c, F_IASetVertexBuffers, 0); FWD(SetVBFn, c, IASetVertexBuffers)(c, s, n, b, st, o); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HSetIB(CTX *c, ID3D11Buffer *b, DXGI_FORMAT f, UINT o) { if (REC) CtxCount(c, F_IASetIndexBuffer, 0); FWD(SetIBFn, c, IASetIndexBuffer)(c, b, f, o); if (REC) Repatch(c); }
 static void STDMETHODCALLTYPE HSetTopo(CTX *c, D3D11_PRIMITIVE_TOPOLOGY t)
 {
     if (REC) { CtxCount(c, F_IASetPrimitiveTopology, 0); if ((int)t != lastTopo) { lastTopo = (int)t; InterlockedIncrement(&changes[F_IASetPrimitiveTopology]); } }
-    oIASetTopology(c, t);
-    if (REC) Repatch((CTX *)c);
+    FWD(SetTopoFn, c, IASetPrimitiveTopology)(c, t);
+    if (REC) Repatch(c);
 }
-static void STDMETHODCALLTYPE HSetRS(CTX *c, ID3D11RasterizerState *s) { if (REC) { CtxCount(c, F_RSSetState, 0); CHANGED(F_RSSetState, lastRS, s); } oRSSetState(c, s); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HSetVP(CTX *c, UINT n, const D3D11_VIEWPORT *v) { if (REC) CtxCount(c, F_RSSetViewports, 0); oRSSetViewports(c, n, v); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HSetScissor(CTX *c, UINT n, const D3D11_RECT *r) { if (REC) CtxCount(c, F_RSSetScissorRects, 0); oRSSetScissorRects(c, n, r); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HSetBS(CTX *c, ID3D11BlendState *s, const FLOAT f[4], UINT m) { if (REC) { CtxCount(c, F_OMSetBlendState, 0); CHANGED(F_OMSetBlendState, lastBS, s); } oOMSetBlendState(c, s, f, m); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HSetDS(CTX *c, ID3D11DepthStencilState *s, UINT r) { if (REC) { CtxCount(c, F_OMSetDepthStencilState, 0); CHANGED(F_OMSetDepthStencilState, lastDS, s); } oOMSetDepthStencilState(c, s, r); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HSetRT(CTX *c, UINT n, ID3D11RenderTargetView *const *v, ID3D11DepthStencilView *d) { if (REC) CtxCount(c, F_OMSetRenderTargets, 0); oOMSetRenderTargets(c, n, v, d); if (REC) Repatch((CTX *)c); }
+static void STDMETHODCALLTYPE HSetRS(CTX *c, ID3D11RasterizerState *s) { if (REC) { CtxCount(c, F_RSSetState, 0); CHANGED(F_RSSetState, lastRS, s); } FWD(SetRSFn, c, RSSetState)(c, s); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HSetVP(CTX *c, UINT n, const D3D11_VIEWPORT *v) { if (REC) CtxCount(c, F_RSSetViewports, 0); FWD(SetVPFn, c, RSSetViewports)(c, n, v); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HSetScissor(CTX *c, UINT n, const D3D11_RECT *r) { if (REC) CtxCount(c, F_RSSetScissorRects, 0); FWD(SetScissorFn, c, RSSetScissorRects)(c, n, r); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HSetBS(CTX *c, ID3D11BlendState *s, const FLOAT f[4], UINT m) { if (REC) { CtxCount(c, F_OMSetBlendState, 0); CHANGED(F_OMSetBlendState, lastBS, s); } FWD(SetBSFn, c, OMSetBlendState)(c, s, f, m); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HSetDS(CTX *c, ID3D11DepthStencilState *s, UINT r) { if (REC) { CtxCount(c, F_OMSetDepthStencilState, 0); CHANGED(F_OMSetDepthStencilState, lastDS, s); } FWD(SetDSFn, c, OMSetDepthStencilState)(c, s, r); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HSetRT(CTX *c, UINT n, ID3D11RenderTargetView *const *v, ID3D11DepthStencilView *d) { if (REC) CtxCount(c, F_OMSetRenderTargets, 0); FWD(SetRTFn, c, OMSetRenderTargets)(c, n, v, d); if (REC) Repatch(c); }
 static void STDMETHODCALLTYPE HSetRTUAV(CTX *c, UINT n, ID3D11RenderTargetView *const *v, ID3D11DepthStencilView *d, UINT s, UINT k, ID3D11UnorderedAccessView *const *u, const UINT *i)
 {
     if (REC) CtxCount(c, F_OMSetRenderTargetsAndUAVs, 0);
-    oOMSetRTUAV(c, n, v, d, s, k, u, i);
-    if (REC) Repatch((CTX *)c);
+    FWD(SetRTUAVFn, c, OMSetRenderTargetsAndUnorderedAccessViews)(c, n, v, d, s, k, u, i);
+    if (REC) Repatch(c);
 }
 
 /// 0 constant buffer, 1 other buffer, 2 texture; the buffer's size in *size.
@@ -325,11 +318,11 @@ static HRESULT STDMETHODCALLTYPE HMap(CTX *c, ID3D11Resource *r, UINT s, D3D11_M
             InterlockedIncrement(&cbSizes[b]);
         }
     }
-    HRESULT hr = oMap(c, r, s, t, f, m);
+    HRESULT hr = FWD(MapFn, c, Map)(c, r, s, t, f, m);
     if (REC) Repatch(c);
     return hr;
 }
-static void STDMETHODCALLTYPE HUnmap(CTX *c, ID3D11Resource *r, UINT s) { if (REC) CtxCount(c, F_Unmap, 0); oUnmap(c, r, s); if (REC) Repatch((CTX *)c); }
+static void STDMETHODCALLTYPE HUnmap(CTX *c, ID3D11Resource *r, UINT s) { if (REC) CtxCount(c, F_Unmap, 0); FWD(UnmapFn, c, Unmap)(c, r, s); if (REC) Repatch(c); }
 static void STDMETHODCALLTYPE HUpdate(CTX *c, ID3D11Resource *r, UINT s, const D3D11_BOX *b, const void *d, UINT rp, UINT dp)
 {
     if (REC)
@@ -340,8 +333,8 @@ static void STDMETHODCALLTYPE HUpdate(CTX *c, ID3D11Resource *r, UINT s, const D
         InterlockedIncrement(&updates[k]);
         if (k == 0) InterlockedAdd64(&cbUpdateBytes, size);
     }
-    oUpdate(c, r, s, b, d, rp, dp);
-    if (REC) Repatch((CTX *)c);
+    FWD(UpdateFn, c, UpdateSubresource)(c, r, s, b, d, rp, dp);
+    if (REC) Repatch(c);
 }
 static void STDMETHODCALLTYPE HUpdate1(CTX1 *c, ID3D11Resource *r, UINT s, const D3D11_BOX *b, const void *d, UINT rp, UINT dp, UINT fl)
 {
@@ -353,27 +346,27 @@ static void STDMETHODCALLTYPE HUpdate1(CTX1 *c, ID3D11Resource *r, UINT s, const
         InterlockedIncrement(&updates[k]);
         if (k == 0) InterlockedAdd64(&cbUpdateBytes, size);
     }
-    oUpdate1(c, r, s, b, d, rp, dp, fl);
-    if (REC) Repatch((CTX *)c);
+    FWD(Update1Fn, c, UpdateSubresource1)(c, r, s, b, d, rp, dp, fl);
+    if (REC) Repatch(c);
 }
-static void STDMETHODCALLTYPE HCopyRes(CTX *c, ID3D11Resource *d, ID3D11Resource *s) { if (REC) CtxCount(c, F_CopyResource, 0); oCopyResource(c, d, s); if (REC) Repatch((CTX *)c); }
+static void STDMETHODCALLTYPE HCopyRes(CTX *c, ID3D11Resource *d, ID3D11Resource *s) { if (REC) CtxCount(c, F_CopyResource, 0); FWD(CopyResFn, c, CopyResource)(c, d, s); if (REC) Repatch(c); }
 static void STDMETHODCALLTYPE HCopyRegion(CTX *c, ID3D11Resource *d, UINT ds, UINT x, UINT y, UINT z, ID3D11Resource *s, UINT ss, const D3D11_BOX *b)
 {
     if (REC) CtxCount(c, F_CopySubresourceRegion, 0);
-    oCopyRegion(c, d, ds, x, y, z, s, ss, b);
-    if (REC) Repatch((CTX *)c);
+    FWD(CopyRegionFn, c, CopySubresourceRegion)(c, d, ds, x, y, z, s, ss, b);
+    if (REC) Repatch(c);
 }
-static void STDMETHODCALLTYPE HClearRTV(CTX *c, ID3D11RenderTargetView *v, const FLOAT col[4]) { if (REC) CtxCount(c, F_ClearRenderTargetView, 0); oClearRTV(c, v, col); if (REC) Repatch((CTX *)c); }
+static void STDMETHODCALLTYPE HClearRTV(CTX *c, ID3D11RenderTargetView *v, const FLOAT col[4]) { if (REC) CtxCount(c, F_ClearRenderTargetView, 0); FWD(ClearRTVFn, c, ClearRenderTargetView)(c, v, col); if (REC) Repatch(c); }
 static void STDMETHODCALLTYPE HClearDSV(CTX *c, ID3D11DepthStencilView *v, UINT f, FLOAT d, UINT8 s)
 {
     if (REC) { CtxCount(c, F_ClearDepthStencilView, 0); Log("CLEARDSV flags=0x%x depth=%.9g stencil=%u", f, d, s); }
-    oClearDSV(c, v, f, d, s);
-    if (REC) Repatch((CTX *)c);
+    FWD(ClearDSVFn, c, ClearDepthStencilView)(c, v, f, d, s);
+    if (REC) Repatch(c);
 }
-static void STDMETHODCALLTYPE HGenMips(CTX *c, ID3D11ShaderResourceView *v) { if (REC) CtxCount(c, F_GenerateMips, 0); oGenMips(c, v); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HResolve(CTX *c, ID3D11Resource *d, UINT ds, ID3D11Resource *s, UINT ss, DXGI_FORMAT f) { if (REC) CtxCount(c, F_ResolveSubresource, 0); oResolve(c, d, ds, s, ss, f); if (REC) Repatch((CTX *)c); }
-static void STDMETHODCALLTYPE HExec(CTX *c, ID3D11CommandList *l, BOOL r) { if (REC) CtxCount(c, F_ExecuteCommandList, 0); oExec(c, l, r); if (REC) Repatch((CTX *)c); }
-static HRESULT STDMETHODCALLTYPE HFinish(CTX *c, BOOL r, ID3D11CommandList **l) { if (REC) CtxCount(c, F_FinishCommandList, 0); HRESULT hr = oFinish(c, r, l); if (REC) Repatch(c); return hr; }
+static void STDMETHODCALLTYPE HGenMips(CTX *c, ID3D11ShaderResourceView *v) { if (REC) CtxCount(c, F_GenerateMips, 0); FWD(GenMipsFn, c, GenerateMips)(c, v); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HResolve(CTX *c, ID3D11Resource *d, UINT ds, ID3D11Resource *s, UINT ss, DXGI_FORMAT f) { if (REC) CtxCount(c, F_ResolveSubresource, 0); FWD(ResolveFn, c, ResolveSubresource)(c, d, ds, s, ss, f); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HExec(CTX *c, ID3D11CommandList *l, BOOL r) { if (REC) CtxCount(c, F_ExecuteCommandList, 0); FWD(ExecFn, c, ExecuteCommandList)(c, l, r); if (REC) Repatch(c); }
+static HRESULT STDMETHODCALLTYPE HFinish(CTX *c, BOOL r, ID3D11CommandList **l) { if (REC) CtxCount(c, F_FinishCommandList, 0); HRESULT hr = FWD(FinishFn, c, FinishCommandList)(c, r, l); if (REC) Repatch(c); return hr; }
 
 /// Compile-time check: every hook has its header member's exact type (C4113/C4133 otherwise).
 void CheckTypes(ID3D11DeviceContextVtbl *v, ID3D11DeviceContext1Vtbl *v1, ID3D11DeviceVtbl *d)
@@ -393,43 +386,98 @@ void CheckTypes(ID3D11DeviceContextVtbl *v, ID3D11DeviceContext1Vtbl *v1, ID3D11
     v->GenerateMips = HGenMips; v->ResolveSubresource = HResolve; v->ExecuteCommandList = HExec; v->FinishCommandList = HFinish;
     d->CreateVertexShader = HookCreateVS; d->CreatePixelShader = HookCreatePS; d->CreateGeometryShader = HookCreateGS;
     d->CreateInputLayout = HookCreateIL; d->CreateDeferredContext = HookCreateDC;
+    // The forward types (FWD) are the header members' types too.
+    { ClearDSVFn x = v->ClearDepthStencilView; (void)x; }
+    { ClearRTVFn x = v->ClearRenderTargetView; (void)x; }
+    { CopyResFn x = v->CopyResource; (void)x; }
+    { CopyRegionFn x = v->CopySubresourceRegion; (void)x; }
+    { DispatchFn x = v->Dispatch; (void)x; }
+    { DrawFn x = v->Draw; (void)x; }
+    { DrawAutoFn x = v->DrawAuto; (void)x; }
+    { DrawIndexedFn x = v->DrawIndexed; (void)x; }
+    { DrawIndexedInstancedFn x = v->DrawIndexedInstanced; (void)x; }
+    { DrawIndirectFn x = v->DrawIndexedInstancedIndirect; (void)x; }
+    { DrawInstancedFn x = v->DrawInstanced; (void)x; }
+    { DrawIndirectFn x = v->DrawInstancedIndirect; (void)x; }
+    { ExecFn x = v->ExecuteCommandList; (void)x; }
+    { FinishFn x = v->FinishCommandList; (void)x; }
+    { SetCBFn x = v->GSSetConstantBuffers; (void)x; }
+    { SetCB1Fn x = v1->GSSetConstantBuffers1; (void)x; }
+    { SetSamplersFn x = v->GSSetSamplers; (void)x; }
+    { SetGSFn x = v->GSSetShader; (void)x; }
+    { SetSRVFn x = v->GSSetShaderResources; (void)x; }
+    { GenMipsFn x = v->GenerateMips; (void)x; }
+    { SetIBFn x = v->IASetIndexBuffer; (void)x; }
+    { SetILFn x = v->IASetInputLayout; (void)x; }
+    { SetTopoFn x = v->IASetPrimitiveTopology; (void)x; }
+    { SetVBFn x = v->IASetVertexBuffers; (void)x; }
+    { MapFn x = v->Map; (void)x; }
+    { SetBSFn x = v->OMSetBlendState; (void)x; }
+    { SetDSFn x = v->OMSetDepthStencilState; (void)x; }
+    { SetRTFn x = v->OMSetRenderTargets; (void)x; }
+    { SetRTUAVFn x = v->OMSetRenderTargetsAndUnorderedAccessViews; (void)x; }
+    { SetCBFn x = v->PSSetConstantBuffers; (void)x; }
+    { SetCB1Fn x = v1->PSSetConstantBuffers1; (void)x; }
+    { SetSamplersFn x = v->PSSetSamplers; (void)x; }
+    { SetPSFn x = v->PSSetShader; (void)x; }
+    { SetSRVFn x = v->PSSetShaderResources; (void)x; }
+    { SetScissorFn x = v->RSSetScissorRects; (void)x; }
+    { SetRSFn x = v->RSSetState; (void)x; }
+    { SetVPFn x = v->RSSetViewports; (void)x; }
+    { ResolveFn x = v->ResolveSubresource; (void)x; }
+    { UnmapFn x = v->Unmap; (void)x; }
+    { UpdateFn x = v->UpdateSubresource; (void)x; }
+    { Update1Fn x = v1->UpdateSubresource1; (void)x; }
+    { SetCBFn x = v->VSSetConstantBuffers; (void)x; }
+    { SetCB1Fn x = v1->VSSetConstantBuffers1; (void)x; }
+    { SetSamplersFn x = v->VSSetSamplers; (void)x; }
+    { SetVSFn x = v->VSSetShader; (void)x; }
+    { SetSRVFn x = v->VSSetShaderResources; (void)x; }
 }
 
-// ID3D11DeviceContext1's vtable starts with ID3D11DeviceContext's.
-#define SLOT1(m) (offsetof(ID3D11DeviceContext1Vtbl, m) / sizeof(void *))
 _Static_assert(offsetof(ID3D11DeviceContext1Vtbl, FinishCommandList) == offsetof(ID3D11DeviceContextVtbl, FinishCommandList), "context vtable prefix");
 _Static_assert(offsetof(ID3D11DeviceContext1Vtbl, Draw) == offsetof(ID3D11DeviceContextVtbl, Draw), "context vtable prefix");
-static void **ctxVtables[4];
-static int nctxVtables;
-
 static void HookContext(ID3D11DeviceContext *c, const char *how)
 {
     void **vt = *(void ***)c;
     Log("CTXHOOK %s context %p type=%d vtable %p", how, (void *)c, (int)ID3D11DeviceContext_GetType(c), (void *)vt);
-    for (int i = 0; i < nctxVtables; i++)
-        if (ctxVtables[i] == vt) return;
-    if (nctxVtables == 4) return;
-    ctxVtables[nctxVtables++] = vt;
+    for (int i = 0; i < nvts; i++)
+        if (vts[i] == vt) return;
+    if (nvts == VTS) { Log("CTXHOOK no room for vtable %p: not hooked", (void *)vt); return; }
     MEMORY_BASIC_INFORMATION mbi;
     if (VirtualQuery(vt, &mbi, sizeof mbi)) Log("CTXHOOK vtable memory protect=0x%lx type=0x%lx", mbi.Protect, mbi.Type);
-#define P(m, h, o) do { Patch(vt, SLOT1(m), (void *)(h), (void **)&(o)); if (nhooks < HOOKS) { hooks[nhooks].slot = SLOT1(m); hooks[nhooks].hook = (void *)(h); hooks[nhooks].orig = (void **)&(o); hooks[nhooks].name = #m; nhooks++; } } while (0)
-    P(Draw, HDraw, oDraw); P(DrawIndexed, HDrawIndexed, oDrawIndexed); P(DrawInstanced, HDrawInstanced, oDrawInstanced);
-    P(DrawIndexedInstanced, HDrawIndexedInstanced, oDrawIndexedInstanced); P(DrawAuto, HDrawAuto, oDrawAuto);
-    P(DrawIndexedInstancedIndirect, HDrawIII, oDrawIndexedInstancedIndirect); P(DrawInstancedIndirect, HDrawII, oDrawInstancedIndirect); P(Dispatch, HDispatch, oDispatch);
-    P(VSSetShader, HVSSetShader, oVSSetShader); P(PSSetShader, HPSSetShader, oPSSetShader); P(GSSetShader, HGSSetShader, oGSSetShader);
-    P(VSSetConstantBuffers, HVSSetCB, oVSSetCB); P(PSSetConstantBuffers, HPSSetCB, oPSSetCB); P(GSSetConstantBuffers, HGSSetCB, oGSSetCB);
-    P(VSSetConstantBuffers1, HVSSetCB1, oVSSetCB1); P(PSSetConstantBuffers1, HPSSetCB1, oPSSetCB1); P(GSSetConstantBuffers1, HGSSetCB1, oGSSetCB1);
-    P(VSSetShaderResources, HVSSetSRV, oVSSetSRV); P(PSSetShaderResources, HPSSetSRV, oPSSetSRV); P(GSSetShaderResources, HGSSetSRV, oGSSetSRV);
-    P(VSSetSamplers, HVSSetSamp, oVSSetSamp); P(PSSetSamplers, HPSSetSamp, oPSSetSamp); P(GSSetSamplers, HGSSetSamp, oGSSetSamp);
-    P(IASetInputLayout, HSetIL, oIASetInputLayout); P(IASetVertexBuffers, HSetVB, oIASetVertexBuffers); P(IASetIndexBuffer, HSetIB, oIASetIndexBuffer);
-    P(IASetPrimitiveTopology, HSetTopo, oIASetTopology); P(RSSetState, HSetRS, oRSSetState); P(RSSetViewports, HSetVP, oRSSetViewports);
-    P(RSSetScissorRects, HSetScissor, oRSSetScissorRects); P(OMSetBlendState, HSetBS, oOMSetBlendState); P(OMSetDepthStencilState, HSetDS, oOMSetDepthStencilState);
-    P(OMSetRenderTargets, HSetRT, oOMSetRenderTargets); P(OMSetRenderTargetsAndUnorderedAccessViews, HSetRTUAV, oOMSetRTUAV);
-    P(Map, HMap, oMap); P(Unmap, HUnmap, oUnmap); P(UpdateSubresource, HUpdate, oUpdate); P(UpdateSubresource1, HUpdate1, oUpdate1);
-    P(CopyResource, HCopyRes, oCopyResource); P(CopySubresourceRegion, HCopyRegion, oCopyRegion); P(ClearRenderTargetView, HClearRTV, oClearRTV);
-    P(ClearDepthStencilView, HClearDSV, oClearDSV); P(GenerateMips, HGenMips, oGenMips); P(ResolveSubresource, HResolve, oResolve);
-    P(ExecuteCommandList, HExec, oExec); P(FinishCommandList, HFinish, oFinish);
+    int v = nvts;
+    // The slots are registered once (with the first vtable); each vtable keeps its own targets.
+    int registering = nhooks == 0;
+#define P(m, h) do { \
+        size_t slot_ = SLOT1(m); \
+        if (vt[slot_] == (void *)(h)) { Log("CTXHOOK vtable %p already holds the hook of %s: not hooked", (void *)vt, #m); return; } \
+        fwd[v][slot_] = vt[slot_]; \
+        if (registering && nhooks < HOOKS) { hooks[nhooks].slot = slot_; hooks[nhooks].hook = (void *)(h); hooks[nhooks].name = #m; nhooks++; } \
+    } while (0)
+    P(Draw, HDraw); P(DrawIndexed, HDrawIndexed); P(DrawInstanced, HDrawInstanced);
+    P(DrawIndexedInstanced, HDrawIndexedInstanced); P(DrawAuto, HDrawAuto);
+    P(DrawIndexedInstancedIndirect, HDrawIII); P(DrawInstancedIndirect, HDrawII); P(Dispatch, HDispatch);
+    P(VSSetShader, HVSSetShader); P(PSSetShader, HPSSetShader); P(GSSetShader, HGSSetShader);
+    P(VSSetConstantBuffers, HVSSetCB); P(PSSetConstantBuffers, HPSSetCB); P(GSSetConstantBuffers, HGSSetCB);
+    P(VSSetConstantBuffers1, HVSSetCB1); P(PSSetConstantBuffers1, HPSSetCB1); P(GSSetConstantBuffers1, HGSSetCB1);
+    P(VSSetShaderResources, HVSSetSRV); P(PSSetShaderResources, HPSSetSRV); P(GSSetShaderResources, HGSSetSRV);
+    P(VSSetSamplers, HVSSetSamp); P(PSSetSamplers, HPSSetSamp); P(GSSetSamplers, HGSSetSamp);
+    P(IASetInputLayout, HSetIL); P(IASetVertexBuffers, HSetVB); P(IASetIndexBuffer, HSetIB);
+    P(IASetPrimitiveTopology, HSetTopo); P(RSSetState, HSetRS); P(RSSetViewports, HSetVP);
+    P(RSSetScissorRects, HSetScissor); P(OMSetBlendState, HSetBS); P(OMSetDepthStencilState, HSetDS);
+    P(OMSetRenderTargets, HSetRT); P(OMSetRenderTargetsAndUnorderedAccessViews, HSetRTUAV);
+    P(Map, HMap); P(Unmap, HUnmap); P(UpdateSubresource, HUpdate); P(UpdateSubresource1, HUpdate1);
+    P(CopyResource, HCopyRes); P(CopySubresourceRegion, HCopyRegion); P(ClearRenderTargetView, HClearRTV);
+    P(ClearDepthStencilView, HClearDSV); P(GenerateMips, HGenMips); P(ResolveSubresource, HResolve);
+    P(ExecuteCommandList, HExec); P(FinishCommandList, HFinish);
 #undef P
+    // Every target saved: the hooks go in.
+    DWORD old;
+    if (!VirtualProtect(vt, sizeof(ID3D11DeviceContext1Vtbl), PAGE_READWRITE, &old)) { Log("CTXHOOK VirtualProtect failed %lu", GetLastError()); return; }
+    for (int i = 0; i < nhooks; i++) vt[hooks[i].slot] = hooks[i].hook;
+    VirtualProtect(vt, sizeof(ID3D11DeviceContext1Vtbl), old, &old);
+    vts[nvts++] = vt;
 }
 
 /// Hooks the device's creation slots and the immediate context. 1 when hooked.
@@ -665,7 +713,10 @@ static void Report(void)
         cbUpdateBytes, cbSizes[0], cbSizes[1], cbSizes[2], cbSizes[3], cbSizes[4], cbSizes[5], cbSizes[6], cbSizes[7]);
     Log("FRAME distinct state combinations=%ld draws=%ld", combos, drawsLogged);
     for (int i = 0; i < nhooks; i++)
-        if (hooks[i].rewrites) Log("FRAME slot %s rewritten by the runtime %ld times", hooks[i].name, hooks[i].rewrites);
+        if (hooks[i].rewrites || hooks[i].armRewrites)
+            Log("FRAME slot %s rewritten by the runtime %ld times during the frame (found rewritten %ld times when the recording started)", hooks[i].name,
+                hooks[i].rewrites, hooks[i].armRewrites);
+    if (unknownVtable) Log("FRAME calls through a vtable not hooked here (so far): %ld", unknownVtable);
 }
 
 /// Called by the Present hooks before the real Present: ends a recording, starts an armed one.
@@ -683,8 +734,8 @@ static void FrameBoundary(void)
         memset(ctxCalls, 0, sizeof ctxCalls); memset(maps, 0, sizeof maps); memset(updates, 0, sizeof updates); memset(cbSizes, 0, sizeof cbSizes);
         cbMapBytes = cbUpdateBytes = 0; drawsLogged = combos = 0; nobj = 0;
         lastVS = lastPS = lastGS = lastIL = lastRS = lastBS = lastDS = NULL; lastTopo = -1;
-        for (int i = 0; i < nhooks; i++) hooks[i].rewrites = 0;
-        if (context) Repatch(context);
+        for (int i = 0; i < nhooks; i++) hooks[i].rewrites = hooks[i].armRewrites = 0;
+        for (int v = 0; v < nvts; v++) RepatchTable(v, 1);
         QueryPerformanceCounter(&recStart);
         InterlockedExchange(&recording, 1);
     }

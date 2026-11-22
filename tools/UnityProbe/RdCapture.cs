@@ -1,22 +1,22 @@
 // PROBE_SCENARIO=rdcapture (lines "PROBE ... RD ..."): frames of the original's Direct3D 11 player
 // for the D3D11 plan's captures (docs/research/d3d11-captures.md), with the native helper
-// tools/D3d11Native/probe_native.dll (PROBE_NATIVE, a Windows path; default: probe_native.bin next to this DLL, as the mod loader loads every .dll of a mod folder).
-//
-// Under RenderDoc (the game started by `renderdoccmd capture`, so renderdoc.dll is in the
-// process), RenderDoc's in-application API (renderdoc_app.h) takes the captures:
-//   1. the main menu, 10 s in (TriggerCapture: the next presented frame);
-//   2. the depth-bias frame: a command buffer, bracketed by Start/EndFrameCapture on the render
-//      thread (IssuePluginEvent), draws Hidden/Internal-Colored (`Offset [_ZBias], [_ZBias]`,
-//      `Cull [_Cull]`, `ZTest [_ZTest]`, `ZWrite [_ZWrite]`) into render textures with 24- and
-//      16-bit depth, one draw per _ZBias / _Cull / _ZTest value;
+// tools/D3d11Native/probe_native.dll (PROBE_NATIVE, a Windows path; default: probe_native.bin
+// next to this DLL, as the mod loader loads every .dll of a mod folder). The steps:
+//   1. the main menu, 10 s in: the helper hooks the swap chain's Present (its descriptions, and
+//      each Present's sync interval, flags and thread) and records one frame's Direct3D 11 calls
+//      (ctx_hook.c: lines "RD FRAME", "RD DRAW", "RD SHADER", "RD LAYOUT" ...);
+//   2. the depth-bias frame: a command buffer draws Hidden/Internal-Colored (`Offset [_ZBias],
+//      [_ZBias]`, `Cull [_Cull]`, `ZTest [_ZTest]`, `ZWrite [_ZWrite]`) into render textures with
+//      24- and 16-bit depth, one draw per case, and after each draw a render-thread event
+//      (IssuePluginEvent) logs the context's rasterizer, depth-stencil and blend state ("RD STATE");
 //   3. the colony (PROBE_SAVE, resumed from the menu as its Resume button does), unpaused, then
-//      the same with the temperature overlay.
-// Without RenderDoc the same steps run; the helper hooks the swap chain's Present to log its
-// descriptions and every Present's sync interval and flags, and records the Direct3D 11 calls of
-// one frame at each of the three points (ctx_hook.c: lines "RD FRAME", "RD DRAW", "RD SHADER",
-// "RD LAYOUT" ...), and the Present arguments with vsync off. Either way, after each draw of the
-// depth-bias frame the helper logs the immediate context's rasterizer, depth-stencil and blend
-// state (lines "RD STATE n ...").
+//      the temperature overlay, a frame recorded at each; last the Present arguments with vsync
+//      off.
+// RenderDoc: launching the original under `renderdoccmd capture` is NOT supported. Its injection
+// bypassed the run's Doorstop isolation (job j0008144, docs/research/d3d11-captures.md), and the
+// launch mode was removed. The in-application API (renderdoc_app.h) is kept for a future launch
+// that keeps the isolation: it is used only with PROBE_RD_CAPTURE=1 and a PROBE_RD_TEMPLATE inside
+// ONI_RUN_HOME. With renderdoc.dll in the process otherwise, the scenario ends at once.
 using System;
 using System.Collections;
 using System.Reflection;
@@ -44,6 +44,7 @@ namespace SemanticsProbe
 
         LogFn pnLog, pnCaptures;
         InitFn pnInit;
+        IntFn pnRdPresent;
         VoidFn pnTrigger, pnReport;
         IntFn pnHook, pnCtxHook, pnCtxDone;
         VoidFn pnCtxArm;
@@ -91,6 +92,7 @@ namespace SemanticsProbe
                 pnLog = Fn<LogFn>(m, "pn_log");
                 pnCaptures = Fn<LogFn>(m, "pn_rd_captures");
                 pnInit = Fn<InitFn>(m, "pn_rd_init");
+                pnRdPresent = Fn<IntFn>(m, "pn_rd_present");
                 pnTrigger = Fn<VoidFn>(m, "pn_rd_trigger");
                 pnReport = Fn<VoidFn>(m, "pn_sc_report");
                 pnHook = Fn<IntFn>(m, "pn_sc_hook");
@@ -108,7 +110,15 @@ namespace SemanticsProbe
             tex.Apply();
             L("pn_device " + pnDevice(tex.GetNativeTexturePtr()));
             string template = Environment.GetEnvironmentVariable("PROBE_RD_TEMPLATE") ?? "";
-            renderdoc = pnInit(template);
+            string runHome = Environment.GetEnvironmentVariable("ONI_RUN_HOME") ?? "";
+            bool optIn = Environment.GetEnvironmentVariable("PROBE_RD_CAPTURE") == "1" && InsideRunHome(template, runHome);
+            if (pnRdPresent() != 0 && !optIn)
+            {
+                L("renderdoc.dll is in the process without PROBE_RD_CAPTURE=1 and a PROBE_RD_TEMPLATE inside ONI_RUN_HOME: scenario ended");
+                Finish();
+                yield break;
+            }
+            renderdoc = optIn ? pnInit(template) : 0;
             L("renderdoc api " + renderdoc + " template '" + template + "'");
             if (renderdoc <= 0) { L("hook " + pnHook()); L("ctx hook " + pnCtxHook()); }
 
@@ -158,6 +168,18 @@ namespace SemanticsProbe
                 pnReport();
             }
             Finish();
+        }
+
+        /// Whether PATH is an absolute path inside the run home HOME (both Windows paths).
+        static bool InsideRunHome(string path, string home)
+        {
+            if (string.IsNullOrEmpty(path) || string.IsNullOrEmpty(home)) return false;
+            try
+            {
+                string full = System.IO.Path.GetFullPath(path), root = System.IO.Path.GetFullPath(home).TrimEnd('\\', '/') + "\\";
+                return System.IO.Path.IsPathRooted(path) && full.StartsWith(root, StringComparison.OrdinalIgnoreCase);
+            }
+            catch (Exception) { return false; }
         }
 
         /// One frame's Direct3D 11 calls, recorded by the helper between two Presents.
@@ -213,6 +235,8 @@ namespace SemanticsProbe
             var cases = new (float bias, int cull, int ztest, int zwrite)[]
             {
                 (0, 0, 8, 0), (1, 2, 4, 1), (-1, 2, 4, 1), (2, 2, 4, 1), (0.5f, 2, 4, 1), (-3.25f, 2, 4, 1), (10, 2, 4, 1), (100, 2, 4, 1),
+                // Rounding of a fractional units value: half-way cases both signs, and 0.75.
+                (1.5f, 2, 4, 1), (-1.5f, 2, 4, 1), (2.5f, 2, 4, 1), (-2.5f, 2, 4, 1), (0.75f, 2, 4, 1), (-0.75f, 2, 4, 1),
                 (0, 1, 2, 1), (0, 2, 5, 0), (0, 0, 7, 1), (0, 0, 3, 0), (0, 0, 6, 0),
             };
             var cb = new CommandBuffer { name = "probe depth bias" };

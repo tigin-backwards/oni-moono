@@ -545,8 +545,23 @@ namespace SemanticsProbe
                     string val = "";
                     if (floats > 0)
                     {
-                        var f = new float[16];
-                        if (block < 0) { int loc = getLoc(p, nm.ToString()); getFv(p, loc, f); }
+                        // A loose array uniform (size > 1, such as hlslcc_mtx4x4unity_MatrixVP[0], a
+                        // vec4[4] matrix) is read element by element, each by its own location.
+                        int count = block < 0 && size > 1 ? size : 1;
+                        var f = new float[16 * count];
+                        if (block < 0)
+                        {
+                            string baseName = nm.ToString();
+                            if (baseName.EndsWith("[0]")) baseName = baseName.Substring(0, baseName.Length - 3);
+                            var one = new float[16];
+                            for (int e = 0; e < count; e++)
+                            {
+                                int loc = getLoc(p, count > 1 ? baseName + "[" + e + "]" : nm.ToString());
+                                getFv(p, loc, one);
+                                Array.Copy(one, 0, f, e * floats, floats);
+                            }
+                            floats *= count;
+                        }
                         else if (blockBinding.TryGetValue(block, out var bb) && bb.Buf != 0 && bind != null && sub != null)
                         {
                             glGetIntegerv(0x8F36, iv);

@@ -2,8 +2,10 @@
 // the probe into the ORIGINAL game's process. Research tool for the D3D11 plan (M0), not part of
 // the product.
 // - RenderDoc's in-application API (renderdoc_app.h, shipped with RenderDoc): when renderdoc.dll
-//   is already in the process (the game was started by `renderdoccmd capture`), its
-//   RENDERDOC_GetAPI gives TriggerCapture, Start/EndFrameCapture and the capture list.
+//   is already in the process, its RENDERDOC_GetAPI gives TriggerCapture, Start/EndFrameCapture
+//   and the capture list. No supported launch puts it there: `renderdoccmd capture` bypassed the
+//   run's isolation (j0008144) and is not used; RdCapture.cs calls pn_rd_init only on an explicit
+//   opt-in with a capture path inside the run home.
 // - A rendering-event callback for CommandBuffer.IssuePluginEvent (Unity calls it on its render
 //   thread with the event id): 1 starts a RenderDoc capture, 2 ends it, 100+n logs the immediate
 //   context's rasterizer, depth-stencil and blend state and viewport after the previous draw.
@@ -82,6 +84,9 @@ EXPORT int pn_log(char *buf, int len)
 // ---- RenderDoc ----
 
 static RENDERDOC_API_1_6_0 *rd;
+
+/// 1 when renderdoc.dll is loaded in the process.
+EXPORT int pn_rd_present(void) { return GetModuleHandleA("renderdoc.dll") != NULL; }
 
 /// The in-application API of an injected renderdoc.dll: its version (e.g. 10600), 0 when the
 /// module is not loaded, -1 when RENDERDOC_GetAPI refuses 1.6.0.
@@ -250,7 +255,7 @@ static ResizeFn resize0;
 static void *seen[8];
 static int nseen;
 #define KINDS 16
-static struct { void *sc; UINT sync, flags, which; long count; } kinds[KINDS];
+static struct { void *sc; UINT sync, flags, which; DWORD thread; long count; } kinds[KINDS];
 static long presents;
 static LARGE_INTEGER firstPresent, lastPresent;
 
@@ -318,9 +323,12 @@ static void Describe(IDXGISwapChain *sc)
     }
 }
 
+static long kindsOverflow;
+
 static void Count(void *sc, UINT sync, UINT flags, UINT which)
 {
     int describe = 0;
+    DWORD thread = GetCurrentThreadId();
     EnterCriticalSection(&lock);
     LARGE_INTEGER now;
     QueryPerformanceCounter(&now);
@@ -331,9 +339,10 @@ static void Count(void *sc, UINT sync, UINT flags, UINT which)
     if (i == nseen && nseen < 8) { seen[nseen++] = sc; describe = 1; }
     for (i = 0; i < KINDS; i++)
     {
-        if (kinds[i].count && kinds[i].sc == sc && kinds[i].sync == sync && kinds[i].flags == flags && kinds[i].which == which) { kinds[i].count++; break; }
-        if (!kinds[i].count) { kinds[i].sc = sc; kinds[i].sync = sync; kinds[i].flags = flags; kinds[i].which = which; kinds[i].count = 1; break; }
+        if (kinds[i].count && kinds[i].sc == sc && kinds[i].sync == sync && kinds[i].flags == flags && kinds[i].which == which && kinds[i].thread == thread) { kinds[i].count++; break; }
+        if (!kinds[i].count) { kinds[i].sc = sc; kinds[i].sync = sync; kinds[i].flags = flags; kinds[i].which = which; kinds[i].thread = thread; kinds[i].count = 1; break; }
     }
+    if (i == KINDS) kindsOverflow++;
     LeaveCriticalSection(&lock);
     if (describe)
     {
@@ -450,9 +459,9 @@ EXPORT void pn_sc_report(void)
     long n = presents;
     double secs = n > 1 ? (double)(lastPresent.QuadPart - firstPresent.QuadPart) / (double)f.QuadPart : 0;
     LeaveCriticalSection(&lock);
-    Log("PRESENTS total=%ld over %.3f s (%.2f a second)", n, secs, secs > 0 ? (n - 1) / secs : 0);
+    Log("PRESENTS total=%ld over %.3f s (%.2f a second), %ld not tallied (table full)", n, secs, secs > 0 ? (n - 1) / secs : 0, kindsOverflow);
     for (int i = 0; i < KINDS && kinds[i].count; i++)
-        Log("PRESENTS %p Present%s sync=%u flags=0x%x count=%ld", kinds[i].sc, kinds[i].which ? "1" : "", kinds[i].sync, kinds[i].flags, kinds[i].count);
+        Log("PRESENTS %p Present%s sync=%u flags=0x%x thread=%lu count=%ld", kinds[i].sc, kinds[i].which ? "1" : "", kinds[i].sync, kinds[i].flags, kinds[i].thread, kinds[i].count);
 }
 
 #include "ctx_hook.c"
