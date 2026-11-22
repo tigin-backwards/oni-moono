@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Writes the MSVC check of OniMoono.Desktop's COM, struct, enum and DLL declarations
+         against the Windows SDK headers (scripts/com-check.sh). -->
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/OniMoono.Desktop/OniMoono.Desktop.csproj" />
+  </ItemGroup>
+</Project>

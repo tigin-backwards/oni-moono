@@ -2,8 +2,8 @@
 # The project's verification gate (ARCHITECTURE §9): build everything, the linters, the unit and
 # script tests, the macOS publishes and their shader and native checks, the API conformance
 # summary, and the host's checks against the game (types on the debug and release builds, the
-# game tweaks, assets, binding, natives, the Windows host's PE file, native crash records), with
-# this project's UI packages.
+# game tweaks, assets, binding, natives, the Windows host's PE file, native crash records), the
+# COM declarations against the Windows SDK headers, with this project's UI packages.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
 # Queues itself through runq as kind check (docs/RUNQ.md): never beside a perf run.
@@ -146,6 +146,10 @@ if [ -f "$root/out/win/host/OniMoono.exe" ]; then
 else
     echo "check-windows-host skipped: no out/win/host/OniMoono.exe (scripts/build-windows.sh)"
 fi
+# The player's COM, struct, enum and DLL declarations against the Windows SDK headers
+# (scripts/com-check.sh): compiled with MSVC when the Windows side is here, else only generated.
+comcheck=$("$root/scripts/com-check.sh" 2>&1) || { failed+=(com-check); head -n -1 <<< "$comcheck"; }
+tail -1 <<< "$comcheck"
 # The native crash records (scripts/check-native-crash.sh): Linux always, Windows with a Windows build.
 crashes=$("$root/scripts/check-native-crash.sh") || { failed+=(check-native-crash); grep -E '^FAIL' <<< "$crashes"; }
 tail -1 <<< "$crashes"
