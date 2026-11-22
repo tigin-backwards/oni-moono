@@ -259,23 +259,7 @@ namespace OniMoono.Engine.Rendering
 
         /// The position in `variants` of the variant that rule selects (-1 when there is none).
         public static int SelectIndex(ProgramVariant[] variants, Func<string, bool> isEnabled)
-        {
-            int best = -1, bestMatches = -1, bestExtras = int.MaxValue;
-            for (int i = 0; i < variants.Length; i++)
-            {
-                int matches = 0, extras = 0;
-                foreach (var k in variants[i].Keywords)
-                    if (isEnabled(k)) matches++;
-                    else extras++;
-                if (matches > bestMatches || (matches == bestMatches && extras < bestExtras))
-                {
-                    best = i;
-                    bestMatches = matches;
-                    bestExtras = extras;
-                }
-            }
-            return best;
-        }
+            => VariantSelection.SelectIndex<ProgramVariant>(variants, static v => v.Keywords, isEnabled);
 
         /// The programs a draw uses on a platform: on OpenGLCore one program for both stages; on
         /// Metal each stage selected from its own list by the same rule, since Metal keys each

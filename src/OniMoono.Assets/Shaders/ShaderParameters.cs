@@ -26,6 +26,12 @@ namespace OniMoono.Assets.Shaders
     /// 5 = 2D array).
     public readonly record struct ShaderTextureParameter(string Name, int Index, int SamplerIndex, int Dimension, bool MultiSampled);
 
+    /// A sampler declared on its own, not through a texture (SerializedProgramParameters'
+    /// `m_Samplers`, a SamplerParameter: `sampler`, an unsigned int whose encoding is not read
+    /// here, and `bindPoint`, the slot). Empty in every game shader of U60; mod shaders with inline
+    /// sampler states have them (a 2022.3 mod's Hidden/Dither: bind point 0 is its DXBC's s0).
+    public readonly record struct ShaderSamplerParameter(uint Sampler, int BindPoint);
+
     /// A buffer bound to a slot: a constant buffer (`[[buffer(n)]]` on Metal, a uniform-block binding
     /// on GL) or a structured buffer.
     public readonly record struct ShaderBufferParameter(string Name, int Index, int ArraySize);
@@ -40,6 +46,7 @@ namespace OniMoono.Assets.Shaders
         public readonly List<ShaderTextureParameter> Textures = new();
         public readonly List<ShaderBufferParameter> ConstantBufferBindings = new();
         public readonly List<ShaderBufferParameter> StructuredBuffers = new();
+        public readonly List<ShaderSamplerParameter> Samplers = new();
 
         public const uint Magic = 0x0C0A75BA;
 
@@ -124,6 +131,9 @@ namespace OniMoono.Assets.Shaders
                 p.ConstantBufferBindings.Add(new ShaderBufferParameter(Name(b), b.Int("m_Index"), b.Int("m_ArraySize")));
             foreach (var b in Items(parameters.Array("m_BufferParams")))
                 p.StructuredBuffers.Add(new ShaderBufferParameter(Name(b), b.Int("m_Index"), b.Int("m_ArraySize")));
+            if (parameters.Contains("m_Samplers"))
+                foreach (var s in Items(parameters.Array("m_Samplers")))
+                    p.Samplers.Add(new ShaderSamplerParameter(s.Get<uint>("sampler"), s.Int("bindPoint")));
             return p;
         }
 
@@ -168,6 +178,7 @@ namespace OniMoono.Assets.Shaders
                 p.Textures.AddRange(source.Textures);
                 p.ConstantBufferBindings.AddRange(source.ConstantBufferBindings);
                 p.StructuredBuffers.AddRange(source.StructuredBuffers);
+                p.Samplers.AddRange(source.Samplers);
             }
             return p;
         }
