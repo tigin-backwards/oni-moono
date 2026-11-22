@@ -14,7 +14,7 @@ steps:
   - ui_wait: {path: "**/MoonoUpdateBadge", cond: stable, frames: 600}
   - expect_ui:
       "**/MoonoOverlapBadge/Count": {active: true, text: "2 overlaps"}
-      "**/MoonoUpdateBadge/**/Version": {text: "v2026.11.03.02"}
+      "**/MoonoUpdateBadge/**/Version": {text: "v2026.11.03.01"}
   - shot: menu
   - press: {ui: "**/MoonoOverlapBadge", hover: true}
   - shot: {name: overlap-hover, pointer: stay}
