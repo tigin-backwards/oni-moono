@@ -168,7 +168,7 @@ header's vtable struct), its exact signature (`static_assert(std::is_same_v<...>
 function-pointer type), and each struct's size and field offsets. It covers the presenter's existing
 declarations too.
 
-## M2 part A: the binding and its check (2026-11-22)
+## M2 part A: the binding and its check (2026-11-22, review fixes the same day)
 
 - **Declarations** (`src/OniMoono.Desktop/D3d11/`): typed interface structs, each `lpVtbl` with
   a nested `Vtbl` whose methods sit at `FieldOffset(slot * 8)`, called as
@@ -176,42 +176,128 @@ declarations too.
   `D3D11CreateDevice` and `CreateDXGIFactory2`. Each carries `[Native]` naming its header. Only
   what the device needs (the original's call set, `d3d11-captures.md` §3 and §5, and the
   inventory's checklist): 22 `ID3D11Device` methods, 40 `ID3D11DeviceContext` methods,
-  `ID3D11Texture2D::GetDesc`, `ID3D11Debug::ReportLiveDeviceObjects` and 3 `ID3D11InfoQueue`
-  methods, 19 DXGI methods on 14 interfaces, IUnknown's 3; 40 interfaces in all. No
-  `ID3D11DeviceContext1`, deferred contexts or debug object names yet (M6 or when needed).
-  `Gl/Dxgi.cs` keeps its API and calls through the same structs; its structs, constants, IIDs and
-  DLL functions are annotated too.
+  `ID3D11Texture2D::GetDesc`, `ID3D11Debug::ReportLiveDeviceObjects`, 4 `ID3D11InfoQueue`
+  methods, 20 DXGI methods on 15 interfaces, IUnknown's 3. No `ID3D11DeviceContext1`, deferred
+  contexts or debug object names yet (M6 or when needed). `Gl/Dxgi.cs` keeps its API and calls
+  through the same structs; its structs, constants, IIDs and DLL functions are annotated too.
 - **The check.** `tools/ComCheckGen` reads every `[Native]` declaration by reflection on the
   built assembly (so it checks the layouts, offsets and function-pointer types the runtime uses,
-  not source text; no Roslyn workspace needed) and writes `com_check.cpp`. MSVC compiles it twice,
-  never runs it: with `CINTERFACE` for the C vtables, then as C++ classes for `__uuidof`. It
-  asserts each method's `offsetof(XVtbl, M)`, its exact type (`std::is_same_v` on the vtable
-  member, the C type derived from the C# one: `int` → `INT`, an `int` return → `HRESULT`,
-  `uint` → `UINT`, pointers, enums by name), each IID, each declared base (`std::is_base_of_v`)
-  and IUnknown's `Release` at slot 2 for every interface, each struct's size and every field's
-  offset, exact type and size, every enum value and constant, and each DLL function's type. C#
-  has no const or typedefs, so `[Const(i)]` adds const to a pointee and `[As(i, "DWORD")]` names
-  the native type, itself asserted ABI-equal (`abi_same`). Totals: 40 interfaces (89 methods),
-  45 structs (219 fields), 32 enums (196 values), 56 constants, 50 IIDs, 10 functions.
+  not source text) and writes `com_check.cpp`, which MSVC compiles twice, never runs: with
+  `CINTERFACE` for the C vtables, then as C++ classes for `__uuidof`. It asserts:
+  - each method's `offsetof(XVtbl, M)` and its exact type (`std::is_same_v` on the vtable member;
+    the C type is derived from the C# one: `int` → `INT`, an `int` return → `HRESULT`, `uint` →
+    `UINT`, pointers, enums and structs by name);
+  - each IID, each declared base (`std::is_base_of_v`), IUnknown's `Release` at slot 2 for every
+    interface;
+  - each struct's size and every field's offset, exact type and size;
+  - every enum's size, each enumerator's value and that it is an enumerator of that enum
+    (`is_same_v<decltype(NAME), Enum>`), every constant's value;
+  - each DLL function's type (`decltype(&F)`), and that the DLL named in its DllImport exports it:
+    `com_check.cmd` looks each one up in `%SystemRoot%\System32` with `dumpbin /exports`.
+  - C# has no const or typedefs, so `[Const(i)]` adds const to a pointee and `[As(i, "DWORD")]`
+    names the native type. An `[As]` (on a parameter or a field) must take the native type's
+    place (`abi_ok`): the same value type, an integer of the same size and signedness, or an enum
+    for an integer of the same size (never an enum for another enum, never a float for an
+    integer), pointers and references pointee by pointee. An untyped pointer or `IntPtr` for a
+    typed pointer or a handle needs `Opaque = true`, and an Opaque that is not needed fails. The 12
+    Opaque uses are listed at the top of `com_check.cpp`: HWND (MakeWindowAssociation,
+    CreateSwapChainForHwnd), HANDLE (GetFrameLatencyWaitableObject, CreateSharedHandle's out
+    handle, WaitForSingleObjectEx, CloseHandle), HMODULE (D3D11CreateDevice), HMONITOR
+    (DXGI_OUTPUT_DESC), and structs only ever passed as null or as an opaque buffer
+    (DXGI_SWAP_CHAIN_FULLSCREEN_DESC, SECURITY_ATTRIBUTES, DISPLAYCONFIG_MODE_INFO,
+    DISPLAYCONFIG_TOPOLOGY_ID).
+  - Nothing is skipped silently: a `[Native]`, `[As]`, `[Const]` or `[NotNative]` member the
+    generator does not emit (in a type without `[Native]`, a static field that is neither a
+    constant, an IID nor a function pointer, a LibraryImport) fails the generator; a `char` by
+    value in a DllImport (ANSI by default) fails it too. Function-pointer fields (a
+    GetProcAddress'd function) are checked like DllImports and name their DLL. The generator
+    prints counts per kind.
+  - Totals now: 41 interfaces (91 methods), 46 structs (220 fields), 33 enums (199 values), 57
+    constants, 51 IIDs, 9 DLL functions and their exports, 12 Opaque, 1 `[NotNative]`
+    (D3DDDIERR_DEVICEREMOVED, a WDK value).
+- **The SDK.** The check compiles against the Windows SDK and MSVC that `vcvars64.bat` picks (the
+  newest installed), not a pinned one; `com_check.cmd`'s last line names both. Here: Windows SDK
+  10.0.26100.0, MSVC 14.44.35207 (j0008218). CI's `windows-2025` runner may have a newer SDK;
+  which one it has is UNVERIFIED until CI runs it.
 - **Where it runs.** `scripts/com-check.sh` (generate and compile; generate only without a Windows
-  side); `scripts/build-native-host.sh` stages it and `build.cmd` compiles it before the host, so a
-  difference fails `build-windows.sh` and CI's Windows build; `check.sh` runs `com-check.sh`.
-  `setup.ps1`'s from-source host build skips it (no generator there).
-- **Proof** (j0008180, a scratch copy, one change per run): slot `Map` 14 → 15 failed
-  "`ID3D11DeviceContext+Vtbl.Map: slot 15`"; `DrawIndexed`'s `int` → `uint` failed "`signature void
-  (STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT, UINT)`"; `D3D11_DEPTH_STENCIL_VIEW_DESC.Texture2D`
-  at 8 failed "`offset 8`"; the `ID3D11Device` IID's last byte failed "`IID of ID3D11Device is
-  ...bf141`"; restored, it passes (j0008181). The first real run found one wrong declaration
-  already: `CloseHandle` returns BOOL, not HRESULT (fixed with `[As]`).
-- **Smoke test** (`tools/D3d11Smoke`, j0008182, light): a device on all 4 adapters, flags
-  BGRA_SUPPORT and BGRA_SUPPORT | DEBUG. Every value equals `d3d11-captures.md` §4: both RTX 3090
-  entries (LUIDs 125ad and 1f659) and the AMD iGPU FL 11_1; DriverConcurrentCreates 1;
-  DriverCommandLists 1 on NVIDIA, 0 on AMD; every D3D11_OPTIONS field read 1; CheckFormatSupport
-  20/19/21/45 = 0x3310b0/0x1210b0/0x4d217b0/0x3310b0, 10 = 0x12fef3f3 (NVIDIA), 0x32fef3f3 (AMD).
-  The Basic Render Driver (software) also gives 11_1, DriverCommandLists 0, format 10 0x2fef3f3.
-  **The debug layer works** (Graphics Tools installed): the debug device creates on every adapter
-  (GetCreationFlags 0x22), `ID3D11InfoQueue` and `ID3D11Debug` query, and the queue holds 0
-  messages after creation.
+  side); `scripts/build-native-host.sh` stages it and `build.cmd` compiles it before the host
+  (beside M1's `dxbc_check.cpp`), so a difference fails `build-windows.sh` and CI's Windows build;
+  `check.sh` runs `com-check.sh`. `setup.ps1`'s from-source host build skips it (no generator).
+- **Proof** (j0008302, one job, `tools/ComCheckGen/mutation_proof.py` on a `git archive` copy of
+  7d07d39e2): the unchanged copy passes, first and last; each of 17 mutations, one per run, fails
+  the check itself (an MSVC static_assert, the export lookup, or the generator; none fails by
+  breaking the C# build):
+  slot (`Map` 14 → 15); signature (`DrawIndexed`'s `int` → `uint`); struct offset
+  (`D3D11_DEPTH_STENCIL_VIEW_DESC.Texture2D` at 8); IID (`ID3D11Device`'s last byte); a field's
+  `[As("LONG")]` over a `float`, and over a `uint` (signedness); a pointer `[As("UINT*")]` over
+  `D3D11_TEXTURE2D_DESC*`; `void*` for `const SECURITY_ATTRIBUTES*` without Opaque; an Opaque
+  not needed (REFIID); an `[As]` enum over another enum; an enumerator put in another enum; a
+  `char` in a DllImport; a static field that is not a declaration; a function-pointer field of the
+  wrong type; a `[Native]` DllImport in a class without `[Native]`; a LibraryImport; and
+  `CreateDXGIFactory2` declared in d3d11.dll ("d3d11.dll does not export CreateDXGIFactory2"). An
+  earlier run (j0008222) had three mutations that only broke the C# build; they were replaced.
+- **Smoke test** (`tools/D3d11Smoke`, j0008219, light): a device on all 4 adapters, flags
+  BGRA_SUPPORT and BGRA_SUPPORT | DEBUG, every value printed. Each equals `d3d11-captures.md` §4:
+  both RTX 3090 entries (LUIDs 125ad and 1f659) and the AMD iGPU at FL 11_1;
+  DriverConcurrentCreates 1; DriverCommandLists 1 on NVIDIA, 0 on AMD; all 14 D3D11_OPTIONS
+  fields read 1 on all 8 devices; CheckFormatSupport 20/19/21/45 =
+  0x3310b0/0x1210b0/0x4d217b0/0x3310b0, 10 = 0x12fef3f3 (NVIDIA), 0x32fef3f3 (AMD). The Basic
+  Render Driver (software) also gives 11_1, DriverCommandLists 0, format 10 0x2fef3f3.
+  - **The debug layer** (Graphics Tools installed): the debug device creates on every adapter
+    (GetCreationFlags 0x22) with 0 stored messages. A buffer of ByteWidth 0 makes CreateBuffer
+    return E_INVALIDARG with two ERROR messages read back through GetMessage (bounded by
+    GetNumStoredMessagesAllowedByRetrievalFilter, as GetMessage's documentation says), ids 66
+    and 69, which are D3D11_MESSAGE_ID_CREATEBUFFER_INVALIDDIMENSIONS and
+    _CREATEBUFFER_INVALIDARG_RETURN in the header's enum: "ByteWidth cannot be 0".
+    ReportLiveDeviceObjects(DETAIL) gives 8 messages (the live device and its internal
+    context and default states).
+  - **Release counts.** The last Release of each device, adapter and factory returns 0 (each
+    printed; ID3D11Debug and ID3D11InfoQueue are interfaces of the device and return its count).
+- **WGL_NV_DX_interop errors** (a fix for master, its own commit): DxgiTarget read the interop
+  functions' failures with a GetLastError P/Invoke after the call, which the runtime's own calls
+  may overwrite (Marshal.GetLastPInvokeError, DllImportAttribute.SetLastError). They are now
+  called through delegates with SetLastError, and read with Marshal.GetLastPInvokeError.
+  Observed working after the change: `--renderer opengl` through the DXGI presenter on the RTX 3090,
+  900 frames, interop opened, registered and locked every frame with no failure logged (j0008281).
+
+## M2 part B: device bring-up (in progress)
+
+- **B1, done** (`D3d11Context`, `D3d11SwapChain`, `D3d11Device`; `--renderer d3d11`, not in the
+  Tweaks row, Windows only; `--d3d11-debug`): the adapter from `--gpu` (EnumAdapters1(0), or
+  EnumAdapterByGpuPreference for discrete or integrated; software refused), a device at 11_1 or
+  11_0 with BGRA_SUPPORT, and the device's own flip-model swap chain with the original's
+  measured settings (`d3d11-captures.md` §1): 2 buffers, FLIP_SEQUENTIAL, R8G8B8A8_UNORM,
+  ALLOW_MODE_SWITCH | FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING, maximum frame latency 2,
+  Present(1, 0) or Present(0, ALLOW_TEARING), resized with the window. It clears and presents
+  the back buffer, logs the debug layer's messages, and reports SystemInfo as the original's
+  (DeviceType Direct3D11, `Direct3D 11.0 [level 11.1]`, the texture-format answers of
+  `d3d11-unity-probes.md` §1). Draws, resources and readbacks are counted and dropped. A device
+  that cannot start falls back to the auto choice. Observed: `--renderer d3d11 --d3d11-debug` on
+  the RTX 3090 (j0008282, 900 frames to the main menu): level 11_1, the swap chain as above
+  (2560x1369, tearing allowed), a clean exit, and no debug-layer message in the whole run (with
+  nothing drawn yet).
+  - UNVERIFIED: the version string on an 11_0 device; DeviceVendor on AMD and Intel (empty for
+    now); MemorySizeMB (DedicatedVideoMemory in MiB) against the original's 24322 on the 3090.
+- **B2, next: the draw path**, modelled on the Vulkan device (`VkDevice*.cs`, `VkPrograms.cs`),
+  which already takes Unity's own programs and parameters:
+  1. The device thread: a `GlWorker` and a `GlDrawRecorder` whose `PlatformOf` gives 4 and
+     whose `VariantsOf` takes M1's `D3d11Variants` (the recorder now knows only GLCore and
+     Vulkan variants).
+  2. Programs (`IResourceWork.Program`): M1's `D3d11Program` gives the DXBC per stage and
+     `D3d11Bindings` the t#, s#, b# slots and the cbuffers' members, which become
+     `DeviceProgram.Uniforms` and `BlockSizes` as `VkPrograms.BuildShipped` does, so the recorder's
+     Blocks are the constant buffers' bytes. `CreateVertexShader`/`CreatePixelShader`/
+     `CreateGeometryShader` from the DXBC; input layouts of 14 elements as the original's
+     (`d3d11-captures.md` §3).
+  3. Constant buffers: one DYNAMIC buffer per cbuffer slot, `Map(WRITE_DISCARD)` per draw where
+     its bytes changed, as the original.
+  4. Textures (`UploadTexture`), samplers, meshes (`UploadMesh`), render textures with depth
+     D32_FLOAT_S8X24 (24-bit depth, as the original), the state objects from `ResolvedState`
+     (reversed Z, depth bias = −units and −factor, `FrontCounterClockwise` 1:
+     `d3d11-captures.md` §2), viewport and scissor (top-left origin).
+  5. `RenderConventions` for D3D11 (reversed Z, render textures flipped, no y epilogue); the
+     OpenGL device's D3D11 imitations (`Direct3DClip`) off on this device.
+  6. Then the main menu, the debug layer clean over it, and a pixel diff against OpenGL.
 
 ## Research so far (M0)
 
