@@ -75,23 +75,40 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 
 **M1 (2026-11-22, branch `d3d11-m1`).** Built in `src/OniMoono.Assets/Shaders`:
 
-- `ShaderCompilerPlatform.D3D11` (4) and `GpuProgramTypes` 15–22 (AssetStudio's enums; 15–19
-  occur).
+- `ShaderCompilerPlatform.D3D11` (4) and `GpuProgramTypes` 15–22 (AssetStudio's enums). The
+  reader accepts 15–19, the types the data has.
 - `D3d11Program`: the entry (shared header and tail, the 38-byte prefix with bytes 1–3 as slot
   counts and the rest raw, one DXBC ending the payload, nothing after the tail). The DXBC's
   program type and major model must be the ones the GPU program type names.
 - `Dxbc.cs`: the container and signatures as vkd3d-shader's `dxbc.c` reads them (commit
-  698cbfbd); the checksum as its `checksum.c` computes it; the SHDR/SHEX token stream and the
-  `dcl_constantbuffer`, `dcl_resource(_raw/_structured)`, `dcl_sampler` and `dcl_globalFlags`
-  forms of models 4.0–5.0, from `d3d12TokenizedProgramFormat.hpp` (DirectX-Headers 61c77189).
-  Bytes stay unmodified; damaged input throws `InvalidDataException`.
+  698cbfbd), with its component-type ≤ 3 check; the checksum as its `checksum.c` computes it; the
+  SHDR/SHEX token stream and the `dcl_constantbuffer`, `dcl_resource`, `dcl_resource_structured`,
+  `dcl_sampler` and `dcl_globalFlags` forms of models 4.0 and 5.0, from
+  `include/directx/D3D12TokenizedProgramFormat.hpp` (DirectX-Headers 61c77189). Bytes stay
+  unmodified; damaged input throws `InvalidDataException`.
+- **Refused as unsupported, not decoded untested** (each has a test; each comes back with a
+  fixture if a mod needs it): every declaration the 1,612 programs lack (UAVs, raw buffers,
+  streams, interfaces and class linkage, hull/domain/compute, `dcl_input_ps_sgv`,
+  `dcl_output_sgv`, `dcl_gs_instance_count`), custom-data blocks other than immediate constant
+  buffers, OSG5, non-zero stream or minimum precision, GPU types 20–22, models other than 4.0
+  and 5.0, resource dimensions other than 2D, 2D MS, 3D, cube, 2D array, 2D MS array and
+  structured, sampler modes other than default and comparison, extended opcode tokens on the
+  decoded declarations, and instruction lengths with bits 29–30 set.
+- `DxbcTokenFormat`: every token-format value the reader uses, under its header name.
+  `scripts/gen-dxbc-check.py` turns them into `src/OniMoono.NativeHost/dxbc_check.cpp`, static
+  asserts against the committed DirectX-Headers file and the SDK's `d3dcommon.h`; MSVC compiles
+  it in the Windows build (`build.cmd`), and `tests/scripts/test_dxbc_check.py` checks that it is
+  the generator's output and compiles it with a local C++ compiler when there is one.
 - `D3d11Bindings`: Unity's parameters (common plus blob) as t#, s#, b#, checked both ways against
-  the declarations (kind, texture dimension, cbuffer size) and the prefix counts. Mods with inline
-  sampler states record them in `m_Samplers`, now read by `ShaderParameters`.
+  those declarations (kind, texture dimension, cbuffer size) and the prefix counts. Mods with
+  inline sampler states record them in `m_Samplers`, now read by `ShaderParameters`.
 - `D3d11Variants`: per-stage lists selected by the existing rule, now `VariantSelection` (moved
   unchanged).
 
-Survey (`ShaderSurvey d3d11` / `d3d11-bundles`), 0 failures in both:
+Survey (`ShaderSurvey d3d11` / `d3d11-bundles`), 0 failures in both. `D3d11DataTests` runs the same
+check as a unit test when the data is there (`ONI_WIN_DATA`, default the frozen build's folder
+under `/mnt/e/oni-builds`; `ONI_WS`), and is skipped, naming the folder, otherwise. An unreadable
+bundle, serialized file or shader counts as a failure.
 
 | Data | Shaders | Subprograms | Distinct entries | Vulkan keys mapped |
 |---|---|---|---|---|
@@ -100,14 +117,26 @@ Survey (`ShaderSurvey d3d11` / `d3d11-bundles`), 0 failures in both:
 
 The 91 mod shaders serialized before 2021.2 are counted, not read. New measurements: every
 texture's declared dimension matches its TextureDimension (1,722 game, 497 mod); SM 4.0 programs
-sit in SHEX chunks too (UIRDefault); SV_Depth's signature register is 0xFFFFFFFF.
+sit in SHEX chunks too (UIRDefault); SV_Depth's signature register is 0xFFFFFFFF; one
+Texture2DMS declaration has sample count 0, which the header calls disallowed (kept raw).
 
-UNVERIFIED (none is needed to read or check a program): the encoding of `m_Samplers`' `sampler`
-value (M2 must decode it for the two mod inline samplers, 2990227046's Hidden/Dither); the
-cbuffer binding's second int; prefix byte 0 and bytes 4–37; the entry statistics; the pair's
-component code. Decoding that no surveyed program exercises: `dcl_resource_raw`, OSG5, types
-20–22, model 4.1. The selection flattens hardware tiers (only the last is populated in all data
-read).
+The checksum is also tested against known answers at 13 lengths covering both final-block shapes:
+vkd3d-shader's `checksum.c` built and run, equal to an independent Python translation.
+
+**Unknown, kept raw** (read, used by nothing, so no claim rests on them): the cbuffer binding's
+second int, prefix byte 0 and bytes 4–37, the entry statistics, the pair's component code.
+
+**Carried to M2.** Decode `m_Samplers`' `sampler` value (its encoding is unknown; the two mod
+inline samplers, 2990227046's Hidden/Dither, need it to draw).
+
+**Unsettled, noted.**
+- A typed `Buffer<T>` (dimension 1): how Unity records its binding is not measured; the reader
+  refuses the dimension.
+- Extended `dcl_function_body`, `dcl_function_table` and `dcl_interface`, whose length is in the
+  next DWORD: refused with every interface declaration.
+- The instruction length's width: 7 bits by the header, 5 by vkd3d-shader. No data sets bits
+  29–30, and a token that does is refused.
+- The selection flattens hardware tiers; only the last is populated in all data read.
 
 User decisions: the merge (M8). The default is decided by the rule below.
 
