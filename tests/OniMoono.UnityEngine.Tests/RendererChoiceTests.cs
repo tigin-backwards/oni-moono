@@ -22,7 +22,9 @@ namespace OniMoono.Tests
             o = EffectiveOptions.Resolve([], [], [], null, false, file, commandLineRenderer: "vulkan");
             Assert.Equal(("vulkan", OptionSource.CommandLine), (o.Renderer, o.RendererSource));
             Assert.Contains("renderer vulkan (the command line)", o.Describe());
-            Assert.Throws<FormatException>(() => PlayerSettings.Parse("""{ "renderer": "d3d11" }"""));
+            Assert.Throws<FormatException>(() => PlayerSettings.Parse("""{ "renderer": "metal" }"""));
+            // The Direct3D 11 device being built (Renderers.D3d11) is a choice, though not on the Tweaks screen.
+            Assert.Equal("d3d11", PlayerSettings.Parse("""{ "renderer": "d3d11" }""").Renderer);
             // Saved only when it isn't the default; kept when the screen didn't set it.
             Assert.Equal("{\"renderer\":\"vulkan\"}", EffectiveOptions.Apply(new PlayerSettings(), [], new Dictionary<string, bool>(), null, null, renderer: "vulkan").ToJson(indented: false));
             Assert.Equal("{}", EffectiveOptions.Apply(file, [], new Dictionary<string, bool>(), null, null, renderer: "auto").ToJson(indented: false));
