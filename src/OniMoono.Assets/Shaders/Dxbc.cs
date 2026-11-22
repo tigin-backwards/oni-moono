@@ -3,6 +3,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using static OniMoono.Assets.Shaders.DxbcTokenFormat;
 
 namespace OniMoono.Assets.Shaders
 {
@@ -13,28 +14,30 @@ namespace OniMoono.Assets.Shaders
         public string Name => Encoding.ASCII.GetString(BitConverter.GetBytes(Tag));
     }
 
-    /// An element of a DXBC signature chunk (ISGN, OSGN, ISG1, OSG1, OSG5), as
+    /// An element of a DXBC signature chunk (ISGN, OSGN, ISG1, OSG1), as
     /// D3D11_SIGNATURE_PARAMETER_DESC in the Windows SDK's d3d11shader.h describes it.
     /// `SystemValue` is a D3D_NAME and `ComponentType` a D3D_REGISTER_COMPONENT_TYPE (d3dcommon.h);
-    /// `Mask` is the components the register has; `ReadWriteMask` the components an input always
-    /// reads, or an output never writes. `Stream` is 0 and `MinPrecision` 0 (D3D_MIN_PRECISION_DEFAULT)
-    /// in the signature kinds that do not store them. `Register` is raw: an SV_Depth output's is
-    /// 0xFFFFFFFF (observed in U60's data; depth has no output register).
+    /// `Mask` is which components of the register are used; `ReadWriteMask` the components an
+    /// input always reads, or an output never writes. The stream and minimum precision ISG1 and
+    /// OSG1 store are 0 in every element of the data and are refused otherwise (DxbcContainer).
+    /// `Register` is raw: an SV_Depth output's is 0xFFFFFFFF (observed in U60's data).
     public readonly record struct DxbcSignatureElement(string SemanticName, uint SemanticIndex, uint SystemValue, uint ComponentType,
-        uint Register, byte Mask, byte ReadWriteMask, uint Stream, uint MinPrecision);
+        uint Register, byte Mask, byte ReadWriteMask);
 
     /// A constant buffer declaration (`dcl_constantbuffer cb#[size]`): its slot (b#), its size in
     /// 16-byte vectors (0: any size) and whether it is dynamically indexed.
     public readonly record struct DxbcConstantBufferDeclaration(int Slot, int Vectors, bool DynamicIndexed);
 
     /// A shader resource declaration on a t# slot: `dcl_resource` (Dimension a
-    /// D3D10_SB_RESOURCE_DIMENSION 2–10, SampleCount for the multisampled ones, ReturnType the raw
-    /// resource return type token), `dcl_resource_raw` (Dimension 11) or `dcl_resource_structured`
-    /// (Dimension 12, with the structure's byte Stride).
+    /// D3D10_SB_RESOURCE_DIMENSION: 3 Texture2D, 4 Texture2DMS, 5 Texture3D, 6 TextureCube,
+    /// 8 Texture2DArray or 9 Texture2DMSArray, the ones the data has; SampleCount raw, from the
+    /// token's [22:16] (one Texture2DMS of U60 has 0, which the header calls disallowed);
+    /// ReturnType the raw resource return type token) or `dcl_resource_structured` (Dimension 12,
+    /// with the structure's byte Stride).
     public readonly record struct DxbcResourceDeclaration(int Slot, int Dimension, int SampleCount, uint ReturnType, int Stride);
 
-    /// A sampler declaration (`dcl_sampler s#, mode`): Mode is a D3D10_SB_SAMPLER_MODE (0 default,
-    /// 1 comparison, 2 mono).
+    /// A sampler declaration (`dcl_sampler s#, mode`): Mode is a D3D10_SB_SAMPLER_MODE, 0 default or
+    /// 1 comparison (the ones the data has).
     public readonly record struct DxbcSamplerDeclaration(int Slot, int Mode);
 
     /// A DXBC container (the D3D shader bytecode format of shader models 4 and 5), read as the
@@ -55,6 +58,10 @@ namespace OniMoono.Assets.Shaders
     /// code chunk, one input and one output signature, and at most one SFI0. Every container of
     /// U60's data (960) and of the U60-layout mod bundles (652) has that shape; a second chunk of
     /// a kind would leave which one applies open, so it is refused.
+    ///
+    /// What no program of that data uses is refused rather than decoded untested: OSG5 output
+    /// signatures, non-zero stream or minimum-precision values, and (DxbcShader) the declarations,
+    /// dimensions, modes and shader models listed there.
     public sealed class DxbcContainer
     {
         public const uint Magic = 0x43425844; // "DXBC"
@@ -70,7 +77,7 @@ namespace OniMoono.Assets.Shaders
         public DxbcChunk[] Chunks { get; private init; } = [];
         public DxbcSignatureElement[] Inputs { get; private init; } = [];
         public DxbcSignatureElement[] Outputs { get; private init; } = [];
-        /// The input signature chunk's tag (ISGN or ISG1) and the output's (OSGN, OSG1 or OSG5).
+        /// The input signature chunk's tag (ISGN or ISG1) and the output's (OSGN or OSG1).
         public uint InputSignatureTag { get; private init; }
         public uint OutputSignatureTag { get; private init; }
         public DxbcShader Shader { get; private init; } = null!;
@@ -132,6 +139,7 @@ namespace OniMoono.Assets.Shaders
             var code = Single(SHDR, SHEX) ?? throw new InvalidDataException("DXBC: no SHDR or SHEX chunk.");
             var input = Single(ISGN, ISG1) ?? throw new InvalidDataException("DXBC: no input signature.");
             var output = Single(OSGN, OSG1, OSG5) ?? throw new InvalidDataException("DXBC: no output signature.");
+            if (output.Tag == OSG5) throw new InvalidDataException("DXBC: OSG5 output signatures are not supported (no program of U60's data or mods has one).");
             var sfi0 = Single(SFI0);
             ulong? features = null;
             if (sfi0 is { } f)
@@ -156,18 +164,18 @@ namespace OniMoono.Assets.Shaders
 
         /// A signature chunk, as vkd3d-shader's `vsir_signature_parse` (dxbc.c, same commit) reads
         /// it: an element count and the byte offset of the first element (at least 8, a multiple
-        /// of 4), then per element: the stream (OSG5, ISG1 and OSG1 only), the semantic name's
+        /// of 4), then per element: the stream (ISG1 and OSG1 only here), the semantic name's
         /// offset in the chunk (a NUL-terminated string), semantic index, system value, component
-        /// type, register, a mask word (byte 0 the mask, byte 1 the read/write mask) and the
-        /// minimum precision (ISG1 and OSG1 only).
+        /// type (at most VKD3D_SHADER_COMPONENT_FLOAT, 3, as vkd3d refuses larger ones; 3 is
+        /// d3dcommon.h's D3D_REGISTER_COMPONENT_FLOAT32), register, a mask word (byte 0 the mask,
+        /// byte 1 the read/write mask) and the minimum precision (ISG1 and OSG1 only).
         static DxbcSignatureElement[] Signature(ReadOnlySpan<byte> chunk, uint tag)
         {
             if (chunk.Length < 8) throw new InvalidDataException("DXBC: signature chunk shorter than its header.");
             uint count = U32(chunk, 0), first = U32(chunk, 4);
             if (first < 8 || first % 4 != 0 || first > (uint)chunk.Length) throw new InvalidDataException($"DXBC: signature elements at {first}.");
-            bool minPrecision = tag == ISG1 || tag == OSG1;
-            bool stream = minPrecision || tag == OSG5;
-            int elementBytes = 24 + (stream ? 4 : 0) + (minPrecision ? 4 : 0);
+            bool minPrecision = tag == ISG1 || tag == OSG1, stream = minPrecision;
+            int elementBytes = minPrecision ? 32 : 24;
             if (count > ((uint)chunk.Length - first) / (uint)elementBytes) throw new InvalidDataException($"DXBC: {count} signature elements do not fit.");
             var elements = new DxbcSignatureElement[count];
             int pos = (int)first;
@@ -179,9 +187,12 @@ namespace OniMoono.Assets.Shaders
                 if (name >= (uint)chunk.Length) throw new InvalidDataException($"DXBC: signature element {i}'s name at {name} is outside its chunk.");
                 int end = chunk[(int)name..].IndexOf((byte)0);
                 if (end < 0) throw new InvalidDataException($"DXBC: signature element {i}'s name is not terminated.");
-                uint mask = U32(chunk, pos + 20);
-                elements[i] = new DxbcSignatureElement(Encoding.ASCII.GetString(chunk.Slice((int)name, end)), U32(chunk, pos + 4), U32(chunk, pos + 8), U32(chunk, pos + 12),
-                    U32(chunk, pos + 16), (byte)mask, (byte)(mask >> 8), streamIndex, minPrecision ? U32(chunk, pos + 24) : 0);
+                uint mask = U32(chunk, pos + 20), componentType = U32(chunk, pos + 12), precision = minPrecision ? U32(chunk, pos + 24) : D3D_MIN_PRECISION_DEFAULT;
+                if (componentType > D3D_REGISTER_COMPONENT_FLOAT32) throw new InvalidDataException($"DXBC: signature element {i} has component type {componentType}.");
+                if (streamIndex != 0 || precision != D3D_MIN_PRECISION_DEFAULT)
+                    throw new InvalidDataException($"DXBC: signature element {i} has stream {streamIndex} and minimum precision {precision}; only 0 is supported (all the data has).");
+                elements[i] = new DxbcSignatureElement(Encoding.ASCII.GetString(chunk.Slice((int)name, end)), U32(chunk, pos + 4), U32(chunk, pos + 8), componentType,
+                    U32(chunk, pos + 16), (byte)mask, (byte)(mask >> 8));
                 pos += minPrecision ? 28 : 24;
             }
             return elements;
@@ -192,9 +203,9 @@ namespace OniMoono.Assets.Shaders
 
     /// The shader code chunk (SHDR or SHEX) of a DXBC container: its version token, and the
     /// declarations a device binds by, read from the token stream as the Windows SDK's tokenized
-    /// program format defines it (d3d12TokenizedProgramFormat.hpp in microsoft/DirectX-Headers at
-    /// commit 61c7718954ec73dbdd43c723240fe1a0452a3724, which keeps D3D10/D3D11's D3D10_SB_* and
-    /// D3D11_SB_* definitions):
+    /// program format defines it (include/directx/D3D12TokenizedProgramFormat.hpp in
+    /// microsoft/DirectX-Headers at commit 61c7718954ec73dbdd43c723240fe1a0452a3724, which keeps
+    /// D3D10/D3D11's D3D10_SB_* and D3D11_SB_* definitions; the values used are DxbcTokenFormat's):
     /// - the version token ([31:16] program type, [7:4] major, [3:0] minor) and a length token
     ///   (the program's DWORDs, both tokens included);
     /// - instructions: an opcode token ([10:0] opcode, [30:24] length in DWORDs including the
@@ -202,7 +213,21 @@ namespace OniMoono.Assets.Shaders
     ///
     /// Every instruction is stepped over by its length; the stream must end exactly at the
     /// program's length. Declarations are decoded in the shader model 4.0–5.0 forms (5.1 changed
-    /// them; such programs are refused).
+    /// them).
+    ///
+    /// Only what U60's data and the U60-layout mods contain is accepted (measured on their 1,612
+    /// programs); the rest is refused as unsupported, not decoded untested:
+    /// - shader models other than 4.0 and 5.0;
+    /// - declarations other than dcl_resource, dcl_constantbuffer, dcl_sampler, dcl_index_range,
+    ///   the geometry shader ones, dcl_input(_sgv/_siv/_ps/_ps_siv), dcl_output(_siv), dcl_temps,
+    ///   dcl_indexableTemp, dcl_globalFlags and dcl_resource_structured: among them every UAV,
+    ///   raw-buffer, stream, interface, class-linkage, hull/domain and compute declaration;
+    /// - custom-data blocks other than immediate constant buffers;
+    /// - instruction length fields with bits 29–30 set, where the header (7 bits) and
+    ///   vkd3d-shader (5 bits) disagree;
+    /// - extended opcode tokens on the declarations decoded here;
+    /// - resource dimensions and sampler modes other than those DxbcResourceDeclaration and
+    ///   DxbcSamplerDeclaration list.
     public sealed class DxbcShader
     {
         /// D3D10_SB_TOKENIZED_PROGRAM_TYPE: 0 pixel, 1 vertex, 2 geometry, 3 hull, 4 domain, 5 compute.
@@ -217,12 +242,35 @@ namespace OniMoono.Assets.Shaders
         public DxbcResourceDeclaration[] Resources { get; private init; } = [];
         public DxbcSamplerDeclaration[] Samplers { get; private init; } = [];
 
-        public const int PixelProgram = 0, VertexProgram = 1, GeometryProgram = 2;
+        public const int PixelProgram = D3D10_SB_PIXEL_SHADER, VertexProgram = D3D10_SB_VERTEX_SHADER, GeometryProgram = D3D10_SB_GEOMETRY_SHADER;
 
-        // D3D10_SB_OPCODE_TYPE values (the enum's order).
-        const int CustomData = 53, DclResource = 88, DclConstantBuffer = 89, DclSampler = 90, DclGlobalFlags = 106, DclResourceRaw = 161, DclResourceStructured = 162;
-        // D3D10_SB_OPERAND_TYPE values.
-        const int OperandSampler = 6, OperandResource = 7, OperandConstantBuffer = 8;
+        /// Declaration opcodes no program of the data has, by their header names.
+        static readonly Dictionary<int, string> unsupported = new()
+        {
+            [D3D10_SB_OPCODE_DCL_INPUT_PS_SGV] = nameof(D3D10_SB_OPCODE_DCL_INPUT_PS_SGV),
+            [D3D10_SB_OPCODE_DCL_OUTPUT_SGV] = nameof(D3D10_SB_OPCODE_DCL_OUTPUT_SGV),
+            [D3D11_SB_OPCODE_HS_DECLS] = nameof(D3D11_SB_OPCODE_HS_DECLS),
+            [D3D11_SB_OPCODE_DCL_STREAM] = nameof(D3D11_SB_OPCODE_DCL_STREAM),
+            [D3D11_SB_OPCODE_DCL_FUNCTION_BODY] = nameof(D3D11_SB_OPCODE_DCL_FUNCTION_BODY),
+            [D3D11_SB_OPCODE_DCL_FUNCTION_TABLE] = nameof(D3D11_SB_OPCODE_DCL_FUNCTION_TABLE),
+            [D3D11_SB_OPCODE_DCL_INTERFACE] = nameof(D3D11_SB_OPCODE_DCL_INTERFACE),
+            [D3D11_SB_OPCODE_DCL_INPUT_CONTROL_POINT_COUNT] = nameof(D3D11_SB_OPCODE_DCL_INPUT_CONTROL_POINT_COUNT),
+            [D3D11_SB_OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT] = nameof(D3D11_SB_OPCODE_DCL_OUTPUT_CONTROL_POINT_COUNT),
+            [D3D11_SB_OPCODE_DCL_TESS_DOMAIN] = nameof(D3D11_SB_OPCODE_DCL_TESS_DOMAIN),
+            [D3D11_SB_OPCODE_DCL_TESS_PARTITIONING] = nameof(D3D11_SB_OPCODE_DCL_TESS_PARTITIONING),
+            [D3D11_SB_OPCODE_DCL_TESS_OUTPUT_PRIMITIVE] = nameof(D3D11_SB_OPCODE_DCL_TESS_OUTPUT_PRIMITIVE),
+            [D3D11_SB_OPCODE_DCL_HS_MAX_TESSFACTOR] = nameof(D3D11_SB_OPCODE_DCL_HS_MAX_TESSFACTOR),
+            [D3D11_SB_OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT] = nameof(D3D11_SB_OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT),
+            [D3D11_SB_OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT] = nameof(D3D11_SB_OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT),
+            [D3D11_SB_OPCODE_DCL_THREAD_GROUP] = nameof(D3D11_SB_OPCODE_DCL_THREAD_GROUP),
+            [D3D11_SB_OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED] = nameof(D3D11_SB_OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED),
+            [D3D11_SB_OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW] = nameof(D3D11_SB_OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW),
+            [D3D11_SB_OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED] = nameof(D3D11_SB_OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED),
+            [D3D11_SB_OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW] = nameof(D3D11_SB_OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW),
+            [D3D11_SB_OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED] = nameof(D3D11_SB_OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED),
+            [D3D11_SB_OPCODE_DCL_RESOURCE_RAW] = nameof(D3D11_SB_OPCODE_DCL_RESOURCE_RAW),
+            [D3D11_SB_OPCODE_DCL_GS_INSTANCE_COUNT] = nameof(D3D11_SB_OPCODE_DCL_GS_INSTANCE_COUNT),
+        };
 
         /// Throws InvalidDataException for a damaged or unsupported program.
         public static DxbcShader Read(ReadOnlySpan<byte> chunk)
@@ -245,8 +293,10 @@ namespace OniMoono.Assets.Shaders
             var tokens = System.Runtime.InteropServices.MemoryMarshal.Cast<byte, uint>(chunk[..(chunk.Length / 4 * 4)]);
             uint version = tokens[0], length = tokens[1];
             if (length < 2 || length > (uint)tokens.Length) throw new InvalidDataException($"DXBC: program length {length} for a chunk of {tokens.Length} DWORDs.");
-            int type = (int)(version >> 16), major = (int)((version >> 4) & 0xF), minor = (int)(version & 0xF);
-            if (!((major == 4 && minor <= 1) || (major == 5 && minor == 0))) throw new InvalidDataException($"DXBC: shader model {major}.{minor} is not read (4.0, 4.1 and 5.0 are).");
+            int type = (int)((version & D3D10_SB_TOKENIZED_PROGRAM_TYPE_MASK) >> D3D10_SB_TOKENIZED_PROGRAM_TYPE_SHIFT);
+            int major = (int)((version & D3D10_SB_TOKENIZED_PROGRAM_MAJOR_VERSION_MASK) >> D3D10_SB_TOKENIZED_PROGRAM_MAJOR_VERSION_SHIFT);
+            int minor = (int)(version & D3D10_SB_TOKENIZED_PROGRAM_MINOR_VERSION_MASK);
+            if (!((major == 4 || major == 5) && minor == 0)) throw new InvalidDataException($"DXBC: shader model {major}.{minor} is not supported (4.0 and 5.0, all the data has).");
             var cbs = new List<DxbcConstantBufferDeclaration>();
             var resources = new List<DxbcResourceDeclaration>();
             var samplers = new List<DxbcSamplerDeclaration>();
@@ -255,54 +305,70 @@ namespace OniMoono.Assets.Shaders
             for (int pos = 2; pos < length;)
             {
                 uint token = tokens[pos];
-                int opcode = (int)(token & 0x7FF);
+                int opcode = (int)(token & D3D10_SB_OPCODE_TYPE_MASK);
                 uint size;
-                if (opcode == CustomData)
+                if (opcode == D3D10_SB_OPCODE_CUSTOMDATA)
                 {
+                    uint kind = (token & D3D10_SB_CUSTOMDATA_CLASS_MASK) >> D3D10_SB_CUSTOMDATA_CLASS_SHIFT;
+                    if (kind != D3D10_SB_CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER)
+                        throw new InvalidDataException($"DXBC: custom-data block of class {kind} is not supported (immediate constant buffers, 3, are all the data has).");
                     if (pos + 1 >= length) throw new InvalidDataException("DXBC: custom-data block without its length.");
                     size = tokens[pos + 1];
                     if (size < 2) throw new InvalidDataException($"DXBC: custom-data block of {size} DWORDs.");
                 }
                 else
                 {
-                    size = (token >> 24) & 0x7F;
+                    if (unsupported.TryGetValue(opcode, out var name))
+                        throw new InvalidDataException($"DXBC: declaration {name} ({opcode}) is not supported (no program of U60's data or mods has one).");
+                    if ((token & LengthBitsReadersDisagreeOn) != 0)
+                        throw new InvalidDataException($"DXBC: instruction {count} (opcode {opcode}) sets length bits 29-30, which the format's readers do not agree on.");
+                    size = (token & D3D10_SB_TOKENIZED_INSTRUCTION_LENGTH_MASK) >> D3D10_SB_TOKENIZED_INSTRUCTION_LENGTH_SHIFT;
                     if (size == 0) throw new InvalidDataException($"DXBC: instruction {count} (opcode {opcode}) of length 0.");
                 }
                 if (size > length - (uint)pos) throw new InvalidDataException($"DXBC: instruction {count} (opcode {opcode}) runs past the program.");
                 var ins = tokens.Slice(pos, (int)size);
+                bool decoded = opcode is D3D10_SB_OPCODE_DCL_CONSTANT_BUFFER or D3D10_SB_OPCODE_DCL_RESOURCE or D3D11_SB_OPCODE_DCL_RESOURCE_STRUCTURED or D3D10_SB_OPCODE_DCL_SAMPLER;
+                if (decoded && (token & D3D10_SB_OPCODE_EXTENDED_MASK) != 0) throw new InvalidDataException($"DXBC: declaration {opcode} with an extended opcode token is not supported.");
                 switch (opcode)
                 {
-                    case DclConstantBuffer:
+                    case D3D10_SB_OPCODE_DCL_CONSTANT_BUFFER:
                     {
                         // Operand cb#[size]: 2D, both indices immediate (SM 4.0–5.0 form).
-                        var (slot, vectors) = Operand2D(ins, OperandConstantBuffer, "dcl_constantbuffer");
-                        cbs.Add(new DxbcConstantBufferDeclaration(slot, vectors, ((token >> 11) & 1) != 0));
+                        var (slot, vectors) = Operand2D(ins, D3D10_SB_OPERAND_TYPE_CONSTANT_BUFFER, "dcl_constantbuffer");
+                        bool dynamic = (token & D3D10_SB_CONSTANT_BUFFER_ACCESS_PATTERN_MASK) != 0; // D3D10_SB_CONSTANT_BUFFER_DYNAMIC_INDEXED
+                        cbs.Add(new DxbcConstantBufferDeclaration(slot, vectors, dynamic));
                         break;
                     }
-                    case DclResource:
+                    case D3D10_SB_OPCODE_DCL_RESOURCE:
                     {
-                        // [15:11] dimension, [22:16] sample count; operand t#, then the return type token.
-                        int slot = Operand1D(ins, OperandResource, 4, "dcl_resource");
-                        int dimension = (int)((token >> 11) & 0x1F);
-                        if (dimension < 1 || dimension > 10) throw new InvalidDataException($"DXBC: dcl_resource t{slot} of dimension {dimension}.");
-                        resources.Add(new DxbcResourceDeclaration(slot, dimension, (int)((token >> 16) & 0x7F), ins[3], 0));
+                        // Operand t#, then the return type token.
+                        int slot = Operand1D(ins, D3D10_SB_OPERAND_TYPE_RESOURCE, 4, "dcl_resource");
+                        int dimension = (int)((token & D3D10_SB_RESOURCE_DIMENSION_MASK) >> D3D10_SB_RESOURCE_DIMENSION_SHIFT);
+                        if (dimension is not (D3D10_SB_RESOURCE_DIMENSION_TEXTURE2D or D3D10_SB_RESOURCE_DIMENSION_TEXTURE2DMS or D3D10_SB_RESOURCE_DIMENSION_TEXTURE3D
+                            or D3D10_SB_RESOURCE_DIMENSION_TEXTURECUBE or D3D10_SB_RESOURCE_DIMENSION_TEXTURE2DARRAY or D3D10_SB_RESOURCE_DIMENSION_TEXTURE2DMSARRAY))
+                            throw new InvalidDataException($"DXBC: dcl_resource t{slot} of dimension {dimension} is not supported (2D, 2D MS, 3D, cube, 2D array and 2D MS array are all the data has).");
+                        int samples = (int)((token & D3D10_SB_RESOURCE_SAMPLE_COUNT_MASK) >> D3D10_SB_RESOURCE_SAMPLE_COUNT_SHIFT);
+                        resources.Add(new DxbcResourceDeclaration(slot, dimension, samples, ins[3], 0));
                         break;
                     }
-                    case DclResourceRaw:
-                        resources.Add(new DxbcResourceDeclaration(Operand1D(ins, OperandResource, 3, "dcl_resource_raw"), 11, 0, 0, 0));
-                        break;
-                    case DclResourceStructured:
+                    case D3D11_SB_OPCODE_DCL_RESOURCE_STRUCTURED:
                     {
-                        int slot = Operand1D(ins, OperandResource, 4, "dcl_resource_structured");
+                        int slot = Operand1D(ins, D3D10_SB_OPERAND_TYPE_RESOURCE, 4, "dcl_resource_structured");
                         if (ins[3] > int.MaxValue) throw new InvalidDataException($"DXBC: dcl_resource_structured t{slot} stride {ins[3]}.");
-                        resources.Add(new DxbcResourceDeclaration(slot, 12, 0, 0, (int)ins[3]));
+                        resources.Add(new DxbcResourceDeclaration(slot, D3D11_SB_RESOURCE_DIMENSION_STRUCTURED_BUFFER, 0, 0, (int)ins[3]));
                         break;
                     }
-                    case DclSampler:
-                        samplers.Add(new DxbcSamplerDeclaration(Operand1D(ins, OperandSampler, 3, "dcl_sampler"), (int)((token >> 11) & 0xF)));
+                    case D3D10_SB_OPCODE_DCL_SAMPLER:
+                    {
+                        int slot = Operand1D(ins, D3D10_SB_OPERAND_TYPE_SAMPLER, 3, "dcl_sampler");
+                        int mode = (int)((token & D3D10_SB_SAMPLER_MODE_MASK) >> D3D10_SB_SAMPLER_MODE_SHIFT);
+                        if (mode is not (D3D10_SB_SAMPLER_MODE_DEFAULT or D3D10_SB_SAMPLER_MODE_COMPARISON))
+                            throw new InvalidDataException($"DXBC: dcl_sampler s{slot} of mode {mode} is not supported (default and comparison are all the data has).");
+                        samplers.Add(new DxbcSamplerDeclaration(slot, mode));
                         break;
-                    case DclGlobalFlags:
-                        globalFlags = token & 0x00FFF800;
+                    }
+                    case D3D10_SB_OPCODE_DCL_GLOBAL_FLAGS:
+                        globalFlags = token & D3D10_SB_GLOBAL_FLAGS_MASK;
                         break;
                 }
                 pos += (int)size;
@@ -331,25 +397,28 @@ namespace OniMoono.Assets.Shaders
         static int Operand1D(ReadOnlySpan<uint> ins, int type, int length, string what)
         {
             if (ins.Length != length) throw new InvalidDataException($"DXBC: {what} of {ins.Length} DWORDs, not {length}.");
-            CheckOperand(ins[1], type, 1, what);
+            CheckOperand(ins[1], type, D3D10_SB_OPERAND_INDEX_1D, what);
             return Index(ins[2], what);
         }
 
         static (int, int) Operand2D(ReadOnlySpan<uint> ins, int type, string what)
         {
             if (ins.Length != 4) throw new InvalidDataException($"DXBC: {what} of {ins.Length} DWORDs, not 4.");
-            CheckOperand(ins[1], type, 2, what);
+            CheckOperand(ins[1], type, D3D10_SB_OPERAND_INDEX_2D, what);
             return (Index(ins[2], what), Index(ins[3], what));
         }
 
         /// OperandToken0: [19:12] operand type, [21:20] index dimension, [24:22], [27:25] and
-        /// [30:28] each index's representation (0: an immediate 32-bit DWORD), [31] extended (no
-        /// declaration is extended, by the format's comments).
+        /// [30:28] each index's representation, [31] extended. Every index must be immediate
+        /// (D3D10_SB_OPERAND_INDEX_IMMEDIATE32) and the operand not extended: observed, every
+        /// declaration operand of the data is so; the header does not require it.
         static void CheckOperand(uint operand, int type, int dimension, string what)
         {
-            if (((operand >> 12) & 0xFF) != type) throw new InvalidDataException($"DXBC: {what} operand of type {(operand >> 12) & 0xFF}.");
-            if (((operand >> 20) & 3) != dimension) throw new InvalidDataException($"DXBC: {what} operand of index dimension {(operand >> 20) & 3}.");
-            if ((operand >> 22) != 0) throw new InvalidDataException($"DXBC: {what} operand with non-immediate indices or an extension (token {operand:x8}).");
+            uint t = (operand & D3D10_SB_OPERAND_TYPE_MASK) >> D3D10_SB_OPERAND_TYPE_SHIFT, d = (operand & D3D10_SB_OPERAND_INDEX_DIMENSION_MASK) >> D3D10_SB_OPERAND_INDEX_DIMENSION_SHIFT;
+            if (t != type) throw new InvalidDataException($"DXBC: {what} operand of type {t}.");
+            if (d != dimension) throw new InvalidDataException($"DXBC: {what} operand of index dimension {d}.");
+            if ((operand & (IndexRepresentationBits | D3D10_SB_OPERAND_EXTENDED_MASK)) != D3D10_SB_OPERAND_INDEX_IMMEDIATE32)
+                throw new InvalidDataException($"DXBC: {what} operand with non-immediate indices or an extension (token {operand:x8}).");
         }
 
         static int Index(uint value, string what) => value <= int.MaxValue ? (int)value : throw new InvalidDataException($"DXBC: {what} index {value}.");

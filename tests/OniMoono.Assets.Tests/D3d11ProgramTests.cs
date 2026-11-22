@@ -62,7 +62,7 @@ namespace OniMoono.Assets.Tests
             Assert.Equal(["ISGN", "OSGN", "SHDR"], p.Dxbc.Chunks.Select(c => c.Name));
             Assert.Equal((DxbcShader.VertexProgram, 4, 0), (p.Dxbc.Shader.ProgramType, p.Dxbc.Shader.Major, p.Dxbc.Shader.Minor));
             Assert.Equal(["POSITION", "TEXCOORD"], p.Dxbc.Inputs.Select(e => e.SemanticName));
-            Assert.Equal(new DxbcSignatureElement("TEXCOORD", 0, 0, 3, 1, 0x3, 0x3, 0, 0), p.Dxbc.Inputs[1]);
+            Assert.Equal(new DxbcSignatureElement("TEXCOORD", 0, 0, 3, 1, 0x3, 0x3), p.Dxbc.Inputs[1]);
             Assert.Equal(1u, p.Dxbc.Outputs[0].SystemValue); // D3D_NAME_POSITION
             Assert.Equal(0x11u, p.ChannelMask);
             Assert.Equal([(0, 0), (4, 5)], p.Inputs);
@@ -211,9 +211,9 @@ namespace OniMoono.Assets.Tests
             // The token stream: program length, an instruction running past it, length 0, a shader model 5.1.
             int code = dxbc + shdr + 8;
             Refused(Sealed(e => Put(e, code + 4, 1000)), "program length 1000");
-            Refused(Sealed(e => Put(e, code + 8, BitConverter.ToUInt32(good, code + 8) | 0x7F000000)), "runs past the program");
+            Refused(Sealed(e => Put(e, code + 8, BitConverter.ToUInt32(good, code + 8) | 0x1F000000)), "runs past the program");
             Refused(Sealed(e => Put(e, code + 8, BitConverter.ToUInt32(good, code + 8) & 0x00FFFFFF)), "of length 0");
-            Refused(Sealed(e => Put(e, code, 0x00010051)), "shader model 5.1 is not read");
+            Refused(Sealed(e => Put(e, code, 0x00010051)), "shader model 5.1 is not supported");
         }
 
         [Fact]
@@ -246,6 +246,55 @@ namespace OniMoono.Assets.Tests
             Refused(Sealed(e => Put(e, resource, BitConverter.ToUInt32(good, resource) & ~0xF800u)), "dcl_resource t0 of dimension 0");
             Refused(Sealed(e => Put(e, resource + 8, 1)), "resource slot 1 declared twice");
             Refused(Sealed(e => Put(e, resource + 8, 0x80000000)), "dcl_resource index 2147483648");
+        }
+
+        /// What no program of U60's data or mods has is refused, each with what it is.
+        [Fact]
+        public void UnsupportedFormsAreRefused()
+        {
+            void Refused(byte[] e, string message) => Assert.Contains(message, Assert.Throws<InvalidDataException>(() => D3d11Program.Read(e)).Message);
+            byte[] Sealed(byte[] good, Action<byte[]> change)
+            {
+                var e = (byte[])good.Clone();
+                change(e);
+                return Resealed(e);
+            }
+            // GPU program types 20-22, shader model 4.1, OSG5, a component type past FLOAT32.
+            var vs = Entry("fullscreen-vs");
+            int dxbc = DxbcOffset(vs);
+            foreach (uint type in new uint[] { 20, 21, 22 }) Refused(Sealed(vs, e => Put(e, 4, type)), $"GPU program type {type} is not supported");
+            int isgn = BitConverter.ToInt32(vs, dxbc + 32), osgn = BitConverter.ToInt32(vs, dxbc + 36), shdr = BitConverter.ToInt32(vs, dxbc + 40);
+            Refused(Sealed(vs, e => Put(e, dxbc + shdr + 8, 0x00010041)), "shader model 4.1 is not supported");
+            Refused(Sealed(vs, e => Put(e, dxbc + osgn, DxbcContainer.OSG5)), "OSG5 output signatures are not supported");
+            Refused(Sealed(vs, e => Put(e, dxbc + isgn + 8 + 8 + 24 + 12, 7)), "signature element 1 has component type 7");
+            // ISG1's stream and minimum precision (uirdefault-ps's first input element).
+            var ps = Entry("uirdefault-ps");
+            int pdx = DxbcOffset(ps);
+            var chunks = D3d11Program.Read(ps).Dxbc.Chunks;
+            int isg1 = pdx + chunks.Single(c => c.Name == "ISG1").Offset;
+            Refused(Sealed(ps, e => Put(e, isg1 + 8, 1)), "has stream 1 and minimum precision 0");
+            Refused(Sealed(ps, e => Put(e, isg1 + 8 + 28, 1)), "has stream 0 and minimum precision 1");
+            // Its declarations: dcl_globalFlags (one DWORD) first, then cb0, s0, t0, t1.
+            int code = pdx + chunks.Single(c => c.Name == "SHEX").Offset;
+            var tokens = Enumerable.Range(0, 24).Select(i => BitConverter.ToUInt32(ps, code + 4 * i)).ToArray();
+            Assert.Equal(106u | (1u << 24), tokens[2] & 0xFF0007FF);
+            int At(int opcode)
+            {
+                for (int i = 2; ; i += (int)((tokens[i] >> 24) & 0x7F))
+                    if ((tokens[i] & 0x7FF) == opcode) return code + 4 * i;
+            }
+            int flags = code + 8, sampler = At(90), resource = At(88);
+            int[] declarations = [99, 102, 113, .. Enumerable.Range(143, 19), 206];
+            foreach (int opcode in declarations) Refused(Sealed(ps, e => Put(e, flags, (uint)opcode | (1u << 24))), $"({opcode}) is not supported");
+            Refused(Sealed(ps, e => Put(e, flags, 156u | (1u << 24))), "D3D11_SB_OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED");
+            Refused(Sealed(ps, e => Put(e, flags, 161u | (1u << 24))), "D3D11_SB_OPCODE_DCL_RESOURCE_RAW");
+            Refused(Sealed(ps, e => Put(e, flags, 53u)), "custom-data block of class 0 is not supported");
+            Refused(Sealed(ps, e => Put(e, flags, tokens[2] | 0x20000000)), "length bits 29-30");
+            Refused(Sealed(ps, e => Put(e, flags, tokens[2] | 0x40000000)), "length bits 29-30");
+            Refused(Sealed(ps, e => Put(e, sampler, BitConverter.ToUInt32(ps, sampler) | 0x80000000)), "extended opcode token is not supported");
+            Refused(Sealed(ps, e => Put(e, sampler, BitConverter.ToUInt32(ps, sampler) | (2u << 11))), "dcl_sampler s0 of mode 2 is not supported");
+            foreach (uint dimension in new uint[] { 1, 2, 7, 10, 11, 12 })
+                Refused(Sealed(ps, e => Put(e, resource, BitConverter.ToUInt32(ps, resource) & ~0xF800u | (dimension << 11))), $"of dimension {dimension} is not supported");
         }
 
         /// Every prefix of each fixture, and many single-byte changes of each (with the checksum
@@ -297,19 +346,29 @@ namespace OniMoono.Assets.Tests
                 DxbcChecksum.Compute(entry.AsSpan(at, size), digest);
                 Assert.Equal(entry.AsSpan(at + 4, 16).ToArray(), digest);
             }
-            // Both final-block shapes: messages whose length leaves fewer than 8 bytes after the
-            // pad byte take an extra block. The digest changes with every byte.
-            foreach (int n in new[] { 21, 75, 76, 77, 83, 84, 85, 148 })
+            // Known answers: a container of 20 + n bytes, byte i = (i * 31 + 7) & 0xff, digested
+            // from byte 20. The digests are vkd3d-shader's own (checksum.c at 698cbfbd, built
+            // with gcc and a stub vkd3d_shader_private.h, vkd3d_compute_md5(VKD3D_MD5_DXBC)), and
+            // equal an independent Python translation of it (the M1 review's scan.py). n mod 64
+            // covers one final block (1, 55, 64, 119), the extra block (56, 57, 59, 60, 63, 120,
+            // 124, 127) and both DWORD-aligned extra-block shapes, 56 and 60.
+            foreach (var (n, hex) in KnownDigests)
             {
-                var data = new byte[n];
-                var a = new byte[16];
-                var b = new byte[16];
-                DxbcChecksum.Compute(data, a);
-                data[n - 1] = 1;
-                DxbcChecksum.Compute(data, b);
-                Assert.NotEqual(a, b);
+                var container = Enumerable.Range(0, 20 + n).Select(i => (byte)((i * 31 + 7) & 0xff)).ToArray();
+                var digest = new byte[16];
+                DxbcChecksum.Compute(container, digest);
+                Assert.Equal(hex, Convert.ToHexStringLower(digest));
             }
         }
+
+        static readonly (int, string)[] KnownDigests =
+        [
+            (1, "70e46b0e5cad2cfd8a57bc8c8e6b92c5"), (55, "9c6e2c79bbdd25cb54ad5791b2cd3626"), (56, "dbc73c7aa1dccf708d027aaf6a9689bd"),
+            (57, "53ac048fb8c2d4acba6e1c3d33251852"), (59, "9aedc5c4952ed33e2835d192ecb2941d"), (60, "4f74a3fdb50658e9154b54148b6c408a"),
+            (63, "fbf50823a1cd6527357dbf2d1683afda"), (64, "639827252b1d77a80212c2fba239bbb9"), (119, "5be3cc1ca4839ca22ddf5ea459a0bb21"),
+            (120, "7c0d69ced000d16a1e54d24a4eb78144"), (124, "7531e5707d054c189a821cb753495dcd"), (127, "8be7106d490093afb8a24ae49d49b60a"),
+            (128, "55800099ae6e679e56a3c6548ce8a3e4"),
+        ];
 
         /// A pass with D3D11 programs keyed per stage: VERTEXLIGHT_ON only splits the vertex
         /// programs and _ALPHABLEND_ON only the fragment ones.

@@ -54,8 +54,8 @@ namespace OniMoono.Assets.Shaders
         }
 
         /// The D3D10_SB_RESOURCE_DIMENSION a texture of this TextureDimension is declared with
-        /// (d3d12TokenizedProgramFormat.hpp; TextureDimension as ShaderParameters reads it); 0
-        /// for a dimension with no SRV form.
+        /// (D3D12TokenizedProgramFormat.hpp; TextureDimension as ShaderParameters reads it); 0
+        /// for a dimension DxbcShader does not accept (cube arrays: none in the data).
         public static int ResourceDimensionOf(int textureDimension, bool multiSampled) => (textureDimension, multiSampled) switch
         {
             (2, false) => 3, // TEXTURE2D
@@ -64,17 +64,18 @@ namespace OniMoono.Assets.Shaders
             (4, false) => 6, // TEXTURECUBE
             (5, false) => 8, // TEXTURE2DARRAY
             (5, true) => 9, // TEXTURE2DMSARRAY
-            (6, false) => 10, // TEXTURECUBEARRAY
             _ => 0,
         };
 
-        /// Every disagreement between these bindings and the program: each binding's slot must be
-        /// declared in the DXBC with the matching kind (a texture by `dcl_resource` of its
-        /// dimension, its sampler and every inline sampler by `dcl_sampler`, a structured buffer by
-        /// `dcl_resource_structured` or `dcl_resource_raw`, a constant buffer by
-        /// `dcl_constantbuffer` no larger than Unity's size rounded up to 16 bytes), every
-        /// declared slot must have a binding, and the prefix's slot counts must equal the
-        /// declared counts with the slots dense from 0. Empty when they agree.
+        /// Every disagreement between these bindings and the program's SRV (t#), sampler (s#) and
+        /// constant buffer (b#) declarations: each binding's slot must be declared with the
+        /// matching kind (a texture by `dcl_resource` of its dimension, its sampler and every
+        /// inline sampler by `dcl_sampler`, a structured buffer by `dcl_resource_structured`, a
+        /// constant buffer by `dcl_constantbuffer` no larger than Unity's size rounded up to 16
+        /// bytes), every declared t#, s# and b# must have a binding, and the prefix's slot counts
+        /// must equal the declared counts with the slots dense from 0. Empty when they agree.
+        /// Programs with other bindable declarations (UAVs, raw buffers, interfaces) do not get
+        /// here: DxbcShader refuses them.
         public List<string> Check(D3d11Program program)
         {
             var errors = new List<string>();
@@ -104,7 +105,7 @@ namespace OniMoono.Assets.Shaders
             {
                 if (!usedT.TryAdd(b.Slot, b.Name)) errors.Add($"t{b.Slot} bound to both {usedT[b.Slot]} and {b.Name}");
                 if (!resources.TryGetValue(b.Slot, out var r)) errors.Add($"structured buffer {b.Name} t{b.Slot} is not declared");
-                else if (r.Dimension is not (11 or 12)) errors.Add($"structured buffer {b.Name} t{b.Slot} is declared as resource dimension {r.Dimension}");
+                else if (r.Dimension != DxbcTokenFormat.D3D11_SB_RESOURCE_DIMENSION_STRUCTURED_BUFFER) errors.Add($"structured buffer {b.Name} t{b.Slot} is declared as resource dimension {r.Dimension}");
             }
             foreach (var b in ConstantBuffers)
             {

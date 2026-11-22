@@ -9,7 +9,7 @@ namespace OniMoono.Assets.Shaders
     /// layout, measured on U60's Windows data (docs/research/d3d11/programs.md §2: all 960 entries
     /// parse to their exact end):
     /// - the 24-byte entry header GLCore, Metal and Vulkan entries have (magic 0x0C0A75BA, GPU
-    ///   program type 15–22, four statistics ints whose meaning is unknown) and the stage's
+    ///   program type 15–19, four statistics ints of unknown meaning kept raw) and the stage's
     ///   keywords (a count, then length-prefixed strings padded to four bytes);
     /// - a length-prefixed payload: a 38-byte Unity prefix, then one DXBC container that ends
     ///   the payload exactly;
@@ -69,6 +69,8 @@ namespace OniMoono.Assets.Shaders
             if ((uint)Int(entry) != MetalProgram.EntryMagic) throw new InvalidDataException("Not a shader program entry.");
             int type = Int(entry);
             if (!GpuProgramTypes.IsD3D11(type)) throw new InvalidDataException($"Shader program entry of GPU program type {type} is not a D3D11 program.");
+            if (type > GpuProgramTypes.D3D11GeometrySM40)
+                throw new InvalidDataException($"D3D11 program: GPU program type {type} is not supported (15-19 are all U60's data and mods have).");
             var statistics = new[] { Int(entry), Int(entry), Int(entry), Int(entry) };
             int keywordCount = Int(entry);
             if (keywordCount < 0 || keywordCount > entry.Length / 4) throw new InvalidDataException($"D3D11 program: bad keyword count {keywordCount}.");
@@ -113,7 +115,7 @@ namespace OniMoono.Assets.Shaders
         }
 
         /// The DXBC program type (D3D10_SB_TOKENIZED_PROGRAM_TYPE) and shader model a GPU program
-        /// type names (AssetStudio's ShaderGpuProgramType names: DX11VertexSM40 … DX11DomainSM50).
+        /// type names (AssetStudio's ShaderGpuProgramType names: DX11VertexSM40 … DX11GeometrySM40).
         public static (int ProgramType, int Major) StageOf(int gpuProgramType) => gpuProgramType switch
         {
             GpuProgramTypes.D3D11VertexSM40 => (DxbcShader.VertexProgram, 4),
@@ -121,10 +123,7 @@ namespace OniMoono.Assets.Shaders
             GpuProgramTypes.D3D11PixelSM40 => (DxbcShader.PixelProgram, 4),
             GpuProgramTypes.D3D11PixelSM50 => (DxbcShader.PixelProgram, 5),
             GpuProgramTypes.D3D11GeometrySM40 => (DxbcShader.GeometryProgram, 4),
-            GpuProgramTypes.D3D11GeometrySM50 => (DxbcShader.GeometryProgram, 5),
-            GpuProgramTypes.D3D11HullSM50 => (3, 5),
-            GpuProgramTypes.D3D11DomainSM50 => (4, 5),
-            _ => throw new ArgumentOutOfRangeException(nameof(gpuProgramType), gpuProgramType, "Not a D3D11 GPU program type."),
+            _ => throw new ArgumentOutOfRangeException(nameof(gpuProgramType), gpuProgramType, "Not a D3D11 GPU program type the reader supports (15-19)."),
         };
     }
 }
