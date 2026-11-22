@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Brutal.GlfwApi;
 using OniMoono.Engine;
 using static OniMoono.Desktop.Gl.GlConst;
@@ -51,11 +52,27 @@ namespace OniMoono.Desktop.Gl
         /// The next picture waits for one more to retire first (DxgiSwapChain.HoldBack).
         public void HoldBack() => chain?.HoldBack();
 
-        delegate* unmanaged<void*, IntPtr> dxOpenDevice;
-        delegate* unmanaged<IntPtr, int> dxCloseDevice;
-        delegate* unmanaged<IntPtr, void*, uint, uint, uint, IntPtr> dxRegisterObject;
-        delegate* unmanaged<IntPtr, IntPtr, int> dxUnregisterObject;
-        delegate* unmanaged<IntPtr, int, IntPtr*, int> dxLockObjects, dxUnlockObjects;
+        // WGL_NV_DX_interop's functions report failures through GetLastError. They are called
+        // through delegates with SetLastError, so the runtime saves the error at once and
+        // Marshal.GetLastPInvokeError reads it: calling GetLastError afterwards may read an error
+        // the runtime's own calls left (Marshal.GetLastPInvokeError, DllImportAttribute.SetLastError).
+        [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate IntPtr OpenDevice(void* device);
+        [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate int CloseDevice(IntPtr device);
+        [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate IntPtr RegisterObject(IntPtr device, void* resource, uint name, uint type, uint access);
+        [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate int UnregisterObject(IntPtr device, IntPtr obj);
+        [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate int LockObjects(IntPtr device, int count, IntPtr* objects);
+
+        OpenDevice dxOpenDevice;
+        CloseDevice dxCloseDevice;
+        RegisterObject dxRegisterObject;
+        UnregisterObject dxUnregisterObject;
+        LockObjects dxLockObjects, dxUnlockObjects;
+
+        static T Function<T>(ReadOnlySpan<byte> name) where T : Delegate
+        {
+            var p = (IntPtr)Glfw.GetProcAddress(name);
+            return p == IntPtr.Zero ? null : Marshal.GetDelegateForFunctionPointer<T>(p);
+        }
 
         DxgiTarget(IntPtr hwnd) => this.hwnd = hwnd;
 
@@ -84,12 +101,12 @@ namespace OniMoono.Desktop.Gl
             if (DxgiSwapChain.RestartRefused) return "a restart that fails";
             DxgiWindowReport.NoteModulesBeforeDxgi();
             if (DxgiSwapChain.Faulty("extension") || !Glfw.ExtensionSupported("WGL_NV_DX_interop2")) return "the OpenGL driver has no WGL_NV_DX_interop2";
-            dxOpenDevice = (delegate* unmanaged<void*, IntPtr>)Glfw.GetProcAddress("wglDXOpenDeviceNV"u8);
-            dxCloseDevice = (delegate* unmanaged<IntPtr, int>)Glfw.GetProcAddress("wglDXCloseDeviceNV"u8);
-            dxRegisterObject = (delegate* unmanaged<IntPtr, void*, uint, uint, uint, IntPtr>)Glfw.GetProcAddress("wglDXRegisterObjectNV"u8);
-            dxUnregisterObject = (delegate* unmanaged<IntPtr, IntPtr, int>)Glfw.GetProcAddress("wglDXUnregisterObjectNV"u8);
-            dxLockObjects = (delegate* unmanaged<IntPtr, int, IntPtr*, int>)Glfw.GetProcAddress("wglDXLockObjectsNV"u8);
-            dxUnlockObjects = (delegate* unmanaged<IntPtr, int, IntPtr*, int>)Glfw.GetProcAddress("wglDXUnlockObjectsNV"u8);
+            dxOpenDevice = Function<OpenDevice>("wglDXOpenDeviceNV"u8);
+            dxCloseDevice = Function<CloseDevice>("wglDXCloseDeviceNV"u8);
+            dxRegisterObject = Function<RegisterObject>("wglDXRegisterObjectNV"u8);
+            dxUnregisterObject = Function<UnregisterObject>("wglDXUnregisterObjectNV"u8);
+            dxLockObjects = Function<LockObjects>("wglDXLockObjectsNV"u8);
+            dxUnlockObjects = Function<LockObjects>("wglDXUnlockObjectsNV"u8);
             if (dxOpenDevice == null || dxCloseDevice == null || dxRegisterObject == null || dxUnregisterObject == null || dxLockObjects == null || dxUnlockObjects == null)
                 return "WGL_NV_DX_interop2's entry points are missing";
 
@@ -102,7 +119,7 @@ namespace OniMoono.Desktop.Gl
 
             chain.Sharing = "the swap chain's D3D11 device is the one opened for OpenGL (wglDXOpenDeviceNV), its texture registered with the context";
             interopDevice = dxOpenDevice(chain.Device);
-            if (interopDevice == IntPtr.Zero) return $"wglDXOpenDeviceNV failed (error 0x{Dxgi.GetLastError():X})";
+            if (interopDevice == IntPtr.Zero) return $"wglDXOpenDeviceNV failed (error 0x{Marshal.GetLastPInvokeError():X})";
             if (!MakeShared(w, h)) return Failure;
             // The whole round once, cleared to black, so that a driver that cannot do it fails
             // here rather than on the first frame.
@@ -218,7 +235,7 @@ namespace OniMoono.Desktop.Gl
             shared = t;
             texture = GlApi.GenTexture();
             interopObject = DxgiSwapChain.Faulty("register") ? IntPtr.Zero : dxRegisterObject(interopDevice, shared, texture, TexTarget2D, WglAccessReadWrite);
-            if (interopObject == IntPtr.Zero) return Fail($"wglDXRegisterObjectNV failed (error 0x{Dxgi.GetLastError():X})");
+            if (interopObject == IntPtr.Zero) return Fail($"wglDXRegisterObjectNV failed (error 0x{Marshal.GetLastPInvokeError():X})");
             if (PresentTrace.Enabled) PresentTrace.Log($"dxgi: shared texture {capacityWidth}x{capacityHeight} for a {w}x{h} picture");
             return true;
         }
@@ -238,7 +255,7 @@ namespace OniMoono.Desktop.Gl
                     stillRegistered = true;
                 }
                 else if (dxUnregisterObject(interopDevice, interopObject) == 0)
-                    EngineLog.Engine($"present: wglDXUnregisterObjectNV failed (error 0x{Dxgi.GetLastError():X})");
+                    EngineLog.Engine($"present: wglDXUnregisterObjectNV failed (error 0x{Marshal.GetLastPInvokeError():X})");
                 interopObject = IntPtr.Zero;
             }
             if (stillRegistered)
@@ -264,7 +281,7 @@ namespace OniMoono.Desktop.Gl
         bool Lock()
         {
             var o = interopObject;
-            if (DxgiSwapChain.Faulty("lock", begins) || dxLockObjects(interopDevice, 1, &o) == 0) return Fail($"wglDXLockObjectsNV failed (error 0x{Dxgi.GetLastError():X})");
+            if (DxgiSwapChain.Faulty("lock", begins) || dxLockObjects(interopDevice, 1, &o) == 0) return Fail($"wglDXLockObjectsNV failed (error 0x{Marshal.GetLastPInvokeError():X})");
             locked = true;
             return true;
         }
@@ -273,7 +290,7 @@ namespace OniMoono.Desktop.Gl
         {
             var o = interopObject;
             // A FALSE return unlocks none of the objects (WGL_NV_DX_interop): it stays locked.
-            if (dxUnlockObjects(interopDevice, 1, &o) == 0) return Fail($"wglDXUnlockObjectsNV failed (error 0x{Dxgi.GetLastError():X})");
+            if (dxUnlockObjects(interopDevice, 1, &o) == 0) return Fail($"wglDXUnlockObjectsNV failed (error 0x{Marshal.GetLastPInvokeError():X})");
             locked = false;
             return true;
         }
@@ -335,7 +352,7 @@ namespace OniMoono.Desktop.Gl
             }
             if (interopDevice != IntPtr.Zero)
             {
-                if (dxCloseDevice(interopDevice) == 0) EngineLog.Engine($"present: wglDXCloseDeviceNV failed (error 0x{Dxgi.GetLastError():X})");
+                if (dxCloseDevice(interopDevice) == 0) EngineLog.Engine($"present: wglDXCloseDeviceNV failed (error 0x{Marshal.GetLastPInvokeError():X})");
                 interopDevice = IntPtr.Zero;
             }
             chain?.Dispose();

@@ -211,9 +211,6 @@ namespace OniMoono.Desktop.Gl
         [DllImport("kernel32.dll"), Native(Header = "handleapi.h"), As(AsAttribute.Return, "BOOL"), As(0, "HANDLE")]
         public static extern int CloseHandle(IntPtr handle);
 
-        [DllImport("kernel32.dll"), Native(Header = "errhandlingapi.h"), As(AsAttribute.Return, "DWORD")]
-        public static extern uint GetLastError();
-
         [Native("WAIT_OBJECT_0", Header = "winbase.h")] public const uint WaitObject0 = 0;
         [Native("WAIT_TIMEOUT", Header = "winerror.h")] public const uint WaitTimeout = 0x102;
 
