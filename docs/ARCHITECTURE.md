@@ -140,6 +140,39 @@ can't export data.
 - **Crash watcher.** It also starts a second copy of itself as the crash watcher before the
   runtime starts (`crash.c`; §7, "Native crashes").
 
+**The Linux executable.** On Linux `OniMoono` is our own too (`src/OniMoono.NativeHost/host_linux.c`,
+C only), so a crash in native code can be recorded and shown (§7, "Native crashes").
+
+- **Starting .NET.** As on Windows: `libhostfxr.so` from its own folder (the self-contained
+  player), else the installed .NET's, looked for where the apphost looks (`DOTNET_ROOT`,
+  `/etc/dotnet/install_location`, `/usr/share/dotnet`, `/usr/lib/dotnet`); then
+  `hostfxr_initialize_for_dotnet_command_line`, `hostfxr_run_app`, `hostfxr_close`. hostfxr
+  reads the runtimeconfig, so its options (Server GC, the tiering delay) apply as before.
+- **GC option.** It sets `System.GC.Server` from `--gc` or the settings file, as `OniMoono.exe`
+  does, so the player no longer starts itself again to apply it (`GcMode` still does under the
+  SDK's apphost).
+- **Exports.** FMOD's quarantine allocator (`fmod_heap.c`, game tweak fmod-quarantine) and the
+  crash records' functions, in its dynamic symbol table (`exports_linux.list`), which the player
+  finds through `NativeLibrary.GetMainProgramHandle`.
+- **Failures.** A failure to start goes to stderr and as a line to the game's `Player.log`
+  (test runs, `ONI_HOST_NO_DIALOG=1`: to `ONI_HOST_MESSAGES`' file instead).
+- **Versioned install.** With no `OniMoono.dll` beside it and a `player/` folder, it is the
+  install's entry point ([INSTALL-MODES.md](INSTALL-MODES.md), "The entry point").
+- **Build.** `build-linux.sh` builds it with gcc or clang, no C++ runtime. Releases and
+  `check.sh` build it in the Steam Runtime's sniper SDK container (Docker, the image pinned by
+  its digest; glibc 2.31) through `scripts/build-native-host-linux.sh`, which also checks
+  `sdl_min.h` (the crash window's SDL declarations) against SDL's own headers and runs
+  `fmod_heap_test`. The host's build copies `out/native/linux/OniMoono` over the apphost when it
+  is there. `setup.sh` builds it with the machine's `cc`; without one the apphost stays, with a
+  line saying so: that player plays the same but records no native crash.
+- **Check.** `scripts/check-linux-host.py` checks the ELF file: x86-64 PIE for
+  `/lib64/ld-linux-x86-64.so.2`, newest glibc symbol version at most 2.31 (2.27 now), only libc's
+  own libraries needed, no RPATH or RUNPATH, no C++ runtime or libgcc_s, immediate binding, a
+  non-executable stack, and exactly the exports the player looks up.
+- **Size.** About 480 KB, 300 KB of it the crash window's fonts and icon. SDL 3 and SDL3_ttf
+  (BRUTAL's `Ahwoo.BRUTAL.Sdl.Native` and `Sdl.Ttf.Native`, 4.2 and 2.4 MB) go beside it, loaded
+  only by the crash window.
+
 **The GPU option** (`GpuChoice`; Moono Tweaks' "Graphics card", settings.json `"gpu"`, `--gpu
 default|discrete|integrated`) is applied in `Program.Main` before the window opens, so before
 anything loads the OpenGL driver.
@@ -3793,8 +3826,9 @@ U60's are the same in this; from U60-761654 they also pass the arguments (below)
     `Restarter.exe`, the native host runs `player\<state\current>\Restarter.dll` with its
     arguments, and that Restarter starts the entry point again, which chooses the version
     again. Before this, the restart failed with "The system cannot find the file specified".
-  - The versioned install on Linux: the entry point is a script that starts
-    `player/<version>/OniMoono`, which `App.Restart` names, beside its `Restarter`. The host
+  - The versioned install on Linux: the entry point (our `OniMoono`, or for a version built with
+    the SDK's apphost a script) starts `player/<version>/OniMoono` as a child, which
+    `App.Restart` names, beside its `Restarter`. The host
     records the entry point in `ONI_MOONO_RESTART_EXE` (`RestartEntry`, for a version folder
     of the install, not a bootstrap copy), and both Restarters start it in place of the
     executable they are given.
@@ -4048,11 +4082,11 @@ The original writes them all as they are. How it works:
   replaced too.
 - **Start.** The settings are read before the log opens, so its first lines are covered.
 
-**Native crashes** (Windows; `src/OniMoono.NativeHost/crash.c`, `NativeCrashes.cs`). A crash in
-native code (the GPU driver, Klei's SimDLL, a mod's library, the runtime) has no managed
-exception, so before this the log just stopped. Now Player.log ends with what crashed, the
-native stack (module+offset frames, runs of managed code counted), the runtime's own text, how
-the process ended and a minidump beside the log:
+**Native crashes** (`src/OniMoono.NativeHost`: `crash.c` on Windows, `crash_linux.c` on Linux;
+`NativeCrashes.cs`). A crash in native code (the GPU driver, Klei's SimDLL, a mod's library, the
+runtime) has no managed exception, so before this the log just stopped. Now Player.log ends with
+what crashed, the native stack (module+offset frames, runs of managed code counted), the
+runtime's own text, how the process ended and a dump beside the log. On Windows:
 
 ```
 [engine] native crash: 0xC0000005 access violation (writing 0x0) in OniMoono.exe+0x41FE (1.0.0.0, %USERPROFILE%\...\OniMoono.exe) on thread 65064 "Test worker"
@@ -4149,8 +4183,88 @@ runs) writes a dump with memory, for diagnosing heap corruption (issue #56):
   else the process read). So it is for test runs and for a player who agrees to send it. The
   default stays the small dump.
 
-**The crash window** (`crash_dialog.cpp`). Once the watcher has written a crash record it shows
-a window, the onimaxxing site's dialog in its light or dark palette. It has:
+**On Linux** our `OniMoono` (§2, "The Linux executable") records the same, the other way round:
+it forks the game before any runtime loads and stays its parent, the watcher. Only a parent
+learns how a process ended (the signal, an end by SIGKILL), and only an ancestor may read its
+memory under the kernel's default ptrace rule (Yama scope 1).
+
+```
+[engine] native crash: SIGSEGV invalid memory access (address not mapped, reading 0x1) in libc.so.6+0x19BC5C (build-id 8cebda42…, /usr/lib/x86_64-linux-gnu/libc.so.6) on thread 208715 "Test worker"
+[engine] native crash stack: libc.so.6+0x19BC5C, 5 frames of generated code, libcoreclr.so+0x458835, …
+[engine] native crash: managed:    at OniMoono.Host.NativeCrashes.Fault(System.String)
+[engine] native crash: the process ended with SIGSEGV (invalid memory access)
+[engine] native crash dump: ~/.config/unity3d/Klei/Oxygen Not Included/crash-20261121-214530.dmp (10740 KB)
+```
+
+- **Seeing a fault.** The game installs our handlers for SIGSEGV, SIGBUS, SIGILL, SIGFPE and
+  SIGABRT before the runtime starts. The runtime's own handlers keep them as their previous
+  action and call them only for a fault they don't turn into a managed exception, so a managed
+  null reference never reaches them. Ours copy the fault (signal, address, registers, the top
+  64 KB of the stack) into a page shared with the watcher, wake a thread made at start that
+  formats it (module and offset from `/proc/self/maps`, the module's build id, the thread's
+  name), and set the signal back to its default action: the runtime then writes its dump and
+  returns, and the fault, run again, ends the process with its signal.
+- **The stack** comes from the runtime's crash report (createdump's `.crashreport.json`): the
+  crashing thread's frames from the fault on, native ones as module+offset, runs of managed
+  ones counted, and the managed methods by name (`native crash: managed:`). With no report, it
+  is a scan of the copied stack for return addresses (`native crash stack (scanned):`).
+- **Standard error** goes to the watcher through a pipe and on to where it went (a terminal
+  keeps it). The watcher keeps the runtime's text (`Fatal error.`, `Process terminated.`,
+  `Stack overflow.`) and glibc's lines before an `abort()` (`free(): double free detected in
+  tcache 2`, `*** stack smashing detected ***`, assertions). A player App.Restart starts
+  inherits the first game's pipe; `ONI_MOONO_STDERR` names a copy of the original standard
+  error the game kept, which it takes instead.
+- **How it ended.** The watcher waits for the game and appends the record when it ended without
+  the player's own exit: a signal, or an exit code from native code (`_exit`). For SIGKILL the
+  cgroup's `memory.events` tells the out-of-memory killer (its `oom_kill` count went up) from
+  `kill -9`. SIGTERM, SIGINT, SIGHUP and SIGQUIT end it as before. Its exit status is the game's
+  (128 + the signal), so a shell sees 139 or 134 as it did.
+- **The watcher** is the process Steam started; the game is its child, in the same process
+  group. It ignores SIGINT and SIGQUIT (a terminal's Ctrl+C reaches the game too, which handles
+  it) and passes SIGTERM and SIGHUP on. Its command line reads `OniMoono --crash-watch`, so
+  scripts that find the game by its run home find the game only. It costs a fork and about
+  2.5 MB, nothing measurable at start. `ONI_MOONO_CRASH_WATCH=off` leaves it out.
+
+| Crash | In the process | The record |
+|---|---|---|
+| Fault in native code called from managed code (libc, the GL driver, SimDLL) | the runtime calls our handler, then writes its dump | the line, the stack and managed frames, the end (139), the dump |
+| Fault on a native thread | the same | the same, the thread's name when it has one |
+| Native stack overflow on a thread with an alternate stack | the same | the stack with the recursion counted (`(x121)`) |
+| A stack overflow on the main thread | the runtime's `Stack overflow.` or `Fatal error.` text, then `abort()` | that text, SIGABRT (134), the dump |
+| `abort()`, glibc's checks (double free, stack protector), `assert` | glibc's line, then SIGABRT | the line, the reason (`runtime: free(): double free…`), 134, the dump |
+| `Environment.FailFast` | `Process terminated.` and the managed stack, then SIGABRT | that text, 134, the dump |
+| `_exit` from native code | nothing | the exit code, "without the player's own exit" |
+| SIGKILL | nothing | the signal, and whether the out-of-memory killer sent it |
+| A managed null reference, caught or not; an exception on a thread | the runtime handles it (the player logs it and plays on, as Mono did) | nothing |
+
+The dump is the runtime's own (createdump), which it starts from the crashing process; the
+launcher sets it up before the runtime starts, through `DOTNET_DbgEnableMiniDump`,
+`DOTNET_DbgMiniDumpType`, `DOTNET_DbgMiniDumpName` and `DOTNET_EnableCrashReport`:
+
+- **Kinds.** `--crash-dumps on` (`ONI_CRASH_DUMPS` takes its place): Mini, the threads, their
+  stacks and the modules, about 10.7 MB at start-up and 67 MB in a 204-Duplicant colony, written
+  in 1.5 s there. `full`: Heap, all memory but the mapped images, 98 MB at start-up. `off`: the
+  crash report alone, for the stack.
+- **Where.** Written as `crash-PID.dmp` in the game's folder of per-user files, then renamed by
+  the watcher to `crash-YYYYMMDD-hhmmss.dmp` beside `Player.log` (moved there with `--log`),
+  with its report as `crash-YYYYMMDD-hhmmss.crashreport.json`. The two newest are kept.
+- **The user's own.** A `DOTNET_DbgEnableMiniDump` set by the user wins, with all its settings,
+  and the log says so; the launcher marks its own (`ONI_MOONO_DUMP_ENV`), so a restarted player
+  sets them again.
+- **System cores.** While our dump is on, the game's soft `RLIMIT_CORE` is 0, so no core of the
+  kernel's comes on top (systemd-coredump heeds it; a piped core handler may not).
+- **No dump.** createdump needs ptrace on the game: with `kernel.yama.ptrace_scope` 2 or 3, or a
+  sandbox that blocks ptrace, there is none, and the record says why.
+- **Reading one.** `dotnet-dump analyze crash-….dmp` (`clrstack -all`, `pe`, `threads`) on
+  Linux or Windows; `lldb --core crash-….dmp …/OniMoono` with SOS for mixed frames; `gdb` for
+  native frames, with the libraries' build ids for debuginfod.
+- **Privacy.** As on Windows: stacks and nearby memory, module paths with the home folder,
+  written only on a crash and never sent.
+
+**The crash window** (`crash_window.c`, with each platform's canvas and window:
+`crash_dialog.cpp` on Windows, `crash_window_linux.c` on Linux). Once the watcher has written a
+crash record it shows a window, the onimaxxing site's dialog in its light or dark palette. It
+has:
 
 - The heading "The game closed unexpectedly".
 - The error line taken from the record: the fault's code, its name and module, as
@@ -4175,7 +4289,7 @@ Reporting:
    and `doing` (the note). The link stays under 7,500 characters; a long note is cut with "…".
    The form's `zip` field is required and left empty, so GitHub takes no report without the zip.
 3. It shows the zip as a chip to drag into the form's zip field (a shell data object, as
-   Explorer drags a file; clicking it shows it in Explorer).
+   Explorer drags a file; clicking it shows it in Explorer). Linux has no drag: see below.
 
 Nothing is sent by the window: the player submits the issue, or not.
 
@@ -4183,9 +4297,11 @@ Where the details come from: the game gives the watcher what only it knows throu
 `moono_crash_describe` (`NativeCrashes.Describe`): its release, its window (the crash window opens
 centred on that monitor), the GPU's renderer string, and from the main menu the game's build, its
 language (English, or Simplified Chinese for `zh`) and the mods' count. The watcher adds Windows'
-version, the driver version (DXGI) and the memory itself.
+version, the driver version (DXGI) and the memory itself; on Linux the distribution (the host's
+`os-release`, inside Steam's container too) and the kernel, NVIDIA's driver version from its
+kernel module, and the memory.
 
-How it is drawn:
+How it is drawn on Windows (Linux: "The Linux crash window", below):
 
 - **Without the GPU,** as the driver may be what crashed: Direct2D into a WIC bitmap through a
   software render target, with DirectWrite text in Gabarito and Red Hat Mono (the site's fonts,
@@ -4223,24 +4339,61 @@ When it shows:
 - An end by Ctrl+C, by Windows shutting down or from outside with exit code -1 shows none.
 - While it is open the watcher is still running, so Steam counts the game as running until it
   closes.
-- Linux has no crash window (no native host).
+- On Linux the same rules apply (an end by SIGTERM, SIGINT, SIGHUP, SIGQUIT or a SIGKILL that
+  was not the out-of-memory killer's shows none; for that one the error line says the system
+  ran out of memory). Test players (`run.sh`, e2e) set `ONI_MOONO_CRASH_DIALOG=off`.
 
 `OniMoono.exe --crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--text-size T]
 [--sample gpu|managed|fastfail] [--language zh] [--details-open] [--reported]` draws it to a PNG from sample
-facts, with a drawn title bar, showing nothing. `check-native-crash.sh` checks such renders, the
+facts, with a drawn title bar, showing nothing (on Linux `OniMoono --crash-dialog-render`, the
+same, its samples' errors and paths Linux's; its title bar in Gabarito, as Segoe UI is Windows'). `check-native-crash.sh` checks such renders, the
 zip (with Python's `zipfile`) and the issue link, and that no crash case leaves a watcher
 running.
 
-On Linux nothing is recorded. The Linux player is the SDK's apphost, with no native code of ours
-to install a signal handler, and the runtime reads its own dump settings only from the environment
-at start. A player can set them in the launch options, before the command:
-`DOTNET_DbgEnableMiniDump=1 DOTNET_DbgMiniDumpType=1 DOTNET_EnableCrashReport=1 "…/OniMoono" --
-%command%` writes a dump and a `.crashreport.json` (each thread's frames, with modules) to `/tmp`,
-or to `DOTNET_DbgMiniDumpName`.
+**The Linux crash window.** The watcher starts itself again in place as
+`OniMoono --crash-window FD` with the report in a memfd: a fresh image, no game libraries,
+Steam's overlay dropped from `LD_PRELOAD`. It looks as Windows' does (the same layout, palette,
+fonts, strings and measures):
+
+- **Drawing.** Into memory, with no GPU: a small coverage-accumulating rasterizer of ours for
+  the shapes (antialiased as Direct2D's are) and SDL3_ttf's text (FreeType and HarfBuzz,
+  unhinted as DirectWrite's natural rendering is) in the embedded Gabarito and Red Hat Mono, with
+  fontconfig's Chinese and symbol fonts after them (no Chinese font: the English strings). The
+  image is copied to an SDL 3 window surface (`SDL_FRAMEBUFFER_ACCELERATION=0`: X11's XShm; on
+  Wayland through XWayland, else Mesa's software OpenGL). SDL 3 and SDL3_ttf load from beside the
+  player only here; `sdl_min.h` declares what of them it uses.
+- **Controls** are drawn and handled by the window: the focus ring (after a key press, not a
+  click), hover and press, the check box, Tab order, Enter (Report on GitHub), Esc (Close);
+  selection in the error line and the details (drag, double and triple click, Shift+arrows,
+  Ctrl+A, Ctrl+C); the note's own editing (caret, selection, Ctrl+X, Ctrl+V, Ctrl+Enter for a
+  new line, input methods through SDL's text input).
+- **The zip.** No drag and drop: after reporting, **Show in folder** (the file manager's
+  `FileManager1.ShowItems`, else the folder through `xdg-open`) and **Copy path**, and a copy of
+  the zip in Downloads (`xdg-user-dirs`), where a browser's file picker looks first. The issue
+  opens through `steam-runtime-urlopen` inside Steam's container, else `xdg-open`, with the
+  user's library path and preloads (Steam keeps them as `SYSTEM_LD_*`).
+- **Desktop.** The theme from SDL (the desktop portal's colour scheme); high contrast from
+  GNOME's setting or a high-contrast GTK theme; the scale from the display (`Xft.dpi`, the
+  compositor's), the text size from GNOME's text-scaling-factor (100 to 225%).
+- **Steam Deck, Gaming Mode** (gamescope: `XDG_CURRENT_DESKTOP=gamescope` or
+  `GAMESCOPE_WAYLAND_DISPLAY`): the window names a Steam game (`STEAM_GAME`), as gamescope shows
+  no other; the issue opens in Steam's browser (`steam://openurl/`); the zip's line says to
+  attach it from Desktop Mode or another device; the gamepad moves the focus (A presses, B
+  closes). Written but not tried on a Deck.
+- **Tests.** `ONI_MOONO_CRASH_OPEN=FILE` records what would be opened instead of opening it,
+  `ONI_MOONO_CRASH_WINDOW_AT=X,Y` places the window, `ONI_MOONO_CRASH_THEME`,
+  `ONI_MOONO_CRASH_WINDOW_SCALE` and `ONI_MOONO_CRASH_TEXT_SIZE` set what the desktop would;
+  `ONI_MOONO_CRASH_DECK=1` makes `--crash-dialog-render` draw Gaming Mode's variant.
+- **Not yet:** screen readers (AT-SPI), and placing the window on the game's monitor (it opens
+  centred on the primary display).
 
 `scripts/check-native-crash.sh` (in `check.sh`) runs every case above on Windows, as Steam
-starts the player and with standard error redirected, and on Linux the caught null reference
-and that recipe.
+starts the player and with standard error redirected, and every Linux case headless in its own
+run home (with the SDK's apphost, only the runtime's own dump recipe:
+`DOTNET_DbgEnableMiniDump=1 DOTNET_DbgMiniDumpType=1 DOTNET_EnableCrashReport=1`). On both it
+checks the window's renders, zip and link offscreen; on Linux also live under Xvfb, driven by
+key presses (XTest): the window shows, a note, Enter writes the zip and its Downloads copy and
+opens the issue, Esc ends the watcher with the game's status.
 
 **The sim data check** (`src/OniMoono.GameTweaks/SimDataCheck.cs`, always on, #91). The game
 reads element and building temperatures through `Game.simData`, five pointers into the sim's

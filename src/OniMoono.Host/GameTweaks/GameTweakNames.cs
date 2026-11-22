@@ -155,7 +155,7 @@ namespace OniMoono.Host.GameTweaks
             new(FmodQuarantine, General, "Sound memory guard", "Guards against a bug in the game's sound engine that can crash the game.",
                 "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. "
                 + "This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. "
-                + "Uses about 90 MB more memory on a large colony. Windows only for now."),
+                + "Uses about 90 MB more memory on a large colony."),
             new(FmodStealFix, General, "Stolen sound crash guard", "Fixes a bug in the game's sound engine that can crash the game when many sounds play at once.",
                 "When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. "
                 + "This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes."),

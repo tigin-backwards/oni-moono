@@ -377,7 +377,7 @@ msgstr ""
 
 #. Tooltip: how it works (fmod-quarantine)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
-msgid "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."
+msgid "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony."
 msgstr ""
 
 #. Row title (fmod-steal-fix)

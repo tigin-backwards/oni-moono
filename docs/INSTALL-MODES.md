@@ -69,7 +69,7 @@ For a distribution that updates Moono in place, as the Steam Workshop would
 
 ```
 %LOCALAPPDATA%\oni-moono\versioned\        ~/.local/share/oni-moono/versioned/ on Linux
-  OniMoono.exe                             the entry point (Linux: OniMoono, a shell script)
+  OniMoono.exe                             the entry point (Linux: OniMoono)
   Restarter.exe                            Windows: the entry point again, for the game's App.Restart
   player\2026.11.20.01\                    one player per version, never written once there
   player\2026.11.08.01\
@@ -87,7 +87,14 @@ runtime, and each version carries its own (self-contained).
   `player\` folder instead). It runs `player\<state\current>\OniMoono.dll` in its own process
   with `ONI_MOONO_INSTALL_ROOT` set, so the GPU exports and the crash records work as from any
   player folder.
-- **Linux:** the shell script does the same.
+- **Linux:** the entry point is the version's own `OniMoono` too (`host_linux.c`): with no
+  `OniMoono.dll` beside it and a `player/` folder, it starts
+  `player/<state/current>/OniMoono` (else the newest) as a child with `ONI_MOONO_INSTALL_ROOT`
+  set, and starts the then current one again when it exits with code 77 having written
+  `state/switch` (at most three times). It stays a small parent rather than hosting the runtime
+  itself, so the version's player is the one `App.Restart` names, and that player is the crash
+  watcher. A version built with the SDK's apphost (`setup.sh` with no C compiler) gets a shell
+  script doing the same instead (`PlayerFiles.InstallLinuxEntry`).
 - **Restarts.** The game's `App.Restart` (a language change, the mods screen) starts the entry
   point again with the same arguments, so the version is chosen again. On Windows it looks for
   `Restarter.exe` beside the entry point, a copy of it that runs the installed version's
@@ -132,7 +139,8 @@ The entry point updates itself from the chosen version:
 - **Windows:** the running `OniMoono.exe` is renamed to `OniMoono.exe.old` (a running exe can be
   renamed, not replaced) and the new one put in place. The next start deletes the `.old`.
   `Restarter.exe` is updated the same way.
-- **Linux:** a rename replaces the script.
+- **Linux:** the new `OniMoono` (or script) is written beside it and renamed over it; a running
+  entry point keeps the file it started from.
 
 Moono makes no shortcut. After the first start, start Moono through the entry point,
 `%LOCALAPPDATA%\oni-moono\versioned\OniMoono.exe` (Linux: `versioned/OniMoono`, as above), in

@@ -715,8 +715,8 @@ msgid "Guards against a bug in the game's sound engine that can crash the game."
 msgstr "防范游戏音效引擎中一个可能导致游戏崩溃的错误。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
-msgid "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now."
-msgstr "音效引擎 FMOD 可能写入已释放的内存，这是其开发者已确认的错误，也是部分“堆损坏”崩溃的原因。此项让 FMOD 使用单独的内存，并推迟重用它释放的内存，迟到的写入就不会造成破坏。Player.log 会记录发现的每一次。大型殖民地约多用 90 MB 内存。目前仅限 Windows。"
+msgid "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony."
+msgstr "音效引擎 FMOD 可能写入已释放的内存，这是其开发者已确认的错误，也是部分“堆损坏”崩溃的原因。此项让 FMOD 使用单独的内存，并推迟重用它释放的内存，迟到的写入就不会造成破坏。Player.log 会记录发现的每一次。大型殖民地约多用 90 MB 内存。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.TITLE"
 msgid "Stolen sound crash guard"

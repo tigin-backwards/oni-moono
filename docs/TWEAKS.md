@@ -170,35 +170,40 @@ minute into play into the load ([research/gc-pauses.md](research/gc-pauses.md)).
 
 The runtime fixes its GC as it starts, before Moono's code runs:
 
-- **Windows:** OniMoono.exe reads the choice itself (`--gc`, else `settings.json`'s `"gc"`) and
-  sets the runtime property `System.GC.Server` before starting .NET.
-- **Linux and macOS:** the player starts through .NET's own launcher, which reads only
-  `OniMoono.runtimeconfig.json`. When the runtime started with the other GC, the player starts
-  itself again in place (the same process, `execve`) with `DOTNET_gcServer=0` or `1`, before it
-  opens the log.
+- **Windows and Linux:** Moono's own executable (OniMoono.exe, OniMoono) reads the choice itself
+  (`--gc`, else `settings.json`'s `"gc"`) and sets the runtime property `System.GC.Server`
+  before starting .NET.
+- **macOS, and a Linux player built without a C compiler:** the player starts through .NET's
+  own launcher, which reads only `OniMoono.runtimeconfig.json`. When the runtime started with the
+  other GC, the player starts itself again in place (the same process, `execve`) with
+  `DOTNET_gcServer=0` or `1`, before it opens the log.
 - A `DOTNET_gcServer` you set yourself wins over the option.
 - `Player.log` has a `gc:` line naming the GC in use (Server GC with DATAS, Workstation
   concurrent GC) and why, and a `gc config:` line with the runtime's GC settings.
 
 ## When the game crashes
 
-On Windows, when the game closes unexpectedly, a small window says so, with the error from the
-crash.
+When the game closes unexpectedly, a small window says so, with the error from the crash.
 
-- **Show details** lists what a report needs: Moono's version, the game's build, Windows, the
-  GPU and its driver, memory, how long you played, how many mods are on, and the files.
+- **Show details** lists what a report needs: Moono's version, the game's build, Windows or
+  your Linux distribution, the GPU and its driver, memory, how long you played, how many mods
+  are on, and the files.
 - **Report on GitHub** packs `Player.log` and, if ticked, the crash dump into
   `OniMoono-crash-….zip` beside the log. It opens the crash report form on GitHub in your
   browser with the error, the details and your note filled in. Drag the zip from the window into
   the form's "Crash zip" box, then submit it; the form needs the zip. Nothing is sent unless you
   submit the issue yourself.
 - **The dump** can hold bits of what the game had in memory. Untick it to leave it out.
-- **The window.** The error and the details can be selected and copied. The window follows
-  Windows' dark or light mode and its text size.
+- **On Linux** the zip can't be dragged: **Show in folder** opens its folder, **Copy path**
+  copies its path, and a copy goes into your Downloads folder, where the form's file picker
+  finds it.
+- **The window.** The error and the details can be selected and copied. The window follows the
+  system's dark or light mode and its text size.
 - **Turning it off.** `--crash-dialog off` turns the window off. `Player.log` still records the
   crash.
 
-Linux has no crash window.
+On Linux the window needs Moono's own `OniMoono`, which releases have. A player built by
+`setup.sh` without a C compiler records no crash in native code and shows no window.
 
 ## Launch options
 
@@ -286,7 +291,7 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 
 - **Faster Load screen** (`fast-load-screen`): With many saves, the Load screen opens and loads more colonies sooner. Each save's details are read once per refresh instead of four times, several files at a time, and previews already shown are not made again. The colonies, their order, the previews and the log are the same. *Measured: Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s); U60, 4,637 saves, Linux under WSL2, 2026-11-03.*
 - **Moving loading screen** (`loading-animation`): The loading screen keeps moving while a colony loads. While a save loads, the game shows no new picture, for half a minute on a large colony. Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. Loading takes as long as before.
-- **Sound memory guard** (`fmod-quarantine`): Guards against a bug in the game's sound engine that can crash the game. FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some "heap corruption" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony. Windows only for now.
+- **Sound memory guard** (`fmod-quarantine`): Guards against a bug in the game's sound engine that can crash the game. FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some "heap corruption" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony.
 - **Stolen sound crash guard** (`fmod-steal-fix`): Fixes a bug in the game's sound engine that can crash the game when many sounds play at once. When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes.
 - **Forget released sounds** (`fix-released-sounds`): The game stops changing sounds it is done with, which after hours of play could crash it. A bug in the game: background sounds, and looping sounds after a switch to another asteroid, keep using a sound's handle after the game releases it. After a couple of hours on a large colony the sound engine reuses the handle, and the game's change lands on something else, sometimes not a sound at all. This forgets the handle when the sound is released. Nothing you hear changes.
 - **Worldgen as in the original** (`exact-worldgen`): A seed makes the same map as in the original game, so shared seeds match. Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected.
@@ -952,8 +957,9 @@ The tweak is on by default, in the Bug fixes group and left out of `exact`.
 
 `fmod-quarantine` works around, and reports, a bug in FMOD, the game's sound engine. It is on by
 default, in the General group and part of `exact`: it changes how FMOD gets its memory, not what
-the game does. Windows only for now (OniMoono.exe carries the allocator; Linux has no native
-library of Moono's yet, and there the tweak logs that it is not active).
+the game does. Moono's own executable carries the allocator (OniMoono.exe, Linux's OniMoono);
+under the .NET SDK's apphost (a Linux player built without a C compiler) the tweak logs that it
+is not active.
 
 Issues #72, #73, #58 and #78 are crashes with 0xC0000374 (heap corruption), found in
 `RtlFreeHeap` on the "FMOD Studio update thread" while FMOD destroys an event instance. In #72 one byte of a heap block
