@@ -40,10 +40,11 @@
 #include <wchar.h>
 #include <winevt.h>
 #include "crash.h"
+#include "crash_common.h"
 #include "crash_dialog.h"
 
 #define TEXT_MOST 12288
-#define RUNTIME_TEXT_MOST 4096
+#define RUNTIME_TEXT_MOST CRASH_RUNTIME_TEXT_MOST
 #define PATH_MOST 1024
 #define PREFIX_MOST 4
 #define FRAMES_MOST 24   /* frames (or runs of one) in the stack line */
@@ -686,9 +687,7 @@ static CRITICAL_SECTION dump_lock;
 static int dumped;
 static wchar_t dump_path[PATH_MOST];
 static ULONG64 dump_size;
-static char runtime_text[RUNTIME_TEXT_MOST];
-static DWORD runtime_length;
-static char managed_line[1024], managed_at[512];   /* an unhandled managed exception's first lines */
+static crash_runtime_text runtime;   /* the runtime's text on standard error (crash_common.c) */
 
 /* A heap failure (0xC0000374): the exception's first parameter points at ntdll's record of it
  * (the heap, the damaged block, the blocks before and after it, the stack that found it), which
@@ -854,19 +853,12 @@ static void write_dump(int with_fault)
     LeaveCriticalSection(&dump_lock);
 }
 
-static int starts_with(const char *line, const char *prefix)
-{
-    while (*prefix) if (*line++ != *prefix++) return 0;
-    return 1;
-}
-
 /* The game's standard error: passed on as it comes; the runtime's fatal-error text kept (up to
  * 40 lines) and, as it starts, the minidump (before the runtime ends the process). */
 static DWORD WINAPI pass_on(void *pipe)
 {
     static char chunk[4096], line[1024];
-    DWORD line_length = 0, kept_lines = 0;
-    int keeping = 0;
+    DWORD line_length = 0;
     for (int open = 1; open;)
     {
         DWORD read = 0;
@@ -888,28 +880,9 @@ static DWORD WINAPI pass_on(void *pipe)
             char c = chunk[i];
             if (c != '\n' && line_length + 1 < sizeof line) { if (c != '\r') line[line_length++] = c; continue; }
             line[line_length] = 0;
-            if (!keeping && (starts_with(line, "Fatal error.") || starts_with(line, "Process terminated.") || starts_with(line, "Stack overflow.")))
-            {
-                keeping = 1;
+            /* As the runtime's fatal-error text starts, the minidump (before it ends the process). */
+            if (crash_runtime_line(&runtime, line, NULL))
                 write_dump(shared->seen != SEEN_NONE && GetTickCount64() - shared->seen_tick < 10000);
-            }
-            /* A managed exception nothing caught: the player logs it; this says it ended the process. */
-            else if (!keeping && starts_with(line, "Unhandled exception."))
-            {
-                keeping = 1;
-                strncpy_s(managed_line, sizeof managed_line, line, _TRUNCATE);
-            }
-            else if (keeping && managed_line[0] && !managed_at[0] && starts_with(line, "   at "))
-                strncpy_s(managed_at, sizeof managed_at, line + 6, _TRUNCATE);
-            if (keeping && kept_lines < 40 && runtime_length + line_length + 32 < RUNTIME_TEXT_MOST)
-            {
-                out_t o = { runtime_text, runtime_length, RUNTIME_TEXT_MOST };
-                put(&o, "[engine] native crash: runtime: ");
-                put(&o, line);
-                put(&o, "\r\n");
-                runtime_length = o.length;
-                kept_lines++;
-            }
             line_length = 0;
         }
     }
@@ -1221,26 +1194,11 @@ static void error_line(DWORD code, int used_fault, wchar_t *out, size_t most)
         put(&o, " in ");
         put_wide(&o, wer_module);
     }
-    else if (managed_line[0])
+    else if (runtime.managed_line[0])
     {
-        /* "Unhandled exception. System.X: message" and "   at Namespace.Type.Method(arguments)" */
-        const char *what = managed_line + strlen("Unhandled exception.");
-        while (*what == ' ') what++;
-        const char *colon = strstr(what, ": ");
-        char type[256];
-        size_t type_n = colon ? (size_t)(colon - what) : strlen(what);
-        strncpy_s(type, sizeof type, what, type_n < sizeof type - 1 ? type_n : sizeof type - 1);
-        put(&o, type);
-        if (managed_at[0])
-        {
-            char method[512];
-            strncpy_s(method, sizeof method, managed_at, _TRUNCATE);
-            char *paren = strchr(method, '(');
-            if (paren) *paren = 0;
-            put(&o, " in ");
-            put(&o, method);
-        }
-        if (colon) { put(&o, ": "); put(&o, colon + 2); }
+        crash_out managed = { o.at, o.length, o.most };
+        crash_managed_error(&runtime, &managed);
+        o.length = managed.length;
     }
     else if (code < 0x10000)
     {
@@ -1334,8 +1292,8 @@ int crash_watch(int argc, wchar_t **argv)
             put(&o, " s before the end; native code may have handled it)\r\n");
         }
     }
-    if (runtime_length) put(&o, runtime_text);
-    int nothing_seen = seen == SEEN_NONE && !runtime_length && !shared->clean;
+    if (runtime.length) put(&o, runtime.text);
+    int nothing_seen = seen == SEEN_NONE && !runtime.length && !shared->clean;
     int reported = nothing_seen && is_fault(code) && wer_record(code);
     if (reported)
     {
@@ -1379,7 +1337,7 @@ int crash_watch(int argc, wchar_t **argv)
     }
     else if (reported)
         put(&o, code == STATUS_STACK_BUFFER_OVERRUN_CODE ? "; a fast fail skips every handler and leaves no dump" : "; no handler saw it");
-    else if (seen == SEEN_NONE && !runtime_length)
+    else if (seen == SEEN_NONE && !runtime.length)
         put(&o, code == STATUS_STACK_BUFFER_OVERRUN_CODE ? "; a fast fail skips every handler, so nothing more is known"
                 : code < 0x10000 ? " without the player's own exit (ExitProcess or TerminateProcess from native code, or from outside)"
                 : is_fault(code) ? "; no handler saw it" : "");

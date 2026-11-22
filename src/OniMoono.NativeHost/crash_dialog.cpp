@@ -6,6 +6,10 @@
  * beside them, opens a new issue in the browser with the error and the details filled in, and then
  * shows the zip so it can be dragged into the page. Nothing is sent by the window itself.
  *
+ * What both players' windows share is crash_window.c: the strings, the palette, the layout and
+ * the drawing, the details, the zip and the issue link. This is Windows' canvas for it and
+ * Windows' window.
+ *
  * It must work when the graphics driver is what crashed, so nothing here uses the GPU: Direct2D
  * draws into a WIC bitmap with a software render target, DirectWrite sets the text (system font
  * fallback for what our fonts lack: CJK, the check mark), and the bitmap is copied to the window.
@@ -45,6 +49,28 @@
 #include <math.h>
 #include <initializer_list>
 #include "crash_dialog.h"
+#include "crash_window.h"
+
+/* ---- files, for crash_window.c (UTF-8 paths) ------------------------------------------------- */
+
+extern "C" FILE *cw_open(const char *path, const char *mode)
+{
+    wchar_t wide[1100], wmode[8];
+    if (!MultiByteToWideChar(CP_UTF8, 0, path, -1, wide, _countof(wide)) || !MultiByteToWideChar(CP_UTF8, 0, mode, -1, wmode, _countof(wmode))) return nullptr;
+    FILE *f = nullptr;
+    return _wfopen_s(&f, wide, wmode) == 0 ? f : nullptr;
+}
+
+extern "C" int cw_seek(FILE *f, uint64_t at) { return _fseeki64(f, (__int64)at, SEEK_SET) == 0; }
+
+extern "C" uint64_t cw_file_size(FILE *f)
+{
+    __int64 here = _ftelli64(f);
+    if (_fseeki64(f, 0, SEEK_END) != 0) return 0;
+    __int64 size = _ftelli64(f);
+    _fseeki64(f, here, SEEK_SET);
+    return size > 0 ? (uint64_t)size : 0;
+}
 
 namespace {
 
@@ -55,33 +81,20 @@ template <class T> void release(T *&p)
 
 float maxf(float a, float b) { return a > b ? a : b; }
 
-/* ---- strings -------------------------------------------------------------------------------- */
-
-enum
+/* UTF-8 for the controls and the shell: wide, in one of a few rotating buffers. */
+const wchar_t *W(const char *utf8)
 {
-    S_HEADLINE, S_SHOW_DETAILS, S_HIDE_DETAILS, S_NOTE, S_INCLUDE_DUMP, S_CLOSE, S_REPORT, S_REPORTED,
-    S_DRAG, S_EXIT_CODE, S_GAME_BUILD, S_PLAYED, S_MODS, S_FILES, S_LIST, S_HOURS, S_MINUTES, S_SECONDS,
-    S_COUNT
-};
+    static wchar_t buffers[4][8192];
+    static int next;
+    wchar_t *out = buffers[next++ & 3];
+    if (!MultiByteToWideChar(CP_UTF8, 0, utf8, -1, out, 8192)) out[0] = 0;
+    return out;
+}
 
-/* Every string the window shows, in English and Simplified Chinese (the game's language). */
-const wchar_t *const strings[2][S_COUNT] = {
-    {
-        L"The game closed unexpectedly", L"Show details", L"Hide details", L"What were you doing? (optional)",
-        L"Include the crash dump (%ls)", L"Close", L"Report on GitHub", L"Opened in browser \u2713",
-        L"Drag this into the GitHub page", L"Exit code %lu", L", game build %ls", L"Played %ls", L"%ld mods",
-        L"Files: %ls", L", ", L"%llu h %llu min", L"%llu min", L"%llu s",
-    },
-    {
-        L"游戏意外关闭", L"显示详细信息", L"隐藏详细信息", L"你当时在做什么？（可选）",
-        L"附上崩溃转储（%ls）", L"关闭", L"在 GitHub 上报告", L"已在浏览器中打开 \u2713",
-        L"将此文件拖到 GitHub 页面中", L"退出代码 %lu", L"，游戏版本 %ls", L"游戏时长 %ls", L"%ld 个模组",
-        L"文件：%ls", L"、", L"%llu 小时 %llu 分钟", L"%llu 分钟", L"%llu 秒",
-    },
-};
-
-const wchar_t *const kTitle = L"OniMoono";
-const wchar_t *const kIssueUrl = L"https://github.com/tigin-backwards/oni-moono/issues/new";
+void to_utf8(const wchar_t *wide, char *out, size_t most)
+{
+    if (!WideCharToMultiByte(CP_UTF8, 0, wide, -1, out, (int)most, NULL, NULL)) out[0] = 0;
+}
 
 /* ---- what Windows has only in newer versions, looked up ------------------------------------- */
 
@@ -124,87 +137,37 @@ void load_api()
 
 /* ---- colours -------------------------------------------------------------------------------- */
 
-D2D1_COLOR_F rgb(UINT32 v, float a = 1.0f)
+D2D1_COLOR_F color(cw_color c)
 {
-    return D2D1::ColorF(((v >> 16) & 255) / 255.0f, ((v >> 8) & 255) / 255.0f, (v & 255) / 255.0f, a);
+    return D2D1::ColorF(c.r, c.g, c.b, c.a);
 }
 
-D2D1_COLOR_F from_colorref(COLORREF c)
+cw_color from_colorref(COLORREF c)
 {
-    return D2D1::ColorF(GetRValue(c) / 255.0f, GetGValue(c) / 255.0f, GetBValue(c) / 255.0f, 1.0f);
+    cw_color x = { GetRValue(c) / 255.0f, GetGValue(c) / 255.0f, GetBValue(c) / 255.0f, 1.0f };
+    return x;
 }
 
-COLORREF to_colorref(D2D1_COLOR_F c)
+COLORREF to_colorref(cw_color c)
 {
     return RGB((BYTE)lroundf(c.r * 255), (BYTE)lroundf(c.g * 255), (BYTE)lroundf(c.b * 255));
 }
 
-/* `a` over `b` at `t` (0: b, 1: a): disabled controls at half opacity, as the site's. */
-D2D1_COLOR_F mix(D2D1_COLOR_F a, D2D1_COLOR_F b, float t)
+/* The site's palette (cw_palette_for); in high-contrast mode the system's colours. */
+cw_palette palette_for(bool dark, bool contrast)
 {
-    return D2D1::ColorF(a.r * t + b.r * (1 - t), a.g * t + b.g * (1 - t), a.b * t + b.b * (1 - t), 1.0f);
-}
-
-/* The onimaxxing site's tokens (apps/onimaxxing/src/index.css, oklch converted to sRGB) as the
- * approved mockup uses them; in high-contrast mode the system's colours. */
-struct Palette
-{
-    bool dark, contrast;
-    D2D1_COLOR_F bg, caption, fg, fg2, mut, panel, border, footer, pri, prifg, secbd, secfg, hover, ring;
-};
-
-Palette palette_for(bool dark, bool contrast)
-{
-    Palette p = {};
-    p.dark = dark;
-    p.contrast = contrast;
-    if (contrast)
-    {
-        D2D1_COLOR_F window = from_colorref(GetSysColor(COLOR_WINDOW)), text = from_colorref(GetSysColor(COLOR_WINDOWTEXT));
-        p.bg = p.caption = p.panel = p.footer = window;
-        p.fg = p.fg2 = p.mut = p.border = p.secbd = p.secfg = text;
-        p.pri = from_colorref(GetSysColor(COLOR_HIGHLIGHT));
-        p.prifg = from_colorref(GetSysColor(COLOR_HIGHLIGHTTEXT));
-        p.hover = from_colorref(GetSysColor(COLOR_HOTLIGHT));
-        p.ring = p.pri;
-        /* "dark" for the caption: a dark window colour */
-        p.dark = (p.bg.r + p.bg.g + p.bg.b) < 1.5f;
-        return p;
-    }
-    if (dark)
-    {
-        p.bg = rgb(0x191512);       /* card: oklch(0.2 0.008 60) */
-        p.caption = rgb(0x100C0A);  /* background: oklch(0.16 0.008 60) */
-        p.fg = rgb(0xE9E8E4);       /* oklch(0.93 0.005 90) */
-        p.fg2 = rgb(0xC1BDB8);      /* oklch(0.8 0.008 75) */
-        p.mut = rgb(0x948E89);      /* muted-foreground: oklch(0.65 0.01 60) */
-        p.panel = rgb(0x120F0C);    /* oklch(0.17 0.008 60) */
-        p.border = rgb(0xFFFFFF, 0.10f);
-        p.footer = rgb(0x1D1A17);   /* oklch(0.22 0.008 60) */
-        p.pri = p.fg;
-        p.prifg = p.caption;
-        p.secbd = rgb(0xFFFFFF, 0.14f);
-        p.secfg = rgb(0xADA6A2);    /* oklch(0.73 0.01 60): a step above muted, for Close */
-        p.hover = rgb(0x272320);    /* accent: oklch(0.26 0.008 60) */
-        p.ring = rgb(0x68625E);     /* ring: oklch(0.5 0.01 60) */
-    }
-    else
-    {
-        p.bg = rgb(0xFFFCF6);       /* card: oklch(0.992 0.008 85) */
-        p.caption = rgb(0xF7F4ED);  /* background: oklch(0.968 0.01 85) */
-        p.fg = rgb(0x15110D);       /* oklch(0.18 0.01 60) */
-        p.fg2 = rgb(0x413C38);      /* oklch(0.36 0.01 60) */
-        p.mut = rgb(0x68625E);      /* oklch(0.5 0.01 60) */
-        p.panel = rgb(0xF7F4ED);
-        p.border = rgb(0xDDD9CF);   /* oklch(0.885 0.014 85) */
-        p.footer = rgb(0xF7F4ED);
-        p.pri = p.fg;
-        p.prifg = rgb(0xFAFAFA);    /* oklch(0.985 0 0) */
-        p.secbd = p.border;
-        p.secfg = rgb(0x514C48);    /* oklch(0.42 0.01 60): a step above muted, for Close */
-        p.hover = rgb(0xEBE7DE);    /* accent: oklch(0.928 0.012 85) */
-        p.ring = rgb(0x948E89);     /* ring: oklch(0.65 0.01 60) */
-    }
+    if (!contrast) return cw_palette_for(dark);
+    cw_palette p = {};
+    p.contrast = 1;
+    cw_color window = from_colorref(GetSysColor(COLOR_WINDOW)), text = from_colorref(GetSysColor(COLOR_WINDOWTEXT));
+    p.bg = p.caption = p.panel = p.footer = window;
+    p.fg = p.fg2 = p.mut = p.border = p.secbd = p.secfg = text;
+    p.pri = from_colorref(GetSysColor(COLOR_HIGHLIGHT));
+    p.prifg = from_colorref(GetSysColor(COLOR_HIGHLIGHTTEXT));
+    p.hover = from_colorref(GetSysColor(COLOR_HOTLIGHT));
+    p.ring = p.pri;
+    /* "dark" for the caption: a dark window colour */
+    p.dark = (p.bg.r + p.bg.g + p.bg.b) < 1.5f;
     return p;
 }
 
@@ -223,41 +186,37 @@ bool system_contrast()
     return SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof hc, &hc, 0) && (hc.dwFlags & HCF_HIGHCONTRASTON);
 }
 
-/* ---- the GitHub mark (Octicons mark-github, MIT) -------------------------------------------- */
+/* ---- the GitHub mark as a Direct2D geometry --------------------------------------------------- */
 
-const char kGithubMark[] =
-    "M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94"
-    "-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07"
-    "-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0"
-    " 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25"
-    ".54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z";
-
-/* An SVG path (the commands the mark uses: M m C c L l H h V v A a Z z) as a Direct2D geometry. */
-struct PathReader
+struct MarkSink
 {
-    const char *at;
-    void skip() { while (*at == ' ' || *at == ',' || *at == '\n') at++; }
-    bool number_next()
-    {
-        skip();
-        return (*at >= '0' && *at <= '9') || *at == '-' || *at == '.' || *at == '+';
-    }
-    float number()
-    {
-        skip();
-        const char *start = at;
-        if (*at == '-' || *at == '+') at++;
-        bool dot = false;
-        while ((*at >= '0' && *at <= '9') || (*at == '.' && !dot)) { if (*at == '.') dot = true; at++; }
-        if (*at == 'e' || *at == 'E') { at++; if (*at == '-' || *at == '+') at++; while (*at >= '0' && *at <= '9') at++; }
-        return (float)strtod(start, NULL);
-    }
-    int flag()
-    {
-        skip();
-        return *at ? *at++ - '0' : 0;
-    }
+    ID2D1GeometrySink *sink;
 };
+
+void mark_begin(void *c, float x, float y) { ((MarkSink *)c)->sink->BeginFigure(D2D1::Point2F(x, y), D2D1_FIGURE_BEGIN_FILLED); }
+void mark_line(void *c, float x, float y) { ((MarkSink *)c)->sink->AddLine(D2D1::Point2F(x, y)); }
+
+void mark_cubic(void *c, float x1, float y1, float x2, float y2, float x, float y)
+{
+    D2D1_BEZIER_SEGMENT b;
+    b.point1.x = x1; b.point1.y = y1;
+    b.point2.x = x2; b.point2.y = y2;
+    b.point3.x = x; b.point3.y = y;
+    ((MarkSink *)c)->sink->AddBezier(b);
+}
+
+void mark_arc(void *c, float rx, float ry, float rotation, int large, int sweep, float x, float y)
+{
+    D2D1_ARC_SEGMENT a;
+    a.size.width = rx; a.size.height = ry;
+    a.rotationAngle = rotation;
+    a.arcSize = large ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL;
+    a.sweepDirection = sweep ? D2D1_SWEEP_DIRECTION_CLOCKWISE : D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE;
+    a.point.x = x; a.point.y = y;
+    ((MarkSink *)c)->sink->AddArc(a);
+}
+
+void mark_end(void *c, int closed) { ((MarkSink *)c)->sink->EndFigure(closed ? D2D1_FIGURE_END_CLOSED : D2D1_FIGURE_END_OPEN); }
 
 ID2D1PathGeometry *svg_path(ID2D1Factory *factory, const char *text)
 {
@@ -265,66 +224,9 @@ ID2D1PathGeometry *svg_path(ID2D1Factory *factory, const char *text)
     ID2D1GeometrySink *sink = nullptr;
     if (FAILED(factory->CreatePathGeometry(&path)) || FAILED(path->Open(&sink))) { release(path); return nullptr; }
     sink->SetFillMode(D2D1_FILL_MODE_WINDING);
-    PathReader r = { text };
-    D2D1_POINT_2F pen = { 0, 0 }, start = { 0, 0 };
-    bool open = false;
-    char command = 0;
-    for (;;)
-    {
-        r.skip();
-        if (!*r.at) break;
-        if ((*r.at >= 'A' && *r.at <= 'Z') || (*r.at >= 'a' && *r.at <= 'z')) command = *r.at++;
-        bool relative = command >= 'a';
-        float ox = relative ? pen.x : 0, oy = relative ? pen.y : 0;
-        switch (command | 0x20)
-        {
-        case 'm':
-        {
-            if (open) sink->EndFigure(D2D1_FIGURE_END_OPEN);
-            float x = r.number() + ox, y = r.number() + oy;
-            pen = start = D2D1::Point2F(x, y);
-            sink->BeginFigure(pen, D2D1_FIGURE_BEGIN_FILLED);
-            open = true;
-            command = relative ? 'l' : 'L';   /* further pairs are lines */
-            break;
-        }
-        case 'l': { float x = r.number() + ox, y = r.number() + oy; pen = D2D1::Point2F(x, y); sink->AddLine(pen); break; }
-        case 'h': { pen.x = r.number() + ox; sink->AddLine(pen); break; }
-        case 'v': { pen.y = r.number() + oy; sink->AddLine(pen); break; }
-        case 'c':
-        {
-            D2D1_BEZIER_SEGMENT b;
-            b.point1.x = r.number() + ox; b.point1.y = r.number() + oy;
-            b.point2.x = r.number() + ox; b.point2.y = r.number() + oy;
-            b.point3.x = r.number() + ox; b.point3.y = r.number() + oy;
-            sink->AddBezier(b);
-            pen = b.point3;
-            break;
-        }
-        case 'a':
-        {
-            D2D1_ARC_SEGMENT a;
-            a.size.width = r.number(); a.size.height = r.number();
-            a.rotationAngle = r.number();
-            a.arcSize = r.flag() ? D2D1_ARC_SIZE_LARGE : D2D1_ARC_SIZE_SMALL;
-            a.sweepDirection = r.flag() ? D2D1_SWEEP_DIRECTION_CLOCKWISE : D2D1_SWEEP_DIRECTION_COUNTER_CLOCKWISE;
-            a.point.x = r.number() + ox; a.point.y = r.number() + oy;
-            sink->AddArc(a);
-            pen = a.point;
-            break;
-        }
-        case 'z':
-            if (open) sink->EndFigure(D2D1_FIGURE_END_CLOSED);
-            open = false;
-            pen = start;
-            break;
-        default:
-            r.at++;
-            break;
-        }
-        if ((command | 0x20) != 'z' && !r.number_next() && *r.at && !((*r.at >= 'A' && *r.at <= 'Z') || (*r.at >= 'a' && *r.at <= 'z'))) r.at++;
-    }
-    if (open) sink->EndFigure(D2D1_FIGURE_END_CLOSED);
+    static const cw_path_sink calls = { mark_begin, mark_line, mark_cubic, mark_arc, mark_end };
+    MarkSink context = { sink };
+    cw_svg_path(text, &calls, &context);
     sink->Close();
     sink->Release();
     return path;
@@ -345,29 +247,7 @@ bool resource_data(int id, const void **data, DWORD *size)
     return *data && *size;
 }
 
-/* ---- the report's text ---------------------------------------------------------------------- */
-
-void format_size(ULONG64 bytes, wchar_t *out, size_t most)
-{
-    if (bytes < 1000 * 1024) swprintf_s(out, most, L"%llu KB", (bytes + 1023) / 1024);
-    else if (bytes < 1000ull * 1024 * 1024) swprintf_s(out, most, L"%.1f MB", bytes / (1024.0 * 1024.0));
-    else swprintf_s(out, most, L"%.1f GB", bytes / (1024.0 * 1024.0 * 1024.0));
-}
-
-const wchar_t *file_name(const wchar_t *path)
-{
-    const wchar_t *a = wcsrchr(path, L'\\'), *b = wcsrchr(path, L'/');
-    if (b > a) a = b;
-    return a ? a + 1 : path;
-}
-
-/* Facts of this machine the watcher finds itself: Windows, the GPU's driver, the memory. */
-struct System
-{
-    wchar_t windows[96];
-    wchar_t gpu[192];
-    ULONG64 ram_gb;
-};
+/* ---- this machine --------------------------------------------------------------------------- */
 
 void windows_version(wchar_t *out, size_t most)
 {
@@ -443,148 +323,71 @@ void gpu_line(const wchar_t *renderer, wchar_t *out, size_t most)
     if (!out[0] && wanted[0]) wcsncpy_s(out, most, wanted, _TRUNCATE);
 }
 
-void gather_system(const crash_report_t *r, System *s)
+void gather_system(const crash_report_t *r)
 {
-    windows_version(s->windows, _countof(s->windows));
+    wchar_t windows[96], gpu[192];
+    windows_version(windows, _countof(windows));
     __try
     {
-        gpu_line(r->gpu, s->gpu, _countof(s->gpu));
+        gpu_line(r->gpu, gpu, _countof(gpu));
     }
     __except (EXCEPTION_EXECUTE_HANDLER)
     {
-        wcsncpy_s(s->gpu, r->gpu, _TRUNCATE);
+        wcsncpy_s(gpu, r->gpu, _TRUNCATE);
     }
+    to_utf8(windows, cw.system.os, sizeof cw.system.os);
+    to_utf8(gpu, cw.system.gpu, sizeof cw.system.gpu);
     ULONGLONG kb = 0;
-    s->ram_gb = GetPhysicallyInstalledSystemMemory(&kb) ? (kb + 512 * 1024) / (1024 * 1024) : 0;
-}
-
-void append(wchar_t *out, size_t most, const wchar_t *text)
-{
-    wcsncat_s(out, most, text, _TRUNCATE);
-}
-
-/* The details, one fact a line, in `language`. */
-void details_text(const crash_report_t *r, const System *sys, int language, wchar_t *out, size_t most)
-{
-    const wchar_t *const *t = strings[language];
-    wchar_t part[512];
-    out[0] = 0;
-    swprintf_s(part, L"OniMoono %ls", r->version[0] ? r->version : L"?");
-    append(out, most, part);
-    if (r->game_build[0]) { swprintf_s(part, t[S_GAME_BUILD], r->game_build); append(out, most, part); }
-    append(out, most, L"\n");
-    append(out, most, sys->windows);
-    if (sys->gpu[0]) { append(out, most, L" \u00B7 "); append(out, most, sys->gpu); }
-    if (sys->ram_gb) { swprintf_s(part, L" \u00B7 %llu GB", sys->ram_gb); append(out, most, part); }
-    bool line = false;
-    if (r->play_seconds != ~0ull)
-    {
-        wchar_t played[64];
-        ULONG64 s = r->play_seconds;
-        if (s >= 3600) swprintf_s(played, t[S_HOURS], s / 3600, s / 60 % 60);
-        else if (s >= 60) swprintf_s(played, t[S_MINUTES], s / 60);
-        else swprintf_s(played, t[S_SECONDS], s);
-        swprintf_s(part, t[S_PLAYED], played);
-        append(out, most, L"\n");
-        append(out, most, part);
-        line = true;
-    }
-    if (r->mods >= 0)
-    {
-        swprintf_s(part, t[S_MODS], r->mods);
-        append(out, most, line ? L" \u00B7 " : L"\n");
-        append(out, most, part);
-    }
-    wchar_t files[300];
-    wcscpy_s(files, file_name(r->log_path));
-    if (r->dump_path[0]) { wcscat_s(files, t[S_LIST]); wcscat_s(files, file_name(r->dump_path)); }
-    swprintf_s(part, t[S_FILES], files);
-    append(out, most, L"\n");
-    append(out, most, part);
+    cw.system.ram_gb = GetPhysicallyInstalledSystemMemory(&kb) ? (kb + 512 * 1024) / (1024 * 1024) : 0;
 }
 
 /* ---- the window's state --------------------------------------------------------------------- */
 
-enum { C_HEAD, C_CAUSE, C_TOGGLE, C_DETAILS, C_NOTE, C_CHECK, C_CHIP, C_CLOSE, C_REPORT, C_COUNT };
 enum { ID_TOGGLE = 101, ID_NOTE, ID_CHECK, ID_CHIP, ID_CLOSE, ID_REPORT, ID_HEAD, ID_CAUSE, ID_DETAILS };
 
-/* What the drawing depends on besides the layout: each control's state. */
-struct Look
-{
-    bool hot[C_COUNT], pressed[C_COUNT], focus[C_COUNT];
-    bool cues, checked, note_empty;
-};
 
-/* Pixel rectangles, from DIPs. */
-struct Box
-{
-    float l, t, r, b;
-    float w() const { return r - l; }
-    float h() const { return b - t; }
-    D2D1_RECT_F f() const { return D2D1::RectF(l, t, r, b); }
-    RECT rect() const { RECT x = { (LONG)l, (LONG)t, (LONG)r, (LONG)b }; return x; }
-};
-
-struct Layout
-{
-    int width, height;            /* the client area, px */
-    float line;                   /* a 1-DIP line in whole pixels */
-    Box head, cause, toggle, details, note, check, chip, footer, close, report;
-    IDWriteTextLayout *t_head, *t_cause, *t_toggle, *t_details, *t_note, *t_check, *t_chip_name, *t_chip_hint, *t_zip,
-        *t_close, *t_report, *t_caption;
-};
-
+/* Windows' own state beside crash_window.c's `cw`. */
 struct Dialog
 {
-    crash_report_t report;
-    System system;
-    const wchar_t *const *t;      /* strings[language] */
-    wchar_t error[1024], details[2048];
-    float scale;
-    float text;                     /* Windows' text size (Accessibility > Text size), 1 to 2.25 */
-    float extra_cause, extra_details;   /* px the read-only text fields need beyond the drawn lines */
-    Palette pal;
-    bool details_open, reported, include_dump, can_include_dump, render_only;
-    bool forced_theme, forced_dark;
-    wchar_t chip_path[1024];
-    ULONG64 chip_size;
+    crash_report_t report;          /* as the watcher gave it (wide paths) */
+    wchar_t chip_path[1024];        /* cw.chip_path, wide */
 
     ID2D1Factory *d2d;
     IDWriteFactory *dw;
     IWICImagingFactory *wic;
     IDWriteFontCollection *fonts;   /* ours, or null (system fonts) */
     float sans_ascent, sans_descent, mono_ascent, mono_descent;   /* per em */
-    IDWriteTextFormat *f_head, *f_body, *f_small, *f_mono, *f_button, *f_chip, *f_zip, *f_caption;
+    IDWriteTextFormat *formats[CW_F_COUNT];
     ID2D1PathGeometry *mark;
     ID2D1StrokeStyle *dashed;
-    Layout lay;
 
     IWICBitmap *bitmap;
     ID2D1RenderTarget *rt;
     ID2D1SolidColorBrush *brush;
     int bitmap_w, bitmap_h;
+    D2D1::Matrix3x2F base;
 
     HWND hwnd, child[C_COUNT];
     WNDPROC note_proc, chip_proc;
     HDC memdc;
     HBITMAP dib, old_dib;
     void *dib_bits;
-    Look drawn;
+    cw_look drawn;
     bool drawn_valid;
     HFONT note_font, cause_font, mono_font;
     HANDLE gdi_mono;
-    IAccPropServer *expand;
     HBRUSH panel_brush;
     HANDLE gdi_font;
     HWND restore_focus;
     IAccPropServices *acc;
+    bool forced_theme, forced_dark;
 };
 
 Dialog g;
 
-float dip(float v) { return v * g.scale; }
-/* Sizes that follow the text: DIPs times the scale times Windows' text size. */
-float tdip(float v) { return v * g.scale * g.text; }
+float dip(float v) { return cw_dip(v); }
+float tdip(float v) { return cw_tdip(v); }
+float snap(float v) { return cw_snap(v); }
 
 /* Settings > Accessibility > Text size, 100 to 225 percent. */
 float text_scale()
@@ -594,7 +397,12 @@ float text_scale()
         return 1.0f;
     return percent < 100 ? 1.0f : percent > 225 ? 2.25f : percent / 100.0f;
 }
-float snap(float v) { return floorf(v + 0.5f); }
+
+RECT rect_of(cw_box b)
+{
+    RECT x = { (LONG)b.l, (LONG)b.t, (LONG)b.r, (LONG)b.b };
+    return x;
+}
 
 /* ---- text ----------------------------------------------------------------------------------- */
 
@@ -662,291 +470,144 @@ IDWriteTextFormat *text_format(const wchar_t *family, IDWriteFontCollection *col
 {
     IDWriteTextFormat *format = nullptr;
     g.dw->CreateTextFormat(family, collection, weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size,
-                           g.report.language == CRASH_CHINESE ? L"zh-cn" : L"en-us", &format);
+                           cw.report.language == CW_CHINESE ? L"zh-cn" : L"en-us", &format);
     if (format) format->SetWordWrapping(DWRITE_WORD_WRAPPING_EMERGENCY_BREAK);
     return format;
 }
 
 void release_formats()
 {
-    release(g.f_head); release(g.f_body); release(g.f_small); release(g.f_mono);
-    release(g.f_button); release(g.f_chip); release(g.f_zip); release(g.f_caption);
+    for (int i = 0; i < CW_F_COUNT; i++) release(g.formats[i]);
 }
 
+/* The layout's fonts (cw_font_of): ours (sans, mono) or, for the drawn title bar, Segoe UI. */
 void make_formats()
 {
     release_formats();
-    g.f_head = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, tdip(16));
-    g.f_body = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, tdip(13));
-    g.f_small = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, tdip(12));
-    g.f_mono = text_format(mono(), g.fonts, DWRITE_FONT_WEIGHT_NORMAL, tdip(12));
-    g.f_button = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_MEDIUM, tdip(12.5f));
-    g.f_chip = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, tdip(12.5f));
-    g.f_zip = text_format(sans(), g.fonts, DWRITE_FONT_WEIGHT_SEMI_BOLD, tdip(9.5f));
-    g.f_caption = text_format(L"Segoe UI", nullptr, DWRITE_FONT_WEIGHT_NORMAL, dip(12));
+    for (int i = 0; i < CW_F_COUNT; i++)
+    {
+        cw_font f = cw_font_of(i);
+        DWRITE_FONT_WEIGHT weight = f.weight == CW_SEMIBOLD ? DWRITE_FONT_WEIGHT_SEMI_BOLD : f.weight == CW_MEDIUM ? DWRITE_FONT_WEIGHT_MEDIUM : DWRITE_FONT_WEIGHT_NORMAL;
+        g.formats[i] = f.family == 2 ? text_format(L"Segoe UI", nullptr, weight, f.size) : text_format(f.family == 1 ? mono() : sans(), g.fonts, weight, f.size);
+    }
 }
+
+} /* namespace */
+
+/* A DirectWrite layout, crash_window.c's cw_text. */
+struct cw_text
+{
+    IDWriteTextLayout *layout;
+    UINT32 length;
+};
+
+namespace {
+
+/* ---- the canvas: crash_window.c's drawing through Direct2D ---------------------------------- */
 
 /* A text laid out as CSS lays out `line-height`: lines `line_height` px apart, the font's ascent
  * and descent centred in each. */
-IDWriteTextLayout *make_text(const wchar_t *text, IDWriteTextFormat *format, float width, float line_height, bool is_mono = false,
-                             bool wrap = true)
+cw_text *c_make_text(void *, const char *utf8, int font, float width, float line_height, int wrap)
 {
+    IDWriteTextFormat *format = g.formats[font];
+    const wchar_t *text = W(utf8);
     IDWriteTextLayout *layout = nullptr;
     if (!format || FAILED(g.dw->CreateTextLayout(text, (UINT32)wcslen(text), format, maxf(width, 1.0f), 100000.0f, &layout))) return nullptr;
+    bool is_mono = font == CW_F_MONO;
     float size = format->GetFontSize();
     float ascent = (is_mono ? g.mono_ascent : g.sans_ascent) * size, descent = (is_mono ? g.mono_descent : g.sans_descent) * size;
     layout->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, line_height, (line_height - ascent - descent) / 2 + ascent);
     if (!wrap) layout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-    return layout;
+    cw_text *t = new cw_text;
+    t->layout = layout;
+    t->length = (UINT32)wcslen(text);
+    return t;
 }
 
-DWRITE_TEXT_METRICS metrics(IDWriteTextLayout *layout)
+void c_set_spacing(void *, cw_text *t, float spacing)
 {
-    DWRITE_TEXT_METRICS m = {};
-    if (layout) layout->GetMetrics(&m);
-    return m;
-}
-
-/* ---- layout --------------------------------------------------------------------------------- */
-
-void release_layout()
-{
-    Layout &l = g.lay;
-    release(l.t_head); release(l.t_cause); release(l.t_toggle); release(l.t_details); release(l.t_note); release(l.t_check);
-    release(l.t_chip_name); release(l.t_chip_hint); release(l.t_zip); release(l.t_close); release(l.t_report); release(l.t_caption);
-}
-
-Box pixel_box(float l, float t, float r, float b)
-{
-    Box x = { snap(l), snap(t), snap(r), snap(b) };
-    return x;
-}
-
-/* The approved mockup's measures (CSS px = DIPs): 440 wide, 20 of padding, 4 between the
- * headline and the error, 12 to the details and the check box, 16 around the note and the zip.
- * What holds text grows with Windows' text size, and the window widens by half as much. */
-void lay_out()
-{
-    release_layout();
-    Layout &l = g.lay;
-    const wchar_t *const *t = g.t;
-    float s = g.scale;
-    l.line = maxf(1.0f, floorf(s));
-    l.width = (int)snap(dip(440 * (1 + (g.text - 1) / 2)));
-    float pad = dip(20), inner = l.width - 2 * pad, y = dip(20);
-
-    l.t_head = make_text(t[S_HEADLINE], g.f_head, inner, tdip(16 * 1.3f));
     IDWriteTextLayout1 *spaced = nullptr;
-    if (l.t_head && SUCCEEDED(l.t_head->QueryInterface(__uuidof(IDWriteTextLayout1), (void **)&spaced)))
+    if (SUCCEEDED(t->layout->QueryInterface(__uuidof(IDWriteTextLayout1), (void **)&spaced)))
     {
-        DWRITE_TEXT_RANGE all = { 0, (UINT32)wcslen(t[S_HEADLINE]) };
-        spaced->SetCharacterSpacing(0, tdip(-0.2f), 0, all);   /* letter-spacing: -0.2px */
+        DWRITE_TEXT_RANGE all = { 0, t->length };
+        spaced->SetCharacterSpacing(0, spacing, 0, all);
         spaced->Release();
     }
-    float h = metrics(l.t_head).height;
-    l.head = pixel_box(pad, y, pad + inner, y + h);
-    y += h + dip(4);
-
-    l.t_cause = make_text(g.error, g.f_body, inner, tdip(13 * 1.45f));
-    h = metrics(l.t_cause).height + g.extra_cause;
-    l.cause = pixel_box(pad, y, pad + inner, y + h);
-    y += h + dip(12);
-
-    l.t_toggle = make_text(t[S_SHOW_DETAILS], g.f_small, inner, tdip(18), false, false);
-    l.toggle = pixel_box(pad, y, pad + tdip(12) + metrics(l.t_toggle).widthIncludingTrailingWhitespace, y + tdip(18));
-    y += tdip(18);
-
-    if (g.details_open)
-    {
-        y += dip(8);
-        float text_w = inner - 2 * dip(12) - 2 * l.line;
-        l.t_details = make_text(g.details, g.f_mono, text_w, tdip(12 * 1.55f), true);
-        h = metrics(l.t_details).height + g.extra_details + 2 * dip(10) + 2 * l.line;
-        l.details = pixel_box(pad, y, pad + inner, y + h);
-        y += h;
-    }
-    else l.details = pixel_box(0, 0, 0, 0);
-
-    y += dip(16);
-    l.t_note = make_text(t[S_NOTE], g.f_body, inner - 2 * dip(10) - 2 * l.line, tdip(13 * 1.5f));
-    h = 2 * l.line + 2 * dip(8) + maxf(2 * tdip(13 * 1.5f), metrics(l.t_note).height);
-    l.note = pixel_box(pad, y, pad + inner, y + h);
-    y = l.note.b;
-
-    if (g.report.dump_path[0])
-    {
-        y += dip(12);
-        wchar_t size[32], label[160];
-        format_size(g.report.dump_size, size, _countof(size));
-        swprintf_s(label, t[S_INCLUDE_DUMP], size);
-        l.t_check = make_text(label, g.f_small, inner - tdip(13) - dip(6), tdip(18));
-        h = metrics(l.t_check).height;
-        l.check = pixel_box(pad, y, pad + tdip(13) + dip(6) + metrics(l.t_check).widthIncludingTrailingWhitespace, y + h);
-        y += h;
-    }
-    else l.check = pixel_box(0, 0, 0, 0);
-
-    if (g.reported)
-    {
-        y += dip(16);
-        wchar_t size[32], name[300];
-        format_size(g.chip_size, size, _countof(size));
-        swprintf_s(name, L"%ls", file_name(g.chip_path));
-        float text_w = inner - 2 * l.line - 2 * dip(10) - tdip(28) - dip(10);
-        l.t_chip_name = make_text(name, g.f_chip, text_w, tdip(12.5f * 1.5f));
-        wchar_t hint[200];
-        swprintf_s(hint, L"%ls · %ls", size, t[S_DRAG]);
-        l.t_chip_hint = make_text(hint, g.f_small, text_w, tdip(18));
-        l.t_zip = make_text(L"ZIP", g.f_zip, tdip(28), tdip(14), false, false);
-        if (l.t_zip) l.t_zip->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-        float content = maxf(tdip(34), metrics(l.t_chip_name).height + metrics(l.t_chip_hint).height);
-        h = 2 * l.line + 2 * dip(8) + content;
-        l.chip = pixel_box(pad, y, pad + inner, y + h);
-        y = l.chip.b;
-    }
-    else l.chip = pixel_box(0, 0, 0, 0);
-
-    y += dip(16);
-    float top = snap(y);
-    l.footer = pixel_box(0, top, (float)l.width, top + l.line + dip(24) + tdip(30));
-    l.height = (int)l.footer.b;
-
-    /* The site's order: Close (outlined), then Report on GitHub (filled), on the right. */
-    l.t_close = make_text(t[S_CLOSE], g.f_button, 10000, tdip(12.5f * 1.5f), false, false);
-    l.t_report = make_text(g.reported ? t[S_REPORTED] : t[S_REPORT], g.f_button, 10000, tdip(12.5f * 1.5f), false, false);
-    float bt = l.footer.t + l.line + dip(12), bb = bt + tdip(30);
-    float report_w = 2 * l.line + dip(24) + (g.reported ? 0 : tdip(15) + dip(6)) + metrics(l.t_report).widthIncludingTrailingWhitespace;
-    float close_w = 2 * l.line + dip(24) + metrics(l.t_close).widthIncludingTrailingWhitespace;
-    float right = l.width - pad;
-    l.report = pixel_box(right - report_w, bt, right, bb);
-    l.close = pixel_box(l.report.l - dip(8) - close_w, bt, l.report.l - dip(8), bb);
-
-    l.t_caption = make_text(kTitle, g.f_caption, 1000, dip(16), false, false);
 }
 
-/* ---- drawing -------------------------------------------------------------------------------- */
-
-D2D1::Matrix3x2F base;
-
-void fill(const Box &b, D2D1_COLOR_F c)
+void c_set_align(void *, cw_text *t, int align)
 {
-    g.brush->SetColor(c);
-    g.rt->FillRectangle(b.f(), g.brush);
+    if (align == CW_ALIGN_CENTER) t->layout->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
 }
 
-void fill_round(const Box &b, float radius, D2D1_COLOR_F c)
+cw_metrics c_metrics(void *, cw_text *t)
 {
-    g.brush->SetColor(c);
-    g.rt->FillRoundedRectangle(D2D1::RoundedRect(b.f(), radius, radius), g.brush);
+    DWRITE_TEXT_METRICS m = {};
+    t->layout->GetMetrics(&m);
+    cw_metrics r = { m.height, m.widthIncludingTrailingWhitespace, (int)m.lineCount };
+    return r;
 }
 
-/* A border `width` px wide inside the box, on whole pixels. */
-void stroke_round(const Box &b, float radius, float width, D2D1_COLOR_F c, ID2D1StrokeStyle *style = nullptr)
+void c_free_text(void *, cw_text *t)
 {
-    float half = width / 2;
-    g.brush->SetColor(c);
-    D2D1_RECT_F r = D2D1::RectF(b.l + half, b.t + half, b.r - half, b.b - half);
-    g.rt->DrawRoundedRectangle(D2D1::RoundedRect(r, radius - half, radius - half), g.brush, width, style);
+    release(t->layout);
+    delete t;
 }
 
-void draw_text(IDWriteTextLayout *layout, float x, float y, D2D1_COLOR_F c)
+void c_set_offset(void *, float y)
 {
-    if (!layout) return;
-    g.brush->SetColor(c);
-    g.rt->DrawTextLayout(D2D1::Point2F(x, y), layout, g.brush, D2D1_DRAW_TEXT_OPTIONS_NONE);
+    g.base = D2D1::Matrix3x2F::Translation(0, y);
+    g.rt->SetTransform(g.base);
 }
 
-/* The keyboard focus: 2 DIPs in the ink colour, 2 DIPs out from the control. */
-void focus_ring(const Box &b, float radius)
+void c_fill(void *, cw_box b, cw_color c)
 {
-    float out = snap(dip(2)), width = snap(dip(2));
-    Box r = { b.l - out - width, b.t - out - width, b.r + out + width, b.b + out + width };
-    stroke_round(r, radius + out + width, width, g.pal.contrast ? g.pal.ring : g.pal.fg);
+    g.brush->SetColor(color(c));
+    g.rt->FillRectangle(D2D1::RectF(b.l, b.t, b.r, b.b), g.brush);
 }
 
-void draw_chevron(float x, float cy, bool open, D2D1_COLOR_F c)
+void c_fill_round(void *, cw_box b, float radius, cw_color c)
 {
-    /* The mockup's: a 6-DIP square's two sides, 1.5 DIPs, turned to point right (or down). */
-    float k = tdip(4.24f), cx = x + tdip(3);
-    D2D1_POINT_2F p[3];
-    if (open) { p[0] = D2D1::Point2F(cx - k, cy - k / 2); p[1] = D2D1::Point2F(cx, cy + k / 2); p[2] = D2D1::Point2F(cx + k, cy - k / 2); }
-    else { p[0] = D2D1::Point2F(cx - k / 2, cy - k); p[1] = D2D1::Point2F(cx + k / 2, cy); p[2] = D2D1::Point2F(cx - k / 2, cy + k); }
-    g.brush->SetColor(c);
-    g.rt->DrawLine(p[0], p[1], g.brush, tdip(1.5f));
-    g.rt->DrawLine(p[1], p[2], g.brush, tdip(1.5f));
-    g.rt->FillEllipse(D2D1::Ellipse(p[1], tdip(0.75f), tdip(0.75f)), g.brush);
+    g.brush->SetColor(color(c));
+    g.rt->FillRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(b.l, b.t, b.r, b.b), radius, radius), g.brush);
 }
 
-void draw_check_box(float x, float cy, bool checked, bool hot, bool disabled)
+void c_stroke_round(void *, cw_box b, float radius, float width, cw_color c, int dashed)
 {
-    /* As a browser draws a native check box with accent-color: the foreground. */
-    float size = snap(tdip(13));
-    Box b = { snap(x), snap(cy - size / 2), snap(x) + size, snap(cy - size / 2) + size };
-    float radius = dip(2.5f);
-    const Palette &p = g.pal;
-    D2D1_COLOR_F ink = disabled ? mix(p.fg, p.bg, 0.5f) : p.fg;
-    if (checked)
-    {
-        fill_round(b, radius, hot ? mix(ink, p.bg, 0.85f) : ink);
-        g.brush->SetColor(p.contrast ? p.bg : p.dark ? p.caption : p.prifg);
-        float w = b.w();
-        D2D1_POINT_2F a = D2D1::Point2F(b.l + w * 0.22f, b.t + w * 0.52f), m = D2D1::Point2F(b.l + w * 0.42f, b.t + w * 0.72f),
-                      e = D2D1::Point2F(b.l + w * 0.78f, b.t + w * 0.30f);
-        g.rt->DrawLine(a, m, g.brush, tdip(1.6f));
-        g.rt->DrawLine(m, e, g.brush, tdip(1.6f));
-        g.rt->FillEllipse(D2D1::Ellipse(m, tdip(0.8f), tdip(0.8f)), g.brush);
-    }
-    else
-    {
-        fill_round(b, radius, p.panel);
-        stroke_round(b, radius, g.lay.line, hot ? p.fg2 : p.mut);
-    }
+    g.brush->SetColor(color(c));
+    g.rt->DrawRoundedRectangle(D2D1::RoundedRect(D2D1::RectF(b.l, b.t, b.r, b.b), radius, radius), g.brush, width, dashed ? g.dashed : nullptr);
 }
 
-void draw_button(const Box &b, IDWriteTextLayout *label, bool primary, bool hot, bool pressed, bool disabled, bool icon)
+void c_draw_text(void *, cw_text *t, float x, float y, cw_color c)
 {
-    const Palette &p = g.pal;
-    float radius = dip(8);
-    D2D1_COLOR_F under = p.footer, fill_c, text_c, border_c;
-    if (primary)
-    {
-        fill_c = p.pri;
-        text_c = p.prifg;
-        if ((hot || pressed) && !disabled) fill_c = mix(p.pri, under, pressed ? 0.7f : 0.8f);   /* hover:opacity-80 */
-        if (disabled) { fill_c = mix(p.pri, under, 0.5f); text_c = mix(p.prifg, under, 0.5f); }
-        border_c = fill_c;
-        fill_round(b, radius, fill_c);
-    }
-    else
-    {
-        text_c = p.secfg;
-        border_c = p.secbd;
-        if ((hot || pressed) && !disabled) { fill_round(b, radius, p.hover); text_c = p.fg; }   /* hover:bg-accent text-foreground */
-        if (disabled) text_c = mix(text_c, under, 0.5f);
-        stroke_round(b, radius, g.lay.line, border_c);
-    }
-    DWRITE_TEXT_METRICS m = metrics(label);
-    float icon_w = icon ? tdip(15) + dip(6) : 0;
-    float content = icon_w + m.widthIncludingTrailingWhitespace;
-    float x = snap(b.l + (b.w() - content) / 2), line = tdip(12.5f * 1.5f), y = b.t + (b.h() - line) / 2;
-    if (icon && g.mark)
-    {
-        float k = tdip(15) / 16;
-        float iy = snap(b.t + (b.h() - tdip(15)) / 2);
-        g.rt->SetTransform(D2D1::Matrix3x2F::Scale(k, k) * D2D1::Matrix3x2F::Translation(x, iy) * base);
-        g.brush->SetColor(text_c);
-        g.rt->FillGeometry(g.mark, g.brush);
-        g.rt->SetTransform(base);
-    }
-    draw_text(label, x + icon_w, y, text_c);
+    g.brush->SetColor(color(c));
+    g.rt->DrawTextLayout(D2D1::Point2F(x, y), t->layout, g.brush, D2D1_DRAW_TEXT_OPTIONS_NONE);
 }
 
-/* The title bar Windows draws (for the PNG): the icon, the title and the close glyph. */
-void draw_caption(float height)
+void c_line(void *, float x0, float y0, float x1, float y1, float width, cw_color c)
 {
-    const Palette &p = g.pal;
-    fill(Box{ 0, 0, (float)g.lay.width, height }, p.caption);
-    int size = (int)snap(dip(16));
+    g.brush->SetColor(color(c));
+    g.rt->DrawLine(D2D1::Point2F(x0, y0), D2D1::Point2F(x1, y1), g.brush, width);
+}
+
+void c_dot(void *, float x, float y, float radius, cw_color c)
+{
+    g.brush->SetColor(color(c));
+    g.rt->FillEllipse(D2D1::Ellipse(D2D1::Point2F(x, y), radius, radius), g.brush);
+}
+
+void c_mark(void *, float x, float y, float k, cw_color c)
+{
+    if (!g.mark) return;
+    g.rt->SetTransform(D2D1::Matrix3x2F::Scale(k, k) * D2D1::Matrix3x2F::Translation(x, y) * g.base);
+    g.brush->SetColor(color(c));
+    g.rt->FillGeometry(g.mark, g.brush);
+    g.rt->SetTransform(g.base);
+}
+
+/* The title bar's icon (for the PNG): resource 32512 at `size` px. */
+void c_icon(void *, float x, float y, int size)
+{
     HICON icon = (HICON)LoadImageW(GetModuleHandleW(NULL), MAKEINTRESOURCEW(32512), IMAGE_ICON, size, size, LR_DEFAULTCOLOR);
     IWICBitmap *wicon = nullptr;
     IWICFormatConverter *converter = nullptr;
@@ -954,87 +615,22 @@ void draw_caption(float height)
     if (icon && SUCCEEDED(g.wic->CreateBitmapFromHICON(icon, &wicon)) && SUCCEEDED(g.wic->CreateFormatConverter(&converter))
         && SUCCEEDED(converter->Initialize(wicon, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0, WICBitmapPaletteTypeCustom))
         && SUCCEEDED(g.rt->CreateBitmapFromWicBitmap(converter, NULL, &bitmap)))
-    {
-        float x = snap(dip(12)), y = snap((height - size) / 2);
         g.rt->DrawBitmap(bitmap, D2D1::RectF(x, y, x + size, y + size));
-    }
     release(bitmap);
     release(converter);
     release(wicon);
     if (icon) DestroyIcon(icon);
-    draw_text(g.lay.t_caption, snap(dip(12 + 16 + 8)), (height - dip(16)) / 2, p.fg);
-    float cx = g.lay.width - dip(23), cy = height / 2, k = dip(5);
-    g.brush->SetColor(p.fg);
-    g.rt->DrawLine(D2D1::Point2F(cx - k, cy - k), D2D1::Point2F(cx + k, cy + k), g.brush, dip(1));
-    g.rt->DrawLine(D2D1::Point2F(cx + k, cy - k), D2D1::Point2F(cx - k, cy + k), g.brush, dip(1));
 }
 
-void draw(const Look &look, float offset)
+const cw_canvas canvas = {
+    nullptr, c_make_text, c_set_spacing, c_set_align, c_metrics, c_free_text, c_set_offset, c_fill, c_fill_round, c_stroke_round,
+    c_draw_text, c_line, c_dot, c_mark, c_icon,
+};
+
+cw_metrics metrics(cw_text *t)
 {
-    const Palette &p = g.pal;
-    const Layout &l = g.lay;
-    base = D2D1::Matrix3x2F::Translation(0, offset);
-    g.rt->SetTransform(base);
-    fill(Box{ 0, 0, (float)l.width, (float)l.height }, p.bg);
-
-    draw_text(l.t_head, l.head.l, l.head.t, p.fg);
-    draw_text(l.t_cause, l.cause.l, l.cause.t, p.fg2);
-    if (look.focus[C_CAUSE] && look.cues) focus_ring(l.cause, dip(4));
-
-    D2D1_COLOR_F toggle_c = look.hot[C_TOGGLE] ? p.fg : p.mut;
-    draw_chevron(l.toggle.l, l.toggle.t + tdip(9), g.details_open, toggle_c);
-    draw_text(l.t_toggle, l.toggle.l + tdip(12), l.toggle.t, toggle_c);
-    if (look.focus[C_TOGGLE] && look.cues) focus_ring(l.toggle, dip(4));
-
-    if (g.details_open)
-    {
-        fill_round(l.details, dip(8), p.panel);
-        stroke_round(l.details, dip(8), l.line, p.border);
-        draw_text(l.t_details, l.details.l + l.line + dip(12), l.details.t + l.line + dip(10), p.fg2);
-        if (look.focus[C_DETAILS] && look.cues) focus_ring(l.details, dip(8));
-    }
-
-    /* The note box: an edit control sits inside it in the window; here, its placeholder. */
-    fill_round(l.note, dip(8), p.panel);
-    if (look.focus[C_NOTE])
-    {
-        Box ring = { l.note.l - l.line, l.note.t - l.line, l.note.r + l.line, l.note.b + l.line };
-        stroke_round(ring, dip(8) + l.line, 2 * l.line, p.ring);   /* focus:ring-1 ring-ring, with the border */
-    }
-    else stroke_round(l.note, dip(8), l.line, p.border);
-    if (look.note_empty) draw_text(l.t_note, l.note.l + l.line + dip(10), l.note.t + l.line + dip(8), p.mut);
-
-    if (g.report.dump_path[0])
-    {
-        bool disabled = !g.can_include_dump;
-        draw_check_box(l.check.l, l.check.t + tdip(9), look.checked, look.hot[C_CHECK], disabled);
-        draw_text(l.t_check, l.check.l + tdip(13) + dip(6), l.check.t, disabled ? mix(p.fg2, p.bg, 0.5f) : p.fg2);
-        if (look.focus[C_CHECK] && look.cues) focus_ring(l.check, dip(4));
-    }
-
-    if (g.reported)
-    {
-        float radius = dip(8);
-        if (look.hot[C_CHIP] || look.pressed[C_CHIP]) fill_round(l.chip, radius, p.hover);
-        stroke_round(l.chip, radius, l.line, look.hot[C_CHIP] ? p.mut : p.dark ? rgb(0xFFFFFF, 0.18f) : p.border, g.dashed);
-        float x = l.chip.l + l.line + dip(10), inner_t = l.chip.t + l.line + dip(8), inner_h = l.chip.h() - 2 * l.line - 2 * dip(8);
-        Box icon = pixel_box(x, inner_t + (inner_h - tdip(34)) / 2, x + tdip(28), inner_t + (inner_h - tdip(34)) / 2 + tdip(34));
-        fill_round(icon, dip(4), p.panel);
-        stroke_round(icon, dip(4), l.line, p.border);
-        draw_text(l.t_zip, icon.l, icon.t + (icon.h() - tdip(14)) / 2, p.fg2);
-        float tx = icon.r + dip(10), th = metrics(l.t_chip_name).height + metrics(l.t_chip_hint).height;
-        float ty = inner_t + (inner_h - th) / 2;
-        draw_text(l.t_chip_name, tx, ty, p.fg);
-        draw_text(l.t_chip_hint, tx, ty + metrics(l.t_chip_name).height, p.mut);
-        if (look.focus[C_CHIP] && look.cues) focus_ring(l.chip, radius);
-    }
-
-    fill(l.footer, p.footer);
-    fill(Box{ 0, l.footer.t, (float)l.width, l.footer.t + l.line }, p.border);
-    draw_button(l.close, l.t_close, false, look.hot[C_CLOSE], look.pressed[C_CLOSE], false, false);
-    if (look.focus[C_CLOSE] && look.cues) focus_ring(l.close, dip(8));
-    draw_button(l.report, l.t_report, true, look.hot[C_REPORT], look.pressed[C_REPORT], g.reported, !g.reported);
-    if (look.focus[C_REPORT] && look.cues) focus_ring(l.report, dip(8));
+    cw_metrics m = { 0, 0, 0 };
+    return t ? c_metrics(nullptr, t) : m;
 }
 
 /* The software render target, `w` x `h` px (made again when the size changes). */
@@ -1055,313 +651,16 @@ bool ensure_target(int w, int h)
     return g.brush != nullptr;
 }
 
-bool render(const Look &look, float caption)
+bool render(const cw_look &look, float caption)
 {
-    if (!ensure_target(g.lay.width, g.lay.height + (int)caption)) return false;
+    if (!ensure_target(cw.lay.width, cw.lay.height + (int)caption)) return false;
     g.rt->BeginDraw();
-    if (caption > 0) { base = D2D1::Matrix3x2F::Identity(); g.rt->SetTransform(base); draw_caption(caption); }
-    draw(look, caption);
+    if (caption > 0) { c_set_offset(nullptr, 0); cw_draw_caption(&canvas, caption); }
+    cw_draw(&canvas, &look, caption);
     return SUCCEEDED(g.rt->EndDraw());
 }
 
-/* ---- the zip -------------------------------------------------------------------------------- */
-
-UINT32 crc_table[256];
-
-UINT32 crc32(UINT32 crc, const BYTE *p, size_t n)
-{
-    if (!crc_table[1])
-        for (UINT32 i = 0; i < 256; i++)
-        {
-            UINT32 c = i;
-            for (int k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320u ^ (c >> 1) : c >> 1;
-            crc_table[i] = c;
-        }
-    crc = ~crc;
-    while (n--) crc = crc_table[(crc ^ *p++) & 255] ^ (crc >> 8);
-    return ~crc;
-}
-
-/* Deflate (RFC 1951) with the fixed Huffman codes and a hash-chain LZ77: a little behind zlib on
- * text, plenty for a log and a minidump. */
-struct Bits
-{
-    BYTE *out;
-    size_t n;
-    UINT64 bits;
-    int count;
-    void put(UINT32 value, int length)
-    {
-        bits |= (UINT64)value << count;
-        count += length;
-        while (count >= 8) { out[n++] = (BYTE)bits; bits >>= 8; count -= 8; }
-    }
-    void code(UINT32 c, int length)   /* Huffman codes go most significant bit first */
-    {
-        UINT32 r = 0;
-        for (int i = 0; i < length; i++) { r = (r << 1) | (c & 1); c >>= 1; }
-        put(r, length);
-    }
-    void literal(int symbol)
-    {
-        if (symbol < 144) code(0x30 + symbol, 8);
-        else if (symbol < 256) code(0x190 + symbol - 144, 9);
-        else if (symbol < 280) code(symbol - 256, 7);
-        else code(0xC0 + symbol - 280, 8);
-    }
-};
-
-const USHORT length_base[29] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258 };
-const BYTE length_extra[29] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0 };
-const USHORT distance_base[30] = { 1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073,
-                                   4097, 6145, 8193, 12289, 16385, 24577 };
-const BYTE distance_extra[30] = { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13 };
-
-/* `out` holds at least n + n / 8 + 64 bytes; returns the compressed length. */
-size_t deflate(const BYTE *in, size_t n, BYTE *out)
-{
-    const int window = 32768, chain_most = 48;
-    static int head[1 << 15], prev[1 << 15];
-    for (int i = 0; i < (1 << 15); i++) head[i] = -1;
-    Bits o = { out, 0, 0, 0 };
-    o.put(1, 1);   /* the last block */
-    o.put(1, 2);   /* fixed codes */
-    auto hash = [&](size_t at) { return (int)(((in[at] << 10) ^ (in[at + 1] << 5) ^ in[at + 2]) & 0x7FFF); };
-    auto insert = [&](size_t at) {
-        if (at + 3 > n) return;
-        int h = hash(at);
-        prev[at & (window - 1)] = head[h];
-        head[h] = (int)at;
-    };
-    size_t i = 0;
-    while (i < n)
-    {
-        int best = 0, distance = 0;
-        if (i + 3 <= n)
-        {
-            int limit = (int)(n - i < 258 ? n - i : 258);
-            int candidate = head[hash(i)], chain = chain_most, last = (int)i;
-            while (candidate >= 0 && candidate < last && (int)i - candidate <= window && chain-- > 0)
-            {
-                if (in[candidate + best] == in[i + best])
-                {
-                    int length = 0;
-                    while (length < limit && in[candidate + length] == in[i + length]) length++;
-                    if (length > best) { best = length; distance = (int)i - candidate; if (length == limit) break; }
-                }
-                last = candidate;
-                candidate = prev[candidate & (window - 1)];
-            }
-        }
-        if (best >= 3)
-        {
-            int c = 28;
-            while (length_base[c] > best) c--;
-            o.literal(257 + c);
-            if (length_extra[c]) o.put((UINT32)(best - length_base[c]), length_extra[c]);
-            int d = 29;
-            while (distance_base[d] > distance) d--;
-            o.code((UINT32)d, 5);
-            if (distance_extra[d]) o.put((UINT32)(distance - distance_base[d]), distance_extra[d]);
-            for (int k = 0; k < best; k++) insert(i + k);
-            i += best;
-        }
-        else
-        {
-            o.literal(in[i]);
-            insert(i);
-            i++;
-        }
-    }
-    o.literal(256);
-    if (o.count) o.put(0, 8 - o.count);
-    return o.n;
-}
-
-struct ZipEntry
-{
-    char name[300];
-    UINT32 crc, packed, size, offset;
-    USHORT method, time, date;
-};
-
-void put16(BYTE *&p, UINT32 v) { *p++ = (BYTE)v; *p++ = (BYTE)(v >> 8); }
-void put32(BYTE *&p, UINT32 v) { put16(p, v & 0xFFFF); put16(p, v >> 16); }
-
-/* A file's bytes, or for a log over 32 MB its first 4 MB and last 28 MB with a line between. */
-BYTE *read_file(const wchar_t *path, size_t *n, bool trim)
-{
-    HANDLE f = CreateFileW(path, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (f == INVALID_HANDLE_VALUE) return nullptr;
-    LARGE_INTEGER size;
-    BYTE *data = nullptr;
-    const ULONG64 head = 4ull << 20, tail = 28ull << 20;
-    if (GetFileSizeEx(f, &size))
-    {
-        ULONG64 total = (ULONG64)size.QuadPart;
-        bool cut = trim && total > head + tail;
-        char marker[128];
-        int marker_n = cut ? sprintf_s(marker, "\r\n[... %llu bytes of the log left out by the crash window ...]\r\n", total - head - tail) : 0;
-        ULONG64 want = cut ? head + tail + marker_n : total;
-        data = want < (1ull << 31) ? (BYTE *)VirtualAlloc(NULL, (SIZE_T)want + 1, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE) : nullptr;
-        DWORD got;
-        bool ok = data != nullptr;
-        if (ok && cut)
-        {
-            ok = ReadFile(f, data, (DWORD)head, &got, NULL) && got == head;
-            memcpy(data + head, marker, marker_n);
-            LARGE_INTEGER at;
-            at.QuadPart = (LONGLONG)(total - tail);
-            ok = ok && SetFilePointerEx(f, at, NULL, FILE_BEGIN) && ReadFile(f, data + head + marker_n, (DWORD)tail, &got, NULL) && got == tail;
-        }
-        else if (ok)
-        {
-            ULONG64 done = 0;
-            while (ok && done < want)
-            {
-                DWORD chunk = (DWORD)(want - done > (1u << 30) ? (1u << 30) : want - done);
-                ok = ReadFile(f, data + done, chunk, &got, NULL) && got > 0;
-                done += got;
-            }
-        }
-        if (!ok && data) { VirtualFree(data, 0, MEM_RELEASE); data = nullptr; }
-        else *n = (size_t)want;
-    }
-    CloseHandle(f);
-    return data;
-}
-
-const ULONG64 kZipMost = 24ull << 20;   /* GitHub takes attachments up to 25 MB */
-const ULONG64 kDumpMost = 96ull << 20;  /* a larger dump (--crash-dumps full) can't fit */
-
-/* OniMoono-crash-YYYYMMDD-hhmm.zip beside the log: Player.log and, if `with_dump`, the dump. */
-bool write_zip(const wchar_t *path, bool with_dump, ULONG64 *written)
-{
-    const wchar_t *sources[2] = { g.report.log_path, with_dump ? g.report.dump_path : nullptr };
-    ZipEntry entries[2];
-    int count = 0;
-    BYTE *packed[2] = {};
-    ULONG64 total = 0;
-    const SYSTEMTIME &t = g.report.crashed;
-    USHORT dos_time = (USHORT)((t.wHour << 11) | (t.wMinute << 5) | (t.wSecond / 2));
-    USHORT dos_date = (USHORT)(((t.wYear - 1980) << 9) | (t.wMonth << 5) | t.wDay);
-    for (int i = 0; i < 2; i++)
-    {
-        if (!sources[i] || !sources[i][0]) continue;
-        size_t n = 0;
-        BYTE *data = read_file(sources[i], &n, i == 0);
-        if (!data) continue;
-        BYTE *out = (BYTE *)VirtualAlloc(NULL, n + n / 8 + 64, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-        if (!out) { VirtualFree(data, 0, MEM_RELEASE); continue; }
-        ZipEntry &e = entries[count];
-        WideCharToMultiByte(CP_UTF8, 0, file_name(sources[i]), -1, e.name, sizeof e.name, NULL, NULL);
-        e.crc = crc32(0, data, n);
-        e.size = (UINT32)n;
-        size_t z = deflate(data, n, out);
-        if (z < n) { e.method = 8; e.packed = (UINT32)z; }
-        else { e.method = 0; e.packed = (UINT32)n; memcpy(out, data, n); }
-        e.time = dos_time;
-        e.date = dos_date;
-        VirtualFree(data, 0, MEM_RELEASE);
-        if (i == 1 && total + e.packed > kZipMost) { VirtualFree(out, 0, MEM_RELEASE); break; }
-        packed[count++] = out;
-        total += e.packed;
-    }
-    if (count == 0) return false;
-    size_t most = (size_t)total + 4096;
-    BYTE *zip = (BYTE *)VirtualAlloc(NULL, most, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE), *p = zip;
-    bool ok = zip != nullptr;
-    if (ok)
-    {
-        for (int i = 0; i < count; i++)
-        {
-            ZipEntry &e = entries[i];
-            UINT32 name_n = (UINT32)strlen(e.name);
-            e.offset = (UINT32)(p - zip);
-            put32(p, 0x04034B50); put16(p, 20); put16(p, 0x0800); put16(p, e.method); put16(p, e.time); put16(p, e.date);
-            put32(p, e.crc); put32(p, e.packed); put32(p, e.size); put16(p, name_n); put16(p, 0);
-            memcpy(p, e.name, name_n); p += name_n;
-            memcpy(p, packed[i], e.packed); p += e.packed;
-        }
-        BYTE *directory = p;
-        for (int i = 0; i < count; i++)
-        {
-            ZipEntry &e = entries[i];
-            UINT32 name_n = (UINT32)strlen(e.name);
-            put32(p, 0x02014B50); put16(p, 20); put16(p, 20); put16(p, 0x0800); put16(p, e.method); put16(p, e.time); put16(p, e.date);
-            put32(p, e.crc); put32(p, e.packed); put32(p, e.size); put16(p, name_n); put16(p, 0); put16(p, 0); put16(p, 0); put16(p, 0);
-            put32(p, 0x20); put32(p, e.offset);
-            memcpy(p, e.name, name_n); p += name_n;
-        }
-        UINT32 directory_n = (UINT32)(p - directory), directory_at = (UINT32)(directory - zip);
-        put32(p, 0x06054B50); put16(p, 0); put16(p, 0); put16(p, (UINT32)count); put16(p, (UINT32)count);
-        put32(p, directory_n); put32(p, directory_at); put16(p, 0);
-        HANDLE f = CreateFileW(path, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-        DWORD done = 0;
-        ok = f != INVALID_HANDLE_VALUE && WriteFile(f, zip, (DWORD)(p - zip), &done, NULL) && done == (DWORD)(p - zip);
-        if (f != INVALID_HANDLE_VALUE) CloseHandle(f);
-        if (!ok) DeleteFileW(path);
-        *written = (ULONG64)(p - zip);
-        VirtualFree(zip, 0, MEM_RELEASE);
-    }
-    for (int i = 0; i < count; i++) VirtualFree(packed[i], 0, MEM_RELEASE);
-    return ok;
-}
-
-/* ---- the GitHub issue ----------------------------------------------------------------------- */
-
-void url_encode(const wchar_t *text, char *out, size_t most, size_t *n)
-{
-    static char utf8[32768];
-    int length = WideCharToMultiByte(CP_UTF8, 0, text, -1, utf8, sizeof utf8, NULL, NULL);
-    for (int i = 0; i + 1 < length && *n + 4 < most; i++)
-    {
-        BYTE c = (BYTE)utf8[i];
-        if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~')
-            out[(*n)++] = (char)c;
-        else
-        {
-            out[(*n)++] = '%';
-            out[(*n)++] = "0123456789ABCDEF"[c >> 4];
-            out[(*n)++] = "0123456789ABCDEF"[c & 15];
-        }
-    }
-    out[*n] = 0;
-}
-
-/* The new-issue URL on the crash form (.github/ISSUE_TEMPLATE/crash.yml): the title
- * "Crash: <error>", its "details" field (the error and the details, which the form shows as a code
- * block) and its "doing" field (the note). Its "zip" field is left empty: the form takes no
- * report until the player drops the zip there. Under 7,500 characters (what browsers and GitHub
- * take in a link): the note is cut short with "…". */
-void issue_url(const wchar_t *note, wchar_t *url, size_t most)
-{
-    static wchar_t title[1200], details[4096], english[2048], cut_note[8192];
-    static char encoded[8000];
-    swprintf_s(title, L"Crash: %ls", g.error);
-    details_text(&g.report, &g.system, CRASH_ENGLISH, english, _countof(english));
-    swprintf_s(details, L"%ls\n%ls", g.error, english);
-    size_t note_n = wcslen(note);
-    for (;;)
-    {
-        wcsncpy_s(cut_note, note, note_n < _countof(cut_note) - 2 ? note_n : _countof(cut_note) - 2);
-        if (note_n < wcslen(note)) wcscat_s(cut_note, L"\u2026");
-        size_t n = 0;
-        int prefix = sprintf_s(encoded, "%ls?template=crash.yml&title=", kIssueUrl);
-        n = (size_t)prefix;
-        url_encode(title, encoded, sizeof encoded, &n);
-        n += sprintf_s(encoded + n, sizeof encoded - n, "&details=");
-        url_encode(details, encoded, sizeof encoded, &n);
-        if (cut_note[0])
-        {
-            n += sprintf_s(encoded + n, sizeof encoded - n, "&doing=");
-            url_encode(cut_note, encoded, sizeof encoded, &n);
-        }
-        if (n <= 7500 || note_n == 0) break;
-        note_n = note_n > 200 ? note_n - note_n / 4 : note_n - 1;
-    }
-    MultiByteToWideChar(CP_UTF8, 0, encoded, -1, url, (int)most);
-}
+void lay_out() { cw_lay_out(&canvas); }
 
 /* ---- the window ----------------------------------------------------------------------------- */
 
@@ -1376,7 +675,7 @@ const DWORD kExStyle = WS_EX_APPWINDOW;
 
 SIZE window_size(UINT dpi)
 {
-    RECT r = { 0, 0, g.lay.width, g.lay.height };
+    RECT r = { 0, 0, cw.lay.width, cw.lay.height };
     if (api.adjust_for_dpi) api.adjust_for_dpi(&r, kStyle, FALSE, kExStyle, dpi);
     else AdjustWindowRectEx(&r, kStyle, FALSE, kExStyle);
     SIZE s = { r.right - r.left, r.bottom - r.top };
@@ -1387,10 +686,10 @@ SIZE window_size(UINT dpi)
 void apply_caption()
 {
     if (!api.dwm_set || !g.hwnd) return;
-    BOOL dark = g.pal.dark;
+    BOOL dark = cw.pal.dark;
     api.dwm_set(g.hwnd, 20 /* DWMWA_USE_IMMERSIVE_DARK_MODE */, &dark, sizeof dark);
-    COLORREF caption = g.pal.contrast ? 0xFFFFFFFF /* DWMWA_COLOR_DEFAULT */ : to_colorref(g.pal.caption);
-    COLORREF caption_text = g.pal.contrast ? 0xFFFFFFFF : to_colorref(g.pal.fg);
+    COLORREF caption = cw.pal.contrast ? 0xFFFFFFFF /* DWMWA_COLOR_DEFAULT */ : to_colorref(cw.pal.caption);
+    COLORREF caption_text = cw.pal.contrast ? 0xFFFFFFFF : to_colorref(cw.pal.fg);
     api.dwm_set(g.hwnd, 35 /* DWMWA_CAPTION_COLOR */, &caption, sizeof caption);
     api.dwm_set(g.hwnd, 36 /* DWMWA_TEXT_COLOR */, &caption_text, sizeof caption_text);
 }
@@ -1410,9 +709,9 @@ void set_icons(UINT dpi)
 
 void apply_theme()
 {
-    g.pal = palette_for(g.forced_theme ? g.forced_dark : system_dark(), !g.forced_theme && system_contrast());
+    cw.pal = palette_for(g.forced_theme ? g.forced_dark : system_dark(), !g.forced_theme && system_contrast());
     if (g.panel_brush) DeleteObject(g.panel_brush);
-    g.panel_brush = CreateSolidBrush(to_colorref(g.pal.panel));
+    g.panel_brush = CreateSolidBrush(to_colorref(cw.pal.panel));
     apply_caption();
     g.drawn_valid = false;
 }
@@ -1428,15 +727,15 @@ void make_note_font()
     if (g.note_font) DeleteObject(g.note_font);
     if (g.cause_font) DeleteObject(g.cause_font);
     if (g.mono_font) DeleteObject(g.mono_font);
-    const wchar_t *face = g.report.language == CRASH_CHINESE ? L"Microsoft YaHei UI" : g.gdi_font ? L"Gabarito" : L"Segoe UI";
+    const wchar_t *face = cw.report.language == CW_CHINESE ? L"Microsoft YaHei UI" : g.gdi_font ? L"Gabarito" : L"Segoe UI";
     g.note_font = gdi_font(face, tdip(13));
     g.cause_font = gdi_font(g.gdi_font ? L"Gabarito" : L"Segoe UI", tdip(13));
     g.mono_font = gdi_font(g.gdi_mono ? L"Red Hat Mono" : L"Consolas", tdip(12));
 }
 
-Look current_look()
+cw_look current_look()
 {
-    Look look = {};
+    cw_look look = {};
     HWND focus = GetFocus();
     for (int i = 0; i < C_COUNT; i++)
     {
@@ -1464,7 +763,7 @@ bool ensure_dib()
     {
         BITMAP info;
         GetObjectW(g.dib, sizeof info, &info);
-        if (info.bmWidth == g.lay.width && info.bmHeight == g.lay.height) return true;
+        if (info.bmWidth == cw.lay.width && info.bmHeight == cw.lay.height) return true;
         SelectObject(g.memdc, g.old_dib);
         DeleteObject(g.dib);
         g.dib = NULL;
@@ -1472,8 +771,8 @@ bool ensure_dib()
     if (!g.memdc) g.memdc = CreateCompatibleDC(NULL);
     BITMAPINFO bi = {};
     bi.bmiHeader.biSize = sizeof bi.bmiHeader;
-    bi.bmiHeader.biWidth = g.lay.width;
-    bi.bmiHeader.biHeight = -g.lay.height;
+    bi.bmiHeader.biWidth = cw.lay.width;
+    bi.bmiHeader.biHeight = -cw.lay.height;
     bi.bmiHeader.biPlanes = 1;
     bi.bmiHeader.biBitCount = 32;
     bi.bmiHeader.biCompression = BI_RGB;
@@ -1487,11 +786,11 @@ bool ensure_dib()
  * (but `painting`, which is copying now) copy their parts again. */
 void refresh(HWND painting)
 {
-    Look look = current_look();
+    cw_look look = current_look();
     if (g.drawn_valid && memcmp(&look, &g.drawn, sizeof look) == 0) return;
     if (!ensure_dib() || !render(look, 0)) return;
-    WICRect all = { 0, 0, g.lay.width, g.lay.height };
-    g.bitmap->CopyPixels(&all, (UINT)g.lay.width * 4, (UINT)g.lay.width * 4 * g.lay.height, (BYTE *)g.dib_bits);
+    WICRect all = { 0, 0, cw.lay.width, cw.lay.height };
+    g.bitmap->CopyPixels(&all, (UINT)cw.lay.width * 4, (UINT)cw.lay.width * 4 * cw.lay.height, (BYTE *)g.dib_bits);
     GdiFlush();
     g.drawn = look;
     g.drawn_valid = true;
@@ -1509,34 +808,34 @@ void copy_to(HWND control, HDC dc)
     BitBlt(dc, 0, 0, r.right - r.left, r.bottom - r.top, g.memdc, r.left, r.top, SRCCOPY);
 }
 
-void style_field(HWND h, HFONT font, D2D1_COLOR_F fg, D2D1_COLOR_F bg, float line);
+void style_field(HWND h, HFONT font, cw_color fg, cw_color bg, float line);
 float field_raise(HWND h, HFONT font, float line);
 
 /* The controls over their drawn parts; a little larger than the buttons, for the focus ring. */
 void place_children()
 {
-    const Layout &l = g.lay;
+    const cw_layout &l = cw.lay;
     float ring = snap(dip(4));
-    auto place = [&](int i, Box b, float grow, bool show) {
+    auto place = [&](int i, cw_box b, float grow, bool show) {
         if (!g.child[i]) return;
-        SetWindowPos(g.child[i], NULL, (int)(b.l - grow), (int)(b.t - grow), (int)(b.w() + 2 * grow), (int)(b.h() + 2 * grow),
+        SetWindowPos(g.child[i], NULL, (int)(b.l - grow), (int)(b.t - grow), (int)(cw_w(b) + 2 * grow), (int)(cw_h(b) + 2 * grow),
                      SWP_NOZORDER | SWP_NOACTIVATE | (show ? SWP_SHOWWINDOW : SWP_HIDEWINDOW));
     };
     place(C_HEAD, l.head, 0, true);
     float cause_line = tdip(13 * 1.45f), details_line = tdip(12 * 1.55f);
     float raise = g.child[C_CAUSE] ? field_raise(g.child[C_CAUSE], g.cause_font, cause_line) : 0;
-    place(C_CAUSE, Box{ l.cause.l, l.cause.t - raise, l.cause.r, l.cause.b }, 0, true);
+    place(C_CAUSE, cw_box{ l.cause.l, l.cause.t - raise, l.cause.r, l.cause.b }, 0, true);
     place(C_TOGGLE, l.toggle, ring, true);
     raise = g.child[C_DETAILS] ? field_raise(g.child[C_DETAILS], g.mono_font, details_line) : 0;
-    Box details = { l.details.l + l.line + snap(dip(12)), l.details.t + l.line + snap(dip(10)) - raise, l.details.r - l.line - snap(dip(12)),
-                    l.details.b - l.line - snap(dip(10)) };
-    place(C_DETAILS, details, 0, g.details_open);
-    if (g.child[C_CAUSE]) style_field(g.child[C_CAUSE], g.cause_font, g.pal.fg2, g.pal.bg, cause_line);
-    if (g.child[C_DETAILS]) style_field(g.child[C_DETAILS], g.mono_font, g.pal.fg2, g.pal.panel, details_line);
-    Box note = { l.note.l + l.line + snap(dip(10)), l.note.t + l.line + snap(dip(8)), l.note.r - l.line - snap(dip(10)), l.note.b - l.line - snap(dip(8)) };
+    cw_box details = { l.details.l + l.line + snap(dip(12)), l.details.t + l.line + snap(dip(10)) - raise, l.details.r - l.line - snap(dip(12)),
+                       l.details.b - l.line - snap(dip(10)) };
+    place(C_DETAILS, details, 0, cw.details_open != 0);
+    if (g.child[C_CAUSE]) style_field(g.child[C_CAUSE], g.cause_font, cw.pal.fg2, cw.pal.bg, cause_line);
+    if (g.child[C_DETAILS]) style_field(g.child[C_DETAILS], g.mono_font, cw.pal.fg2, cw.pal.panel, details_line);
+    cw_box note = { l.note.l + l.line + snap(dip(10)), l.note.t + l.line + snap(dip(8)), l.note.r - l.line - snap(dip(10)), l.note.b - l.line - snap(dip(8)) };
     place(C_NOTE, note, 0, true);
-    place(C_CHECK, l.check, ring, g.report.dump_path[0] != 0);
-    place(C_CHIP, l.chip, ring, g.reported);
+    place(C_CHECK, l.check, ring, cw.report.dump_path[0] != 0);
+    place(C_CHIP, l.chip, ring, cw.reported != 0);
     place(C_CLOSE, l.close, ring, true);
     place(C_REPORT, l.report, ring, true);
     if (g.child[C_NOTE])
@@ -1550,7 +849,7 @@ void place_children()
         GetTextMetricsW(dc, &tm);
         SelectObject(dc, old);
         ReleaseDC(g.child[C_NOTE], dc);
-        RECT area = { 0, (LONG)maxf(0, snap((dip(19.5f) - tm.tmHeight) / 2)), (LONG)note.w(), (LONG)note.h() };
+        RECT area = { 0, (LONG)maxf(0, snap((dip(19.5f) - tm.tmHeight) / 2)), (LONG)cw_w(note), (LONG)cw_h(note) };
         SendMessageW(g.child[C_NOTE], EM_SETRECTNP, 0, (LPARAM)&area);
         InvalidateRect(g.child[C_NOTE], NULL, TRUE);
     }
@@ -1561,15 +860,15 @@ void place_children()
 bool fit_fields()
 {
     bool grew = false;
-    struct { int child; IDWriteTextLayout *text; float line, *extra; } fields[] = {
-        { C_CAUSE, g.lay.t_cause, tdip(13 * 1.45f), &g.extra_cause },
-        { C_DETAILS, g.details_open ? g.lay.t_details : nullptr, tdip(12 * 1.55f), &g.extra_details },
+    struct { int child; cw_text *text; float line, *extra; } fields[] = {
+        { C_CAUSE, cw.lay.t_cause, tdip(13 * 1.45f), &cw.extra_cause },
+        { C_DETAILS, cw.details_open ? cw.lay.t_details : nullptr, tdip(12 * 1.55f), &cw.extra_details },
     };
     for (auto &f : fields)
     {
         if (!g.child[f.child] || !f.text) continue;
         LONG lines = (LONG)SendMessageW(g.child[f.child], EM_GETLINECOUNT, 0, 0);
-        float extra = maxf(0, (lines - (LONG)metrics(f.text).lineCount) * f.line);
+        float extra = maxf(0, (lines - (LONG)metrics(f.text).lines) * f.line);
         if (extra > *f.extra) { *f.extra = extra; grew = true; }
     }
     return grew;
@@ -1580,7 +879,7 @@ bool fit_fields()
 void relayout(const RECT *where)
 {
     UINT dpi = window_dpi(g.hwnd);
-    g.scale = dpi / 96.0f;
+    cw.scale = dpi / 96.0f;
     make_formats();
     lay_out();
     make_note_font();
@@ -1639,8 +938,8 @@ struct ControlState : IAccPropServer
             if (GetFocus() == h) state |= STATE_SYSTEM_FOCUSED;
             if (!IsWindowEnabled(h)) state |= STATE_SYSTEM_UNAVAILABLE;
             if (which == C_CHECK && SendMessageW(h, BM_GETCHECK, 0, 0) == BST_CHECKED) state |= STATE_SYSTEM_CHECKED;
-            if (which == C_TOGGLE) state |= g.details_open ? STATE_SYSTEM_EXPANDED : STATE_SYSTEM_COLLAPSED;
-            if (which == C_REPORT && !g.reported) state |= STATE_SYSTEM_DEFAULT;
+            if (which == C_TOGGLE) state |= cw.details_open ? STATE_SYSTEM_EXPANDED : STATE_SYSTEM_COLLAPSED;
+            if (which == C_REPORT && !cw.reported) state |= STATE_SYSTEM_DEFAULT;
             value->lVal = state;
             *got = TRUE;
         }
@@ -1653,7 +952,7 @@ ControlState control_state;
  * can be selected, copied and read by screen readers (rich edit also finds a font for characters
  * the font lacks). Their font, colours and line spacing are the drawn text's; rich edit puts the
  * extra space of exact line spacing above the text, so the control sits that much higher. */
-void style_field(HWND h, HFONT font, D2D1_COLOR_F fg, D2D1_COLOR_F bg, float line)
+void style_field(HWND h, HFONT font, cw_color fg, cw_color bg, float line)
 {
     SendMessageW(h, WM_SETFONT, (WPARAM)font, FALSE);
     SendMessageW(h, EM_SETBKGNDCOLOR, 0, (LPARAM)to_colorref(bg));
@@ -1733,33 +1032,33 @@ void drag_chip()
 void report_crash()
 {
     HCURSOR old = SetCursor(LoadCursorW(NULL, IDC_WAIT));
-    wchar_t zip[1024];
-    wcscpy_s(zip, g.report.log_path);
-    wchar_t *slash = (wchar_t *)file_name(zip);
-    const SYSTEMTIME &t = g.report.crashed;
-    swprintf_s(slash, _countof(zip) - (size_t)(slash - zip), L"OniMoono-crash-%04u%02u%02u-%02u%02u.zip", t.wYear, t.wMonth, t.wDay, t.wHour, t.wMinute);
-    bool dump = g.can_include_dump && g.child[C_CHECK] && SendMessageW(g.child[C_CHECK], BM_GETCHECK, 0, 0) == BST_CHECKED;
-    ULONG64 size = 0;
-    if (write_zip(zip, dump, &size)) { wcscpy_s(g.chip_path, zip); g.chip_size = size; }
+    char zip[1100];
+    cw_zip_path(zip, sizeof zip);
+    bool dump = cw.can_include_dump && g.child[C_CHECK] && SendMessageW(g.child[C_CHECK], BM_GETCHECK, 0, 0) == BST_CHECKED;
+    uint64_t size = 0;
+    if (cw_write_zip(zip, dump, &size)) { strcpy_s(cw.chip_path, zip); cw.chip_size = size; }
     else
     {
         /* no zip: the log itself, to drag */
-        wcscpy_s(g.chip_path, g.report.log_path);
+        strcpy_s(cw.chip_path, cw.report.log_path);
         WIN32_FILE_ATTRIBUTE_DATA a;
-        g.chip_size = GetFileAttributesExW(g.report.log_path, GetFileExInfoStandard, &a) ? ((ULONG64)a.nFileSizeHigh << 32) | a.nFileSizeLow : 0;
+        cw.chip_size = GetFileAttributesExW(g.report.log_path, GetFileExInfoStandard, &a) ? ((ULONG64)a.nFileSizeHigh << 32) | a.nFileSizeLow : 0;
     }
-    static wchar_t note[4096], url[8192];
+    wcscpy_s(g.chip_path, W(cw.chip_path));
+    static wchar_t note[4096];
+    static char note_utf8[16384], url[8192];
     GetWindowTextW(g.child[C_NOTE], note, _countof(note));
-    issue_url(note, url, _countof(url));
-    ShellExecuteW(g.hwnd, L"open", url, NULL, NULL, SW_SHOWNORMAL);
+    to_utf8(note, note_utf8, sizeof note_utf8);
+    cw_issue_url(note_utf8, url, sizeof url);
+    ShellExecuteW(g.hwnd, L"open", W(url), NULL, NULL, SW_SHOWNORMAL);
     SetCursor(old);
 
-    g.reported = true;
-    SetWindowTextW(g.child[C_REPORT], g.t[S_REPORTED]);
-    wchar_t size_text[32], name[1200];
-    format_size(g.chip_size, size_text, _countof(size_text));
-    swprintf_s(name, L"%ls, %ls. %ls", file_name(g.chip_path), size_text, g.t[S_DRAG]);
-    SetWindowTextW(g.child[C_CHIP], name);
+    cw.reported = 1;
+    SetWindowTextW(g.child[C_REPORT], W(cw.t[S_REPORTED]));
+    char size_text[32], name[1400];
+    cw_format_size(cw.chip_size, size_text, sizeof size_text);
+    snprintf(name, sizeof name, "%s, %s. %s", cw_file_name(cw.chip_path), size_text, cw.t[S_DRAG]);
+    SetWindowTextW(g.child[C_CHIP], W(name));
     relayout(NULL);
     SetFocus(g.child[C_CHIP]);
     EnableWindow(g.child[C_REPORT], FALSE);
@@ -1781,11 +1080,12 @@ LRESULT CALLBACK note_proc(HWND h, UINT m, WPARAM w, LPARAM l)
     {
         HDC dc = GetDC(h);
         HGDIOBJ old = SelectObject(dc, g.note_font);
-        SetTextColor(dc, to_colorref(g.pal.mut));
+        SetTextColor(dc, to_colorref(cw.pal.mut));
         SetBkMode(dc, TRANSPARENT);
         RECT r;
         SendMessageW(h, EM_GETRECT, 0, (LPARAM)&r);
-        TextOutW(dc, r.left, r.top, g.t[S_NOTE], (int)wcslen(g.t[S_NOTE]));
+        const wchar_t *placeholder = W(cw.t[S_NOTE]);
+        TextOutW(dc, r.left, r.top, placeholder, (int)wcslen(placeholder));
         SelectObject(dc, old);
         ReleaseDC(h, dc);
     }
@@ -1809,8 +1109,8 @@ LRESULT CALLBACK chip_proc(HWND h, UINT m, WPARAM w, LPARAM l)
 
 void toggle_details()
 {
-    g.details_open = !g.details_open;
-    SetWindowTextW(g.child[C_TOGGLE], g.t[g.details_open ? S_HIDE_DETAILS : S_SHOW_DETAILS]);
+    cw.details_open = !cw.details_open;
+    SetWindowTextW(g.child[C_TOGGLE], W(cw.t[cw.details_open ? S_HIDE_DETAILS : S_SHOW_DETAILS]));
     relayout(NULL);
     NotifyWinEvent(EVENT_OBJECT_STATECHANGE, g.child[C_TOGGLE], OBJID_CLIENT, CHILDID_SELF);
 }
@@ -1849,8 +1149,8 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT m, WPARAM w, LPARAM l)
         return TRUE;
     }
     case WM_CTLCOLOREDIT:
-        SetTextColor((HDC)w, to_colorref(g.pal.fg));
-        SetBkColor((HDC)w, to_colorref(g.pal.panel));
+        SetTextColor((HDC)w, to_colorref(cw.pal.fg));
+        SetBkColor((HDC)w, to_colorref(cw.pal.panel));
         return (LRESULT)g.panel_brush;
     case WM_SETCURSOR:
     {
@@ -1864,17 +1164,17 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT m, WPARAM w, LPARAM l)
     {
         /* a click in the note box's padding goes to the text */
         POINT at = { GET_X_LPARAM(l), GET_Y_LPARAM(l) };
-        RECT note = g.lay.note.rect();
+        RECT note = rect_of(cw.lay.note);
         if (PtInRect(&note, at)) SetFocus(g.child[C_NOTE]);
         return 0;
     }
     case DM_GETDEFID:
-        return g.reported ? 0 : MAKELRESULT(ID_REPORT, DC_HASDEFID);
+        return cw.reported ? 0 : MAKELRESULT(ID_REPORT, DC_HASDEFID);
     case WM_COMMAND:
     {
         int id = LOWORD(w), code = HIWORD(w);
         if (id == IDCANCEL || (id == ID_CLOSE && code == BN_CLICKED)) { DestroyWindow(hwnd); return 0; }
-        if ((id == IDOK || id == ID_REPORT) && code == BN_CLICKED && !g.reported) { report_crash(); return 0; }
+        if ((id == IDOK || id == ID_REPORT) && code == BN_CLICKED && !cw.reported) { report_crash(); return 0; }
         if (id == ID_TOGGLE && code == BN_CLICKED) { toggle_details(); return 0; }
         if (id == ID_CHIP && code == BN_CLICKED) { open_folder(); return 0; }
         if (id == ID_NOTE && (code == EN_SETFOCUS || code == EN_KILLFOCUS || code == EN_CHANGE))
@@ -1900,14 +1200,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT m, WPARAM w, LPARAM l)
         return 0;
     case WM_DPICHANGED:
         set_icons(HIWORD(w));
-        g.extra_cause = g.extra_details = 0;
+        cw.extra_cause = cw.extra_details = 0;
         relayout((RECT *)l);
         return 0;
     case WM_SETTINGCHANGE:
     case WM_SYSCOLORCHANGE:
     case WM_THEMECHANGED:
         apply_theme();
-        if (text_scale() != g.text) { g.text = text_scale(); g.extra_cause = g.extra_details = 0; }
+        if (text_scale() != cw.text) { cw.text = text_scale(); cw.extra_cause = cw.extra_details = 0; }
         relayout(NULL);
         RedrawWindow(hwnd, NULL, NULL, RDW_INVALIDATE | RDW_ALLCHILDREN);
         break;
@@ -1954,7 +1254,7 @@ bool start_graphics()
     g.fonts = load_fonts();
     font_metrics(sans(), &g.sans_ascent, &g.sans_descent);
     font_metrics(mono(), &g.mono_ascent, &g.mono_descent);
-    g.mark = svg_path(g.d2d, kGithubMark);
+    g.mark = svg_path(g.d2d, cw_github_mark);
     float dashes[2] = { 4, 3 };
     g.d2d->CreateStrokeStyle(D2D1::StrokeStyleProperties(D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT,
         D2D1_LINE_JOIN_MITER, 10.0f, D2D1_DASH_STYLE_CUSTOM, 0.0f), dashes, 2, &g.dashed);
@@ -1963,21 +1263,36 @@ bool start_graphics()
 
 void stop_graphics()
 {
-    release_layout();
+    cw_release_layout(&canvas);
     release_formats();
     release(g.brush); release(g.rt); release(g.bitmap); release(g.dashed); release(g.mark);
     release(g.fonts); release(g.wic); release(g.dw); release(g.d2d);
 }
 
-/* The report's own parts: the error line (the record's, else the exit code), the details. */
+/* The watcher's report as crash_window.c has it (UTF-8), and its parts (cw_prepare). */
 void prepare(const crash_report_t *r)
 {
     g.report = *r;
-    g.t = strings[r->language == CRASH_CHINESE ? 1 : 0];
-    if (r->error[0]) wcscpy_s(g.error, r->error);
-    else swprintf_s(g.error, g.t[S_EXIT_CODE], r->exit_code);
-    g.can_include_dump = r->dump_path[0] && r->dump_size <= kDumpMost;
-    g.include_dump = g.can_include_dump;
+    static cw_report c;
+    memset(&c, 0, sizeof c);
+    c.language = r->language == CRASH_CHINESE ? CW_CHINESE : CW_ENGLISH;
+    to_utf8(r->error, c.error, sizeof c.error);
+    c.exit_code = r->exit_code;
+    to_utf8(r->version, c.version, sizeof c.version);
+    to_utf8(r->game_build, c.game_build, sizeof c.game_build);
+    to_utf8(r->gpu, c.gpu, sizeof c.gpu);
+    c.mods = r->mods;
+    c.play_seconds = r->play_seconds;
+    to_utf8(r->log_path, c.log_path, sizeof c.log_path);
+    to_utf8(r->dump_path, c.dump_path, sizeof c.dump_path);
+    c.dump_size = r->dump_size;
+    c.year = r->crashed.wYear; c.month = r->crashed.wMonth; c.day = r->crashed.wDay;
+    c.hour = r->crashed.wHour; c.minute = r->crashed.wMinute; c.second = r->crashed.wSecond;
+    c.monitor[0] = r->monitor.left; c.monitor[1] = r->monitor.top;
+    c.monitor[2] = r->monitor.right - r->monitor.left; c.monitor[3] = r->monitor.bottom - r->monitor.top;
+    c.activate = r->activate;
+    cw.chip_hint = S_DRAG;
+    cw_prepare(&c);
 }
 
 HWND make_child(const wchar_t *cls, const wchar_t *text, DWORD style, int id)
@@ -2007,14 +1322,14 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     common_controls();
     prepare(r);
     if (!start_graphics()) { OleUninitialize(); return; }
-    gather_system(r, &g.system);
-    details_text(&g.report, &g.system, r->language, g.details, _countof(g.details));
+    gather_system(r);
+    cw_details_text(&cw.report, &cw.system, cw.report.language, cw.details, sizeof cw.details);
     CoCreateInstance(__uuidof(CAccPropServices), NULL, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&g.acc));
     const void *font_data;
     DWORD font_size, font_count = 0;
     if (resource_data(FONT_REGULAR, &font_data, &font_size)) g.gdi_font = AddFontMemResourceEx((void *)font_data, font_size, NULL, &font_count);
     if (resource_data(FONT_MONO, &font_data, &font_size)) g.gdi_mono = AddFontMemResourceEx((void *)font_data, font_size, NULL, &font_count);
-    g.text = text_scale();
+    cw.text = text_scale();
     bool rich = system_library(L"msftedit.dll") != NULL;
 
     WNDCLASSEXW wc = { sizeof wc };
@@ -2027,24 +1342,27 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
 
     RECT area = work_area(r->monitor);
     int cx = (area.left + area.right) / 2, cy = (area.top + area.bottom) / 2;
-    g.hwnd = CreateWindowExW(kExStyle, wc.lpszClassName, kTitle, kStyle, cx - 200, cy - 150, 400, 300, NULL, NULL, wc.hInstance, NULL);
+    g.hwnd = CreateWindowExW(kExStyle, wc.lpszClassName, W(cw_title), kStyle, cx - 200, cy - 150, 400, 300, NULL, NULL, wc.hInstance, NULL);
     if (!g.hwnd) { stop_graphics(); OleUninitialize(); return; }
     UINT dpi = window_dpi(g.hwnd);
-    g.scale = dpi / 96.0f;
+    cw.scale = dpi / 96.0f;
     apply_theme();
     set_icons(dpi);
 
     /* In the order Tab goes through them. */
-    g.child[C_HEAD] = make_child(L"STATIC", g.t[S_HEADLINE], WS_VISIBLE | SS_OWNERDRAW, ID_HEAD);
+    static wchar_t error[1024], details[2048];
+    wcscpy_s(error, W(cw.error));
+    wcscpy_s(details, W(cw.details));
+    g.child[C_HEAD] = make_child(L"STATIC", W(cw.t[S_HEADLINE]), WS_VISIBLE | SS_OWNERDRAW, ID_HEAD);
     const DWORD field = WS_TABSTOP | ES_MULTILINE | ES_READONLY;
-    g.child[C_CAUSE] = rich ? make_child(MSFTEDIT_CLASS, g.error, WS_VISIBLE | field, ID_CAUSE) : make_child(L"STATIC", g.error, WS_VISIBLE | SS_OWNERDRAW, ID_CAUSE);
-    g.child[C_TOGGLE] = make_child(L"BUTTON", g.t[S_SHOW_DETAILS], WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_TOGGLE);
-    g.child[C_DETAILS] = rich ? make_child(MSFTEDIT_CLASS, g.details, field, ID_DETAILS) : make_child(L"STATIC", g.details, SS_OWNERDRAW, ID_DETAILS);
+    g.child[C_CAUSE] = rich ? make_child(MSFTEDIT_CLASS, error, WS_VISIBLE | field, ID_CAUSE) : make_child(L"STATIC", error, WS_VISIBLE | SS_OWNERDRAW, ID_CAUSE);
+    g.child[C_TOGGLE] = make_child(L"BUTTON", W(cw.t[S_SHOW_DETAILS]), WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_TOGGLE);
+    g.child[C_DETAILS] = rich ? make_child(MSFTEDIT_CLASS, details, field, ID_DETAILS) : make_child(L"STATIC", details, SS_OWNERDRAW, ID_DETAILS);
     g.child[C_NOTE] = make_child(L"EDIT", L"", WS_VISIBLE | WS_TABSTOP | ES_MULTILINE | ES_AUTOVSCROLL, ID_NOTE);
     g.child[C_CHECK] = make_child(L"BUTTON", L"", WS_TABSTOP | BS_AUTOCHECKBOX | BS_NOTIFY, ID_CHECK);
     g.child[C_CHIP] = make_child(L"BUTTON", L"", WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_CHIP);
-    g.child[C_CLOSE] = make_child(L"BUTTON", g.t[S_CLOSE], WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_CLOSE);
-    g.child[C_REPORT] = make_child(L"BUTTON", g.t[S_REPORT], WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON | BS_NOTIFY, ID_REPORT);
+    g.child[C_CLOSE] = make_child(L"BUTTON", W(cw.t[S_CLOSE]), WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_CLOSE);
+    g.child[C_REPORT] = make_child(L"BUTTON", W(cw.t[S_REPORT]), WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON | BS_NOTIFY, ID_REPORT);
     g.note_proc = (WNDPROC)SetWindowLongPtrW(g.child[C_NOTE], GWLP_WNDPROC, (LONG_PTR)note_proc);
     g.chip_proc = (WNDPROC)SetWindowLongPtrW(g.child[C_CHIP], GWLP_WNDPROC, (LONG_PTR)chip_proc);
     if (rich)
@@ -2057,15 +1375,15 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
             g.acc->SetHwndPropServer(g.child[i], (DWORD)OBJID_CLIENT, CHILDID_SELF, props, 2, &control_state, ANNO_THIS);
     }
     SendMessageW(g.child[C_NOTE], EM_LIMITTEXT, 3000, 0);
-    set_name(g.child[C_NOTE], g.t[S_NOTE]);
-    if (r->dump_path[0])
+    set_name(g.child[C_NOTE], W(cw.t[S_NOTE]));
+    if (cw.report.dump_path[0])
     {
-        wchar_t size[32], label[160];
-        format_size(r->dump_size, size, _countof(size));
-        swprintf_s(label, g.t[S_INCLUDE_DUMP], size);
-        SetWindowTextW(g.child[C_CHECK], label);
-        SendMessageW(g.child[C_CHECK], BM_SETCHECK, g.include_dump ? BST_CHECKED : BST_UNCHECKED, 0);
-        EnableWindow(g.child[C_CHECK], g.can_include_dump);
+        char size[32], label[200];
+        cw_format_size(cw.report.dump_size, size, sizeof size);
+        snprintf(label, sizeof label, cw.t[S_INCLUDE_DUMP], size);
+        SetWindowTextW(g.child[C_CHECK], W(label));
+        SendMessageW(g.child[C_CHECK], BM_SETCHECK, cw.include_dump ? BST_CHECKED : BST_UNCHECKED, 0);
+        EnableWindow(g.child[C_CHECK], cw.can_include_dump);
     }
 
     make_formats();
@@ -2106,107 +1424,45 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     OleUninitialize();
 }
 
-/* --crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--sample gpu|managed|fastfail]
- * [--language en|zh] [--text-size 1-2.25] [--details-open] [--reported]: the window as it would show
- * (at Windows' text size, from Accessibility > Text size), with a drawn title
- * bar, from fixed sample facts, to a PNG. For scripts/check-native-crash.sh also [--zip OUT.zip
- * --log FILE [--dump FILE]]: the zip "Report on GitHub" writes, of these files; [--url OUT.txt
- * --note TEXT]: the issue's URL, UTF-8. */
+/* --crash-dialog-render OUT.png [...] (cw_render_args): the window as it would show (at Windows'
+ * text size, from Accessibility > Text size), with a drawn title bar, from fixed sample facts, to
+ * a PNG; for scripts/check-native-crash.sh also the zip and the issue's URL. */
 extern "C" int crash_dialog_render(int argc, wchar_t **argv)
 {
-    if (argc < 3) return 2;
-    const wchar_t *out = argv[2], *sample = L"gpu";
-    static crash_report_t r;
-    bool dark = true, details = false, reported = false;
-    float scale = 1.0f, text = 1.0f;
-    const wchar_t *zip_out = nullptr, *log = nullptr, *dump = nullptr, *url_out = nullptr, *note = L"";
-    r.language = CRASH_ENGLISH;
-    for (int i = 3; i < argc; i++)
-    {
-        const wchar_t *a = argv[i], *v = i + 1 < argc ? argv[i + 1] : L"";
-        if (wcscmp(a, L"--theme") == 0) { dark = wcscmp(v, L"light") != 0; i++; }
-        else if (wcscmp(a, L"--scale") == 0) { scale = (float)_wtof(v); i++; }
-        else if (wcscmp(a, L"--text-size") == 0) { text = (float)_wtof(v); i++; }
-        else if (wcscmp(a, L"--sample") == 0) { sample = v; i++; }
-        else if (wcscmp(a, L"--language") == 0) { r.language = wcscmp(v, L"zh") == 0 ? CRASH_CHINESE : CRASH_ENGLISH; i++; }
-        else if (wcscmp(a, L"--zip") == 0) { zip_out = v; i++; }
-        else if (wcscmp(a, L"--log") == 0) { log = v; i++; }
-        else if (wcscmp(a, L"--dump") == 0) { dump = v; i++; }
-        else if (wcscmp(a, L"--url") == 0) { url_out = v; i++; }
-        else if (wcscmp(a, L"--note") == 0) { note = v; i++; }
-        else if (wcscmp(a, L"--details-open") == 0) details = true;
-        else if (wcscmp(a, L"--reported") == 0) reported = true;
-        else return 2;
-    }
-    if (scale < 0.5f || scale > 4.0f || text < 1.0f || text > 2.25f) return 2;
-    /* the mockup's sample */
-    wcscpy_s(r.version, L"v2026.11.06.01");
-    wcscpy_s(r.game_build, L"762230");
-    r.mods = 214;
-    r.play_seconds = 2 * 3600 + 14 * 60 + 9;
-    wcscpy_s(r.log_path, L"C:\\Users\\Player\\AppData\\LocalLow\\Klei\\Oxygen Not Included\\Player.log");
-    r.crashed.wYear = 2026; r.crashed.wMonth = 11; r.crashed.wDay = 7; r.crashed.wHour = 14; r.crashed.wMinute = 15; r.crashed.wSecond = 2;
-    if (wcscmp(sample, L"gpu") == 0)
-    {
-        wcscpy_s(r.error, L"0xC0000005 (access violation) in nvoglv64.dll");
-        wcscpy_s(r.dump_path, L"C:\\Users\\Player\\AppData\\LocalLow\\Klei\\Oxygen Not Included\\crash-20261107-141502.dmp");
-        r.dump_size = 5976883;
-    }
-    else if (wcscmp(sample, L"managed") == 0)
-        wcscpy_s(r.error, L"System.NullReferenceException in BetterInfoCards.InfoCardWidgets.Update: Object reference not set to an instance of an object.");
-    else if (wcscmp(sample, L"fastfail") == 0) wcscpy_s(r.error, L"0xC0000409 (fast fail)");
-    else return 2;
-    if (log) wcscpy_s(r.log_path, log);
-    if (dump)
-    {
-        wcscpy_s(r.dump_path, dump);
-        WIN32_FILE_ATTRIBUTE_DATA a;
-        r.dump_size = GetFileAttributesExW(dump, GetFileExInfoStandard, &a) ? ((ULONG64)a.nFileSizeHigh << 32) | a.nFileSizeLow : 0;
-    }
+    static char *args[64];
+    static char storage[64][2048];
+    if (argc > 64) return 2;
+    for (int i = 0; i < argc; i++) { to_utf8(argv[i], storage[i], sizeof storage[i]); args[i] = storage[i]; }
+    static cw_render_options o;
+    static cw_report r;
+    if (!cw_render_args(argc, args, 1, &o, &r)) return 2;
 
     load_api();
     if (FAILED(CoInitializeEx(NULL, COINIT_APARTMENTTHREADED))) return 1;
-    g.render_only = true;
-    prepare(&r);
+    cw_render_state(&o, &r, 1);
     if (!start_graphics()) return 1;
-    wcscpy_s(g.system.windows, L"Windows 11 24H2 (26100.4061)");
-    wcscpy_s(g.system.gpu, L"NVIDIA GeForce RTX 3090 (581.29)");
-    g.system.ram_gb = 32;
-    details_text(&g.report, &g.system, r.language, g.details, _countof(g.details));
-    g.scale = scale;
-    g.text = text;
     g.forced_theme = true;
-    g.forced_dark = dark;
-    g.pal = palette_for(dark, false);
-    g.details_open = details;
-    if (reported)
+    g.forced_dark = o.dark != 0;
+    cw.pal = palette_for(g.forced_dark, false);
+    if (o.zip_out)
     {
-        g.reported = true;
-        swprintf_s(g.chip_path, L"C:\\Users\\Player\\AppData\\LocalLow\\Klei\\Oxygen Not Included\\OniMoono-crash-20261107-1415.zip");
-        g.chip_size = 1993728;
+        uint64_t size = 0;
+        if (!cw_write_zip(o.zip_out, cw.can_include_dump, &size)) return 3;
     }
-    if (zip_out)
+    if (o.url_out)
     {
-        ULONG64 size = 0;
-        if (!write_zip(zip_out, g.can_include_dump, &size)) return 3;
-    }
-    if (url_out)
-    {
-        static wchar_t url[8192];
-        static char utf8[16384];
-        issue_url(note, url, _countof(url));
-        int n = WideCharToMultiByte(CP_UTF8, 0, url, -1, utf8, sizeof utf8, NULL, NULL);
-        HANDLE f = CreateFileW(url_out, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-        DWORD done;
-        bool ok = f != INVALID_HANDLE_VALUE && n > 1 && WriteFile(f, utf8, (DWORD)(n - 1), &done, NULL);
-        if (f != INVALID_HANDLE_VALUE) CloseHandle(f);
+        static char url[8192];
+        cw_issue_url(o.note, url, sizeof url);
+        FILE *f = cw_open(o.url_out, "wb");
+        bool ok = f && fwrite(url, 1, strlen(url), f) == strlen(url);
+        if (f && fclose(f) != 0) ok = false;
         if (!ok) return 3;
     }
     make_formats();
     lay_out();
-    Look look = {};
-    look.checked = g.include_dump;
-    look.note_empty = true;
+    cw_look look = {};
+    look.checked = cw.include_dump;
+    look.note_empty = 1;
     float caption = snap(dip(32));
     int status = 1;
     if (render(look, caption))
@@ -2219,7 +1475,7 @@ extern "C" int crash_dialog_render(int argc, wchar_t **argv)
         BYTE *pixels = nullptr;
         WICRect all = { 0, 0, (INT)w, (INT)h };
         WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGRA;
-        if (SUCCEEDED(g.wic->CreateStream(&stream)) && SUCCEEDED(stream->InitializeFromFilename(out, GENERIC_WRITE))
+        if (SUCCEEDED(g.wic->CreateStream(&stream)) && SUCCEEDED(stream->InitializeFromFilename(W(o.out), GENERIC_WRITE))
             && SUCCEEDED(g.wic->CreateEncoder(GUID_ContainerFormatPng, NULL, &encoder))
             && SUCCEEDED(encoder->Initialize(stream, WICBitmapEncoderNoCache)) && SUCCEEDED(encoder->CreateNewFrame(&frame, NULL))
             && SUCCEEDED(frame->Initialize(NULL)) && SUCCEEDED(frame->SetSize(w, h)) && SUCCEEDED(frame->SetPixelFormat(&format))
