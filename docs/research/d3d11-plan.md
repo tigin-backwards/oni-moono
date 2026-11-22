@@ -481,7 +481,8 @@ Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so 
   script sees is the same as GLCore's. Device FL 11_1, flags BGRA only, DriverCommandLists 1 on
   NVIDIA 610.88.
 - **Tooling.** RenderDoc 1.43 installed; Windows SDK 10.0.26100.0 with fxc/dxc; the D3D11 debug layer
-  is not installed (Graphics Tools optional feature; the user's install, needed by M2).
+  installed 2026-11-22 (Graphics Tools optional feature, `Tools.Graphics.DirectX~~~~0.0.1.0`, by the
+  user's UAC approval): `d3d11_3SDKLayers.dll` and `dxgidebug.dll` in System32.
 - **Frames of the original** (2026-11-22, RTX 3090, results in `docs/research/d3d11-captures.md`;
   an in-process recorder, as RenderDoc's launch lost the run's isolation). Swap chain: 2 buffers,
   FLIP_SEQUENTIAL, R8G8B8A8_UNORM, flags ALLOW_MODE_SWITCH | FRAME_LATENCY_WAITABLE_OBJECT |
