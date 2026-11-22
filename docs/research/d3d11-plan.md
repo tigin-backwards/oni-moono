@@ -216,7 +216,17 @@ Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so 
   200, Vulkan 1.2.154 loader, driver 20.11.3) and #101 (a crashed start-up guard, RTX 3050 Laptop),
   maybe #107 (Intel UHD; Vulkan hang with keyed-mutex timeouts, then device removed; unverified).
   No log shows the deny list, a discrete GPU lacking requirements or a DXGI-only GPU.
-- **Open (M0 items):** probes of the original (SystemInfo, projection, render-texture formats and
-  orientation, uploads, native pointers); RenderDoc captures (state, constant buffers, swap chain,
-  depth bias); driver command-list support and the original's CPU frame time; debug layer and
-  RenderDoc availability.
+- **Probes of the original** (2026-11-22, RTX 3090, results in `docs/research/d3d11-unity-probes.md`).
+  Reversed Z (`GetGPUProjectionMatrix` z row = Vulkan's `GpuProjection`); render textures flipped
+  (`_ProjectionParams.x` −1, VP y negated), screen not; `graphicsUVStartsAtTop` True;
+  `graphicsDeviceVersion` `"Direct3D 11.0 [level 11.1]"`; depth 24 → D32_SFloat_S8_UInt (R32G8X24
+  typeless); `GetNativeTexturePtr` is the `ID3D11Texture2D`; RGB24/RGBA4444 → R8G8B8A8, Alpha8 →
+  A8_UNORM; one DYNAMIC buffer per cbuffer, bound whole, undeclared members 0, matrices
+  column-major; 66 of 147 format-support answers differ from GLCore (listed); every orientation a
+  script sees is the same as GLCore's. Device FL 11_1, flags BGRA only, DriverCommandLists 1 on
+  NVIDIA 610.88.
+- **Tooling.** RenderDoc 1.43 installed; Windows SDK 10.0.26100.0 with fxc/dxc; the D3D11 debug layer
+  is not installed (Graphics Tools optional feature; the user's install, needed by M2).
+- **Open (M0 items):** RenderDoc captures (swap chain, per-draw state, depth-bias mapping), threading
+  support on the AMD iGPU, the original's per-frame draw counts; the probes' UNVERIFIED list in
+  `d3d11-unity-probes.md`.
