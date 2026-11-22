@@ -15,6 +15,9 @@
 //                               slot must be accounted for; every vertex input of the attribute
 //                               table must be the attribute the MSL declares for its channel
 //   compare-metal DATADIR       Metal parameters against GLCore's (MetalCompare.cs)
+//   d3d11 DATADIR               every D3D11 (platform 4) program read and checked against its
+//                               parameters, inputs and Vulkan variants (D3d11Survey.cs)
+//   d3d11-bundles WSDIR         the same for the mod bundles under WSDIR (read only)
 // It reads the shipped release type trees (OniMoono.Assets), so it needs no engine or device.
 using System.Security.Cryptography;
 using System.Text;
@@ -26,7 +29,7 @@ using ShaderSurvey;
 
 if (args.Length < 2)
 {
-    Console.Error.WriteLine("usage: ShaderSurvey summary|variants|check-metal|compare-metal DATADIR | ShaderSurvey dump DATADIR NAME|* DIR PLATFORM | ShaderSurvey params DATADIR NAME PLATFORM");
+    Console.Error.WriteLine("usage: ShaderSurvey summary|variants|check-metal|compare-metal|d3d11 DATADIR | ShaderSurvey d3d11-bundles WSDIR | ShaderSurvey dump DATADIR NAME|* DIR PLATFORM | ShaderSurvey params DATADIR NAME PLATFORM");
     return 2;
 }
 string mode = args[0], dataDir = args[1];
@@ -40,6 +43,8 @@ switch (mode)
     case "check-metal": return CheckMetal();
     case "vulkan": return VulkanSurvey.Run(dataDir, args[2], Console.Out);
     case "bundles": return BundleSurvey.Run(dataDir, Console.Out);
+    case "d3d11": return D3d11Survey.RunGame(dataDir, Console.Out);
+    case "d3d11-bundles": return D3d11Survey.RunBundles(dataDir, Console.Out);
     case "compare-metal": return MetalCompare.Run(Data.Shaders(dataDir), Console.Out, args.Length > 2 ? args[2] : null);
     default: Console.Error.WriteLine("unknown mode " + mode); return 2;
 }

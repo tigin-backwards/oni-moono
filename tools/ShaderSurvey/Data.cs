@@ -10,7 +10,7 @@ sealed record Subprogram(string Id, Fields Pass, PlayerSubprogram Sub);
 /// The data folder's shaders and their programs.
 static class Data
 {
-    static readonly string[] files = ["level0", "level1", "level2", "resources.assets", "sharedassets0.assets", "sharedassets1.assets", "sharedassets2.assets",
+    static readonly string[] files = ["level0", "level1", "level2", "globalgamemanagers.assets", "resources.assets", "sharedassets0.assets", "sharedassets1.assets", "sharedassets2.assets",
         "Resources/unity default resources", "Resources/unity_builtin_extra"];
 
     public static IEnumerable<(string File, Fields Shader)> Shaders(string dataDir)
