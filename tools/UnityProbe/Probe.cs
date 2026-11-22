@@ -417,6 +417,11 @@ namespace SemanticsProbe
                 go.AddComponent<UpdateOrder>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "d3d11")
+            {
+                go.AddComponent<D3d11Probe>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "vram")
             {
                 go.AddComponent<VramProbe>();

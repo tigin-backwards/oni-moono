@@ -41,8 +41,12 @@ finished unit, after every done criterion below passes and the user says so.
    HDR, fullscreen and resize, start-up guard, deny list and fallback.
 5. Robustness: a fault hook per start-up step; device removed (`dxcap -forcetdr`) recovers or quits
    cleanly with the error shown; alt-tab, resize, monitor changes; the GPU choice rule.
-6. Mods: all 38 mods with shaders draw; the 8 D3D11-only mods newly work; the Windows-bundle mods are
-   verified; the 2020.3 mod program layout is read (2018's is a stretch).
+6. Mods: all 38 mods with shaders draw. In particular the 9 that visibly lose shaders on Windows
+   today (Backwalls, Backwalls (Fix), Forcefield Projectors, Chaos Events for Twitch Integration,
+   Capsule 2.0, Aki's Extra Twitch Events, the Simplified Chinese font replacement 3561866116, the
+   Japanese Font Patch 3135364297, MAGNET!!! under OpenGL) and the 4 lost on every OS (Portal
+   Network, PortalNetwork+, Spring Festival Pack, Twitchery's LiquidRefraction) draw on D3D11. That
+   needs the 2020.3 and 2018.3 program layouts read as well as U60's.
 7. Performance: CPU frame time and fps against Vulkan on the same saves, measured and decided by the
    default/fallback rule below.
 8. Correctness gates: the MSVC slot/struct check; no open UNVERIFIED notes; every milestone's review
@@ -132,8 +136,22 @@ Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so 
   device's D3D11 imitations (`Direct3DClip` for Klei/Stars, `AnimationLight`, #76) on a real D3D11
   device. The flip swap chain is tied to its device, so the D3D11 device owns it (no shared
   texture or keyed mutex). `-force-d3d11` is ignored today (`Options.cs`).
+- **Mods' API use** (2,898 mod folders, 3,641 DLLs, IL scan + decompiles; report
+  `scratchpad/d3d11-research/mods-and-demand.md`). No mod P/Invokes d3d11/dxgi/opengl32/vulkan or uses
+  native pointers, compute, `GetGPUProjectionMatrix`, `usesReversedZBuffer` or
+  `graphicsUVStartsAtTop`. Only MAGNET!!! reads `graphicsDeviceType` (it logs it). Device-neutral:
+  `AsyncGPUReadback` (Fast Save), `CommandBuffer` (Social Life). Bundles are picked by
+  `Application.platform` (`WindowsPlayer` in Moono as in the original), so all 37 D3D11-only-on-Windows
+  mods load their Windows bundle; 9 lose something visible today (criterion 6), 22 swap the
+  bundle's shaders for the game's own first, 4 are broken for other reasons (FaceInfo, Proper
+  Cyrillic Fonts, Mod GUI Pro). Issue #102's log confirms Capsule 2.0 and Portal Network undrawn on
+  Vulkan. Of the 9, only Forcefield and the Chinese fonts use U60's entry layout; 7 are 2020.3 or
+  2018.3.
+- **Demand.** 10 user Player.logs from 8 issues, all Windows: D3D11 would plausibly help #109 (AMD R9
+  200, Vulkan 1.2.154 loader, driver 20.11.3) and #101 (a crashed start-up guard, RTX 3050 Laptop),
+  maybe #107 (Intel UHD; Vulkan hang with keyed-mutex timeouts, then device removed; unverified).
+  No log shows the deny list, a discrete GPU lacking requirements or a DXGI-only GPU.
 - **Open (M0 items):** probes of the original (SystemInfo, projection, render-texture formats and
   orientation, uploads, native pointers); RenderDoc captures (state, constant buffers, swap chain,
-  depth bias); driver command-list support and the original's CPU frame time; mods that branch on
-  the API and which bundle each loads on Windows; demand from issue logs; debug layer and RenderDoc
-  availability.
+  depth bias); driver command-list support and the original's CPU frame time; debug layer and
+  RenderDoc availability.
