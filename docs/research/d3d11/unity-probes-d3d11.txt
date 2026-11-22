@@ -1,0 +1,2364 @@
+=== start device=Direct3D11 screen=1024x768 unity=6000.3.17f1 cmdline=
+sys graphicsDeviceType=Direct3D11
+sys graphicsDeviceVersion="Direct3D 11.0 [level 11.1]"
+sys graphicsDeviceName="NVIDIA GeForce RTX 3090" vendor="NVIDIA" id=0x2204 vendorID=0x10de
+sys graphicsShaderLevel=50 graphicsMemorySize=24322 graphicsMultiThreaded=False renderingThreadingMode=LegacyJobified
+sys usesReversedZBuffer=True graphicsUVStartsAtTop=True
+sys maxTextureSize=16384 maxCubemapSize=16384 maxTexture3DSize=2048 maxTextureArraySlices=2048
+sys copyTextureSupport=Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture (31) supportsComputeShaders=True npotSupport=Full supportedRenderTargetCount=8
+sysall batteryLevel=-1
+sysall batteryStatus=Charging
+sysall computeSubGroupSize=32
+sysall constantBufferOffsetAlignment=256
+sysall copyTextureSupport=Basic, Copy3D, DifferentTypes, TextureToRT, RTToTexture
+sysall deviceModel=System Product Name (ASUS)
+sysall deviceType=Desktop
+sysall foveatedRenderingCaps=None
+sysall graphicsDeviceID=8708
+sysall graphicsDeviceName=NVIDIA GeForce RTX 3090
+sysall graphicsDeviceType=Direct3D11
+sysall graphicsDeviceVendor=NVIDIA
+sysall graphicsDeviceVendorID=4318
+sysall graphicsDeviceVersion=Direct3D 11.0 [level 11.1]
+sysall graphicsMemorySize=24322
+sysall graphicsMultiThreaded=False
+sysall graphicsShaderLevel=50
+sysall graphicsUVStartsAtTop=True
+sysall hasDynamicUniformArrayIndexingInFragmentShaders=True
+sysall hasHiddenSurfaceRemovalOnGPU=False
+sysall hasMipMaxLevel=True
+sysall hasTiledGPU=False
+sysall hdrDisplaySupportFlags=Supported, RuntimeSwitchable, AutomaticTonemapping
+sysall maxAnisotropyLevel=16
+sysall maxComputeBufferInputsCompute=32
+sysall maxComputeBufferInputsDomain=128
+sysall maxComputeBufferInputsFragment=128
+sysall maxComputeBufferInputsGeometry=128
+sysall maxComputeBufferInputsHull=128
+sysall maxComputeBufferInputsVertex=128
+sysall maxComputeWorkGroupSize=1024
+sysall maxComputeWorkGroupSizeX=1024
+sysall maxComputeWorkGroupSizeY=1024
+sysall maxComputeWorkGroupSizeZ=64
+sysall maxConstantBufferSize=65536
+sysall maxCubemapSize=16384
+sysall maxGraphicsBufferSize=2147483648
+sysall maxTexture3DSize=2048
+sysall maxTextureArraySlices=2048
+sysall maxTextureSize=16384
+sysall maxTiledPixelStorageSize=2147483647
+sysall npotSupport=Full
+sysall operatingSystem=Windows 11  (10.0.26200)
+sysall operatingSystemFamily=Windows
+sysall processorCount=16
+sysall processorFrequency=4691
+sysall processorManufacturer=AuthenticAMD
+sysall processorModel=AMD Ryzen 7 9800X3D 8-Core Processor           
+sysall processorType=AMD Ryzen 7 9800X3D 8-Core Processor 
+sysall renderingThreadingMode=LegacyJobified
+sysall supportedRandomWriteTargetCount=8
+sysall supportedRenderTargetCount=8
+sysall supports2DArrayTextures=True
+sysall supports32bitsIndexBuffer=True
+sysall supports3DRenderTextures=True
+sysall supports3DTextures=True
+sysall supportsAccelerometer=False
+sysall supportsAnisotropicFilter=True
+sysall supportsAsyncCompute=False
+sysall supportsAsyncGPUReadback=True
+sysall supportsAudio=False
+sysall supportsCompressed3DTextures=True
+sysall supportsComputeShaders=True
+sysall supportsConservativeRaster=True
+sysall supportsCubemapArrayTextures=True
+sysall supportsDepthFetchInRenderPass=True
+sysall supportsDynamicResolution=False
+sysall supportsGeometryShaders=True
+sysall supportsGpuRecorder=True
+sysall supportsGraphicsFence=True
+sysall supportsGyroscope=False
+sysall supportsHardwareQuadTopology=False
+sysall supportsIndirectArgumentsBuffer=True
+sysall supportsIndirectDispatchRays=False
+sysall supportsInlineRayTracing=False
+sysall supportsInstancing=True
+sysall supportsLocationService=False
+sysall supportsMachineLearning=False
+sysall supportsMemorylessTextures=False
+sysall supportsMipStreaming=True
+sysall supportsMotionVectors=False
+sysall supportsMultisampleAutoResolve=False
+sysall supportsMultisampled2DArrayTextures=True
+sysall supportsMultisampledBackBuffer=False
+sysall supportsMultisampledShaderResolve=False
+sysall supportsMultisampledTextures=1
+sysall supportsMultisampleResolveDepth=False
+sysall supportsMultisampleResolveStencil=False
+sysall supportsMultiview=False
+sysall supportsParallelPSOCreation=False
+sysall supportsRawShadowDepthSampling=True
+sysall supportsRayTracing=False
+sysall supportsRayTracingShaders=False
+sysall supportsRendering=True
+sysall supportsRenderTargetArrayIndexFromVertexShader=True
+sysall supportsSeparatedRenderTargetsBlend=True
+sysall supportsSetConstantBuffer=True
+sysall supportsShadows=True
+sysall supportsSparseTextures=True
+sysall supportsStoreAndResolveAction=True
+sysall supportsTessellationShaders=True
+sysall supportsTextureWrapMirrorOnce=1
+sysall supportsVariableRateShading=False
+sysall supportsVibration=False
+sysall systemMemorySize=95888
+sysall usesLoadStoreActions=False
+sysall usesReversedZBuffer=True
+texfmt Alpha8=1 True
+texfmt ARGB4444=2 True
+texfmt RGB24=3 True
+texfmt RGBA32=4 True
+texfmt ARGB32=5 True
+texfmt RGB565=7 True
+texfmt R16=9 True
+texfmt DXT1=10 True
+texfmt DXT5=12 True
+texfmt RGBA4444=13 True
+texfmt BGRA32=14 True
+texfmt RHalf=15 True
+texfmt RGHalf=16 True
+texfmt RGBAHalf=17 True
+texfmt RFloat=18 True
+texfmt RGFloat=19 True
+texfmt RGBAFloat=20 True
+texfmt YUY2=21 True
+texfmt RGB9e5Float=22 True
+texfmt BC6H=24 True
+texfmt BC7=25 True
+texfmt BC4=26 True
+texfmt BC5=27 True
+texfmt DXT1Crunched=28 True
+texfmt DXT5Crunched=29 True
+texfmt PVRTC_RGB2=30 False
+texfmt PVRTC_RGBA2=31 False
+texfmt PVRTC_RGB4=32 False
+texfmt PVRTC_RGBA4=33 False
+texfmt ETC_RGB4=34 False
+texfmt EAC_R=41 False
+texfmt EAC_R_SIGNED=42 False
+texfmt EAC_RG=43 False
+texfmt EAC_RG_SIGNED=44 False
+texfmt ETC2_RGB=45 False
+texfmt ETC2_RGBA1=46 False
+texfmt ETC2_RGBA8=47 False
+texfmt ASTC_4x4=48 False
+texfmt ASTC_5x5=49 False
+texfmt ASTC_6x6=50 False
+texfmt ASTC_8x8=51 False
+texfmt ASTC_10x10=52 False
+texfmt ASTC_12x12=53 False
+texfmt RG16=62 True
+texfmt R8=63 True
+texfmt ETC_RGB4Crunched=64 False
+texfmt ETC2_RGBA8Crunched=65 False
+texfmt ASTC_HDR_4x4=66 False
+texfmt ASTC_HDR_5x5=67 False
+texfmt ASTC_HDR_6x6=68 False
+texfmt ASTC_HDR_8x8=69 False
+texfmt ASTC_HDR_10x10=70 False
+texfmt ASTC_HDR_12x12=71 False
+texfmt RG32=72 True
+texfmt RGB48=73 True
+texfmt RGBA64=74 True
+texfmt R8_SIGNED=75 True
+texfmt RG16_SIGNED=76 True
+texfmt RGB24_SIGNED=77 True
+texfmt RGBA32_SIGNED=78 True
+texfmt R16_SIGNED=79 True
+texfmt RG32_SIGNED=80 True
+texfmt RGB48_SIGNED=81 True
+texfmt RGBA64_SIGNED=82 True
+rtfmt ARGB32=0 True
+rtfmt Depth=1 True
+rtfmt ARGBHalf=2 True
+rtfmt Shadowmap=3 True
+rtfmt RGB565=4 True
+rtfmt ARGB4444=5 True
+rtfmt ARGB1555=6 True
+rtfmt Default=7 True
+rtfmt ARGB2101010=8 True
+rtfmt DefaultHDR=9 True
+rtfmt ARGB64=10 True
+rtfmt ARGBFloat=11 True
+rtfmt RGFloat=12 True
+rtfmt RGHalf=13 True
+rtfmt RFloat=14 True
+rtfmt RHalf=15 True
+rtfmt R8=16 True
+rtfmt ARGBInt=17 True
+rtfmt RGInt=18 True
+rtfmt RInt=19 True
+rtfmt BGRA32=20 True
+rtfmt RGB111110Float=22 True
+rtfmt RG32=23 True
+rtfmt RGBAUShort=24 True
+rtfmt RG16=25 True
+rtfmt BGRA10101010_XR=26 True
+rtfmt BGR101010_XR=27 True
+rtfmt R16=28 True
+default LDR R8G8B8A8_UNorm
+default HDR R16G16B16A16_SFloat
+default DepthStencil D32_SFloat_S8_UInt
+default Shadow D16_UNorm
+default Video YUV2
+gfmt usages GraphicsFormatUsage: None=0 Sample=1 Linear=2 Sparse=4 Render=16 Blend=32 GetPixels=64 SetPixels=128 SetPixels32=256 ReadPixels=512 LoadStore=1024 MSAA2x=2048 MSAA4x=4096 MSAA8x=8192 StencilSampling=65536
+gfmt None=0 [] compat(Sample)=None compat(Render)=None
+gfmt R8_SRGB=1 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt R8G8_SRGB=2 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt R8G8B8_SRGB=3 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt R8G8B8A8_SRGB=4 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,SetPixels32,ReadPixels,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt R8_UNorm=5 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,SetPixels32,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R8_UNorm compat(Render)=R8_UNorm
+gfmt R8G8_UNorm=6 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R8G8_UNorm compat(Render)=R8G8_UNorm
+gfmt R8G8B8_UNorm=7 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt R8G8B8A8_UNorm=8 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,SetPixels32,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt R8_SNorm=9 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R8_SNorm compat(Render)=R8_SNorm
+gfmt R8G8_SNorm=10 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R8G8_SNorm compat(Render)=R8G8_SNorm
+gfmt R8G8B8_SNorm=11 [None] compat(Sample)=R8G8B8A8_SNorm compat(Render)=R8G8B8A8_SNorm
+gfmt R8G8B8A8_SNorm=12 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R8G8B8A8_SNorm compat(Render)=R8G8B8A8_SNorm
+gfmt R8_UInt=13 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x,StencilSampling] compat(Sample)=None compat(Render)=R8_UInt
+gfmt R8G8_UInt=14 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R8G8_UInt
+gfmt R8G8B8_UInt=15 [None] compat(Sample)=None compat(Render)=R8G8B8A8_UInt
+gfmt R8G8B8A8_UInt=16 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R8G8B8A8_UInt
+gfmt R8_SInt=17 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R8_SInt
+gfmt R8G8_SInt=18 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R8G8_SInt
+gfmt R8G8B8_SInt=19 [None] compat(Sample)=None compat(Render)=R8G8B8A8_SInt
+gfmt R8G8B8A8_SInt=20 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R8G8B8A8_SInt
+gfmt R16_UNorm=21 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16_UNorm compat(Render)=R16_UNorm
+gfmt R16G16_UNorm=22 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16G16_UNorm compat(Render)=R16G16_UNorm
+gfmt R16G16B16_UNorm=23 [None] compat(Sample)=R16G16B16A16_UNorm compat(Render)=R16G16B16A16_UNorm
+gfmt R16G16B16A16_UNorm=24 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16G16B16A16_UNorm compat(Render)=R16G16B16A16_UNorm
+gfmt R16_SNorm=25 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16_SNorm compat(Render)=R16_SNorm
+gfmt R16G16_SNorm=26 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16G16_SNorm compat(Render)=R16G16_SNorm
+gfmt R16G16B16_SNorm=27 [None] compat(Sample)=R16G16B16A16_SNorm compat(Render)=R16G16B16A16_SNorm
+gfmt R16G16B16A16_SNorm=28 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16G16B16A16_SNorm compat(Render)=R16G16B16A16_SNorm
+gfmt R16_UInt=29 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R16_UInt
+gfmt R16G16_UInt=30 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R16G16_UInt
+gfmt R16G16B16_UInt=31 [None] compat(Sample)=None compat(Render)=R16G16B16A16_UInt
+gfmt R16G16B16A16_UInt=32 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R16G16B16A16_UInt
+gfmt R16_SInt=33 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R16_SInt
+gfmt R16G16_SInt=34 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R16G16_SInt
+gfmt R16G16B16_SInt=35 [None] compat(Sample)=None compat(Render)=R16G16B16A16_SInt
+gfmt R16G16B16A16_SInt=36 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R16G16B16A16_SInt
+gfmt R32_UInt=37 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R32_UInt
+gfmt R32G32_UInt=38 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R32G32_UInt
+gfmt R32G32B32_UInt=39 [None] compat(Sample)=None compat(Render)=R32G32B32A32_UInt
+gfmt R32G32B32A32_UInt=40 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R32G32B32A32_UInt
+gfmt R32_SInt=41 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R32_SInt
+gfmt R32G32_SInt=42 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R32G32_SInt
+gfmt R32G32B32_SInt=43 [None] compat(Sample)=None compat(Render)=R32G32B32A32_SInt
+gfmt R32G32B32A32_SInt=44 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=R32G32B32A32_SInt
+gfmt R16_SFloat=45 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16_SFloat compat(Render)=R16_SFloat
+gfmt R16G16_SFloat=46 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16G16_SFloat compat(Render)=R16G16_SFloat
+gfmt R16G16B16_SFloat=47 [None] compat(Sample)=R16G16B16A16_SFloat compat(Render)=R16G16B16A16_SFloat
+gfmt R16G16B16A16_SFloat=48 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R16G16B16A16_SFloat compat(Render)=R16G16B16A16_SFloat
+gfmt R32_SFloat=49 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R32_SFloat compat(Render)=R32_SFloat
+gfmt R32G32_SFloat=50 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R32G32_SFloat compat(Render)=R32G32_SFloat
+gfmt R32G32B32_SFloat=51 [None,Sample,Linear,GetPixels,SetPixels] compat(Sample)=R32G32B32_SFloat compat(Render)=R32G32B32A32_SFloat
+gfmt R32G32B32A32_SFloat=52 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=R32G32B32A32_SFloat compat(Render)=R32G32B32A32_SFloat
+gfmt B8G8R8_SRGB=56 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt B8G8R8A8_SRGB=57 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,SetPixels32,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=B8G8R8A8_SRGB compat(Render)=B8G8R8A8_SRGB
+gfmt B8G8R8_UNorm=58 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt B8G8R8A8_UNorm=59 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,SetPixels32,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=B8G8R8A8_UNorm compat(Render)=B8G8R8A8_UNorm
+gfmt B8G8R8_SNorm=60 [None] compat(Sample)=R8G8B8A8_SNorm compat(Render)=R8G8B8A8_SNorm
+gfmt B8G8R8A8_SNorm=61 [None] compat(Sample)=R8G8B8A8_SNorm compat(Render)=R8G8B8A8_SNorm
+gfmt B8G8R8_UInt=62 [None] compat(Sample)=None compat(Render)=R8G8B8A8_UInt
+gfmt B8G8R8A8_UInt=63 [None] compat(Sample)=None compat(Render)=R8G8B8A8_UInt
+gfmt B8G8R8_SInt=64 [None] compat(Sample)=None compat(Render)=R8G8B8A8_SInt
+gfmt B8G8R8A8_SInt=65 [None] compat(Sample)=None compat(Render)=R8G8B8A8_SInt
+gfmt R4G4B4A4_UNormPack16=66 [None] compat(Sample)=B4G4R4A4_UNormPack16 compat(Render)=R8G8B8A8_UNorm
+gfmt B4G4R4A4_UNormPack16=67 [None,Sample,Linear,Sparse,GetPixels,SetPixels] compat(Sample)=B4G4R4A4_UNormPack16 compat(Render)=R8G8B8A8_UNorm
+gfmt R5G6B5_UNormPack16=68 [None] compat(Sample)=B5G6R5_UNormPack16 compat(Render)=B5G6R5_UNormPack16
+gfmt B5G6R5_UNormPack16=69 [None,Sample,Linear,Sparse,Render,Blend,GetPixels,SetPixels,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=B5G6R5_UNormPack16 compat(Render)=B5G6R5_UNormPack16
+gfmt R5G5B5A1_UNormPack16=70 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=B5G5R5A1_UNormPack16
+gfmt B5G5R5A1_UNormPack16=71 [None,Render,Blend,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=B5G5R5A1_UNormPack16
+gfmt A1R5G5B5_UNormPack16=72 [None] compat(Sample)=None compat(Render)=B5G5R5A1_UNormPack16
+gfmt E5B9G9R9_UFloatPack32=73 [None,Sample,Linear,Sparse,GetPixels,SetPixels] compat(Sample)=E5B9G9R9_UFloatPack32 compat(Render)=B10G11R11_UFloatPack32
+gfmt B10G11R11_UFloatPack32=74 [None,Render,Blend,GetPixels,SetPixels,ReadPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=E5B9G9R9_UFloatPack32 compat(Render)=B10G11R11_UFloatPack32
+gfmt A2B10G10R10_UNormPack32=75 [None,Render,Blend,GetPixels,SetPixels,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=A2B10G10R10_UNormPack32
+gfmt A2B10G10R10_UIntPack32=76 [None,Render,LoadStore,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=A2B10G10R10_UIntPack32
+gfmt A2B10G10R10_SIntPack32=77 [None] compat(Sample)=None compat(Render)=R16G16B16A16_SInt
+gfmt A2R10G10B10_UNormPack32=78 [None] compat(Sample)=None compat(Render)=A2B10G10R10_UNormPack32
+gfmt A2R10G10B10_UIntPack32=79 [None] compat(Sample)=None compat(Render)=A2B10G10R10_UIntPack32
+gfmt A2R10G10B10_SIntPack32=80 [None] compat(Sample)=None compat(Render)=R16G16B16A16_SInt
+gfmt A2R10G10B10_XRSRGBPack32=81 [None] compat(Sample)=R16G16B16A16_UNorm compat(Render)=R16G16B16A16_UNorm
+gfmt A2R10G10B10_XRUNormPack32=82 [None] compat(Sample)=None compat(Render)=A2B10G10R10_UNormPack32
+gfmt R10G10B10_XRSRGBPack32=83 [None] compat(Sample)=R16G16B16A16_UNorm compat(Render)=R16G16B16A16_UNorm
+gfmt R10G10B10_XRUNormPack32=84 [None] compat(Sample)=R16G16B16A16_UNorm compat(Render)=R16G16B16A16_UNorm
+gfmt A10R10G10B10_XRSRGBPack32=85 [None] compat(Sample)=R16G16B16A16_UNorm compat(Render)=R16G16B16A16_UNorm
+gfmt A10R10G10B10_XRUNormPack32=86 [None] compat(Sample)=R16G16B16A16_UNorm compat(Render)=R16G16B16A16_UNorm
+gfmt D16_UNorm=90 [None,Render,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=D16_UNorm
+gfmt D24_UNorm=91 [None] compat(Sample)=None compat(Render)=D32_SFloat
+gfmt D24_UNorm_S8_UInt=92 [None,Render,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=D24_UNorm_S8_UInt
+gfmt D32_SFloat=93 [None,Render,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=D32_SFloat
+gfmt D32_SFloat_S8_UInt=94 [None,Render,MSAA2x,MSAA4x,MSAA8x] compat(Sample)=None compat(Render)=D32_SFloat_S8_UInt
+gfmt S8_UInt=95 [None] compat(Sample)=None compat(Render)=D24_UNorm_S8_UInt
+gfmt RGBA_DXT1_SRGB=96 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGBA_DXT1_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_DXT1_UNorm=97 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGBA_DXT1_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_DXT3_SRGB=98 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGBA_DXT3_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_DXT3_UNorm=99 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGBA_DXT3_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_DXT5_SRGB=100 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGBA_DXT5_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_DXT5_UNorm=101 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGBA_DXT5_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt R_BC4_UNorm=102 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=R_BC4_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt R_BC4_SNorm=103 [None,GetPixels] compat(Sample)=None compat(Render)=R8G8B8A8_SNorm
+gfmt RG_BC5_UNorm=104 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RG_BC5_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RG_BC5_SNorm=105 [None,GetPixels] compat(Sample)=None compat(Render)=R8G8B8A8_SNorm
+gfmt RGB_BC6H_UFloat=106 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGB_BC6H_UFloat compat(Render)=R16G16B16A16_SFloat
+gfmt RGB_BC6H_SFloat=107 [None,GetPixels] compat(Sample)=None compat(Render)=R16G16B16A16_SFloat
+gfmt RGBA_BC7_SRGB=108 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGBA_BC7_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_BC7_UNorm=109 [None,Sample,Linear,Sparse,GetPixels] compat(Sample)=RGBA_BC7_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGB_PVRTC_2Bpp_SRGB=110 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGB_PVRTC_2Bpp_UNorm=111 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGB_PVRTC_4Bpp_SRGB=112 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGB_PVRTC_4Bpp_UNorm=113 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_PVRTC_2Bpp_SRGB=114 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_PVRTC_2Bpp_UNorm=115 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_PVRTC_4Bpp_SRGB=116 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_PVRTC_4Bpp_UNorm=117 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGB_ETC_UNorm=118 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGB_ETC2_SRGB=119 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGB_ETC2_UNorm=120 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGB_A1_ETC2_SRGB=121 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGB_A1_ETC2_UNorm=122 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_ETC2_SRGB=123 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_ETC2_UNorm=124 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt R_EAC_UNorm=125 [None] compat(Sample)=R8_UNorm compat(Render)=R8_UNorm
+gfmt R_EAC_SNorm=126 [None] compat(Sample)=R8G8_SNorm compat(Render)=R8G8_SNorm
+gfmt RG_EAC_UNorm=127 [None] compat(Sample)=R8G8_UNorm compat(Render)=R8G8_UNorm
+gfmt RG_EAC_SNorm=128 [None] compat(Sample)=R8G8_SNorm compat(Render)=R8G8_SNorm
+gfmt RGBA_ASTC4X4_SRGB=129 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_ASTC4X4_UNorm=130 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_ASTC5X5_SRGB=131 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_ASTC5X5_UNorm=132 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_ASTC6X6_SRGB=133 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_ASTC6X6_UNorm=134 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_ASTC8X8_SRGB=135 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_ASTC8X8_UNorm=136 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_ASTC10X10_SRGB=137 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_ASTC10X10_UNorm=138 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt RGBA_ASTC12X12_SRGB=139 [None] compat(Sample)=R8G8B8A8_SRGB compat(Render)=R8G8B8A8_SRGB
+gfmt RGBA_ASTC12X12_UNorm=140 [None] compat(Sample)=R8G8B8A8_UNorm compat(Render)=R8G8B8A8_UNorm
+gfmt YUV2=141 [None,Sample,Linear] compat(Sample)=YUV2 compat(Render)=None
+gfmt DepthAuto=142 [None] compat(Sample)=None compat(Render)=None
+gfmt ShadowAuto=143 [None] compat(Sample)=None compat(Render)=None
+gfmt VideoAuto=144 [None] compat(Sample)=None compat(Render)=None
+gfmt RGBA_ASTC4X4_UFloat=145 [None] compat(Sample)=E5B9G9R9_UFloatPack32 compat(Render)=R16G16B16A16_SFloat
+gfmt RGBA_ASTC5X5_UFloat=146 [None] compat(Sample)=E5B9G9R9_UFloatPack32 compat(Render)=R16G16B16A16_SFloat
+gfmt RGBA_ASTC6X6_UFloat=147 [None] compat(Sample)=E5B9G9R9_UFloatPack32 compat(Render)=R16G16B16A16_SFloat
+gfmt RGBA_ASTC8X8_UFloat=148 [None] compat(Sample)=E5B9G9R9_UFloatPack32 compat(Render)=R16G16B16A16_SFloat
+gfmt RGBA_ASTC10X10_UFloat=149 [None] compat(Sample)=E5B9G9R9_UFloatPack32 compat(Render)=R16G16B16A16_SFloat
+gfmt RGBA_ASTC12X12_UFloat=150 [None] compat(Sample)=E5B9G9R9_UFloatPack32 compat(Render)=R16G16B16A16_SFloat
+gfmt D16_UNorm_S8_UInt=151 [None] compat(Sample)=None compat(Render)=D24_UNorm_S8_UInt
+gpm persp60_1.5_0.3_1000 in=[1.15470052,0,0,0] [0,1.73205078,0,0] [0,0,-1.0006001,-0.60018003] [0,0,-1,0]
+gpm persp60_1.5_0.3_1000 false=[1.15470052,0,0,0] [0,1.73205078,0,0] [0,0,0.000300049782,0.300090015] [0,0,-1,0] bits=3f93cd3a,00000000,00000000,00000000,00000000,3fddb3d7,00000000,00000000,00000000,00000000,399d5000,3e99a566,00000000,00000000,bf800000,00000000
+gpm persp60_1.5_0.3_1000 true=[1.15470052,0,0,0] [0,-1.73205078,0,0] [0,0,0.000300049782,0.300090015] [0,0,-1,0] bits=3f93cd3a,00000000,00000000,00000000,80000000,bfddb3d7,80000000,80000000,00000000,00000000,399d5000,3e99a566,00000000,00000000,bf800000,00000000
+gpm persp45_1.333_0.5_200 in=[1.81066,0,0,0] [0,2.41421342,0,0] [0,0,-1.00501251,-1.00250626] [0,0,-1,0]
+gpm persp45_1.333_0.5_200 false=[1.81066,0,0,0] [0,2.41421342,0,0] [0,0,0.002506256,0.5012531] [0,0,-1,0] bits=3fe7c3b5,00000000,00000000,00000000,00000000,401a8279,00000000,00000000,00000000,00000000,3b244000,3f005220,00000000,00000000,bf800000,00000000
+gpm persp45_1.333_0.5_200 true=[1.81066,0,0,0] [0,-2.41421342,0,0] [0,0,0.002506256,0.5012531] [0,0,-1,0] bits=3fe7c3b5,00000000,00000000,00000000,80000000,c01a8279,80000000,80000000,00000000,00000000,3b244000,3f005220,00000000,00000000,bf800000,00000000
+gpm ortho-8,8,-6,6,0.3,1000 in=[0.125,0,0,0] [0,0.166666672,0,0] [0,0,-0.0020006,-1.0006001] [0,0,0,1]
+gpm ortho-8,8,-6,6,0.3,1000 false=[0.125,0,0,0] [0,0.166666672,0,0] [0,0,0.0010003,1.0003] [0,0,0,1] bits=3e000000,00000000,00000000,80000000,00000000,3e2aaaab,00000000,80000000,00000000,00000000,3a831c80,3f8009d5,00000000,00000000,00000000,3f800000
+gpm ortho-8,8,-6,6,0.3,1000 true=[0.125,0,0,0] [0,-0.166666672,0,0] [0,0,0.0010003,1.0003] [0,0,0,1] bits=3e000000,00000000,00000000,80000000,80000000,be2aaaab,80000000,00000000,00000000,00000000,3a831c80,3f8009d5,00000000,00000000,00000000,3f800000
+gpm ortho-5,5,-5,5,-100,100 in=[0.2,0,0,0] [0,0.2,0,0] [0,0,-0.01,0] [0,0,0,1]
+gpm ortho-5,5,-5,5,-100,100 false=[0.2,0,0,0] [0,0.2,0,0] [0,0,0.005,0.5] [0,0,0,1] bits=3e4ccccd,00000000,00000000,80000000,00000000,3e4ccccd,00000000,80000000,00000000,00000000,3ba3d70a,3f000000,00000000,00000000,00000000,3f800000
+gpm ortho-5,5,-5,5,-100,100 true=[0.2,0,0,0] [0,-0.2,0,0] [0,0,0.005,0.5] [0,0,0,1] bits=3e4ccccd,00000000,00000000,80000000,80000000,be4ccccd,80000000,00000000,00000000,00000000,3ba3d70a,3f000000,00000000,00000000,00000000,3f800000
+gpm pixel0,1024,0,768,-1,1 in=[0.001953125,0,0,-1] [0,0.00260416674,0,-1] [0,0,-1,0] [0,0,0,1]
+gpm pixel0,1024,0,768,-1,1 false=[0.001953125,0,0,-1] [0,0.00260416674,0,-1] [0,0,0.5,0.5] [0,0,0,1] bits=3b000000,00000000,00000000,bf800000,00000000,3b2aaaab,00000000,bf800000,00000000,00000000,3f000000,3f000000,00000000,00000000,00000000,3f800000
+gpm pixel0,1024,0,768,-1,1 true=[0.001953125,0,0,-1] [0,-0.00260416674,0,1] [0,0,0.5,0.5] [0,0,0,1] bits=3b000000,00000000,00000000,bf800000,80000000,bb2aaaab,80000000,3f800000,00000000,00000000,3f000000,3f000000,00000000,00000000,00000000,3f800000
+gpm identity in=[1,0,0,0] [0,1,0,0] [0,0,1,0] [0,0,0,1]
+gpm identity false=[1,0,0,0] [0,1,0,0] [0,0,-0.5,0.5] [0,0,0,1] bits=3f800000,00000000,00000000,00000000,00000000,3f800000,00000000,00000000,00000000,00000000,bf000000,3f000000,00000000,00000000,00000000,3f800000
+gpm identity true=[1,0,0,0] [0,-1,0,0] [0,0,-0.5,0.5] [0,0,0,1] bits=3f800000,00000000,00000000,00000000,80000000,bf800000,80000000,80000000,00000000,00000000,bf000000,3f000000,00000000,00000000,00000000,3f800000
+rtdepth 0 depth=0 depthStencilFormat=None graphicsFormat=R8G8B8A8_UNorm created=True after: depthStencilFormat=None depth=0
+rtdepth desc 0 depthStencilFormat=None graphicsFormat=R8G8B8A8_UNorm
+rtdepth 16 depth=16 depthStencilFormat=D16_UNorm graphicsFormat=R8G8B8A8_UNorm created=True after: depthStencilFormat=D16_UNorm depth=16
+rtdepth desc 16 depthStencilFormat=D16_UNorm graphicsFormat=R8G8B8A8_UNorm
+rtdepth 24 depth=32 depthStencilFormat=D32_SFloat_S8_UInt graphicsFormat=R8G8B8A8_UNorm created=True after: depthStencilFormat=D32_SFloat_S8_UInt depth=32
+rtdepth desc 24 depthStencilFormat=D32_SFloat_S8_UInt graphicsFormat=R8G8B8A8_UNorm
+rtdepth 32 depth=32 depthStencilFormat=D32_SFloat_S8_UInt graphicsFormat=R8G8B8A8_UNorm created=True after: depthStencilFormat=D32_SFloat_S8_UInt depth=32
+rtdepth desc 32 depthStencilFormat=D32_SFloat_S8_UInt graphicsFormat=R8G8B8A8_UNorm
+rtgf ARGB32=0 graphicsFormat=R8G8B8A8_UNorm depthStencilFormat=None created=True after=R8G8B8A8_UNorm util(lin/srgb)=R8G8B8A8_UNorm/R8G8B8A8_UNorm rw=R8G8B8A8_UNorm/R8G8B8A8_UNorm
+rtgf Depth=1 graphicsFormat=None depthStencilFormat=D16_UNorm created=True after=None util(lin/srgb)=None/None rw=None/None
+rtgf ARGBHalf=2 graphicsFormat=R16G16B16A16_SFloat depthStencilFormat=None created=True after=R16G16B16A16_SFloat util(lin/srgb)=R16G16B16A16_SFloat/R16G16B16A16_SFloat rw=R16G16B16A16_SFloat/R16G16B16A16_SFloat
+rtgf Shadowmap=3 graphicsFormat=None depthStencilFormat=D16_UNorm created=True after=None util(lin/srgb)=None/None rw=None/None
+rtgf RGB565=4 graphicsFormat=B5G6R5_UNormPack16 depthStencilFormat=None created=True after=B5G6R5_UNormPack16 util(lin/srgb)=B5G6R5_UNormPack16/B5G6R5_UNormPack16 rw=B5G6R5_UNormPack16/B5G6R5_UNormPack16
+rtgf ARGB4444=5 graphicsFormat=R8G8B8A8_UNorm depthStencilFormat=None created=True after=R8G8B8A8_UNorm util(lin/srgb)=B4G4R4A4_UNormPack16/B4G4R4A4_UNormPack16 rw=R8G8B8A8_UNorm/R8G8B8A8_UNorm
+rtgf ARGB1555=6 graphicsFormat=B5G5R5A1_UNormPack16 depthStencilFormat=None created=True after=B5G5R5A1_UNormPack16 util(lin/srgb)=B5G5R5A1_UNormPack16/B5G5R5A1_UNormPack16 rw=B5G5R5A1_UNormPack16/B5G5R5A1_UNormPack16
+rtgf Default=7 graphicsFormat=R8G8B8A8_UNorm depthStencilFormat=None created=True after=R8G8B8A8_UNorm util(lin/srgb)=R8G8B8A8_UNorm/R8G8B8A8_UNorm rw=R8G8B8A8_UNorm/R8G8B8A8_UNorm
+rtgf ARGB2101010=8 graphicsFormat=A2B10G10R10_UNormPack32 depthStencilFormat=None created=True after=A2B10G10R10_UNormPack32 util(lin/srgb)=A2B10G10R10_UNormPack32/A2B10G10R10_UNormPack32 rw=A2B10G10R10_UNormPack32/A2B10G10R10_UNormPack32
+rtgf DefaultHDR=9 graphicsFormat=R16G16B16A16_SFloat depthStencilFormat=None created=True after=R16G16B16A16_SFloat util(lin/srgb)=R16G16B16A16_SFloat/R16G16B16A16_SFloat rw=R16G16B16A16_SFloat/R16G16B16A16_SFloat
+rtgf ARGB64=10 graphicsFormat=R16G16B16A16_UNorm depthStencilFormat=None created=True after=R16G16B16A16_UNorm util(lin/srgb)=R16G16B16A16_UNorm/R16G16B16A16_UNorm rw=R16G16B16A16_UNorm/R16G16B16A16_UNorm
+rtgf ARGBFloat=11 graphicsFormat=R32G32B32A32_SFloat depthStencilFormat=None created=True after=R32G32B32A32_SFloat util(lin/srgb)=R32G32B32A32_SFloat/R32G32B32A32_SFloat rw=R32G32B32A32_SFloat/R32G32B32A32_SFloat
+rtgf RGFloat=12 graphicsFormat=R32G32_SFloat depthStencilFormat=None created=True after=R32G32_SFloat util(lin/srgb)=R32G32_SFloat/R32G32_SFloat rw=R32G32_SFloat/R32G32_SFloat
+rtgf RGHalf=13 graphicsFormat=R16G16_SFloat depthStencilFormat=None created=True after=R16G16_SFloat util(lin/srgb)=R16G16_SFloat/R16G16_SFloat rw=R16G16_SFloat/R16G16_SFloat
+rtgf RFloat=14 graphicsFormat=R32_SFloat depthStencilFormat=None created=True after=R32_SFloat util(lin/srgb)=R32_SFloat/R32_SFloat rw=R32_SFloat/R32_SFloat
+rtgf RHalf=15 graphicsFormat=R16_SFloat depthStencilFormat=None created=True after=R16_SFloat util(lin/srgb)=R16_SFloat/R16_SFloat rw=R16_SFloat/R16_SFloat
+rtgf R8=16 graphicsFormat=R8_UNorm depthStencilFormat=None created=True after=R8_UNorm util(lin/srgb)=R8_UNorm/R8_UNorm rw=R8_UNorm/R8_UNorm
+rtgf ARGBInt=17 graphicsFormat=R32G32B32A32_SInt depthStencilFormat=None created=True after=R32G32B32A32_SInt util(lin/srgb)=R32G32B32A32_SInt/R32G32B32A32_SInt rw=R32G32B32A32_SInt/R32G32B32A32_SInt
+rtgf RGInt=18 graphicsFormat=R32G32_SInt depthStencilFormat=None created=True after=R32G32_SInt util(lin/srgb)=R32G32_SInt/R32G32_SInt rw=R32G32_SInt/R32G32_SInt
+rtgf RInt=19 graphicsFormat=R32_SInt depthStencilFormat=None created=True after=R32_SInt util(lin/srgb)=R32_SInt/R32_SInt rw=R32_SInt/R32_SInt
+rtgf BGRA32=20 graphicsFormat=B8G8R8A8_UNorm depthStencilFormat=None created=True after=B8G8R8A8_UNorm util(lin/srgb)=B8G8R8A8_UNorm/B8G8R8A8_UNorm rw=B8G8R8A8_UNorm/B8G8R8A8_UNorm
+rtgf RGB111110Float=22 graphicsFormat=B10G11R11_UFloatPack32 depthStencilFormat=None created=True after=B10G11R11_UFloatPack32 util(lin/srgb)=B10G11R11_UFloatPack32/B10G11R11_UFloatPack32 rw=B10G11R11_UFloatPack32/B10G11R11_UFloatPack32
+rtgf RG32=23 graphicsFormat=R16G16_UNorm depthStencilFormat=None created=True after=R16G16_UNorm util(lin/srgb)=R16G16_UNorm/R16G16_UNorm rw=R16G16_UNorm/R16G16_UNorm
+rtgf RGBAUShort=24 graphicsFormat=R16G16B16A16_UInt depthStencilFormat=None created=True after=R16G16B16A16_UInt util(lin/srgb)=R16G16B16A16_UInt/R16G16B16A16_UInt rw=R16G16B16A16_UInt/R16G16B16A16_UInt
+rtgf RG16=25 graphicsFormat=R8G8_UNorm depthStencilFormat=None created=True after=R8G8_UNorm util(lin/srgb)=R8G8_UNorm/R8G8_UNorm rw=R8G8_UNorm/R8G8_UNorm
+rtgf BGRA10101010_XR=26 graphicsFormat=R16G16B16A16_UNorm depthStencilFormat=None created=True after=R16G16B16A16_UNorm util(lin/srgb)=A10R10G10B10_XRUNormPack32/A10R10G10B10_XRUNormPack32 rw=R16G16B16A16_UNorm/R16G16B16A16_UNorm
+rtgf BGR101010_XR=27 graphicsFormat=R16G16B16A16_UNorm depthStencilFormat=None created=True after=R16G16B16A16_UNorm util(lin/srgb)=R10G10B10_XRUNormPack32/R10G10B10_XRUNormPack32 rw=R16G16B16A16_UNorm/R16G16B16A16_UNorm
+rtgf R16=28 graphicsFormat=R16_UNorm depthStencilFormat=None created=True after=R16_UNorm util(lin/srgb)=R16_UNorm/R16_UNorm rw=R16_UNorm/R16_UNorm
+t2dgf RGB24 graphicsFormat=R8G8B8_UNorm linear=R8G8B8_UNorm
+t2dgf Alpha8 graphicsFormat=54 linear=54
+t2dgf R8 graphicsFormat=R8_UNorm linear=R8_UNorm
+t2dgf RGBA32 graphicsFormat=R8G8B8A8_UNorm linear=R8G8B8A8_UNorm
+t2dgf ARGB32 graphicsFormat=88 linear=88
+t2dgf BGRA32 graphicsFormat=B8G8R8A8_UNorm linear=B8G8R8A8_UNorm
+t2dgf RHalf graphicsFormat=R16_SFloat linear=R16_SFloat
+t2dgf RGBAHalf graphicsFormat=R16G16B16A16_SFloat linear=R16G16B16A16_SFloat
+t2dgf RFloat graphicsFormat=R32_SFloat linear=R32_SFloat
+t2dgf RGBAFloat graphicsFormat=R32G32B32A32_SFloat linear=R32G32B32A32_SFloat
+t2dgf DXT1 graphicsFormat=RGBA_DXT1_UNorm linear=RGBA_DXT1_UNorm
+t2dgf DXT5 graphicsFormat=RGBA_DXT5_UNorm linear=RGBA_DXT5_UNorm
+t2dgf BC7 graphicsFormat=RGBA_BC7_UNorm linear=RGBA_BC7_UNorm
+t2dgf RGB565 graphicsFormat=B5G6R5_UNormPack16 linear=B5G6R5_UNormPack16
+t2dgf RGBA4444 graphicsFormat=R4G4B4A4_UNormPack16 linear=R4G4B4A4_UNormPack16
+t2dgf ARGB4444 graphicsFormat=B4G4R4A4_UNormPack16 linear=B4G4R4A4_UNormPack16
+t2dgf R16 graphicsFormat=R16_UNorm linear=R16_UNorm
+rows pattern texel (x,y) = (x*60+10, y*60+10, 77); reads list pixel index y*4+x as x.y of the texel it holds
+rows src GetPixels32 0.0 1.0 2.0 3.0 | 0.1 1.1 2.1 3.1 | 0.2 1.2 2.2 3.2 | 0.3 1.3 2.3 3.3
+rows Blit(tex->rt) ReadPixels 0.0 1.0 2.0 3.0 | 0.1 1.1 2.1 3.1 | 0.2 1.2 2.2 3.2 | 0.3 1.3 2.3 3.3
+rows ReadPixels rect(1,2,2,2) of Blit result 1.2 2.2 | 1.3 2.3
+rows Blit(rt->rt) ReadPixels 0.0 1.0 2.0 3.0 | 0.1 1.1 2.1 3.1 | 0.2 1.2 2.2 3.2 | 0.3 1.3 2.3 3.3
+rows CopyTexture(tex->rt) ReadPixels 0.0 1.0 2.0 3.0 | 0.1 1.1 2.1 3.1 | 0.2 1.2 2.2 3.2 | 0.3 1.3 2.3 3.3
+rows CopyTexture(rt->rt) ReadPixels 0.0 1.0 2.0 3.0 | 0.1 1.1 2.1 3.1 | 0.2 1.2 2.2 3.2 | 0.3 1.3 2.3 3.3
+rows CopyTexture region src(0,0,2x1)->dst(1,2) ReadPixels 0,0,0 0,0,0 0,0,0 0,0,0 | 0,0,0 0,0,0 0,0,0 0,0,0 | 0,0,0 0.0 1.0 0,0,0 | 0,0,0 0,0,0 0,0,0 0,0,0
+rows GL quad red at pixel(0,0) green at (2..3,0), rt ReadPixels 255,0,0,255 0,0,0,255 0,255,0,255 0,255,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255
+rows Blit of that quad rt ReadPixels 255,0,0,255 0,0,0,255 0,255,0,255 0,255,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255
+rows Blit scale(1,-1) offset(0,1) ReadPixels 0.3 1.3 2.3 3.3 | 0.2 1.2 2.2 3.2 | 0.1 1.1 2.1 3.1 | 0.0 1.0 2.0 3.0
+rows texelSize src=0.25,0.25 rt=0.25,0.25
+depthclear GL.Clear(depth=1) sampled=0,0,0,1 depthStencilFormat=D32_SFloat_S8_UInt graphicsFormat=None
+depthclear GL.Clear(depth=0.25) sampled=0.75,0,0,1 depthStencilFormat=D32_SFloat_S8_UInt graphicsFormat=None
+depthclear GL.Clear(depth=0) sampled=1,0,0,1 depthStencilFormat=D32_SFloat_S8_UInt graphicsFormat=None
+depthtest LEqual: red z=0.5, then green z=-0.5 (left half), blue z=0.9 (right half): left=255,0,0,255 right=0,0,255,255
+cull Front rt: ccw(left)=drawn cw(right)=culled
+cull Back rt: ccw(left)=culled cw(right)=drawn
+backbuffer active=null screen=1024x768
+backbuffer GL quad red at pixel(0,0) green at (2..3,0), ReadPixels(0,0,4,4) 255,0,0,255 0,0,0,255 0,255,0,255 0,255,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255
+backbuffer ReadPixels(0,h-4,4,4) 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255
+cull Front backbuffer: ccw(left)=drawn cw(right)=culled
+cull Back backbuffer: ccw(left)=culled cw(right)=drawn
+backbuffer CaptureScreenshotAsTexture 1024x768 RGBA32 pixel[0]=255,0,0,255 pixel[last row,0]=0,0,0,255
+async AsyncGPUReadback(rt) 0.0 1.0 2.0 3.0 | 0.1 1.1 2.1 3.1 | 0.2 1.2 2.2 3.2 | 0.3 1.3 2.3 3.3
+upload Apply(updateMipmaps=True) mipmapCount=4 (mip1 CPU set to 9,9,9,9 first) GetPixels32(1)=16,16,100,255 80,16,100,255 144,16,100,255 208,16,100,255 GPU mip1 via CopyTexture=16,16,100,255 80,16,100,255 144,16,100,255 208,16,100,255 16,80,100,255 80,80,100,255 144,80,100,255 208,80,100,255 16,144,100,255 80,144,100,255 144,144,100,255 208,144,100,255 16,208,100,255 80,208,100,255 144,208,100,255 208,208,100,255
+upload Apply(updateMipmaps=False) mipmapCount=4 (mip1 CPU set to 9,9,9,9 first) GetPixels32(1)=9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 GPU mip1 via CopyTexture=9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9 9,9,9,9
+raw data: memory row k holds the texels listed; Unity's raw row 0 is texture row y=0 (bottom)
+raw RGB24 byte[i*3..]=(i*16,255-i*16,i*3+1) graphicsFormat=R8G8B8_UNorm sampled(Blit,ReadPixels)=0,255,1,255 16,239,4,255 32,223,7,255 48,207,10,255 64,191,13,255 80,175,16,255 96,159,19,255 112,143,22,255 128,127,25,255 144,111,28,255 160,95,31,255 176,79,34,255 192,63,37,255 208,47,40,255 224,31,43,255 240,15,46,255
+raw RGB24 byte[i*3..]=(i*16,255-i*16,i*3+1) GetPixels32=0,255,1,255 16,239,4,255 32,223,7,255 48,207,10,255 64,191,13,255 80,175,16,255 96,159,19,255 112,143,22,255 128,127,25,255 144,111,28,255 160,95,31,255 176,79,34,255 192,63,37,255 208,47,40,255 224,31,43,255 240,15,46,255
+raw Alpha8 byte[i]=i*16+5 graphicsFormat=54 sampled(Blit,ReadPixels)=0,0,0,5 0,0,0,21 0,0,0,37 0,0,0,53 0,0,0,69 0,0,0,85 0,0,0,101 0,0,0,117 0,0,0,133 0,0,0,149 0,0,0,165 0,0,0,181 0,0,0,197 0,0,0,213 0,0,0,229 0,0,0,245
+raw Alpha8 byte[i]=i*16+5 GetPixels32=0,0,0,5 0,0,0,21 0,0,0,37 0,0,0,53 0,0,0,69 0,0,0,85 0,0,0,101 0,0,0,117 0,0,0,133 0,0,0,149 0,0,0,165 0,0,0,181 0,0,0,197 0,0,0,213 0,0,0,229 0,0,0,245
+raw R8 byte[i]=i*16+5 graphicsFormat=R8_UNorm sampled(Blit,ReadPixels)=5,0,0,255 21,0,0,255 37,0,0,255 53,0,0,255 69,0,0,255 85,0,0,255 101,0,0,255 117,0,0,255 133,0,0,255 149,0,0,255 165,0,0,255 181,0,0,255 197,0,0,255 213,0,0,255 229,0,0,255 245,0,0,255
+raw R8 byte[i]=i*16+5 GetPixels32=5,255,255,255 21,255,255,255 37,255,255,255 53,255,255,255 69,255,255,255 85,255,255,255 101,255,255,255 117,255,255,255 133,255,255,255 149,255,255,255 165,255,255,255 181,255,255,255 197,255,255,255 213,255,255,255 229,255,255,255 245,255,255,255
+raw DXT1 c0=red c1=blue memrow0=idx0 memrow1=idx1 memrow2=idx2 memrow3=idx3 graphicsFormat=RGBA_DXT1_UNorm sampled(Blit,ReadPixels)=255,0,0,255 255,0,0,255 255,0,0,255 255,0,0,255 0,0,255,255 0,0,255,255 0,0,255,255 0,0,255,255 170,0,85,255 170,0,85,255 170,0,85,255 170,0,85,255 85,0,170,255 85,0,170,255 85,0,170,255 85,0,170,255
+raw DXT1 c0=red c1=blue memrow0=idx0 memrow1=idx1 memrow2=idx2 memrow3=idx3 GetPixels32=255,0,0,255 255,0,0,255 255,0,0,255 255,0,0,255 0,0,255,255 0,0,255,255 0,0,255,255 0,0,255,255 170,0,85,255 170,0,85,255 170,0,85,255 170,0,85,255 85,0,170,255 85,0,170,255 85,0,170,255 85,0,170,255
+raw DXT5 a0=255 a1=0 alpha memrow k=idx k; colour as DXT1 graphicsFormat=RGBA_DXT5_UNorm sampled(Blit,ReadPixels)=255,0,0,255 255,0,0,255 255,0,0,255 255,0,0,255 0,0,255,0 0,0,255,0 0,0,255,0 0,0,255,0 170,0,85,219 170,0,85,219 170,0,85,219 170,0,85,219 85,0,170,183 85,0,170,183 85,0,170,183 85,0,170,183
+raw DXT5 a0=255 a1=0 alpha memrow k=idx k; colour as DXT1 GetPixels32=255,0,0,255 255,0,0,255 255,0,0,255 255,0,0,255 0,0,255,0 0,0,255,0 0,0,255,0 0,0,255,0 170,0,85,219 170,0,85,219 170,0,85,219 170,0,85,219 85,0,170,182 85,0,170,182 85,0,170,182 85,0,170,182
+raw BC4 r0=255 r1=0 memrow k=idx k graphicsFormat=R_BC4_UNorm sampled(Blit,ReadPixels)=255,0,0,255 255,0,0,255 255,0,0,255 255,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 219,0,0,255 219,0,0,255 219,0,0,255 219,0,0,255 184,0,0,255 184,0,0,255 184,0,0,255 184,0,0,255
+raw BC4 r0=255 r1=0 memrow k=idx k GetPixels32=255,0,0,255 255,0,0,255 255,0,0,255 255,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 0,0,0,255 219,0,0,255 219,0,0,255 219,0,0,255 219,0,0,255 182,0,0,255 182,0,0,255 182,0,0,255 182,0,0,255
+raw BC5 red as BC4; green g0=0 g1=255 memrow k=idx k graphicsFormat=RG_BC5_UNorm sampled(Blit,ReadPixels)=255,0,0,255 255,0,0,255 255,0,0,255 255,0,0,255 0,255,0,255 0,255,0,255 0,255,0,255 0,255,0,255 219,48,0,255 219,48,0,255 219,48,0,255 219,48,0,255 184,95,0,255 184,95,0,255 184,95,0,255 184,95,0,255
+raw BC5 red as BC4; green g0=0 g1=255 memrow k=idx k GetPixels32=255,0,0,255 255,0,0,255 255,0,0,255 255,0,0,255 0,255,0,255 0,255,0,255 0,255,0,255 0,255,0,255 219,51,0,255 219,51,0,255 219,51,0,255 219,51,0,255 182,102,0,255 182,102,0,255 182,102,0,255 182,102,0,255
+raw BC7 mode6 black->white, texel index i = i (memory order) graphicsFormat=RGBA_BC7_UNorm sampled(Blit,ReadPixels)=1,1,1,255 17,17,17,255 37,37,37,255 53,53,53,255 68,68,68,255 84,84,84,255 104,104,104,255 120,120,120,255 136,136,136,255 152,152,152,255 172,172,172,255 188,188,188,255 203,203,203,255 219,219,219,255 239,239,239,255 255,255,255,255
+raw BC7 mode6 black->white, texel index i = i (memory order) GetPixels32=1,1,1,255 17,17,17,255 37,37,37,255 53,53,53,255 68,68,68,255 84,84,84,255 104,104,104,255 120,120,120,255 136,136,136,255 152,152,152,255 172,172,172,255 188,188,188,255 203,203,203,255 219,219,219,255 239,239,239,255 255,255,255,255
+cpu ReadPixels without Apply, GetPixels32 0.0 1.0 2.0 3.0 | 0.1 1.1 2.1 3.1 | 0.2 1.2 2.2 3.2 | 0.3 1.3 2.3 3.3
+cpu CopyTexture(rt->tex) then GetPixels32 1,2,3 1,2,3 1,2,3 1,2,3 | 1,2,3 1,2,3 1,2,3 1,2,3 | 1,2,3 1,2,3 1,2,3 1,2,3 | 1,2,3 1,2,3 1,2,3 1,2,3
+cpu CopyTexture(rt->tex) GPU content via Blit 0.0 1.0 2.0 3.0 | 0.1 1.1 2.1 3.1 | 0.2 1.2 2.2 3.2 | 0.3 1.3 2.3 3.3
+nat ptrs RenderTexture ARGB32 depth 0 GetNativeTexturePtr=0x2a9325d1ba0 GetNativeDepthBufferPtr=0x2a9325d1ba0 colorBuffer.GetNativeRenderBufferPtr=0x2a6103bef10 depthBuffer.GetNativeRenderBufferPtr=0x2a6d0969d20
+nat ptrs RenderTexture ARGB32 depth 16 GetNativeTexturePtr=0x2a9325d1e60 GetNativeDepthBufferPtr=0x2a9325d2120 colorBuffer.GetNativeRenderBufferPtr=0x2a6103bf790 depthBuffer.GetNativeRenderBufferPtr=0x2a6d096a010
+nat ptrs RenderTexture ARGB32 depth 24 GetNativeTexturePtr=0x2a9325ce4a0 GetNativeDepthBufferPtr=0x2a9325d23e0 colorBuffer.GetNativeRenderBufferPtr=0x2a610394a90 depthBuffer.GetNativeRenderBufferPtr=0x2a6d096a0d0
+nat ptrs RenderTexture ARGB32 depth 32 GetNativeTexturePtr=0x2a9325d2c20 GetNativeDepthBufferPtr=0x2a9325d26a0 colorBuffer.GetNativeRenderBufferPtr=0x2a610375d90 depthBuffer.GetNativeRenderBufferPtr=0x2a6d096a200
+nat ptrs RenderTexture RHalf depth 0 GetNativeTexturePtr=0x2a9325d2960 GetNativeDepthBufferPtr=0x2a9325d2960 colorBuffer.GetNativeRenderBufferPtr=0x2a610375910 depthBuffer.GetNativeRenderBufferPtr=0x2a6d09698b0
+nat ptrs RenderTexture ARGBHalf depth 0 GetNativeTexturePtr=0x2a9325d2ee0 GetNativeDepthBufferPtr=0x2a9325d2ee0 colorBuffer.GetNativeRenderBufferPtr=0x2a6103afa10 depthBuffer.GetNativeRenderBufferPtr=0x2a6d0969970
+nat ptrs RenderTexture ARGBFloat depth 0 GetNativeTexturePtr=0x2a9325d44e0 GetNativeDepthBufferPtr=0x2a9325d44e0 colorBuffer.GetNativeRenderBufferPtr=0x2a6103af690 depthBuffer.GetNativeRenderBufferPtr=0x2a6d0969a30
+nat ptrs RenderTexture RFloat depth 0 GetNativeTexturePtr=0x2a9325d6060 GetNativeDepthBufferPtr=0x2a9325d6060 colorBuffer.GetNativeRenderBufferPtr=0x2a6103ae510 depthBuffer.GetNativeRenderBufferPtr=0x2a6d0969af0
+nat ptrs RenderTexture R8 depth 0 GetNativeTexturePtr=0x2a9325d4fe0 GetNativeDepthBufferPtr=0x2a9325d4fe0 colorBuffer.GetNativeRenderBufferPtr=0x2a610395990 depthBuffer.GetNativeRenderBufferPtr=0x2a6d0969bb0
+nat ptrs RenderTexture RGB565 depth 0 GetNativeTexturePtr=0x2a9325d6b60 GetNativeDepthBufferPtr=0x2a9325d6b60 colorBuffer.GetNativeRenderBufferPtr=0x2a6103bf090 depthBuffer.GetNativeRenderBufferPtr=0x2a6d0f6e1e0
+nat ptrs RenderTexture Depth depth 24 GetNativeTexturePtr=0x2a9325d39e0 GetNativeDepthBufferPtr=0x2a9325d39e0 colorBuffer.GetNativeRenderBufferPtr=0x2a6103ada10 depthBuffer.GetNativeRenderBufferPtr=0x2a6d0f6e2a0
+nat ptrs RenderTexture Shadowmap depth 24 GetNativeTexturePtr=0x2a9325d5820 GetNativeDepthBufferPtr=0x2a9325d5820 colorBuffer.GetNativeRenderBufferPtr=0x2a610376090 depthBuffer.GetNativeRenderBufferPtr=0x2a6d0f6e360
+nat ptr Texture2D RGBA32 4x4 = 0x2a9325cd6e0
+nat ptr Texture2D RGBA32 8x8 mips = 0x2a9325cf260
+nat ptr Texture2D RGB24 = 0x2a9325cfaa0
+nat ptr Texture2D Alpha8 = 0x2a9325cfd60
+nat ptr Texture2D R8 = 0x2a9325d02e0
+nat ptr Texture2D ARGB32 = 0x2a9325d18e0
+nat ptr Texture2D BGRA32 = 0x2a9325ce760
+nat ptr Texture2D RGB565 = 0x2a9325d1360
+nat ptr Texture2D RGBA4444 = 0x2a9325d05a0
+nat ptr Texture2D RHalf = 0x2a9325cdc60
+nat ptr Texture2D RGBAHalf = 0x2a9325d0de0
+nat ptr Texture2D RFloat = 0x2a9325d10a0
+nat ptr Texture2D DXT1 = 0x2a9325d1620
+nat ptr Texture2D DXT5 = 0x2a9325cdf20
+nat ptr Texture2D BC7 = 0x2a9325ce1e0
+nat ptr Texture2D RGBA32 linear = 0x2a9325cf520
+nat ptr RenderTexture ARGB32 depth 0 = 0x2a9325d1ba0
+nat ptr RenderTexture ARGB32 depth 16 = 0x2a9325d1e60
+nat ptr RenderTexture ARGB32 depth 24 = 0x2a9325ce4a0
+nat ptr RenderTexture ARGB32 depth 32 = 0x2a9325d2c20
+nat ptr RenderTexture RHalf depth 0 = 0x2a9325d2960
+nat ptr RenderTexture ARGBHalf depth 0 = 0x2a9325d2ee0
+nat ptr RenderTexture ARGBFloat depth 0 = 0x2a9325d44e0
+nat ptr RenderTexture RFloat depth 0 = 0x2a9325d6060
+nat ptr RenderTexture R8 depth 0 = 0x2a9325d4fe0
+nat ptr RenderTexture RGB565 depth 0 = 0x2a9325d6b60
+nat ptr RenderTexture Depth depth 24 = 0x2a9325d39e0
+nat ptr RenderTexture Shadowmap depth 24 = 0x2a9325d5820
+nat ptr RenderTexture ARGB32 depth 24 msaa 4 = 0x2a9325d3460
+nat tex Texture2D RGBA32 4x4 QI: IUnknown=0x2a9325cd5d0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=28 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D RGBA32 8x8 mips QI: IUnknown=0x2a9325cf150 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 8x8 mips=4 array=1 DXGI_FORMAT=28 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D RGB24 QI: IUnknown=0x2a9325cf990 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=28 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D Alpha8 QI: IUnknown=0x2a9325cfc50 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=65 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D R8 QI: IUnknown=0x2a9325d01d0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=61 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D ARGB32 QI: IUnknown=0x2a9325d17d0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=28 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D BGRA32 QI: IUnknown=0x2a9325ce650 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=87 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D RGB565 QI: IUnknown=0x2a9325d1250 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=85 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D RGBA4444 QI: IUnknown=0x2a9325d0490 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=28 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D RHalf QI: IUnknown=0x2a9325cdb50 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=54 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D RGBAHalf QI: IUnknown=0x2a9325d0cd0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=10 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D RFloat QI: IUnknown=0x2a9325d0f90 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=41 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D DXT1 QI: IUnknown=0x2a9325d1510 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=71 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D DXT5 QI: IUnknown=0x2a9325cde10 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=77 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D BC7 QI: IUnknown=0x2a9325ce0d0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=98 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex Texture2D RGBA32 linear QI: IUnknown=0x2a9325cf410 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=28 samples=1/0 usage=0 bind=0x8 cpu=0x0 misc=0x0
+nat tex RenderTexture ARGB32 depth 0 QI: IUnknown=0x2a9325d1a90 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture ARGB32 depth 16 QI: IUnknown=0x2a9325d1d50 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture ARGB32 depth 24 QI: IUnknown=0x2a9325ce390 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture ARGB32 depth 32 QI: IUnknown=0x2a9325d2b10 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture RHalf depth 0 QI: IUnknown=0x2a9325d2850 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=53 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture ARGBHalf depth 0 QI: IUnknown=0x2a9325d2dd0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=9 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture ARGBFloat depth 0 QI: IUnknown=0x2a9325d43d0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=1 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture RFloat depth 0 QI: IUnknown=0x2a9325d5f50 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=39 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture R8 depth 0 QI: IUnknown=0x2a9325d4ed0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=60 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture RGB565 depth 0 QI: IUnknown=0x2a9325d6a50 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=85 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat tex RenderTexture Depth depth 24 QI: IUnknown=0x2a9325d38d0 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat tex RenderTexture Shadowmap depth 24 QI: IUnknown=0x2a9325d5710 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=39 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat tex RenderTexture ARGB32 depth 24 msaa 4 QI: IUnknown=0x2a9325d3350 ID3D11Resource=same ID3D11Texture2D=same ID3D11ShaderResourceView=hr0x80004002 ID3D11RenderTargetView=hr0x80004002 ID3D11DepthStencilView=hr0x80004002 ID3D11Buffer=hr0x80004002 | Texture2D 4x4 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat device featureLevel=0xb100 creationFlags=0x20 THREADING hr=0x0 DriverConcurrentCreates=1 DriverCommandLists=1
+nat device immediate context ID3D11DeviceContext1 QI hr=0x0
+nat camera persp rt64x32 projectionMatrix=[1.07225335,0,0,0] [0,2.14450669,0,0] [0,0,-1.00501251,-1.00250626] [0,0,-1,0] gpu(false)=[1.07225335,0,0,0] [0,2.14450669,0,0] [0,0,0.002506256,0.5012531] [0,0,-1,0] gpu(true)=[1.07225335,0,0,0] [0,-2.14450669,0,0] [0,0,0.002506256,0.5012531] [0,0,-1,0] worldToCamera=[1,0,0,-1] [0,1,0,-2] [0,0,-1,-10] [0,0,0,1] pixel=64x32
+nat capture persp rt64x32 Hidden/Internal-Colored
+nat   VS b0 byteWidth=48 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 1,1,1,1
+nat   VS b1 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 1,0,0,0
+nat     VS b1 @16 = 0,1,0,0
+nat     VS b1 @32 = 0,0,1,0
+nat     VS b1 @48 = 1,2,0,1
+nat     VS b1 @64 = 0,0,0,0
+nat     VS b1 @80 = 0,0,0,0
+nat     VS b1 @96 = 0,0,0,0
+nat     VS b1 @112 = 0,0,0,0
+nat     VS b1 @128 = 0,0,0,0
+nat     VS b1 @144 = 0,0,0,0
+nat     VS b1 @160 = 0,0,0,0
+nat   VS b2 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 0,0,0,0
+nat     VS b2 @16 = 0,0,0,0
+nat     VS b2 @32 = 0,0,0,0
+nat     VS b2 @48 = 0,0,0,0
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0,0,0,0
+nat     VS b2 @96 = 0,0,0,0
+nat     VS b2 @112 = 0,0,0,0
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat     VS b2 @176 = 0,0,0,0
+nat     VS b2 @192 = 0,0,0,0
+nat     VS b2 @208 = 0,0,0,0
+nat     VS b2 @224 = 0,0,0,0
+nat     VS b2 @240 = 0,0,0,0
+nat     VS b2 @256 = 0,0,0,0
+nat     VS b2 @272 = 1.07225335,0,0,0
+nat     VS b2 @288 = 0,-2.14450669,0,0
+nat     VS b2 @304 = 0,0,-0.002506256,1
+nat     VS b2 @320 = -1.07225335,4.28901339,0.476190567,10
+nat     VS b2 @336 = 0,0,0,0
+nat     VS b2 @352 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0,0,0,0
+nat     VS b3 @96 = 0,0,0,0
+nat     VS b3 @112 = 0,0,0,0
+nat     VS b3 @128 = 0,0,0,0
+nat     VS b3 @144 = 0,0,0,0
+nat     VS b3 @160 = 0,0,0,0
+nat     VS b3 @176 = 0,0,0,0
+nat     VS b3 @192 = 0,0,0,0
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 1.07225335,0,0,0
+nat     VS b3 @288 = 0,-2.14450669,0,0
+nat     VS b3 @304 = 0,0,-0.002506256,1
+nat     VS b3 @320 = -1.07225335,4.28901339,0.476190567,10
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0,0,0,0
+nat     PS b0 @64 = 0,0,0,0
+nat     PS b0 @80 = 0,0,0,0
+nat     PS b0 @96 = 1,1,1,1
+nat     PS b0 @112 = 0,0,0,0
+nat     PS b0 @128 = -Infinity,-Infinity,Infinity,Infinity
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.5039212,10.0784245,20.1568489,30.2352734
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1052,561,-629,0
+nat     PS b1 @80 = 0,0,0,0
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 0,0,0,0
+nat     PS b1 @128 = 0,0,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=64 Height=32 MinDepth=0 MaxDepth=1
+nat capture persp rt64x32 Legacy Shaders/Particles/Additive[SOFTPARTICLES_ON]
+nat   VS b0 byteWidth=80 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0.5,0.5,0.5,0.5
+nat     VS b0 @48 = 1,1,0,0
+nat     VS b0 @64 = 1,0,0,0
+nat   VS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 0,0,0,0
+nat     VS b1 @16 = 0,0,0,0
+nat     VS b1 @32 = 0,0,0,0
+nat     VS b1 @48 = 0,0,0,0
+nat     VS b1 @64 = 0,0,0,0
+nat     VS b1 @80 = -1,0.5,200,0.005
+nat     VS b1 @96 = 0,0,0,0
+nat     VS b1 @112 = 399,1,1.995,0.004999995
+nat     VS b1 @128 = 0,0,0,0
+nat   VS b2 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 1,0,0,0
+nat     VS b2 @16 = 0,1,0,0
+nat     VS b2 @32 = 0,0,1,0
+nat     VS b2 @48 = 1,2,0,1
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0,0,0,0
+nat     VS b2 @96 = 0,0,0,0
+nat     VS b2 @112 = 0,0,0,0
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0,0,0,0
+nat     VS b3 @96 = 0,0,0,0
+nat     VS b3 @112 = 0,0,0,0
+nat     VS b3 @128 = 0,0,0,0
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 1.07225335,0,0,0
+nat     VS b3 @288 = 0,-2.14450669,0,0
+nat     VS b3 @304 = 0,0,-0.002506256,1
+nat     VS b3 @320 = -1.07225335,4.28901339,0.476190567,10
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=80 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0.5,0.5,0.5,0.5
+nat     PS b0 @48 = 1,1,0,0
+nat     PS b0 @64 = 1,0,0,0
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0,0,0,0
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 0,0,0,0
+nat     PS b1 @80 = -1,0.5,200,0.005
+nat     PS b1 @96 = 0,0,0,0
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 0,0,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=64 Height=32 MinDepth=0 MaxDepth=1
+nat capture persp rt64x32 Hidden/Internal-CombineDepthNormals
+nat   VS b0 byteWidth=48 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0,0,0,0
+nat   VS b1 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 1,0,0,0
+nat     VS b1 @16 = 0,1,0,0
+nat     VS b1 @32 = 0,0,1,0
+nat     VS b1 @48 = 1,2,0,1
+nat     VS b1 @64 = 0,0,0,0
+nat     VS b1 @80 = 0,0,0,0
+nat     VS b1 @96 = 0,0,0,0
+nat     VS b1 @112 = 0,0,0,0
+nat     VS b1 @128 = 0,0,0,0
+nat     VS b1 @144 = 0,0,0,0
+nat     VS b1 @160 = 0,0,0,0
+nat   VS b2 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 0,0,0,0
+nat     VS b2 @16 = 0,0,0,0
+nat     VS b2 @32 = 0,0,0,0
+nat     VS b2 @48 = 0,0,0,0
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0,0,0,0
+nat     VS b2 @96 = 0,0,0,0
+nat     VS b2 @112 = 0,0,0,0
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 1,0,0,0
+nat     VS b2 @160 = 0,1,0,0
+nat     VS b2 @176 = 0,0,-1,0
+nat     VS b2 @192 = -1,-2,-10,1
+nat     VS b2 @208 = 0,0,0,0
+nat     VS b2 @224 = 0,0,0,0
+nat     VS b2 @240 = 0,0,0,0
+nat     VS b2 @256 = 0,0,0,0
+nat     VS b2 @272 = 1.07225335,0,0,0
+nat     VS b2 @288 = 0,-2.14450669,0,0
+nat     VS b2 @304 = 0,0,-0.002506256,1
+nat     VS b2 @320 = -1.07225335,4.28901339,0.476190567,10
+nat     VS b2 @336 = 0,0,0,0
+nat     VS b2 @352 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0,0,0,0
+nat     VS b3 @96 = 0,0,0,0
+nat     VS b3 @112 = 0,0,0,0
+nat     VS b3 @128 = 0,0,0,0
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 1.07225335,0,0,0
+nat     VS b3 @288 = 0,-2.14450669,0,0
+nat     VS b3 @304 = 0,0,-0.002506256,1
+nat     VS b3 @320 = -1.07225335,4.28901339,0.476190567,10
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0,0,0,0
+nat     PS b0 @64 = 0,0,0,0
+nat     PS b0 @80 = -1,0.5,200,0.005
+nat     PS b0 @96 = 0,0,0,0
+nat     PS b0 @112 = 399,1,1.995,0.004999995
+nat     PS b0 @128 = 0,0,0,0
+nat   PS b1 byteWidth=352 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0,0,0,0
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 0,0,0,0
+nat     PS b1 @80 = 0,0,0,0
+nat     PS b1 @96 = 0,0,0,0
+nat     PS b1 @112 = 0,0,0,0
+nat     PS b1 @128 = 0,0,0,0
+nat     PS b1 @144 = 0,0,0,0
+nat     PS b1 @160 = 0,0,0,0
+nat     PS b1 @176 = 0,0,0,0
+nat     PS b1 @192 = 0,0,0,0
+nat     PS b1 @208 = 0,0,0,0
+nat     PS b1 @224 = 1,0,0,0
+nat     PS b1 @240 = 0,1,0,0
+nat     PS b1 @256 = 0,0,1,0
+nat     PS b1 @272 = -1,-2,10,1
+nat     PS b1 @288 = 0,0,0,0
+nat     PS b1 @304 = 0,0,0,0
+nat     PS b1 @320 = 0,0,0,0
+nat     PS b1 @336 = 0,0,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=64 Height=32 MinDepth=0 MaxDepth=1
+nat capture persp rt64x32 Klei/Liquid[_SAMPLEFILTERING_NONE]
+nat   VS b0 byteWidth=1600 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0,0,0,0
+nat     VS b0 @48 = 0.1,0,0,0
+nat     VS b0 @64 = 0,0,0,0
+nat     VS b0 @80 = 0,0,0,0
+nat     VS b0 @96 = 0,0,0,0
+nat     VS b0 @112 = 0,0,0,0
+nat     VS b0 @128 = 0,0,0,0
+nat     VS b0 @144 = 0,0,0,0
+nat     VS b0 @160 = 0,0,0,0
+nat     VS b0 @176 = 0,0,0,0
+nat     VS b0 @192 = 0,0,0,0
+nat     VS b0 @208 = 0,0,0,0
+nat     VS b0 @224 = 0,0,0,0
+nat     VS b0 @240 = 0,0,0,0
+nat     VS b0 @256 = 0,0,0,0
+nat     VS b0 @272 = 0,0,0,0
+nat     VS b0 @288 = 0,0,0,0
+nat     VS b0 @304 = 0,0,0,0
+nat     VS b0 @320 = 0,0,0,0
+nat     VS b0 @336 = 0,0,0,0
+nat     VS b0 @352 = 0,0,0,0
+nat     VS b0 @368 = 0,0,0,0
+nat     VS b0 @384 = 0,0,0,0
+nat     VS b0 @400 = 0,0,0,0
+nat     VS b0 @416 = 0,0,0,0
+nat     VS b0 @432 = 0,0,0,0
+nat     VS b0 @448 = 0,0,0,0
+nat     VS b0 @464 = 0,0,0,0
+nat     VS b0 @480 = 0,0,0,0
+nat     VS b0 @496 = 0,0,0,0
+nat     VS b0 @512 = 0,0,0,0
+nat     VS b0 @528 = 0,0,0,0
+nat     VS b0 @544 = 0,0,0,0
+nat     VS b0 @560 = 0,0,0,0
+nat     VS b0 @576 = 0,0,0,0
+nat     VS b0 @592 = 0,0,0,0
+nat     VS b0 @608 = 0,0,0,0
+nat     VS b0 @624 = 0,0,0,0
+nat     VS b0 @640 = 0,0,0,0
+nat     VS b0 @656 = 0,0,0,0
+nat     VS b0 @672 = 0,0,0,0
+nat     VS b0 @688 = 0,0,0,0
+nat     VS b0 @704 = 0,0,0,0
+nat     VS b0 @720 = 0,0,0,0
+nat     VS b0 @736 = 0,0,0,0
+nat     VS b0 @752 = 0,0,0,0
+nat     VS b0 @768 = 0,0,0,0
+nat     VS b0 @784 = 0,0,0,0
+nat     VS b0 @800 = 0,0,0,0
+nat     VS b0 @816 = 0,0,0,0
+nat     VS b0 @832 = 0,0,0,0
+nat     VS b0 @848 = 0,0,0,0
+nat     VS b0 @864 = 0,0,0,0
+nat     VS b0 @880 = 0,0,0,0
+nat     VS b0 @896 = 0,0,0,0
+nat     VS b0 @912 = 0,0,0,0
+nat     VS b0 @928 = 0,0,0,0
+nat     VS b0 @944 = 0,0,0,0
+nat     VS b0 @960 = 0,0,0,0
+nat     VS b0 @976 = 0,0,0,0
+nat     VS b0 @992 = 0,0,0,0
+nat     VS b0 @1008 = 0,0,0,0
+nat   VS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 0.5047544,10.095088,20.190176,30.2852631
+nat     VS b1 @16 = 0,0,0,0
+nat     VS b1 @32 = 0,0,0,0
+nat     VS b1 @48 = 0,0,0,0
+nat     VS b1 @64 = 1,2,-10,0
+nat     VS b1 @80 = -1,0.5,200,0.005
+nat     VS b1 @96 = 64,32,1.015625,1.03125
+nat     VS b1 @112 = 399,1,1.995,0.004999995
+nat     VS b1 @128 = 6,3,0,0
+nat   VS b2 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 1,0,0,0
+nat     VS b2 @16 = 0,1,0,0
+nat     VS b2 @32 = 0,0,1,0
+nat     VS b2 @48 = 1,2,0,1
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0,0,0,0
+nat     VS b2 @96 = 0,0,0,0
+nat     VS b2 @112 = 0,0,0,0
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0,0,0,0
+nat     VS b3 @96 = 0,0,0,0
+nat     VS b3 @112 = 0,0,0,0
+nat     VS b3 @128 = 0,0,0,0
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 1.07225335,0,0,0
+nat     VS b3 @288 = 0,-2.14450669,0,0
+nat     VS b3 @304 = 0,0,-0.002506256,1
+nat     VS b3 @320 = -1.07225335,4.28901339,0.476190567,10
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=1600 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0.1,0,0,0
+nat     PS b0 @64 = 0,0,0,0
+nat     PS b0 @80 = 0,0,0,0
+nat     PS b0 @96 = 0,0,0,0
+nat     PS b0 @112 = 0,0,0,0
+nat     PS b0 @128 = 0,0,0,0
+nat     PS b0 @144 = 0,0,0,0
+nat     PS b0 @160 = 0,0,0,0
+nat     PS b0 @176 = 0,0,0,0
+nat     PS b0 @192 = 0,0,0,0
+nat     PS b0 @208 = 0,0,0,0
+nat     PS b0 @224 = 0,0,0,0
+nat     PS b0 @240 = 0,0,0,0
+nat     PS b0 @256 = 0,0,0,0
+nat     PS b0 @272 = 0,0,0,0
+nat     PS b0 @288 = 0,0,0,0
+nat     PS b0 @304 = 0,0,0,0
+nat     PS b0 @320 = 0,0,0,0
+nat     PS b0 @336 = 0,0,0,0
+nat     PS b0 @352 = 0,0,0,0
+nat     PS b0 @368 = 0,0,0,0
+nat     PS b0 @384 = 0,0,0,0
+nat     PS b0 @400 = 0,0,0,0
+nat     PS b0 @416 = 0,0,0,0
+nat     PS b0 @432 = 0,0,0,0
+nat     PS b0 @448 = 0,0,0,0
+nat     PS b0 @464 = 0,0,0,0
+nat     PS b0 @480 = 0,0,0,0
+nat     PS b0 @496 = 0,0,0,0
+nat     PS b0 @512 = 0,0,0,0
+nat     PS b0 @528 = 0,0,0,0
+nat     PS b0 @544 = 0,0,0,0
+nat     PS b0 @560 = 0,0,0,0
+nat     PS b0 @576 = 0,0,0,0
+nat     PS b0 @592 = 0,0,0,0
+nat     PS b0 @608 = 0,0,0,0
+nat     PS b0 @624 = 0,0,0,0
+nat     PS b0 @640 = 0,0,0,0
+nat     PS b0 @656 = 0,0,0,0
+nat     PS b0 @672 = 0,0,0,0
+nat     PS b0 @688 = 0,0,0,0
+nat     PS b0 @704 = 0,0,0,0
+nat     PS b0 @720 = 0,0,0,0
+nat     PS b0 @736 = 0,0,0,0
+nat     PS b0 @752 = 0,0,0,0
+nat     PS b0 @768 = 0,0,0,0
+nat     PS b0 @784 = 0,0,0,0
+nat     PS b0 @800 = 0,0,0,0
+nat     PS b0 @816 = 0,0,0,0
+nat     PS b0 @832 = 0,0,0,0
+nat     PS b0 @848 = 0,0,0,0
+nat     PS b0 @864 = 0,0,0,0
+nat     PS b0 @880 = 0,0,0,0
+nat     PS b0 @896 = 0,0,0,0
+nat     PS b0 @912 = 0,0,0,0
+nat     PS b0 @928 = 0,0,0,0
+nat     PS b0 @944 = 0,0,0,0
+nat     PS b0 @960 = 0,0,0,0
+nat     PS b0 @976 = 0,0,0,0
+nat     PS b0 @992 = 0,0,0,0
+nat     PS b0 @1008 = 0,0,0,0
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.5047544,10.095088,20.190176,30.2852631
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1,2,-10,0
+nat     PS b1 @80 = -1,0.5,200,0.005
+nat     PS b1 @96 = 64,32,1.015625,1.03125
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 6,3,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=64 Height=32 MinDepth=0 MaxDepth=1
+nat camera persp rt64x32 Shader.GetGlobalVector(_ProjectionParams) after=1,0.3,1000,0.001
+nat camera persp rt64x32 Shader.GetGlobalVector(_ScreenParams) after=1024,768,1.00097656,1.00130212
+nat camera persp rt64x32 Shader.GetGlobalVector(_ZBufferParams) after=3332.33325,1,3.33233333,0.00100016594
+nat camera persp rt64x32 Shader.GetGlobalVector(unity_OrthoParams) after=774.93335,581.2,0,1
+nat camera persp screen projectionMatrix=[1.60838,0,0,0] [0,2.14450669,0,0] [0,0,-1.00501251,-1.00250626] [0,0,-1,0] gpu(false)=[1.60838,0,0,0] [0,2.14450669,0,0] [0,0,0.002506256,0.5012531] [0,0,-1,0] gpu(true)=[1.60838,0,0,0] [0,-2.14450669,0,0] [0,0,0.002506256,0.5012531] [0,0,-1,0] worldToCamera=[1,0,0,-1] [0,1,0,-2] [0,0,-1,-10] [0,0,0,1] pixel=1024x768
+nat capture persp screen Hidden/Internal-Colored
+nat   VS b0 byteWidth=48 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 1,1,1,1
+nat   VS b1 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 1,0,0,0
+nat     VS b1 @16 = 0,1,0,0
+nat     VS b1 @32 = 0,0,1,0
+nat     VS b1 @48 = 1,2,0,1
+nat     VS b1 @64 = 1,0,0,0
+nat     VS b1 @80 = 0,1,0,0
+nat     VS b1 @96 = 0,0,1,0
+nat     VS b1 @112 = 0,0,0,1
+nat     VS b1 @128 = 0,0,0,0
+nat     VS b1 @144 = 0,0,0,0
+nat     VS b1 @160 = 0,0,0,0
+nat   VS b2 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 0,0,0,0
+nat     VS b2 @16 = 0,0,0,0
+nat     VS b2 @32 = 0,0,0,0
+nat     VS b2 @48 = 0,0,0,0
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0.00167968753,0,0,0
+nat     VS b2 @96 = 0,0.00223958353,0,0
+nat     VS b2 @112 = 0,0,0.000430000015,0
+nat     VS b2 @128 = 0,0,0.5,1
+nat     VS b2 @144 = 1,0,0,0
+nat     VS b2 @160 = 0,1,0,0
+nat     VS b2 @176 = 0,0,-1,0
+nat     VS b2 @192 = -1,-2,-10,1
+nat     VS b2 @208 = 0,0,0,0
+nat     VS b2 @224 = 0,0,0,0
+nat     VS b2 @240 = 0,0,0,0
+nat     VS b2 @256 = 0,0,0,0
+nat     VS b2 @272 = 1.60838,0,0,0
+nat     VS b2 @288 = 0,2.14450669,0,0
+nat     VS b2 @304 = 0,0,-0.002506256,1
+nat     VS b2 @320 = -1.60838,-4.28901339,0.476190567,10
+nat     VS b2 @336 = 0,0,0,0
+nat     VS b2 @352 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 1.60838,0,0,0
+nat     VS b3 @288 = 0,2.14450669,0,0
+nat     VS b3 @304 = 0,0,-0.002506256,1
+nat     VS b3 @320 = -1.60838,-4.28901339,0.476190567,10
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=64 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 1,1,0,0
+nat     PS b0 @48 = 1,1,1,1
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.5047544,10.095088,20.190176,30.2852631
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1052,561,-629,0
+nat     PS b1 @80 = -1,0.5,200,0.005
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 6,3,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x40 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=1024 Height=768 MinDepth=0 MaxDepth=1
+nat capture persp screen Legacy Shaders/Particles/Additive[SOFTPARTICLES_ON]
+nat   VS b0 byteWidth=80 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0.5,0.5,0.5,0.5
+nat     VS b0 @48 = 1,1,0,0
+nat     VS b0 @64 = 1,0,0,0
+nat   VS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 0.5047544,10.095088,20.190176,30.2852631
+nat     VS b1 @16 = 0,0,0,0
+nat     VS b1 @32 = 0,0,0,0
+nat     VS b1 @48 = 0,0,0,0
+nat     VS b1 @64 = 1052,561,-629,0
+nat     VS b1 @80 = 1,0.5,200,0.005
+nat     VS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     VS b1 @112 = 399,1,1.995,0.004999995
+nat     VS b1 @128 = 6,3,0,0
+nat   VS b2 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 1,0,0,0
+nat     VS b2 @16 = 0,1,0,0
+nat     VS b2 @32 = 0,0,1,0
+nat     VS b2 @48 = 1,2,0,1
+nat     VS b2 @64 = 1,0,0,0
+nat     VS b2 @80 = 0,1,0,0
+nat     VS b2 @96 = 0,0,1,0
+nat     VS b2 @112 = 0,0,0,1
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 1.60838,0,0,0
+nat     VS b3 @288 = 0,2.14450669,0,0
+nat     VS b3 @304 = 0,0,-0.002506256,1
+nat     VS b3 @320 = -1.60838,-4.28901339,0.476190567,10
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=80 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0.5,0.5,0.5,0.5
+nat     PS b0 @48 = 1,1,0,0
+nat     PS b0 @64 = 1,0,0,0
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.5047544,10.095088,20.190176,30.2852631
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1052,561,-629,0
+nat     PS b1 @80 = 1,0.5,200,0.005
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 6,3,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x40 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=1024 Height=768 MinDepth=0 MaxDepth=1
+nat capture persp screen Hidden/Internal-CombineDepthNormals
+nat   VS b0 byteWidth=48 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0,0,0,0
+nat   VS b1 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 1,0,0,0
+nat     VS b1 @16 = 0,1,0,0
+nat     VS b1 @32 = 0,0,1,0
+nat     VS b1 @48 = 1,2,0,1
+nat     VS b1 @64 = 1,0,0,0
+nat     VS b1 @80 = 0,1,0,0
+nat     VS b1 @96 = 0,0,1,0
+nat     VS b1 @112 = 0,0,0,1
+nat     VS b1 @128 = 0,0,0,0
+nat     VS b1 @144 = 0,0,0,0
+nat     VS b1 @160 = 0,0,0,0
+nat   VS b2 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 0,0,0,0
+nat     VS b2 @16 = 0,0,0,0
+nat     VS b2 @32 = 0,0,0,0
+nat     VS b2 @48 = 0,0,0,0
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0.00167968753,0,0,0
+nat     VS b2 @96 = 0,0.00223958353,0,0
+nat     VS b2 @112 = 0,0,0.000430000015,0
+nat     VS b2 @128 = 0,0,0.5,1
+nat     VS b2 @144 = 1,0,0,0
+nat     VS b2 @160 = 0,1,0,0
+nat     VS b2 @176 = 0,0,-1,0
+nat     VS b2 @192 = -1,-2,-10,1
+nat     VS b2 @208 = 0,0,0,0
+nat     VS b2 @224 = 0,0,0,0
+nat     VS b2 @240 = 0,0,0,0
+nat     VS b2 @256 = 0,0,0,0
+nat     VS b2 @272 = 1.60838,0,0,0
+nat     VS b2 @288 = 0,2.14450669,0,0
+nat     VS b2 @304 = 0,0,-0.002506256,1
+nat     VS b2 @320 = -1.60838,-4.28901339,0.476190567,10
+nat     VS b2 @336 = 0,0,0,0
+nat     VS b2 @352 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 1.60838,0,0,0
+nat     VS b3 @288 = 0,2.14450669,0,0
+nat     VS b3 @304 = 0,0,-0.002506256,1
+nat     VS b3 @320 = -1.60838,-4.28901339,0.476190567,10
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0.5047544,10.095088,20.190176,30.2852631
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0,0,0,0
+nat     PS b0 @64 = 1052,561,-629,0
+nat     PS b0 @80 = 1,0.5,200,0.005
+nat     PS b0 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b0 @112 = 399,1,1.995,0.004999995
+nat     PS b0 @128 = 6,3,0,0
+nat   PS b1 byteWidth=352 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0,0,0,0
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 0,0,0,0
+nat     PS b1 @80 = 0,0,0,0
+nat     PS b1 @96 = 0,0,0,0
+nat     PS b1 @112 = 0,0,0,0
+nat     PS b1 @128 = 0,0,0,0
+nat     PS b1 @144 = 0,0,0,0
+nat     PS b1 @160 = 0,0,0,0
+nat     PS b1 @176 = 0,0,0,0
+nat     PS b1 @192 = 0,0,0,0
+nat     PS b1 @208 = 0,0,0,0
+nat     PS b1 @224 = 1,0,0,0
+nat     PS b1 @240 = 0,1,0,0
+nat     PS b1 @256 = 0,0,1,0
+nat     PS b1 @272 = -1,-2,10,1
+nat     PS b1 @288 = 0,0,0,0
+nat     PS b1 @304 = 0,0,0,0
+nat     PS b1 @320 = 0,0,0,0
+nat     PS b1 @336 = 0,0,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x40 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=1024 Height=768 MinDepth=0 MaxDepth=1
+nat capture persp screen Klei/Liquid[_SAMPLEFILTERING_NONE]
+nat   VS b0 byteWidth=1600 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0,0,0,0
+nat     VS b0 @48 = 0.1,0,0,0
+nat     VS b0 @64 = 0,0,0,0
+nat     VS b0 @80 = 0,0,0,0
+nat     VS b0 @96 = 0,0,0,0
+nat     VS b0 @112 = 0,0,0,0
+nat     VS b0 @128 = 0,0,0,0
+nat     VS b0 @144 = 0,0,0,0
+nat     VS b0 @160 = 0,0,0,0
+nat     VS b0 @176 = 0,0,0,0
+nat     VS b0 @192 = 0,0,0,0
+nat     VS b0 @208 = 0,0,0,0
+nat     VS b0 @224 = 0,0,0,0
+nat     VS b0 @240 = 0,0,0,0
+nat     VS b0 @256 = 0,0,0,0
+nat     VS b0 @272 = 0,0,0,0
+nat     VS b0 @288 = 0,0,0,0
+nat     VS b0 @304 = 0,0,0,0
+nat     VS b0 @320 = 0,0,0,0
+nat     VS b0 @336 = 0,0,0,0
+nat     VS b0 @352 = 0,0,0,0
+nat     VS b0 @368 = 0,0,0,0
+nat     VS b0 @384 = 0,0,0,0
+nat     VS b0 @400 = 0,0,0,0
+nat     VS b0 @416 = 0,0,0,0
+nat     VS b0 @432 = 0,0,0,0
+nat     VS b0 @448 = 0,0,0,0
+nat     VS b0 @464 = 0,0,0,0
+nat     VS b0 @480 = 0,0,0,0
+nat     VS b0 @496 = 0,0,0,0
+nat     VS b0 @512 = 0,0,0,0
+nat     VS b0 @528 = 0,0,0,0
+nat     VS b0 @544 = 0,0,0,0
+nat     VS b0 @560 = 0,0,0,0
+nat     VS b0 @576 = 0,0,0,0
+nat     VS b0 @592 = 0,0,0,0
+nat     VS b0 @608 = 0,0,0,0
+nat     VS b0 @624 = 0,0,0,0
+nat     VS b0 @640 = 0,0,0,0
+nat     VS b0 @656 = 0,0,0,0
+nat     VS b0 @672 = 0,0,0,0
+nat     VS b0 @688 = 0,0,0,0
+nat     VS b0 @704 = 0,0,0,0
+nat     VS b0 @720 = 0,0,0,0
+nat     VS b0 @736 = 0,0,0,0
+nat     VS b0 @752 = 0,0,0,0
+nat     VS b0 @768 = 0,0,0,0
+nat     VS b0 @784 = 0,0,0,0
+nat     VS b0 @800 = 0,0,0,0
+nat     VS b0 @816 = 0,0,0,0
+nat     VS b0 @832 = 0,0,0,0
+nat     VS b0 @848 = 0,0,0,0
+nat     VS b0 @864 = 0,0,0,0
+nat     VS b0 @880 = 0,0,0,0
+nat     VS b0 @896 = 0,0,0,0
+nat     VS b0 @912 = 0,0,0,0
+nat     VS b0 @928 = 0,0,0,0
+nat     VS b0 @944 = 0,0,0,0
+nat     VS b0 @960 = 0,0,0,0
+nat     VS b0 @976 = 0,0,0,0
+nat     VS b0 @992 = 0,0,0,0
+nat     VS b0 @1008 = 0,0,0,0
+nat   VS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 0.5055876,10.1117516,20.2235031,30.3352547
+nat     VS b1 @16 = 0,0,0,0
+nat     VS b1 @32 = 0,0,0,0
+nat     VS b1 @48 = 0,0,0,0
+nat     VS b1 @64 = 1,2,-10,0
+nat     VS b1 @80 = 1,0.5,200,0.005
+nat     VS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     VS b1 @112 = 399,1,1.995,0.004999995
+nat     VS b1 @128 = 4,3,0,0
+nat   VS b2 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 1,0,0,0
+nat     VS b2 @16 = 0,1,0,0
+nat     VS b2 @32 = 0,0,1,0
+nat     VS b2 @48 = 1,2,0,1
+nat     VS b2 @64 = 1,0,0,0
+nat     VS b2 @80 = 0,1,0,0
+nat     VS b2 @96 = 0,0,1,0
+nat     VS b2 @112 = 0,0,0,1
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 1.60838,0,0,0
+nat     VS b3 @288 = 0,2.14450669,0,0
+nat     VS b3 @304 = 0,0,-0.002506256,1
+nat     VS b3 @320 = -1.60838,-4.28901339,0.476190567,10
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=1600 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0.1,0,0,0
+nat     PS b0 @64 = 0,0,0,0
+nat     PS b0 @80 = 0,0,0,0
+nat     PS b0 @96 = 0,0,0,0
+nat     PS b0 @112 = 0,0,0,0
+nat     PS b0 @128 = 0,0,0,0
+nat     PS b0 @144 = 0,0,0,0
+nat     PS b0 @160 = 0,0,0,0
+nat     PS b0 @176 = 0,0,0,0
+nat     PS b0 @192 = 0,0,0,0
+nat     PS b0 @208 = 0,0,0,0
+nat     PS b0 @224 = 0,0,0,0
+nat     PS b0 @240 = 0,0,0,0
+nat     PS b0 @256 = 0,0,0,0
+nat     PS b0 @272 = 0,0,0,0
+nat     PS b0 @288 = 0,0,0,0
+nat     PS b0 @304 = 0,0,0,0
+nat     PS b0 @320 = 0,0,0,0
+nat     PS b0 @336 = 0,0,0,0
+nat     PS b0 @352 = 0,0,0,0
+nat     PS b0 @368 = 0,0,0,0
+nat     PS b0 @384 = 0,0,0,0
+nat     PS b0 @400 = 0,0,0,0
+nat     PS b0 @416 = 0,0,0,0
+nat     PS b0 @432 = 0,0,0,0
+nat     PS b0 @448 = 0,0,0,0
+nat     PS b0 @464 = 0,0,0,0
+nat     PS b0 @480 = 0,0,0,0
+nat     PS b0 @496 = 0,0,0,0
+nat     PS b0 @512 = 0,0,0,0
+nat     PS b0 @528 = 0,0,0,0
+nat     PS b0 @544 = 0,0,0,0
+nat     PS b0 @560 = 0,0,0,0
+nat     PS b0 @576 = 0,0,0,0
+nat     PS b0 @592 = 0,0,0,0
+nat     PS b0 @608 = 0,0,0,0
+nat     PS b0 @624 = 0,0,0,0
+nat     PS b0 @640 = 0,0,0,0
+nat     PS b0 @656 = 0,0,0,0
+nat     PS b0 @672 = 0,0,0,0
+nat     PS b0 @688 = 0,0,0,0
+nat     PS b0 @704 = 0,0,0,0
+nat     PS b0 @720 = 0,0,0,0
+nat     PS b0 @736 = 0,0,0,0
+nat     PS b0 @752 = 0,0,0,0
+nat     PS b0 @768 = 0,0,0,0
+nat     PS b0 @784 = 0,0,0,0
+nat     PS b0 @800 = 0,0,0,0
+nat     PS b0 @816 = 0,0,0,0
+nat     PS b0 @832 = 0,0,0,0
+nat     PS b0 @848 = 0,0,0,0
+nat     PS b0 @864 = 0,0,0,0
+nat     PS b0 @880 = 0,0,0,0
+nat     PS b0 @896 = 0,0,0,0
+nat     PS b0 @912 = 0,0,0,0
+nat     PS b0 @928 = 0,0,0,0
+nat     PS b0 @944 = 0,0,0,0
+nat     PS b0 @960 = 0,0,0,0
+nat     PS b0 @976 = 0,0,0,0
+nat     PS b0 @992 = 0,0,0,0
+nat     PS b0 @1008 = 0,0,0,0
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.5055876,10.1117516,20.2235031,30.3352547
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1,2,-10,0
+nat     PS b1 @80 = 1,0.5,200,0.005
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 4,3,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x40 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=1024 Height=768 MinDepth=0 MaxDepth=1
+nat camera persp screen Shader.GetGlobalVector(_ProjectionParams) after=1,0.3,1000,0.001
+nat camera persp screen Shader.GetGlobalVector(_ScreenParams) after=1024,768,1.00097656,1.00130212
+nat camera persp screen Shader.GetGlobalVector(_ZBufferParams) after=3332.33325,1,3.33233333,0.00100016594
+nat camera persp screen Shader.GetGlobalVector(unity_OrthoParams) after=774.93335,581.2,0,1
+nat camera ortho rt64x32 projectionMatrix=[0.166666672,0,0,0] [0,0.333333343,0,0] [0,0,-0.0100250626,-1.00501251] [0,0,0,1] gpu(false)=[0.166666672,0,0,0] [0,0.333333343,0,0] [0,0,0.0050125313,1.00250626] [0,0,0,1] gpu(true)=[0.166666672,0,0,0] [0,-0.333333343,0,0] [0,0,0.0050125313,1.00250626] [0,0,0,1] worldToCamera=[1,0,0,-1] [0,1,0,-2] [0,0,-1,-10] [0,0,0,1] pixel=64x32
+nat capture ortho rt64x32 Hidden/Internal-Colored
+nat   VS b0 byteWidth=48 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 1,1,1,1
+nat   VS b1 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 1,0,0,0
+nat     VS b1 @16 = 0,1,0,0
+nat     VS b1 @32 = 0,0,1,0
+nat     VS b1 @48 = 1,2,0,1
+nat     VS b1 @64 = 1,0,0,0
+nat     VS b1 @80 = 0,1,0,0
+nat     VS b1 @96 = 0,0,1,0
+nat     VS b1 @112 = 0,0,0,1
+nat     VS b1 @128 = 0,0,0,0
+nat     VS b1 @144 = 0,0,0,0
+nat     VS b1 @160 = 0,0,0,0
+nat   VS b2 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 0,0,0,0
+nat     VS b2 @16 = 0,0,0,0
+nat     VS b2 @32 = 0,0,0,0
+nat     VS b2 @48 = 0,0,0,0
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0.00167968753,0,0,0
+nat     VS b2 @96 = 0,0.00223958353,0,0
+nat     VS b2 @112 = 0,0,0.000430000015,0
+nat     VS b2 @128 = 0,0,0.5,1
+nat     VS b2 @144 = 1,0,0,0
+nat     VS b2 @160 = 0,1,0,0
+nat     VS b2 @176 = 0,0,-1,0
+nat     VS b2 @192 = -1,-2,-10,1
+nat     VS b2 @208 = 0,0,0,0
+nat     VS b2 @224 = 0,0,0,0
+nat     VS b2 @240 = 0,0,0,0
+nat     VS b2 @256 = 0,0,0,0
+nat     VS b2 @272 = 0.166666672,0,0,0
+nat     VS b2 @288 = 0,-0.333333343,0,0
+nat     VS b2 @304 = 0,0,-0.0050125313,0
+nat     VS b2 @320 = -0.166666672,0.6666667,0.952380955,1
+nat     VS b2 @336 = 0,0,0,0
+nat     VS b2 @352 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 0.166666672,0,0,0
+nat     VS b3 @288 = 0,-0.333333343,0,0
+nat     VS b3 @304 = 0,0,-0.0050125313,0
+nat     VS b3 @320 = -0.166666672,0.6666667,0.952380955,1
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0,0,0,0
+nat     PS b0 @64 = 0,0,0,0
+nat     PS b0 @80 = 0,0,0,0
+nat     PS b0 @96 = 1,1,1,1
+nat     PS b0 @112 = 0,0,0,0
+nat     PS b0 @128 = -Infinity,-Infinity,Infinity,Infinity
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.5064234,10.1284676,20.2569351,30.3854027
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1052,561,-629,0
+nat     PS b1 @80 = 1,0.5,200,0.005
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 4,3,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=64 Height=32 MinDepth=0 MaxDepth=1
+nat capture ortho rt64x32 Legacy Shaders/Particles/Additive[SOFTPARTICLES_ON]
+nat   VS b0 byteWidth=80 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0.5,0.5,0.5,0.5
+nat     VS b0 @48 = 1,1,0,0
+nat     VS b0 @64 = 1,0,0,0
+nat   VS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 0.5064234,10.1284676,20.2569351,30.3854027
+nat     VS b1 @16 = 0,0,0,0
+nat     VS b1 @32 = 0,0,0,0
+nat     VS b1 @48 = 0,0,0,0
+nat     VS b1 @64 = 1052,561,-629,0
+nat     VS b1 @80 = -1,0.5,200,0.005
+nat     VS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     VS b1 @112 = 399,1,1.995,0.004999995
+nat     VS b1 @128 = 4,3,0,0
+nat   VS b2 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 1,0,0,0
+nat     VS b2 @16 = 0,1,0,0
+nat     VS b2 @32 = 0,0,1,0
+nat     VS b2 @48 = 1,2,0,1
+nat     VS b2 @64 = 1,0,0,0
+nat     VS b2 @80 = 0,1,0,0
+nat     VS b2 @96 = 0,0,1,0
+nat     VS b2 @112 = 0,0,0,1
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 0.166666672,0,0,0
+nat     VS b3 @288 = 0,-0.333333343,0,0
+nat     VS b3 @304 = 0,0,-0.0050125313,0
+nat     VS b3 @320 = -0.166666672,0.6666667,0.952380955,1
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=80 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0.5,0.5,0.5,0.5
+nat     PS b0 @48 = 1,1,0,0
+nat     PS b0 @64 = 1,0,0,0
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.5064234,10.1284676,20.2569351,30.3854027
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1052,561,-629,0
+nat     PS b1 @80 = -1,0.5,200,0.005
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 4,3,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=64 Height=32 MinDepth=0 MaxDepth=1
+nat capture ortho rt64x32 Hidden/Internal-CombineDepthNormals
+nat   VS b0 byteWidth=48 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0,0,0,0
+nat   VS b1 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 1,0,0,0
+nat     VS b1 @16 = 0,1,0,0
+nat     VS b1 @32 = 0,0,1,0
+nat     VS b1 @48 = 1,2,0,1
+nat     VS b1 @64 = 1,0,0,0
+nat     VS b1 @80 = 0,1,0,0
+nat     VS b1 @96 = 0,0,1,0
+nat     VS b1 @112 = 0,0,0,1
+nat     VS b1 @128 = 0,0,0,0
+nat     VS b1 @144 = 0,0,0,0
+nat     VS b1 @160 = 0,0,0,0
+nat   VS b2 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 0,0,0,0
+nat     VS b2 @16 = 0,0,0,0
+nat     VS b2 @32 = 0,0,0,0
+nat     VS b2 @48 = 0,0,0,0
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0.00167968753,0,0,0
+nat     VS b2 @96 = 0,0.00223958353,0,0
+nat     VS b2 @112 = 0,0,0.000430000015,0
+nat     VS b2 @128 = 0,0,0.5,1
+nat     VS b2 @144 = 1,0,0,0
+nat     VS b2 @160 = 0,1,0,0
+nat     VS b2 @176 = 0,0,-1,0
+nat     VS b2 @192 = -1,-2,-10,1
+nat     VS b2 @208 = 0,0,0,0
+nat     VS b2 @224 = 0,0,0,0
+nat     VS b2 @240 = 0,0,0,0
+nat     VS b2 @256 = 0,0,0,0
+nat     VS b2 @272 = 0.166666672,0,0,0
+nat     VS b2 @288 = 0,-0.333333343,0,0
+nat     VS b2 @304 = 0,0,-0.0050125313,0
+nat     VS b2 @320 = -0.166666672,0.6666667,0.952380955,1
+nat     VS b2 @336 = 0,0,0,0
+nat     VS b2 @352 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 0.166666672,0,0,0
+nat     VS b3 @288 = 0,-0.333333343,0,0
+nat     VS b3 @304 = 0,0,-0.0050125313,0
+nat     VS b3 @320 = -0.166666672,0.6666667,0.952380955,1
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0.5064234,10.1284676,20.2569351,30.3854027
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0,0,0,0
+nat     PS b0 @64 = 1052,561,-629,0
+nat     PS b0 @80 = -1,0.5,200,0.005
+nat     PS b0 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b0 @112 = 399,1,1.995,0.004999995
+nat     PS b0 @128 = 4,3,0,0
+nat   PS b1 byteWidth=352 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0,0,0,0
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 0,0,0,0
+nat     PS b1 @80 = 0,0,0,0
+nat     PS b1 @96 = 0,0,0,0
+nat     PS b1 @112 = 0,0,0,0
+nat     PS b1 @128 = 0,0,0,0
+nat     PS b1 @144 = 0,0,0,0
+nat     PS b1 @160 = 0,0,0,0
+nat     PS b1 @176 = 0,0,0,0
+nat     PS b1 @192 = 0,0,0,0
+nat     PS b1 @208 = 0,0,0,0
+nat     PS b1 @224 = 1,0,0,0
+nat     PS b1 @240 = 0,1,0,0
+nat     PS b1 @256 = 0,0,1,0
+nat     PS b1 @272 = -1,-2,10,1
+nat     PS b1 @288 = 0,0,0,0
+nat     PS b1 @304 = 0,0,0,0
+nat     PS b1 @320 = 0,0,0,0
+nat     PS b1 @336 = 0,0,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=64 Height=32 MinDepth=0 MaxDepth=1
+nat capture ortho rt64x32 Klei/Liquid[_SAMPLEFILTERING_NONE]
+nat   VS b0 byteWidth=1600 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0,0,0,0
+nat     VS b0 @48 = 0.1,0,0,0
+nat     VS b0 @64 = 0,0,0,0
+nat     VS b0 @80 = 0,0,0,0
+nat     VS b0 @96 = 0,0,0,0
+nat     VS b0 @112 = 0,0,0,0
+nat     VS b0 @128 = 0,0,0,0
+nat     VS b0 @144 = 0,0,0,0
+nat     VS b0 @160 = 0,0,0,0
+nat     VS b0 @176 = 0,0,0,0
+nat     VS b0 @192 = 0,0,0,0
+nat     VS b0 @208 = 0,0,0,0
+nat     VS b0 @224 = 0,0,0,0
+nat     VS b0 @240 = 0,0,0,0
+nat     VS b0 @256 = 0,0,0,0
+nat     VS b0 @272 = 0,0,0,0
+nat     VS b0 @288 = 0,0,0,0
+nat     VS b0 @304 = 0,0,0,0
+nat     VS b0 @320 = 0,0,0,0
+nat     VS b0 @336 = 0,0,0,0
+nat     VS b0 @352 = 0,0,0,0
+nat     VS b0 @368 = 0,0,0,0
+nat     VS b0 @384 = 0,0,0,0
+nat     VS b0 @400 = 0,0,0,0
+nat     VS b0 @416 = 0,0,0,0
+nat     VS b0 @432 = 0,0,0,0
+nat     VS b0 @448 = 0,0,0,0
+nat     VS b0 @464 = 0,0,0,0
+nat     VS b0 @480 = 0,0,0,0
+nat     VS b0 @496 = 0,0,0,0
+nat     VS b0 @512 = 0,0,0,0
+nat     VS b0 @528 = 0,0,0,0
+nat     VS b0 @544 = 0,0,0,0
+nat     VS b0 @560 = 0,0,0,0
+nat     VS b0 @576 = 0,0,0,0
+nat     VS b0 @592 = 0,0,0,0
+nat     VS b0 @608 = 0,0,0,0
+nat     VS b0 @624 = 0,0,0,0
+nat     VS b0 @640 = 0,0,0,0
+nat     VS b0 @656 = 0,0,0,0
+nat     VS b0 @672 = 0,0,0,0
+nat     VS b0 @688 = 0,0,0,0
+nat     VS b0 @704 = 0,0,0,0
+nat     VS b0 @720 = 0,0,0,0
+nat     VS b0 @736 = 0,0,0,0
+nat     VS b0 @752 = 0,0,0,0
+nat     VS b0 @768 = 0,0,0,0
+nat     VS b0 @784 = 0,0,0,0
+nat     VS b0 @800 = 0,0,0,0
+nat     VS b0 @816 = 0,0,0,0
+nat     VS b0 @832 = 0,0,0,0
+nat     VS b0 @848 = 0,0,0,0
+nat     VS b0 @864 = 0,0,0,0
+nat     VS b0 @880 = 0,0,0,0
+nat     VS b0 @896 = 0,0,0,0
+nat     VS b0 @912 = 0,0,0,0
+nat     VS b0 @928 = 0,0,0,0
+nat     VS b0 @944 = 0,0,0,0
+nat     VS b0 @960 = 0,0,0,0
+nat     VS b0 @976 = 0,0,0,0
+nat     VS b0 @992 = 0,0,0,0
+nat     VS b0 @1008 = 0,0,0,0
+nat   VS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 0.507256567,10.1451311,20.2902622,30.4353943
+nat     VS b1 @16 = 0,0,0,0
+nat     VS b1 @32 = 0,0,0,0
+nat     VS b1 @48 = 0,0,0,0
+nat     VS b1 @64 = 1,2,-10,0
+nat     VS b1 @80 = -1,0.5,200,0.005
+nat     VS b1 @96 = 64,32,1.015625,1.03125
+nat     VS b1 @112 = 399,1,1.995,0.004999995
+nat     VS b1 @128 = 6,3,0,1
+nat   VS b2 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 1,0,0,0
+nat     VS b2 @16 = 0,1,0,0
+nat     VS b2 @32 = 0,0,1,0
+nat     VS b2 @48 = 1,2,0,1
+nat     VS b2 @64 = 1,0,0,0
+nat     VS b2 @80 = 0,1,0,0
+nat     VS b2 @96 = 0,0,1,0
+nat     VS b2 @112 = 0,0,0,1
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 0.166666672,0,0,0
+nat     VS b3 @288 = 0,-0.333333343,0,0
+nat     VS b3 @304 = 0,0,-0.0050125313,0
+nat     VS b3 @320 = -0.166666672,0.6666667,0.952380955,1
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=1600 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0.1,0,0,0
+nat     PS b0 @64 = 0,0,0,0
+nat     PS b0 @80 = 0,0,0,0
+nat     PS b0 @96 = 0,0,0,0
+nat     PS b0 @112 = 0,0,0,0
+nat     PS b0 @128 = 0,0,0,0
+nat     PS b0 @144 = 0,0,0,0
+nat     PS b0 @160 = 0,0,0,0
+nat     PS b0 @176 = 0,0,0,0
+nat     PS b0 @192 = 0,0,0,0
+nat     PS b0 @208 = 0,0,0,0
+nat     PS b0 @224 = 0,0,0,0
+nat     PS b0 @240 = 0,0,0,0
+nat     PS b0 @256 = 0,0,0,0
+nat     PS b0 @272 = 0,0,0,0
+nat     PS b0 @288 = 0,0,0,0
+nat     PS b0 @304 = 0,0,0,0
+nat     PS b0 @320 = 0,0,0,0
+nat     PS b0 @336 = 0,0,0,0
+nat     PS b0 @352 = 0,0,0,0
+nat     PS b0 @368 = 0,0,0,0
+nat     PS b0 @384 = 0,0,0,0
+nat     PS b0 @400 = 0,0,0,0
+nat     PS b0 @416 = 0,0,0,0
+nat     PS b0 @432 = 0,0,0,0
+nat     PS b0 @448 = 0,0,0,0
+nat     PS b0 @464 = 0,0,0,0
+nat     PS b0 @480 = 0,0,0,0
+nat     PS b0 @496 = 0,0,0,0
+nat     PS b0 @512 = 0,0,0,0
+nat     PS b0 @528 = 0,0,0,0
+nat     PS b0 @544 = 0,0,0,0
+nat     PS b0 @560 = 0,0,0,0
+nat     PS b0 @576 = 0,0,0,0
+nat     PS b0 @592 = 0,0,0,0
+nat     PS b0 @608 = 0,0,0,0
+nat     PS b0 @624 = 0,0,0,0
+nat     PS b0 @640 = 0,0,0,0
+nat     PS b0 @656 = 0,0,0,0
+nat     PS b0 @672 = 0,0,0,0
+nat     PS b0 @688 = 0,0,0,0
+nat     PS b0 @704 = 0,0,0,0
+nat     PS b0 @720 = 0,0,0,0
+nat     PS b0 @736 = 0,0,0,0
+nat     PS b0 @752 = 0,0,0,0
+nat     PS b0 @768 = 0,0,0,0
+nat     PS b0 @784 = 0,0,0,0
+nat     PS b0 @800 = 0,0,0,0
+nat     PS b0 @816 = 0,0,0,0
+nat     PS b0 @832 = 0,0,0,0
+nat     PS b0 @848 = 0,0,0,0
+nat     PS b0 @864 = 0,0,0,0
+nat     PS b0 @880 = 0,0,0,0
+nat     PS b0 @896 = 0,0,0,0
+nat     PS b0 @912 = 0,0,0,0
+nat     PS b0 @928 = 0,0,0,0
+nat     PS b0 @944 = 0,0,0,0
+nat     PS b0 @960 = 0,0,0,0
+nat     PS b0 @976 = 0,0,0,0
+nat     PS b0 @992 = 0,0,0,0
+nat     PS b0 @1008 = 0,0,0,0
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.507256567,10.1451311,20.2902622,30.4353943
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1,2,-10,0
+nat     PS b1 @80 = -1,0.5,200,0.005
+nat     PS b1 @96 = 64,32,1.015625,1.03125
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 6,3,0,1
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 64x32 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x48 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=64 Height=32 MinDepth=0 MaxDepth=1
+nat camera ortho rt64x32 Shader.GetGlobalVector(_ProjectionParams) after=1,0.3,1000,0.001
+nat camera ortho rt64x32 Shader.GetGlobalVector(_ScreenParams) after=1024,768,1.00097656,1.00130212
+nat camera ortho rt64x32 Shader.GetGlobalVector(_ZBufferParams) after=3332.33325,1,3.33233333,0.00100016594
+nat camera ortho rt64x32 Shader.GetGlobalVector(unity_OrthoParams) after=774.93335,581.2,0,1
+nat camera ortho screen projectionMatrix=[0.25,0,0,0] [0,0.333333343,0,0] [0,0,-0.0100250626,-1.00501251] [0,0,0,1] gpu(false)=[0.25,0,0,0] [0,0.333333343,0,0] [0,0,0.0050125313,1.00250626] [0,0,0,1] gpu(true)=[0.25,0,0,0] [0,-0.333333343,0,0] [0,0,0.0050125313,1.00250626] [0,0,0,1] worldToCamera=[1,0,0,-1] [0,1,0,-2] [0,0,-1,-10] [0,0,0,1] pixel=1024x768
+nat capture ortho screen Hidden/Internal-Colored
+nat   VS b0 byteWidth=48 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 1,1,1,1
+nat   VS b1 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 1,0,0,0
+nat     VS b1 @16 = 0,1,0,0
+nat     VS b1 @32 = 0,0,1,0
+nat     VS b1 @48 = 1,2,0,1
+nat     VS b1 @64 = 1,0,0,0
+nat     VS b1 @80 = 0,1,0,0
+nat     VS b1 @96 = 0,0,1,0
+nat     VS b1 @112 = 0,0,0,1
+nat     VS b1 @128 = 0,0,0,0
+nat     VS b1 @144 = 0,0,0,0
+nat     VS b1 @160 = 0,0,0,0
+nat   VS b2 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 0,0,0,0
+nat     VS b2 @16 = 0,0,0,0
+nat     VS b2 @32 = 0,0,0,0
+nat     VS b2 @48 = 0,0,0,0
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0.00167968753,0,0,0
+nat     VS b2 @96 = 0,0.00223958353,0,0
+nat     VS b2 @112 = 0,0,0.000430000015,0
+nat     VS b2 @128 = 0,0,0.5,1
+nat     VS b2 @144 = 1,0,0,0
+nat     VS b2 @160 = 0,1,0,0
+nat     VS b2 @176 = 0,0,-1,0
+nat     VS b2 @192 = -1,-2,-10,1
+nat     VS b2 @208 = 0,0,0,0
+nat     VS b2 @224 = 0,0,0,0
+nat     VS b2 @240 = 0,0,0,0
+nat     VS b2 @256 = 0,0,0,0
+nat     VS b2 @272 = 0.25,0,0,0
+nat     VS b2 @288 = 0,0.333333343,0,0
+nat     VS b2 @304 = 0,0,-0.0050125313,0
+nat     VS b2 @320 = -0.25,-0.6666667,0.952380955,1
+nat     VS b2 @336 = 0,0,0,0
+nat     VS b2 @352 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 0.25,0,0,0
+nat     VS b3 @288 = 0,0.333333343,0,0
+nat     VS b3 @304 = 0,0,-0.0050125313,0
+nat     VS b3 @320 = -0.25,-0.6666667,0.952380955,1
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=64 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 1,1,0,0
+nat     PS b0 @48 = 1,1,1,1
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.507256567,10.1451311,20.2902622,30.4353943
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1052,561,-629,0
+nat     PS b1 @80 = -1,0.5,200,0.005
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 6,3,0,1
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x40 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=1024 Height=768 MinDepth=0 MaxDepth=1
+nat capture ortho screen Legacy Shaders/Particles/Additive[SOFTPARTICLES_ON]
+nat   VS b0 byteWidth=80 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0.5,0.5,0.5,0.5
+nat     VS b0 @48 = 1,1,0,0
+nat     VS b0 @64 = 1,0,0,0
+nat   VS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 0.507256567,10.1451311,20.2902622,30.4353943
+nat     VS b1 @16 = 0,0,0,0
+nat     VS b1 @32 = 0,0,0,0
+nat     VS b1 @48 = 0,0,0,0
+nat     VS b1 @64 = 1052,561,-629,0
+nat     VS b1 @80 = 1,0.5,200,0.005
+nat     VS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     VS b1 @112 = 399,1,1.995,0.004999995
+nat     VS b1 @128 = 6,3,0,1
+nat   VS b2 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 1,0,0,0
+nat     VS b2 @16 = 0,1,0,0
+nat     VS b2 @32 = 0,0,1,0
+nat     VS b2 @48 = 1,2,0,1
+nat     VS b2 @64 = 1,0,0,0
+nat     VS b2 @80 = 0,1,0,0
+nat     VS b2 @96 = 0,0,1,0
+nat     VS b2 @112 = 0,0,0,1
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 0.25,0,0,0
+nat     VS b3 @288 = 0,0.333333343,0,0
+nat     VS b3 @304 = 0,0,-0.0050125313,0
+nat     VS b3 @320 = -0.25,-0.6666667,0.952380955,1
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=80 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0.5,0.5,0.5,0.5
+nat     PS b0 @48 = 1,1,0,0
+nat     PS b0 @64 = 1,0,0,0
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.507256567,10.1451311,20.2902622,30.4353943
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1052,561,-629,0
+nat     PS b1 @80 = 1,0.5,200,0.005
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 6,3,0,1
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x40 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=1024 Height=768 MinDepth=0 MaxDepth=1
+nat capture ortho screen Hidden/Internal-CombineDepthNormals
+nat   VS b0 byteWidth=48 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0,0,0,0
+nat   VS b1 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 1,0,0,0
+nat     VS b1 @16 = 0,1,0,0
+nat     VS b1 @32 = 0,0,1,0
+nat     VS b1 @48 = 1,2,0,1
+nat     VS b1 @64 = 1,0,0,0
+nat     VS b1 @80 = 0,1,0,0
+nat     VS b1 @96 = 0,0,1,0
+nat     VS b1 @112 = 0,0,0,1
+nat     VS b1 @128 = 0,0,0,0
+nat     VS b1 @144 = 0,0,0,0
+nat     VS b1 @160 = 0,0,0,0
+nat   VS b2 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 0,0,0,0
+nat     VS b2 @16 = 0,0,0,0
+nat     VS b2 @32 = 0,0,0,0
+nat     VS b2 @48 = 0,0,0,0
+nat     VS b2 @64 = 0,0,0,0
+nat     VS b2 @80 = 0.00167968753,0,0,0
+nat     VS b2 @96 = 0,0.00223958353,0,0
+nat     VS b2 @112 = 0,0,0.000430000015,0
+nat     VS b2 @128 = 0,0,0.5,1
+nat     VS b2 @144 = 1,0,0,0
+nat     VS b2 @160 = 0,1,0,0
+nat     VS b2 @176 = 0,0,-1,0
+nat     VS b2 @192 = -1,-2,-10,1
+nat     VS b2 @208 = 0,0,0,0
+nat     VS b2 @224 = 0,0,0,0
+nat     VS b2 @240 = 0,0,0,0
+nat     VS b2 @256 = 0,0,0,0
+nat     VS b2 @272 = 0.25,0,0,0
+nat     VS b2 @288 = 0,0.333333343,0,0
+nat     VS b2 @304 = 0,0,-0.0050125313,0
+nat     VS b2 @320 = -0.25,-0.6666667,0.952380955,1
+nat     VS b2 @336 = 0,0,0,0
+nat     VS b2 @352 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 0.25,0,0,0
+nat     VS b3 @288 = 0,0.333333343,0,0
+nat     VS b3 @304 = 0,0,-0.0050125313,0
+nat     VS b3 @320 = -0.25,-0.6666667,0.952380955,1
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0.507256567,10.1451311,20.2902622,30.4353943
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0,0,0,0
+nat     PS b0 @64 = 1052,561,-629,0
+nat     PS b0 @80 = 1,0.5,200,0.005
+nat     PS b0 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b0 @112 = 399,1,1.995,0.004999995
+nat     PS b0 @128 = 6,3,0,1
+nat   PS b1 byteWidth=352 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0,0,0,0
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 0,0,0,0
+nat     PS b1 @80 = 0,0,0,0
+nat     PS b1 @96 = 0,0,0,0
+nat     PS b1 @112 = 0,0,0,0
+nat     PS b1 @128 = 0,0,0,0
+nat     PS b1 @144 = 0,0,0,0
+nat     PS b1 @160 = 0,0,0,0
+nat     PS b1 @176 = 0,0,0,0
+nat     PS b1 @192 = 0,0,0,0
+nat     PS b1 @208 = 0,0,0,0
+nat     PS b1 @224 = 1,0,0,0
+nat     PS b1 @240 = 0,1,0,0
+nat     PS b1 @256 = 0,0,1,0
+nat     PS b1 @272 = -1,-2,10,1
+nat     PS b1 @288 = 0,0,0,0
+nat     PS b1 @304 = 0,0,0,0
+nat     PS b1 @320 = 0,0,0,0
+nat     PS b1 @336 = 0,0,0,0
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x40 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=1024 Height=768 MinDepth=0 MaxDepth=1
+nat capture ortho screen Klei/Liquid[_SAMPLEFILTERING_NONE]
+nat   VS b0 byteWidth=1600 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b0 @0 = 0,0,0,0
+nat     VS b0 @16 = 0,0,0,0
+nat     VS b0 @32 = 0,0,0,0
+nat     VS b0 @48 = 0.1,0,0,0
+nat     VS b0 @64 = 0,0,0,0
+nat     VS b0 @80 = 0,0,0,0
+nat     VS b0 @96 = 0,0,0,0
+nat     VS b0 @112 = 0,0,0,0
+nat     VS b0 @128 = 0,0,0,0
+nat     VS b0 @144 = 0,0,0,0
+nat     VS b0 @160 = 0,0,0,0
+nat     VS b0 @176 = 0,0,0,0
+nat     VS b0 @192 = 0,0,0,0
+nat     VS b0 @208 = 0,0,0,0
+nat     VS b0 @224 = 0,0,0,0
+nat     VS b0 @240 = 0,0,0,0
+nat     VS b0 @256 = 0,0,0,0
+nat     VS b0 @272 = 0,0,0,0
+nat     VS b0 @288 = 0,0,0,0
+nat     VS b0 @304 = 0,0,0,0
+nat     VS b0 @320 = 0,0,0,0
+nat     VS b0 @336 = 0,0,0,0
+nat     VS b0 @352 = 0,0,0,0
+nat     VS b0 @368 = 0,0,0,0
+nat     VS b0 @384 = 0,0,0,0
+nat     VS b0 @400 = 0,0,0,0
+nat     VS b0 @416 = 0,0,0,0
+nat     VS b0 @432 = 0,0,0,0
+nat     VS b0 @448 = 0,0,0,0
+nat     VS b0 @464 = 0,0,0,0
+nat     VS b0 @480 = 0,0,0,0
+nat     VS b0 @496 = 0,0,0,0
+nat     VS b0 @512 = 0,0,0,0
+nat     VS b0 @528 = 0,0,0,0
+nat     VS b0 @544 = 0,0,0,0
+nat     VS b0 @560 = 0,0,0,0
+nat     VS b0 @576 = 0,0,0,0
+nat     VS b0 @592 = 0,0,0,0
+nat     VS b0 @608 = 0,0,0,0
+nat     VS b0 @624 = 0,0,0,0
+nat     VS b0 @640 = 0,0,0,0
+nat     VS b0 @656 = 0,0,0,0
+nat     VS b0 @672 = 0,0,0,0
+nat     VS b0 @688 = 0,0,0,0
+nat     VS b0 @704 = 0,0,0,0
+nat     VS b0 @720 = 0,0,0,0
+nat     VS b0 @736 = 0,0,0,0
+nat     VS b0 @752 = 0,0,0,0
+nat     VS b0 @768 = 0,0,0,0
+nat     VS b0 @784 = 0,0,0,0
+nat     VS b0 @800 = 0,0,0,0
+nat     VS b0 @816 = 0,0,0,0
+nat     VS b0 @832 = 0,0,0,0
+nat     VS b0 @848 = 0,0,0,0
+nat     VS b0 @864 = 0,0,0,0
+nat     VS b0 @880 = 0,0,0,0
+nat     VS b0 @896 = 0,0,0,0
+nat     VS b0 @912 = 0,0,0,0
+nat     VS b0 @928 = 0,0,0,0
+nat     VS b0 @944 = 0,0,0,0
+nat     VS b0 @960 = 0,0,0,0
+nat     VS b0 @976 = 0,0,0,0
+nat     VS b0 @992 = 0,0,0,0
+nat     VS b0 @1008 = 0,0,0,0
+nat   VS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b1 @0 = 0.5080897,10.1617947,20.32359,30.485384
+nat     VS b1 @16 = 0,0,0,0
+nat     VS b1 @32 = 0,0,0,0
+nat     VS b1 @48 = 0,0,0,0
+nat     VS b1 @64 = 1,2,-10,0
+nat     VS b1 @80 = 1,0.5,200,0.005
+nat     VS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     VS b1 @112 = 399,1,1.995,0.004999995
+nat     VS b1 @128 = 4,3,0,1
+nat   VS b2 byteWidth=176 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b2 @0 = 1,0,0,0
+nat     VS b2 @16 = 0,1,0,0
+nat     VS b2 @32 = 0,0,1,0
+nat     VS b2 @48 = 1,2,0,1
+nat     VS b2 @64 = 1,0,0,0
+nat     VS b2 @80 = 0,1,0,0
+nat     VS b2 @96 = 0,0,1,0
+nat     VS b2 @112 = 0,0,0,1
+nat     VS b2 @128 = 0,0,0,0
+nat     VS b2 @144 = 0,0,0,0
+nat     VS b2 @160 = 0,0,0,0
+nat   VS b3 byteWidth=368 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     VS b3 @0 = 0,0,0,0
+nat     VS b3 @16 = 0,0,0,0
+nat     VS b3 @32 = 0,0,0,0
+nat     VS b3 @48 = 0,0,0,0
+nat     VS b3 @64 = 0,0,0,0
+nat     VS b3 @80 = 0.00167968753,0,0,0
+nat     VS b3 @96 = 0,0.00223958353,0,0
+nat     VS b3 @112 = 0,0,0.000430000015,0
+nat     VS b3 @128 = 0,0,0.5,1
+nat     VS b3 @144 = 1,0,0,0
+nat     VS b3 @160 = 0,1,0,0
+nat     VS b3 @176 = 0,0,-1,0
+nat     VS b3 @192 = -1,-2,-10,1
+nat     VS b3 @208 = 0,0,0,0
+nat     VS b3 @224 = 0,0,0,0
+nat     VS b3 @240 = 0,0,0,0
+nat     VS b3 @256 = 0,0,0,0
+nat     VS b3 @272 = 0.25,0,0,0
+nat     VS b3 @288 = 0,0.333333343,0,0
+nat     VS b3 @304 = 0,0,-0.0050125313,0
+nat     VS b3 @320 = -0.25,-0.6666667,0.952380955,1
+nat     VS b3 @336 = 0,0,0,0
+nat     VS b3 @352 = 0,0,0,0
+nat   PS b0 byteWidth=1600 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b0 @0 = 0,0,0,0
+nat     PS b0 @16 = 0,0,0,0
+nat     PS b0 @32 = 0,0,0,0
+nat     PS b0 @48 = 0.1,0,0,0
+nat     PS b0 @64 = 0,0,0,0
+nat     PS b0 @80 = 0,0,0,0
+nat     PS b0 @96 = 0,0,0,0
+nat     PS b0 @112 = 0,0,0,0
+nat     PS b0 @128 = 0,0,0,0
+nat     PS b0 @144 = 0,0,0,0
+nat     PS b0 @160 = 0,0,0,0
+nat     PS b0 @176 = 0,0,0,0
+nat     PS b0 @192 = 0,0,0,0
+nat     PS b0 @208 = 0,0,0,0
+nat     PS b0 @224 = 0,0,0,0
+nat     PS b0 @240 = 0,0,0,0
+nat     PS b0 @256 = 0,0,0,0
+nat     PS b0 @272 = 0,0,0,0
+nat     PS b0 @288 = 0,0,0,0
+nat     PS b0 @304 = 0,0,0,0
+nat     PS b0 @320 = 0,0,0,0
+nat     PS b0 @336 = 0,0,0,0
+nat     PS b0 @352 = 0,0,0,0
+nat     PS b0 @368 = 0,0,0,0
+nat     PS b0 @384 = 0,0,0,0
+nat     PS b0 @400 = 0,0,0,0
+nat     PS b0 @416 = 0,0,0,0
+nat     PS b0 @432 = 0,0,0,0
+nat     PS b0 @448 = 0,0,0,0
+nat     PS b0 @464 = 0,0,0,0
+nat     PS b0 @480 = 0,0,0,0
+nat     PS b0 @496 = 0,0,0,0
+nat     PS b0 @512 = 0,0,0,0
+nat     PS b0 @528 = 0,0,0,0
+nat     PS b0 @544 = 0,0,0,0
+nat     PS b0 @560 = 0,0,0,0
+nat     PS b0 @576 = 0,0,0,0
+nat     PS b0 @592 = 0,0,0,0
+nat     PS b0 @608 = 0,0,0,0
+nat     PS b0 @624 = 0,0,0,0
+nat     PS b0 @640 = 0,0,0,0
+nat     PS b0 @656 = 0,0,0,0
+nat     PS b0 @672 = 0,0,0,0
+nat     PS b0 @688 = 0,0,0,0
+nat     PS b0 @704 = 0,0,0,0
+nat     PS b0 @720 = 0,0,0,0
+nat     PS b0 @736 = 0,0,0,0
+nat     PS b0 @752 = 0,0,0,0
+nat     PS b0 @768 = 0,0,0,0
+nat     PS b0 @784 = 0,0,0,0
+nat     PS b0 @800 = 0,0,0,0
+nat     PS b0 @816 = 0,0,0,0
+nat     PS b0 @832 = 0,0,0,0
+nat     PS b0 @848 = 0,0,0,0
+nat     PS b0 @864 = 0,0,0,0
+nat     PS b0 @880 = 0,0,0,0
+nat     PS b0 @896 = 0,0,0,0
+nat     PS b0 @912 = 0,0,0,0
+nat     PS b0 @928 = 0,0,0,0
+nat     PS b0 @944 = 0,0,0,0
+nat     PS b0 @960 = 0,0,0,0
+nat     PS b0 @976 = 0,0,0,0
+nat     PS b0 @992 = 0,0,0,0
+nat     PS b0 @1008 = 0,0,0,0
+nat   PS b1 byteWidth=144 usage=2 bind=0x4 cpu=0x10000 firstConstant=0 numConstants=4096
+nat     PS b1 @0 = 0.5080897,10.1617947,20.32359,30.485384
+nat     PS b1 @16 = 0,0,0,0
+nat     PS b1 @32 = 0,0,0,0
+nat     PS b1 @48 = 0,0,0,0
+nat     PS b1 @64 = 1,2,-10,0
+nat     PS b1 @80 = 1,0.5,200,0.005
+nat     PS b1 @96 = 1024,768,1.00097656,1.00130212
+nat     PS b1 @112 = 399,1,1.995,0.004999995
+nat     PS b1 @128 = 4,3,0,1
+nat   RTV0 DXGI_FORMAT=28 dim=4 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=27 samples=1/0 usage=0 bind=0x28 cpu=0x0 misc=0x0
+nat   DSV DXGI_FORMAT=20 dim=3 rest=0,0,0,0 resource=Texture2D 1024x768 mips=1 array=1 DXGI_FORMAT=19 samples=1/0 usage=0 bind=0x40 cpu=0x0 misc=0x0
+nat   viewport0 TopLeftX=0 TopLeftY=0 Width=1024 Height=768 MinDepth=0 MaxDepth=1
+nat camera ortho screen Shader.GetGlobalVector(_ProjectionParams) after=1,0.3,1000,0.001
+nat camera ortho screen Shader.GetGlobalVector(_ScreenParams) after=1024,768,1.00097656,1.00130212
+nat camera ortho screen Shader.GetGlobalVector(_ZBufferParams) after=3332.33325,1,3.33233333,0.00100016594
+nat camera ortho screen Shader.GetGlobalVector(unity_OrthoParams) after=774.93335,581.2,0,1
+done
