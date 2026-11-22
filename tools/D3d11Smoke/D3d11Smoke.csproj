@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Windows only: a Direct3D 11 device on each adapter through OniMoono.Desktop's declarations
+         (tools/D3d11Smoke/run.sh). -->
+    <OutputType>Exe</OutputType>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/OniMoono.Desktop/OniMoono.Desktop.csproj" />
+  </ItemGroup>
+</Project>
