@@ -1430,9 +1430,14 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
 extern "C" int crash_dialog_render(int argc, wchar_t **argv)
 {
     static char *args[64];
-    static char storage[64][2048];
     if (argc > 64) return 2;
-    for (int i = 0; i < argc; i++) { to_utf8(argv[i], storage[i], sizeof storage[i]); args[i] = storage[i]; }
+    for (int i = 0; i < argc; i++)
+    {
+        int n = WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, NULL, 0, NULL, NULL);
+        args[i] = (char *)calloc(n > 0 ? (size_t)n : 1, 1);
+        if (!args[i]) return 1;
+        if (n > 0) WideCharToMultiByte(CP_UTF8, 0, argv[i], -1, args[i], n, NULL, NULL);
+    }
     static cw_render_options o;
     static cw_report r;
     if (!cw_render_args(argc, args, 1, &o, &r)) return 2;
