@@ -11,6 +11,9 @@
     <PackageVersion Include="Ahwoo.BRUTAL.ShaderC" Version="2026.10.3" />
     <PackageVersion Include="Ahwoo.BRUTAL.Stb" Version="2026.10.3" />
     <PackageVersion Include="Ahwoo.BRUTAL.FreeType" Version="2026.10.2" />
+    <!-- Natives only, for the Linux crash window (src/OniMoono.NativeHost/crash_window_linux.c). -->
+    <PackageVersion Include="Ahwoo.BRUTAL.Sdl.Native" Version="2026.10.3" />
+    <PackageVersion Include="Ahwoo.BRUTAL.Sdl.Ttf.Native" Version="2026.10.3" />
     <!-- Out-of-band .NET packages restoring what Mono's class libraries provided (ARCHITECTURE §2.1). -->
     <PackageVersion Include="System.Security.Permissions" Version="10.0.13" />
     <PackageVersion Include="System.Runtime.Serialization.Formatters" Version="10.0.13" />

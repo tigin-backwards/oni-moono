@@ -89,6 +89,19 @@
     <!-- The Moono Tweaks screen's translations, in translations/ beside the player (TweakStrings). -->
     <None Include="../../translations/*.po" Link="translations/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- Linux: SDL 3 and SDL3_ttf, which only the crash window loads (crash_window_linux.c), one file
+       each (no copies under their other names); and our executable (src/OniMoono.NativeHost,
+       scripts/build-native-host-linux.sh) over the SDK's apphost once it is built in
+       out/native/linux (release.sh and check.sh build it). -->
+  <ItemGroup>
+    <PackageReference Include="Ahwoo.BRUTAL.Sdl.Native" ExcludeAssets="all" GeneratePathProperty="true" />
+    <PackageReference Include="Ahwoo.BRUTAL.Sdl.Ttf.Native" ExcludeAssets="all" GeneratePathProperty="true" />
+  </ItemGroup>
+  <Target Name="LinuxNativeHost" AfterTargets="Build" Condition="'$(RuntimeIdentifier)' == 'linux-x64' Or ('$(RuntimeIdentifier)' == '' And $([MSBuild]::IsOSPlatform('Linux')))">
+    <Copy SourceFiles="$(PkgAhwoo_BRUTAL_Sdl_Native)/runtimes/linux-x64/native/libSDL3.so.0;$(PkgAhwoo_BRUTAL_Sdl_Ttf_Native)/runtimes/linux-x64/native/libSDL3_ttf.so.0"
+          DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(ArtifactsPath)/native/linux/OniMoono" DestinationFolder="$(OutDir)" Condition="Exists('$(ArtifactsPath)/native/linux/OniMoono')" />
+  </Target>
   <Target Name="CopyUiPackages" AfterTargets="Build">
     <Copy SourceFiles="@(UiPackage);@(UiPackage->'%(RootDir)%(Directory)%(Filename).pdb')" DestinationFolder="$(OutDir)packages" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(GameTweaksAssembly);@(GameTweaksAssembly->'%(RootDir)%(Directory)%(Filename).pdb')" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />

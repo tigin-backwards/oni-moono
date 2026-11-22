@@ -16,12 +16,13 @@ namespace OniMoono.Host
     /// - low-memory: Workstation GC, concurrent (ConcurrentGarbageCollection): one heap, less
     ///   memory, pauses a little longer or more often.
     ///
-    /// Windows: OniMoono.exe (src/OniMoono.NativeHost) reads the choice itself (the command line,
-    /// else the settings file) and sets the runtime property System.GC.Server to false before the
-    /// runtime starts. Linux and macOS start through the SDK's apphost, which reads only the
-    /// runtimeconfig: there the host, finding the runtime's GC not the one asked for, starts
-    /// itself again in place (execve, the same process) with DOTNET_gcServer=0, which the runtime
-    /// reads over the runtimeconfig, before the log opens. ONI_MOONO_GC_RELAUNCH names the choice
+    /// Windows and Linux: our executable (src/OniMoono.NativeHost: OniMoono.exe, OniMoono) reads
+    /// the choice itself (the command line, else the settings file) and sets the runtime property
+    /// System.GC.Server to false before the runtime starts. A player started through the SDK's
+    /// apphost (macOS; Linux built by setup.sh with no C compiler), which reads only the
+    /// runtimeconfig, starts itself again in place (execve, the same process) when it finds the
+    /// runtime's GC not the one asked for, with DOTNET_gcServer=0, which the runtime reads over
+    /// the runtimeconfig, before the log opens. ONI_MOONO_GC_RELAUNCH names the choice
     /// that run was started for; the run removes both variables from its environment, so a run
     /// App.Restart starts decides again. A DOTNET_gcServer (or COMPlus_gcServer) the user set wins
     /// over the option, and the log says so.
@@ -42,15 +43,20 @@ namespace OniMoono.Host
         {
             /// The runtime's GC is the one asked for (as started, or set by OniMoono.exe).
             Applied,
-            /// Started again for this choice (Linux, macOS), and it took.
+            /// Started again for this choice (the apphost: macOS, Linux without our executable), and it took.
             Relaunched,
-            /// To start again with Workstation or Server GC (Linux, macOS).
+            /// To start again with Workstation or Server GC (the apphost).
             Relaunch,
             /// A DOTNET_gcServer of the user's chose the GC.
             Environment,
-            /// Not the one asked for, and nothing more to do (Windows: an exe that does not set it).
+            /// Not the one asked for, and nothing more to do (our executable did not set it).
             NotApplied,
         }
+
+        /// Whether this process's executable is ours, which sets the GC itself (it exports the
+        /// native crash records' functions); otherwise it is the SDK's apphost.
+        public static bool HostSetsIt() =>
+            NativeLibrary.TryGetExport(NativeLibrary.GetMainProgramHandle(), "moono_crash_install", out _);
 
         /// What to do, from the choice, the runtime's GC and the environment.
         public static Outcome Plan(string choice, bool isServer, Func<string, string?> getenv, bool canRelaunch)
@@ -90,7 +96,8 @@ namespace OniMoono.Host
             Outcome.Relaunched => $"gc: {described}: the gc option is {choice} ({from}); started again with {ServerVariable}=0 to apply it",
             Outcome.Environment => $"gc: {described}: {UserVariable(getenv)} in the environment wins over the gc option ({choice}, {from})",
             Outcome.NotApplied => $"gc: {described}: the gc option is {choice} ({from}) but could not be applied"
-                                  + (OperatingSystem.IsWindows() ? " (OniMoono.exe did not set it: an old or replaced executable?)" : ""),
+                                  + (OperatingSystem.IsWindows() ? " (OniMoono.exe did not set it: an old or replaced executable?)"
+                                     : OperatingSystem.IsLinux() ? " (OniMoono did not set it: an old or replaced executable?)" : ""),
             _ => $"gc: {described}: the gc option is {choice} ({from}); starting again to apply it",
         };
 
@@ -131,7 +138,7 @@ namespace OniMoono.Host
             }
         }
 
-        /// Linux and macOS: this process replaced by the same executable with the same arguments,
+        /// The apphost: this process replaced by the same executable with the same arguments,
         /// with the GC variable set (execve). Returns only when that fails, with the reason.
         public static string Relaunch(string[] args, string choice)
         {

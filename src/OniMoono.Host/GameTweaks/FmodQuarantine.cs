@@ -27,9 +27,9 @@ namespace OniMoono.Host.GameTweaks
     /// its threads, never into managed code. Off: nothing is patched or called, and FMOD
     /// allocates as it always has. A prefix that runs the method as it is: no fingerprint.
     ///
-    /// The functions are OniMoono.exe's exports (Windows; built by build.cmd), or a
-    /// libOniMoonoNative.so beside the host (Linux; none is built yet). Without them the tweak is
-    /// off with a line saying so. ONI_FMOD_QUARANTINE_MB sets the quarantine's size (default 32;
+    /// The functions are our executable's exports (OniMoono.exe, built by build.cmd; Linux's
+    /// OniMoono, built by build-linux.sh). Under the SDK's apphost the tweak is off with a line
+    /// saying so. ONI_FMOD_QUARANTINE_MB sets the quarantine's size (default 32;
     /// 0 keeps the slabs and the checks, without a quarantine).
     [GameMember(GameUse.Prefix, "FMOD.RESULT FMODUnity.RuntimeManager::Initialize()")]
     [GameMember(GameUse.Uses, "FMOD.RESULT FMOD.Memory::Initialize(System.IntPtr,System.Int32,FMOD.MEMORY_ALLOC_CALLBACK,FMOD.MEMORY_REALLOC_CALLBACK,FMOD.MEMORY_FREE_CALLBACK,FMOD.MEMORY_TYPE)")]
@@ -37,7 +37,6 @@ namespace OniMoono.Host.GameTweaks
     {
         public const string Name = GameTweakNames.FmodQuarantine;
         public const int DefaultMegabytes = 32;
-        const string LinuxLibrary = "libOniMoonoNative.so";
 
         /// fmod_heap.h's moono_fmod_heap_event.
         [StructLayout(LayoutKind.Sequential)]
@@ -106,12 +105,10 @@ namespace OniMoono.Host.GameTweaks
             harmony.Patch(AccessTools.Method("FMODUnity.RuntimeManager:Initialize") ?? throw new MissingMethodException("FMODUnity.RuntimeManager", "Initialize"),
                 prefix: new HarmonyMethod(typeof(FmodQuarantine), nameof(Initializing)));
             var library = NativeLibrary.GetMainProgramHandle();
-            if (!NativeLibrary.TryGetExport(library, "moono_fmod_alloc", out _)
-                && !(OperatingSystem.IsLinux() && NativeLibrary.TryLoad(System.IO.Path.Combine(AppContext.BaseDirectory, LinuxLibrary), out library)))
+            if (!NativeLibrary.TryGetExport(library, "moono_fmod_alloc", out _))
             {
-                EngineLog.Engine($"{Name}: not active, " + (OperatingSystem.IsWindows()
-                    ? "this OniMoono.exe is the .NET SDK's apphost, without Moono's allocator; FMOD allocates as it always has"
-                    : $"no {LinuxLibrary} beside the host (none is built for Linux yet); FMOD allocates as it always has"));
+                EngineLog.Engine($"{Name}: not active, this {(OperatingSystem.IsWindows() ? "OniMoono.exe" : "OniMoono")} is the .NET SDK's apphost, "
+                                 + "without Moono's allocator; FMOD allocates as it always has");
                 return;
             }
             init = (delegate* unmanaged<ulong, int>)Export(library, "moono_fmod_heap_init");

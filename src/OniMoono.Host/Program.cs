@@ -67,10 +67,12 @@ namespace OniMoono.Host
             var effective = EffectiveOptions.Resolve(GameTweaks.GameTweakNames.All, GameTweaks.GameTweakNames.ChangingBehaviour,
                 options.GameTweaks, options.Splash, options.FrameStats, settings, options.LogPaths, options.Gpu, options.Renderer, options.Dxgi,
                 GameTweaks.GameTweakNames.OffByDefault, commandLineGc: options.Gc, commandLineStallRepeats: options.StallRepeats);
-            // The garbage collection asked for (GcMode): on Linux and macOS a runtime started with
-            // the other one starts again in place, before the log opens (which keeps the previous
-            // run's log as Player-prev.log).
-            var gcOutcome = GcMode.Plan(effective.Gc, System.Runtime.GCSettings.IsServerGC, Environment.GetEnvironmentVariable, canRelaunch: !OperatingSystem.IsWindows());
+            // The garbage collection asked for (GcMode): under the SDK's apphost (macOS, a Linux
+            // player built without a C compiler) a runtime started with the other one starts
+            // again in place, before the log opens (which keeps the previous run's log as
+            // Player-prev.log); our executable sets it itself.
+            var gcOutcome = GcMode.Plan(effective.Gc, System.Runtime.GCSettings.IsServerGC, Environment.GetEnvironmentVariable,
+                canRelaunch: !OperatingSystem.IsWindows() && !GcMode.HostSetsIt());
             string? gcRelaunchProblem = null;
             if (gcOutcome == GcMode.Outcome.Relaunch) gcRelaunchProblem = GcMode.Relaunch(args, effective.Gc);
             var logPath = options.LogPath ?? EngineConfig.ConsoleLogPath;

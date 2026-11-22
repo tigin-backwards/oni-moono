@@ -10,13 +10,14 @@ using OniMoono.Engine;
 namespace OniMoono.Host
 {
     /// ARCHITECTURE §7, "Native crashes". A crash in native code (the GPU driver, SimDLL, a mod's
-    /// library) has no managed exception, so the log just stops. On Windows OniMoono.exe
-    /// (src/OniMoono.NativeHost/crash.c) starts a watcher process before the runtime, which writes
-    /// to Player.log, once the game has ended without its own exit, the fault the game noted (code,
-    /// module+offset, thread, a native stack), the runtime's "Fatal error." text and the exit code,
-    /// with a minidump beside the log, and then shows the crash window (crash_dialog.cpp). This
-    /// gives it the log's path, the main thread and the personal folders to hide, what the window
-    /// shows (Describe), and tells it about the player's own exits.
+    /// library) has no managed exception, so the log just stops. Our executable starts a watcher
+    /// process before the runtime (Windows: OniMoono.exe, src/OniMoono.NativeHost/crash.c, a second
+    /// process; Linux: OniMoono, crash_linux.c, the parent of the game), which writes to Player.log,
+    /// once the game has ended without its own exit, the fault the game noted (code or signal,
+    /// module+offset, thread, a native stack), the runtime's text and how the process ended, with
+    /// a dump beside the log, and then shows the crash window (crash_dialog.cpp,
+    /// crash_window_linux.c). This gives it the log's path, the main thread and the personal
+    /// folders to hide, what the window shows (Describe), and tells it about the player's own exits.
     internal static unsafe class NativeCrashes
     {
         static delegate* unmanaged<char*, uint, int, char*, int> install;
@@ -35,15 +36,17 @@ namespace OniMoono.Host
         {
             var forced = Environment.GetEnvironmentVariable("ONI_CRASH_DUMPS");
             if (forced is "on" or "off" or "full") dumps = forced;
-            if (!OperatingSystem.IsWindows())
-                return Environment.GetEnvironmentVariable("DOTNET_DbgEnableMiniDump") == "1"
-                    ? $"native crashes: the runtime writes a dump (DOTNET_DbgEnableMiniDump; DOTNET_DbgMiniDumpName {Environment.GetEnvironmentVariable("DOTNET_DbgMiniDumpName") ?? "unset: /tmp"})"
-                    : "native crashes: recorded on Windows only";
+            if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux()) return "native crashes: recorded on Windows and Linux only";
             var exe = NativeLibrary.GetMainProgramHandle();
             if (!NativeLibrary.TryGetExport(exe, "moono_crash_install", out var installAt)
                 || !NativeLibrary.TryGetExport(exe, "moono_crash_exiting", out var exitingAt)
                 || !NativeLibrary.TryGetExport(exe, "moono_crash_test", out var testAt))
-                return "native crashes: not recorded (this OniMoono.exe is the .NET SDK's apphost)";
+            {
+                if (OperatingSystem.IsWindows()) return "native crashes: not recorded (this OniMoono.exe is the .NET SDK's apphost)";
+                return Environment.GetEnvironmentVariable("DOTNET_DbgEnableMiniDump") == "1"
+                    ? $"native crashes: not recorded (this OniMoono is the .NET SDK's apphost); the runtime writes a dump (DOTNET_DbgEnableMiniDump; DOTNET_DbgMiniDumpName {Environment.GetEnvironmentVariable("DOTNET_DbgMiniDumpName") ?? "unset: /tmp"})"
+                    : "native crashes: not recorded (this OniMoono is the .NET SDK's apphost: setup.sh found no C compiler)";
+            }
             install = (delegate* unmanaged<char*, uint, int, char*, int>)installAt;
             exiting = (delegate* unmanaged<uint, void>)exitingAt;
             test = (delegate* unmanaged<char*, int>)testAt;
@@ -56,26 +59,32 @@ namespace OniMoono.Host
             prefixes.Append('\0');
             int watching;
             fixed (char* log = Path.GetFullPath(logPath), hidden = prefixes.ToString())
-                watching = install(log, GetCurrentThreadId(), dumps switch { "full" => 2, "off" => 0, _ => 1 }, hidden);
+                watching = install(log, CurrentThread(), dumps switch { "full" => 2, "off" => 0, _ => 1 }, hidden);
             Describe("version", version);
             Describe("dialog", dialog);
             // Main's return and Environment.Exit; Player.ProcessExit says so itself.
             AppDomain.CurrentDomain.ProcessExit += (_, _) => Exiting(Environment.ExitCode);
             if (Environment.GetEnvironmentVariable("ONI_MOONO_CRASH_WATCH") == "off") return "native crashes: not recorded (ONI_MOONO_CRASH_WATCH=off)";
-            return watching != 0
-                ? "native crashes: recorded in this log by a watcher process" + dumps switch
+            if (watching == 0) return "native crashes: not recorded (the watcher process did not start)";
+            // Linux: the runtime's createdump writes the dump, as the launcher set it up; bit 2,
+            // the user's own DOTNET_DbgEnableMiniDump settings.
+            var dumpPart = (watching & 2) != 0 ? ", with the dump DOTNET_DbgEnableMiniDump in the environment asks for"
+                : dumps switch
                 {
                     "full" => ", with a dump of the process's memory beside it (--crash-dumps full)",
-                    "off" => " (no minidump: --crash-dumps off)",
-                    _ => ", with a minidump beside it",
-                } + (dialog == "off" ? "; no crash window (--crash-dialog off, or a run home of its own; ONI_MOONO_CRASH_DIALOG wins)" : "")
-                : "native crashes: not recorded (the watcher process did not start)";
+                    "off" => OperatingSystem.IsWindows() ? " (no minidump: --crash-dumps off)" : " (no dump: --crash-dumps off; the runtime's crash report only)",
+                    _ => OperatingSystem.IsWindows() ? ", with a minidump beside it" : ", with a dump beside it (the runtime's createdump)",
+                };
+            return "native crashes: recorded in this log by a watcher process" + dumpPart
+                   + (dialog == "off" ? "; no crash window (--crash-dialog off, or a run home of its own; ONI_MOONO_CRASH_DIALOG wins)" : "");
         }
 
         /// The folders LogScrubber hides, as paths start with them (module paths, the dump's).
         static IEnumerable<(string Path, string Replacement)> HiddenFolders()
         {
             string profile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (!OperatingSystem.IsWindows())
+                return profile.Length > 1 ? [(profile.TrimEnd('/'), LogScrubber.HomeText)] : [];
             string documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var folders = new List<(string, string)>();
             if (documents.Length > 0 && !documents.StartsWith(profile + "\\", StringComparison.OrdinalIgnoreCase))
@@ -147,8 +156,10 @@ namespace OniMoono.Host
         /// native thread, `main-stack-overflow` a native recursion called from the main thread, `fastfail`, `heap`, `gs`, `abort` and `terminate` as named
         /// (`fastfail-reported` with Windows Error Reporting on, as in play),
         /// `failfast` is Environment.FailFast; `managed-null` is a null reference the runtime turns
-        /// into a NullReferenceException that is caught, and the run goes on. On Linux, `main` and
-        /// `worker` fault in libc (strlen of address 1); the others are Windows'.
+        /// into a NullReferenceException that is caught, and the run goes on. On Linux `main` and
+        /// `worker` fault in libc (strlen of address 1), `heap` is a double free glibc finds, and
+        /// `exit` (_exit(3) in native code) and `kill9` (SIGKILL) are Linux's; `fastfail`, `gs` and
+        /// `terminate` are Windows'.
         public static void Test(string what)
         {
             EngineLog.Engine($"test native crash: {what}");
@@ -186,19 +197,25 @@ namespace OniMoono.Host
 
         static void Fault(string what)
         {
-            if (!OperatingSystem.IsWindows())
+            if (!OperatingSystem.IsWindows() && what == "access-violation")
             {
-                if (what == "access-violation") Strlen(1);
-                else EngineLog.Engine($"test native crash: {what} is Windows'");
+                Strlen(1);
                 return;
             }
             if (test == null)
             {
-                EngineLog.Engine("test native crash: OniMoono.exe has no moono_crash_test");
+                EngineLog.Engine($"test native crash: {(OperatingSystem.IsWindows() ? "OniMoono.exe" : "OniMoono")} has no moono_crash_test");
                 return;
             }
-            fixed (char* name = what) test(name);
+            int known;
+            fixed (char* name = what) known = test(name);
+            if (known == 0) EngineLog.Engine($"test native crash: {what} is not this system's");
         }
+
+        static uint CurrentThread() => OperatingSystem.IsWindows() ? GetCurrentThreadId() : (uint)gettid();
+
+        [DllImport("libc")]
+        static extern int gettid();
 
         [DllImport("libc", EntryPoint = "strlen")]
         static extern nint Strlen(nint text);
