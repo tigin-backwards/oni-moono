@@ -1172,10 +1172,37 @@ static void present(void)
     SDL_UpdateWindowSurface(window);
 }
 
+/* Gaming Mode: gamescope stretches the focused window to fill the screen, so a window drawn at
+ * scale 1 (440 px wide on a Deck's 1280×800) comes out about 2.5 times as large and blurred. There
+ * the window is drawn at the largest scale, in quarter steps, at which its tallest state (details
+ * open, the zip shown) still fits the screen, so gamescope scales it little. Worked out once. */
+static float gaming_scale(void)
+{
+    static float chosen;
+    if (chosen > 0) return chosen;
+    chosen = 1;
+    MS_Rect bounds;
+    if (!SDL_GetDisplayUsableBounds(SDL_GetPrimaryDisplay(), &bounds) || bounds.w <= 0 || bounds.h <= 0) return chosen;
+    int details = cw.details_open, reported = cw.reported;
+    cw.details_open = cw.reported = 1;
+    cw.scale = 1;
+    open_fonts();
+    cw_lay_out(&canvas);
+    float w = (float)cw.lay.width, h = (float)cw.lay.height;
+    cw.details_open = details;
+    cw.reported = reported;
+    if (w <= 0 || h <= 0) return chosen;
+    float fit = fminf((float)bounds.w * 0.95f / w, (float)bounds.h * 0.95f / h);
+    fit = floorf(fit * 4) / 4;
+    chosen = fit < 1 ? 1 : fit > 3 ? 3 : fit;
+    return chosen;
+}
+
 static void relayout(void)
 {
     cw.scale = SDL_GetWindowDisplayScale(window);
     if (cw.scale <= 0) cw.scale = 1;
+    if (gaming) cw.scale = gaming_scale();
     const char *forced = getenv("ONI_MOONO_CRASH_WINDOW_SCALE");
     if (forced) cw.scale = (float)atof(forced);
     pixel_density = SDL_GetWindowPixelDensity(window);

@@ -4379,7 +4379,9 @@ fonts, strings and measures):
   `GAMESCOPE_WAYLAND_DISPLAY`): the window names a Steam game (`STEAM_GAME`), as gamescope shows
   no other; the issue opens in Steam's browser (`steam://openurl/`); the zip's line says to
   attach it from Desktop Mode or another device; the gamepad moves the focus (A presses, B
-  closes). Written but not tried on a Deck.
+  closes). Gamescope stretches the window to fill the screen, so it is drawn at the largest
+  quarter-step scale at which its tallest state still fits (1.5 on a Deck's 1280×800), not
+  blurred up from scale 1. Tried with gamescope's environment under Xvfb, not on a Deck.
 - **Tests.** `ONI_MOONO_CRASH_OPEN=FILE` records what would be opened instead of opening it,
   `ONI_MOONO_CRASH_WINDOW_AT=X,Y` places the window, `ONI_MOONO_CRASH_THEME`,
   `ONI_MOONO_CRASH_WINDOW_SCALE` and `ONI_MOONO_CRASH_TEXT_SIZE` set what the desktop would;
