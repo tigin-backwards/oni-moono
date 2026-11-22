@@ -24,11 +24,11 @@ namespace OniMoono.Desktop.Gl
 
         // ----- Constants -----
         public const uint FormatR8G8B8A8Unorm = 28;
-        public const uint UsageRenderTargetOutput = 0x20;
+        public const uint UsageShaderInput = 0x10, UsageRenderTargetOutput = 0x20;
         public const uint ScalingStretch = 0;
         public const uint SwapEffectFlipSequential = 3, SwapEffectFlipDiscard = 4;
-        public const uint AlphaModeIgnore = 3;
-        public const uint SwapChainFlagFrameLatencyWaitable = 0x40, SwapChainFlagAllowTearing = 0x800;
+        public const uint AlphaModeUnspecified = 0;
+        public const uint SwapChainFlagAllowModeSwitch = 2, SwapChainFlagFrameLatencyWaitable = 0x40, SwapChainFlagAllowTearing = 0x800;
         public const uint PresentAllowTearing = 0x200;
         public const uint WindowAssociationNoWindowChanges = 1, WindowAssociationNoAltEnter = 2;
         public const uint FeaturePresentAllowTearing = 0;

@@ -7,10 +7,11 @@ namespace OniMoono.Desktop.Gl
 {
     /// Windows: the D3D11 device and flip-model swap chain both devices present through
     /// (DxgiTarget for OpenGL, Vulkan.VkDxgiTarget for Vulkan), as the original (Unity 6 on D3D11)
-    /// presents, so that Windows knows the game is SDR: R8G8B8A8_UNORM, FLIP_DISCARD, two buffers,
-    /// the default colour space, a frame-latency waitable object at a latency of 2, tearing only
-    /// without vsync. Each device renders into a D3D11 texture of the target's, shared with it;
-    /// Present copies it into the back buffer (CopySubresourceRegion) and presents.
+    /// presents, so that Windows knows the game is SDR. The swap chain's settings are the
+    /// original's: R8G8B8A8_UNORM, FLIP_SEQUENTIAL, two buffers, the default colour space, a
+    /// frame-latency waitable object at a latency of 2, tearing only without vsync (AttachWindow).
+    /// Each device renders into a D3D11 texture of the target's, shared with it; Present copies
+    /// it into the back buffer (CopySubresourceRegion) and presents.
     /// ARCHITECTURE §3.5, "Presentation on Windows".
     ///
     /// Threads: made on one thread and from then on used and released by the presenter thread
@@ -192,12 +193,31 @@ namespace OniMoono.Desktop.Gl
             window = hwnd;
             w = Math.Max(1, w);
             h = Math.Max(1, h);
-            swapFlags = Dxgi.SwapChainFlagFrameLatencyWaitable | (tearing ? Dxgi.SwapChainFlagAllowTearing : 0);
+            // The original's swap chain as its GetDesc1 reports it (d3d11-captures.md §1, on the
+            // d3d11 branch): FLIP_SEQUENTIAL, usage SHADER_INPUT | RENDER_TARGET_OUTPUT, alpha
+            // UNSPECIFIED, flags ALLOW_MODE_SWITCH | FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING.
+            // What these change for us (Microsoft Learn, DXGI_SWAP_EFFECT, DXGI_SWAP_CHAIN_FLAG,
+            // IDXGISwapChain::ResizeBuffers):
+            // - FLIP_SEQUENTIAL "forces DXGI to guarantee that the contents of each back buffer is
+            //   preserved across IDXGISwapChain::Present calls", where FLIP_DISCARD lets the
+            //   compositor DirectFlip even when the window is not the only thing on screen. We
+            //   overwrite buffer 0's whole picture every frame, so the preserved contents are
+            //   never read. The sync interval 0 that StallRepeats rely on keeps its flip-model
+            //   meaning on FLIP_SEQUENTIAL: the runtime "presents the next frame instead of any
+            //   previously queued frames" (DXGI_SWAP_EFFECT's remarks).
+            // - ALLOW_MODE_SWITCH lets "an application ... switch modes by calling
+            //   IDXGISwapChain::ResizeTarget", changing the display mode "when switching from
+            //   windowed to full-screen mode". We call neither ResizeTarget nor
+            //   SetFullscreenState, and MakeWindowAssociation blocks Alt+Enter, so it changes
+            //   nothing here.
+            // - ResizeBuffers "can't be used to add or remove" ALLOW_TEARING, so every
+            //   ResizeBuffers passes swapFlags unchanged.
+            swapFlags = Dxgi.SwapChainFlagAllowModeSwitch | Dxgi.SwapChainFlagFrameLatencyWaitable | (tearing ? Dxgi.SwapChainFlagAllowTearing : 0);
             var desc = new Dxgi.SwapChainDesc1
             {
                 Width = (uint)w, Height = (uint)h, Format = Dxgi.FormatR8G8B8A8Unorm, SampleCount = 1,
-                BufferUsage = Dxgi.UsageRenderTargetOutput, BufferCount = BufferCount, Scaling = Dxgi.ScalingStretch,
-                SwapEffect = Dxgi.SwapEffectFlipDiscard, AlphaMode = Dxgi.AlphaModeIgnore, Flags = swapFlags,
+                BufferUsage = Dxgi.UsageShaderInput | Dxgi.UsageRenderTargetOutput, BufferCount = BufferCount, Scaling = Dxgi.ScalingStretch,
+                SwapEffect = Dxgi.SwapEffectFlipSequential, AlphaMode = Dxgi.AlphaModeUnspecified, Flags = swapFlags,
             };
             void* s = null;
             if (Faulty("occupied")) Occupy(hwnd, &desc);
@@ -265,7 +285,7 @@ namespace OniMoono.Desktop.Gl
             return $"present: DXGI on {AdapterName} ({how}), feature level {featureLevel >> 12}_{(featureLevel >> 8) & 0xF}: swap chain {actual.Width}x{actual.Height} "
                 + $"{(actual.Format == Dxgi.FormatR8G8B8A8Unorm ? "R8G8B8A8_UNORM" : actual.Format.ToString())}, "
                 + $"{(actual.SwapEffect == Dxgi.SwapEffectFlipDiscard ? "FLIP_DISCARD" : actual.SwapEffect == Dxgi.SwapEffectFlipSequential ? "FLIP_SEQUENTIAL" : actual.SwapEffect.ToString())}, "
-                + $"{actual.BufferCount} buffers, colour space RGB_FULL_G22_NONE_P709 (default, SDR), scaling {(actual.Scaling == Dxgi.ScalingStretch ? "STRETCH" : actual.Scaling.ToString())}, "
+                + $"{actual.BufferCount} buffers, usage 0x{actual.BufferUsage:X}, alpha mode {actual.AlphaMode}, flags 0x{actual.Flags:X}, colour space RGB_FULL_G22_NONE_P709 (default, SDR), scaling {(actual.Scaling == Dxgi.ScalingStretch ? "STRETCH" : actual.Scaling.ToString())}, "
                 + $"maximum frame latency {MaximumFrameLatency} (waitable), tearing without vsync {(tearing ? "allowed" : "not supported")}; {shared}";
         }
 

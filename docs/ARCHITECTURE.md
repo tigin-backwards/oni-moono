@@ -2623,9 +2623,12 @@ window is the same in both (a borderless popup the monitor's size, measured); on
 presentation differed. The swap chain: a D3D11 device on the rendering device's adapter (by its
 LUID: Vulkan's `VkPhysicalDeviceIDProperties`, OpenGL's `EXT_external_objects_win32`, else
 `GL_VENDOR`/`GL_RENDERER` against the DXGI adapters' descriptions; the GPU option's choice is the
-device's), `R8G8B8A8_UNORM`, `FLIP_DISCARD`, two buffers, the default colour space
-(`RGB_FULL_G22_NONE_P709`), `DXGI_SCALING_STRETCH`, a frame-latency waitable object at a maximum
-latency of 2, and `ALLOW_TEARING` when the system supports it, used only without vsync. Each
+device's) and the original's measured settings (`IDXGISwapChain1::GetDesc1` of its swap chain):
+`R8G8B8A8_UNORM`, `FLIP_SEQUENTIAL`, two buffers, usage `SHADER_INPUT | RENDER_TARGET_OUTPUT`,
+alpha mode `UNSPECIFIED`, the default colour space (`RGB_FULL_G22_NONE_P709`),
+`DXGI_SCALING_STRETCH`, a frame-latency waitable object at a maximum latency of 2,
+`ALLOW_MODE_SWITCH` (inert: the swap chain never enters DXGI's fullscreen state), and
+`ALLOW_TEARING` when the system supports it, used only without vsync. Each
 device renders the picture into one D3D11 texture of its own, made anew (a quarter larger) only
 when the window outgrows it, which `CopySubresourceRegion` copies into the back buffer before
 `Present` at `QualitySettings.vSyncCount` (0 to 4); with vsync the presenter then waits on the
