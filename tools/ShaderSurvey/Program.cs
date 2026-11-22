@@ -18,6 +18,11 @@
 //   d3d11 DATADIR               every D3D11 (platform 4) program read and checked against its
 //                               parameters, inputs and Vulkan variants (D3d11Survey.cs)
 //   d3d11-bundles WSDIR         the same for the mod bundles under WSDIR (read only)
+//   dxbc DATADIR                each Direct3D 11 (platform 4) subprogram's DXBC container checksum
+//                               (bytes 4..19 after the magic), with shader, pass, stage and keywords:
+//                               names the shaders a running player creates by their bytecode
+//   states DATADIR              each pass's fixed-function state as serialized: cull, ZTest,
+//                               ZWrite, Offset factor and units (constant, or [property])
 // It reads the shipped release type trees (OniMoono.Assets), so it needs no engine or device.
 using System.Security.Cryptography;
 using System.Text;
@@ -37,6 +42,8 @@ string mode = args[0], dataDir = args[1];
 switch (mode)
 {
     case "summary": Summary(); return 0;
+    case "states": States(); return 0;
+    case "dxbc": Dxbc(); return 0;
     case "variants": Variants(); return 0;
     case "dump": Dump(args[2], args[3], uint.Parse(args[4])); return 0;
     case "params": Params(args[2], uint.Parse(args[3])); return 0;
@@ -47,6 +54,45 @@ switch (mode)
     case "d3d11-bundles": return D3d11Survey.RunBundles(dataDir, Console.Out);
     case "compare-metal": return MetalCompare.Run(Data.Shaders(dataDir), Console.Out, args.Length > 2 ? args[2] : null);
     default: Console.Error.WriteLine("unknown mode " + mode); return 2;
+}
+
+void Dxbc()
+{
+    foreach (var (_, shader) in Data.Shaders(dataDir))
+    {
+        var blobs = Data.Table(shader, 4);
+        if (blobs.Count == 0) continue;
+        // The Direct3D 11 program types are the ones GpuProgramTypes does not place (the game's
+        // shaders carry only Direct3D 11, GLCore and Vulkan programs).
+        foreach (var x in Data.Subprograms(shader).Where(x => x.Sub.Platform == 0))
+        {
+            if (!blobs.Contains(x.Sub.BlobIndex)) continue;
+            var bytes = blobs.Table!.Get(x.Sub.BlobIndex).ToArray();
+            int at = bytes.AsSpan().IndexOf("DXBC"u8);
+            string sum = at >= 0 && at + 20 <= bytes.Length ? Convert.ToHexString(bytes, at + 4, 16).ToLowerInvariant() : "-";
+            Console.WriteLine($"{sum}\t{Data.NameOf(shader)}\t{x.Id}\t{x.Sub.Stage}\ttype={x.Sub.GpuProgramType}\t{Data.KeywordKey(x.Sub.Keywords)}");
+        }
+    }
+}
+
+void States()
+{
+    static string V(Fields f) { var name = f.String("name"); return name.Length == 0 || name == "<noninit>" ? f.Float("val").ToString("R") : $"[{name}]={f.Float("val"):R}"; }
+    foreach (var (file, shader) in Data.Shaders(dataDir))
+    {
+        int s = 0;
+        foreach (var sub in shader.Struct("m_ParsedForm").Array("m_SubShaders").Cast<Fields>())
+        {
+            int p = 0;
+            foreach (var pass in sub.Array("m_Passes").Cast<Fields>())
+            {
+                var st = pass.Struct("m_State");
+                Console.WriteLine($"{file}\t{Data.NameOf(shader)}\ts{s}p{p}\tcull={V(st.Struct("culling"))} ztest={V(st.Struct("zTest"))} zwrite={V(st.Struct("zWrite"))} offsetFactor={V(st.Struct("offsetFactor"))} offsetUnits={V(st.Struct("offsetUnits"))}");
+                p++;
+            }
+            s++;
+        }
+    }
 }
 
 void Summary()

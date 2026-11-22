@@ -928,3 +928,14 @@ thread (`GL.IssuePluginEvent`) it then logs what `GetNativeTexturePtr` points to
 device's feature level and threading support, and the constant buffers (D3D11) or uniforms
 (GLCore) a program has bound after a camera's draw. `PROBE_D3D11_NATIVE=0` skips that part. It
 ends with a `DX done` line. `docs/research/d3d11-unity-probes.md` records what it measured.
+
+With `PROBE_SCENARIO=rdcapture` only the Direct3D 11 frame probe runs (`RdCapture.cs`, lines
+`RD …`, with `tools/D3d11Native/probe_native.dll` copied into the mod folder as
+`probe_native.bin`, since the mod loader loads every `.dll` there). 10 s into the main menu it hooks
+the swap chain's Present and the device's and immediate context's methods, records one menu frame,
+draws Hidden/Internal-Colored with a range of `_ZBias`, `_Cull`, `_ZTest` and `_ZWrite` values into
+render textures and logs the rasterizer, depth-stencil and blend state of each draw, resumes the
+colony `PROBE_SAVE` (a Windows path), and records a colony frame and a temperature-overlay frame.
+Last it logs the Present arguments with vsync off. `tools/D3d11Native/frame-report.py` names a
+recorded frame's shaders from `ShaderSurvey dxbc`. `docs/research/d3d11-captures.md` records the
+results.
