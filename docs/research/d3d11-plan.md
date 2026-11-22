@@ -199,22 +199,35 @@ declarations too.
     place (`abi_ok`): the same value type, an integer of the same size and signedness, or an enum
     for an integer of the same size (never an enum for another enum, never a float for an
     integer), pointers and references pointee by pointee. An untyped pointer or `IntPtr` for a
-    typed pointer or a handle needs `Opaque = true`, and an Opaque that is not needed fails. The 12
-    Opaque uses are listed at the top of `com_check.cpp`: HWND (MakeWindowAssociation,
-    CreateSwapChainForHwnd), HANDLE (GetFrameLatencyWaitableObject, CreateSharedHandle's out
-    handle, WaitForSingleObjectEx, CloseHandle), HMODULE (D3D11CreateDevice), HMONITOR
-    (DXGI_OUTPUT_DESC), and structs only ever passed as null or as an opaque buffer
-    (DXGI_SWAP_CHAIN_FULLSCREEN_DESC, SECURITY_ATTRIBUTES, DISPLAYCONFIG_MODE_INFO,
-    DISPLAYCONFIG_TOPOLOGY_ID).
-  - Nothing is skipped silently: a `[Native]`, `[As]`, `[Const]` or `[NotNative]` member the
-    generator does not emit (in a type without `[Native]`, a static field that is neither a
-    constant, an IID nor a function pointer, a LibraryImport) fails the generator; a `char` by
-    value in a DllImport (ANSI by default) fails it too. Function-pointer fields (a
-    GetProcAddress'd function) are checked like DllImports and name their DLL. The generator
-    prints counts per kind.
-  - Totals now: 41 interfaces (91 methods), 46 structs (220 fields), 33 enums (199 values), 57
-    constants, 51 IIDs, 9 DLL functions and their exports, 12 Opaque, 1 `[NotNative]`
-    (D3DDDIERR_DEVICEREMOVED, a WDK value).
+    typed pointer or a handle needs `Opaque = true`, and an Opaque that is not needed fails. Opaque
+    keeps every level of indirection: it stands only for an innermost pointee that is void or a
+    struct (`void*` for a `T*`, `IntPtr` for a handle, `IntPtr*` for a `HANDLE*`; never `void*`
+    for a `T**`, nor `IntPtr` for a `HANDLE*`). The 19 Opaque uses are listed at the top of
+    `com_check.cpp`: handles (HWND, HANDLE, HMODULE, HMONITOR) as IntPtr, and structs only ever
+    passed as null or as an opaque buffer (DXGI_SWAP_CHAIN_FULLSCREEN_DESC, SECURITY_ATTRIBUTES,
+    DISPLAYCONFIG_MODE_INFO) as void*.
+  - Names: a `[Native]` name is an identifier the headers declare (a dotted path of identifiers
+    for a struct field); a constant checked against an expression says so with
+    `[NativeExpression("sizeof(X)")]`, which must name an SDK identifier, and each is listed at
+    the top of `com_check.cpp` (2: the DISPLAYCONFIG struct sizes).
+  - Nothing is skipped silently. The generator sweeps the whole OniMoono.Desktop assembly: every
+    DllImport, LibraryImport, unmanaged function-pointer field, `[UnmanagedFunctionPointer]`
+    delegate and vtable struct, and every struct those take, is `[Native]` (and checked) or
+    `[NotNative("why")]`, else it fails listing them all. A `[Native]` member the generator does
+    not emit, a static field that is neither a constant, an IID nor a function pointer, a
+    LibraryImport, and a `char` by value in a DllImport (ANSI by default) fail it too. Every
+    `[NotNative]` member is listed with its reason at the top of `com_check.cpp`: 74 now, window,
+    input and IME calls outside the renderer's binding, Linux libraries, GL extension functions
+    (glext.h and wglext.h are not in the SDK: ARB_bindless_texture, WGL_EXT_swap_control,
+    WGL_NV_DX_interop), and D3DDDIERR_DEVICEREMOVED (a WDK value). Function-pointer fields (a
+    GetProcAddress'd function) are checked like DllImports and name their DLL.
+  - Not checked: the casts at the call sites (`(IDXGIFactory*)factory`, `(ID3D11Resource*)tex`).
+    The check proves each declaration is the header's and each declared base a real base class
+    (`std::is_base_of_v`), not that a C# cast between interface pointers follows a declared base;
+    a reviewer reads those against the `Base` the interface declares.
+  - Totals now: 41 interfaces (91 methods), 47 structs (224 fields), 33 enums (199 values), 57
+    constants, 51 IIDs, 18 DLL functions and their exports, 19 Opaque, 2 expressions, 74
+    `[NotNative]`.
 - **The SDK.** The check compiles against the Windows SDK and MSVC that `vcvars64.bat` picks (the
   newest installed), not a pinned one; `com_check.cmd`'s last line names both. Here: Windows SDK
   10.0.26100.0, MSVC 14.44.35207 (j0008218). CI's `windows-2025` runner may have a newer SDK;
@@ -267,8 +280,13 @@ declarations too.
   EnumAdapterByGpuPreference for discrete or integrated; software refused), a device at 11_1 or
   11_0 with BGRA_SUPPORT, and the device's own flip-model swap chain with the original's
   measured settings (`d3d11-captures.md` §1): 2 buffers, FLIP_SEQUENTIAL, R8G8B8A8_UNORM,
+  BufferUsage SHADER_INPUT | RENDER_TARGET_OUTPUT (0x30), AlphaMode UNSPECIFIED, scaling STRETCH,
   ALLOW_MODE_SWITCH | FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING, maximum frame latency 2,
-  Present(1, 0) or Present(0, ALLOW_TEARING), resized with the window. It clears and presents
+  Present(1, 0) or Present(0, ALLOW_TEARING), resized with the window. With vsync it waits for
+  the frame-latency object after Present (a timeout is logged); without vsync it does not wait,
+  the DXGI presenter's measured rule (waiting capped the frame rate on the AMD iGPU).
+  UNVERIFIED: whether the original waits on it, with or without vsync (a hook in
+  tools/D3d11Native's recorder would tell). It clears and presents
   the back buffer, logs the debug layer's messages, and reports SystemInfo as the original's
   (DeviceType Direct3D11, `Direct3D 11.0 [level 11.1]`, the texture-format answers of
   `d3d11-unity-probes.md` §1). Draws, resources and readbacks are counted and dropped. A device
@@ -276,6 +294,8 @@ declarations too.
   the RTX 3090 (j0008282, 900 frames to the main menu): level 11_1, the swap chain as above
   (2560x1369, tearing allowed), a clean exit, and no debug-layer message in the whole run (with
   nothing drawn yet).
+  - `d3d11` is a command-line choice only (settings.json refuses it), and the Tweaks screen's
+    renderer row shows locked when the running renderer is one it does not offer.
   - UNVERIFIED: the version string on an 11_0 device; DeviceVendor on AMD and Intel (empty for
     now); MemorySizeMB (DedicatedVideoMemory in MiB) against the original's 24322 on the 3090.
 - **B2, next: the draw path**, modelled on the Vulkan device (`VkDevice*.cs`, `VkPrograms.cs`),

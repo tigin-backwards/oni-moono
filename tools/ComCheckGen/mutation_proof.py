@@ -66,6 +66,77 @@ MUTATIONS = [
         "    [Native(Header = \"d3d11sdklayers.h\", Base = typeof(IUnknown))]\n    internal unsafe struct ID3D11Debug",
     ),
     ("6 DLL that does not export it", d + "DxgiInterfaces.cs", '[DllImport("dxgi.dll"), As(1, "REFIID")]', '[DllImport("d3d11.dll"), As(1, "REFIID")]'),
+    (
+        "2 enumerator named by an expression",
+        d + "D3d11.cs",
+        "        D3D11_USAGE_STAGING = 3,\n",
+        '        D3D11_USAGE_STAGING = 3,\n        [Native("(D3D11_USAGE)7")] D3D11_USAGE_BOGUS = 7,\n',
+    ),
+    (
+        "2 constant named by a literal",
+        g,
+        '[Native("DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING")] public const uint SwapChainFlagAllowTearing = 0x800;',
+        '[Native("0x400")] public const uint SwapChainFlagAllowTearing = 0x400;',
+    ),
+    (
+        "2 expression naming no SDK identifier",
+        g,
+        '[NativeExpression("sizeof(DISPLAYCONFIG_PATH_INFO)"), Native(Header = "wingdi.h")]',
+        '[NativeExpression("sizeof(int) * 18"), Native(Header = "wingdi.h")]',
+    ),
+    (
+        "3 interface without [Native], slot moved",
+        [
+            (
+                d + "D3d11Debug.cs",
+                '    [Native(Header = "d3d11sdklayers.h", Base = typeof(IUnknown))]\n    internal unsafe struct ID3D11Debug',
+                "    internal unsafe struct ID3D11Debug",
+            ),
+            (
+                d + "D3d11Debug.cs",
+                "[FieldOffset(10 * 8)] public delegate* unmanaged<ID3D11Debug*",
+                "[FieldOffset(11 * 8)] public delegate* unmanaged<ID3D11Debug*",
+            ),
+        ],
+    ),
+    (
+        "3 DllImport in a class the check does not read",
+        d + "D3d11Context.cs",
+        "        public static bool Validation;",
+        '        public static bool Validation;\n\n        [System.Runtime.InteropServices.DllImport("user32.dll")] static extern long GetSystemMetrics(double index);',
+    ),
+    (
+        "3 [UnmanagedFunctionPointer] delegate without [Native] or [NotNative]",
+        "src/OniMoono.Desktop/Gl/DxgiTarget.cs",
+        '        [NotNative("a WGL_NV_DX_interop function from wglGetProcAddress; wglext.h is not in the Windows SDK '
+        '(registry.khronos.org/OpenGL/extensions/NV/WGL_NV_DX_interop.txt)")]\n'
+        "        [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate IntPtr OpenDevice",
+        "        [UnmanagedFunctionPointer(CallingConvention.Winapi, SetLastError = true)] delegate IntPtr OpenDevice",
+    ),
+    (
+        "3 function-pointer field without [Native] or [NotNative]",
+        "src/OniMoono.Desktop/Gl/Win32GlWindow.cs",
+        "        [NotNative(\"WGL_EXT_swap_control's wglSwapIntervalEXT from wglGetProcAddress; wglext.h is not in the Windows SDK "
+        '(registry.khronos.org/OpenGL/extensions/EXT/WGL_EXT_swap_control.txt)")]\n        delegate* unmanaged<int, int> swapIntervalExt;',
+        "        delegate* unmanaged<int, int> swapIntervalExt;",
+    ),
+    (
+        "4 Opaque IntPtr by value for a HANDLE*",
+        [
+            (
+                d + "DxgiInterfaces.cs",
+                "public delegate* unmanaged<IDXGIResource1*, void*, uint, char*, IntPtr*, int> CreateSharedHandle;",
+                "public delegate* unmanaged<IDXGIResource1*, void*, uint, char*, IntPtr, int> CreateSharedHandle;",
+            ),
+            (g, "(IDXGIResource1*)resource1, null, access, null, handle);", "(IDXGIResource1*)resource1, null, access, null, (IntPtr)handle);"),
+        ],
+    ),
+    (
+        "4 Opaque void* for a T**",
+        d + "D3d11.cs",
+        "[FieldOffset(40 * 8)] public delegate* unmanaged<ID3D11Device*, ID3D11DeviceContext**, void> GetImmediateContext;",
+        '[FieldOffset(40 * 8), As(1, "ID3D11DeviceContext**", Opaque = true)] public delegate* unmanaged<ID3D11Device*, void*, void> GetImmediateContext;',
+    ),
 ]
 
 
@@ -81,15 +152,19 @@ for label in ["control (unchanged)"]:
     code, detail = check(label)
     print(f"===== {label}: exit {code}", *detail, sep="\n  ")
     failures += code != 0
-for name, rel, old, new in MUTATIONS:
-    p = root / rel
-    text = p.read_text()
-    assert text.count(old) == 1, (name, old)
-    p.write_text(text.replace(old, new))
+for item in MUTATIONS:
+    name, edits = item[0], item[1] if len(item) == 2 else [item[1:]]
+    saved = {}
+    for rel, old, new in edits:
+        p = root / rel
+        text = saved.setdefault(p, p.read_text()) if p not in saved else p.read_text()
+        assert text.count(old) == 1, (name, old)
+        p.write_text(text.replace(old, new))
     try:
         code, detail = check(name)
     finally:
-        p.write_text(text)
+        for p, text in saved.items():
+            p.write_text(text)
     print(f"===== {name}: exit {code} ({'fails, as it must' if code else 'PASSED: a hole'})", *detail[:4], sep="\n  ")
     failures += code == 0
 code, detail = check("control")
