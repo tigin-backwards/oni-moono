@@ -2,7 +2,8 @@
 # The game's App.Restart (ARCHITECTURE, "The host directory carries a Restarter"), in two
 # layouts made from the build output under a temporary folder:
 # - versioned: a versioned install (docs/INSTALL-MODES.md): the entry point, player/VERSION/ with
-#   a mod_info.yaml, state/current, and no Steam (an empty ONI_MOONO_STEAM_ROOTS);
+#   a mod_info.yaml, state/current, and no Steam (an empty ONI_MOONO_STEAM_ROOTS); on Linux both
+#   entry points, the shell script and Moono's own executable;
 # - player: a player folder started directly, as Steam's launch options start one.
 # Each is started as Steam starts it, `OPTIONS -- GAME_EXE GAME_ARGS`, the game's executable under
 # a "Program Files (x86)" path (a link to the game) and game arguments with a space, a quote and a
@@ -102,7 +103,7 @@ if [ "$which" = linux ]; then
         logs="$home/config/unity3d/Klei/Oxygen Not Included"
         args=(--game-tweak none --splash none --log-paths full --headless --frames "$frames" -- "$exe" "${game_args[@]}")
         local status=0
-        (cd "$tmp" && XDG_CONFIG_HOME="$home/config" XDG_CACHE_HOME="$home/cache" ONI_UPDATE_RELEASES_URL=none \
+        (cd "$tmp" && XDG_CONFIG_HOME="$home/config" XDG_CACHE_HOME="$home/cache" ONI_UPDATE_RELEASES_URL=none ONI_MOONO_CRASH_DIALOG=off \
             ONI_MOONO_STEAM_ROOTS="$tmp/steam" ONI_TEST_APP_RESTART=1 timeout 600 "$2" "${args[@]}" > "$home/first.out" 2>&1) || status=$?
         [ $status -eq 0 ] && pass "linux $1: first run exit 0" || fail "linux $1: first run exit $status ($(tail -3 "$home/first.out" | tr '\n' ' '))"
         wait_runs "$logs"
@@ -118,6 +119,17 @@ if [ "$which" = linux ]; then
     checks "linux versioned" "$logs/Player-prev.log" "$logs/Player.log" "the entry point $vroot/OniMoono" "$vroot/player/$version/OniMoono" \
         "$vroot/player/$version" "${args[@]}"
     expect "linux versioned second: chose its version" "$logs/Player.log" "playing version $version"
+    # The entry point as the install puts it with Moono's own executable (PlayerFiles.
+    # InstallLinuxEntry): that executable, which picks the version itself.
+    if grep -q moono_crash_install "$vroot/player/$version/OniMoono"; then
+        rm "$vroot/OniMoono"; cp "$vroot/player/$version/OniMoono" "$vroot/OniMoono"
+        run versioned-native "$vroot/OniMoono"
+        checks "linux versioned (native entry point)" "$logs/Player-prev.log" "$logs/Player.log" "the entry point $vroot/OniMoono" \
+            "$vroot/player/$version/OniMoono" "$vroot/player/$version" "${args[@]}"
+        expect "linux versioned (native entry point) second: chose its version" "$logs/Player.log" "playing version $version"
+    else
+        echo "linux versioned (native entry point): skipped, the build's OniMoono is the SDK's apphost"
+    fi
     cp -al "$root/out/bin/OniMoono.Host/debug" "$tmp/player"
     run player "$tmp/player/OniMoono"
     checks "linux player" "$logs/Player-prev.log" "$logs/Player.log" "this executable" "$tmp/player/OniMoono" "$tmp/player" "${args[@]}"

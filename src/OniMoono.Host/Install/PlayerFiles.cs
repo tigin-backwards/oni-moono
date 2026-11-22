@@ -201,7 +201,45 @@ namespace OniMoono.Host.Install
             return changed;
         }
 
-        /// The Linux entry point, ROOT/OniMoono (Entry).
+        /// Whether the file at `path` is Moono's own Linux executable (src/OniMoono.NativeHost,
+        /// host_linux.c), which is the entry point itself when it has player/ beside it: an ELF file
+        /// that exports the native crash records' functions. The SDK's apphost is not.
+        public static bool IsNativeLauncher(string path)
+        {
+            if (!File.Exists(path)) return false;
+            var bytes = File.ReadAllBytes(path);
+            if (bytes.Length < 4 || bytes[0] != 0x7f || bytes[1] != (byte)'E' || bytes[2] != (byte)'L' || bytes[3] != (byte)'F') return false;
+            var name = Encoding.ASCII.GetBytes("moono_crash_install\0");
+            for (int i = 0; i + name.Length <= bytes.Length; i++)
+            {
+                int k = 0;
+                while (k < name.Length && bytes[i + k] == name[k]) k++;
+                if (k == name.Length) return true;
+            }
+            return false;
+        }
+
+        /// The Linux entry point, ROOT/OniMoono: the version's own executable when it is Moono's
+        /// (IsNativeLauncher: with no OniMoono.dll beside it, it picks the version itself), else the
+        /// shell script (EntryScript), as before it. Written to ROOT/OniMoono.new and renamed over
+        /// the old one: a running entry point keeps the file it started from. True when it changed.
+        public static bool InstallLinuxEntry(string root, string versionDir, Action<string>? makeExecutable)
+        {
+            var entry = Path.Combine(root, "OniMoono");
+            var launcher = Path.Combine(versionDir, "OniMoono");
+            var fresh = IsNativeLauncher(launcher) ? File.ReadAllBytes(launcher) : Encoding.UTF8.GetBytes(EntryScript);
+            if (File.Exists(entry) && File.ReadAllBytes(entry).SequenceEqual(fresh)) return false;
+            var temp = entry + ".new";
+            File.WriteAllBytes(temp, fresh);
+            makeExecutable?.Invoke(temp);
+            if (File.Exists(entry)) File.Delete(entry);
+            File.Move(temp, entry);
+            return true;
+        }
+
+        /// The Linux entry point's fallback, ROOT/OniMoono as a shell script (InstallLinuxEntry), for
+        /// a version whose OniMoono is the SDK's apphost (a player built by setup.sh with no C
+        /// compiler).
         public const string EntryScript = """
             #!/bin/sh
             # Moono's entry point (docs/INSTALL-MODES.md): starts the installed player that

@@ -723,6 +723,25 @@ namespace OniMoono.Tests
             Assert.Equal(updates, log.Count(l => l.Contains("entry point")));
         }
 
+        /// On Linux the entry point is the version's own executable when it is Moono's (it picks the
+        /// version itself), and the script for a version built with the SDK's apphost.
+        [Fact]
+        public void LinuxEntryIsTheVersionsLauncher()
+        {
+            var version = Path.Combine(Root, "player", "2026.11.21.01");
+            Directory.CreateDirectory(version);
+            var launcher = new byte[] { 0x7f, (byte)'E', (byte)'L', (byte)'F' }.Concat(System.Text.Encoding.ASCII.GetBytes("..moono_crash_install\0..")).ToArray();
+            File.WriteAllBytes(Path.Combine(version, "OniMoono"), launcher);
+            var made = new List<string>();
+            Assert.True(PlayerFiles.InstallLinuxEntry(Root, version, made.Add));
+            Assert.Equal(launcher, File.ReadAllBytes(Path.Combine(Root, "OniMoono")));
+            Assert.Equal([Path.Combine(Root, "OniMoono.new")], made);
+            Assert.False(PlayerFiles.InstallLinuxEntry(Root, version, made.Add));
+            File.WriteAllBytes(Path.Combine(version, "OniMoono"), new byte[] { 0x7f, (byte)'E', (byte)'L', (byte)'F', 0, 0 });
+            Assert.True(PlayerFiles.InstallLinuxEntry(Root, version, null));
+            Assert.Equal(PlayerFiles.EntryScript, File.ReadAllText(Path.Combine(Root, "OniMoono")));
+        }
+
         /// An install from a source folder writes nothing outside the install root: no shortcut
         /// on the desktop, in the Start menu or under XDG applications.
         [Fact]

@@ -14,8 +14,10 @@ namespace OniMoono.Host.Install
     ///   be overwritten but can be renamed: a new one goes in as OniMoono.exe after the old one
     ///   is renamed to OniMoono.exe.old, which the next start deletes. The same exe goes in as
     ///   Restarter.exe too, for App.Restart (PlayerFiles.InstallWindowsEntry).
-    /// - Linux: a shell script (Script), written to a temporary file and renamed over the old
-    ///   one; a running shell keeps reading the file it opened.
+    /// - Linux: the version's own executable (host_linux.c), which picks the version itself when
+    ///   it has player/ beside it, else a shell script (Script) that does the same, for a version
+    ///   built with the SDK's apphost; written to a temporary file and renamed over the old one, so
+    ///   a running entry point keeps the file it opened (PlayerFiles.InstallLinuxEntry).
     internal static class Entry
     {
         public static string PathIn(string root) => Path.Combine(root, VersionedInstall.EntryFileInPlayer);
@@ -29,14 +31,7 @@ namespace OniMoono.Host.Install
                 {
                     if (!PlayerFiles.InstallWindowsEntry(install.Root, versionDir)) return;
                 }
-                else
-                {
-                    if (File.Exists(entry) && File.ReadAllText(entry) == Script) return;
-                    var temp = entry + ".new";
-                    File.WriteAllText(temp, Script);
-                    File.SetUnixFileMode(temp, (UnixFileMode)0b111_101_101);
-                    File.Move(temp, entry, overwrite: true);
-                }
+                else if (!PlayerFiles.InstallLinuxEntry(install.Root, versionDir, MakeExecutable)) return;
                 log.Add($"install: entry point {entry} updated");
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -45,7 +40,10 @@ namespace OniMoono.Host.Install
             }
         }
 
-        /// The Linux entry point (shared with the Workshop item's loader mod).
+        [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
+        static void MakeExecutable(string path) => File.SetUnixFileMode(path, (UnixFileMode)0b111_101_101);
+
+        /// The Linux entry point's fallback script (shared with the Workshop item's loader mod).
         public const string Script = PlayerFiles.EntryScript;
     }
 }
