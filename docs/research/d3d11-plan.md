@@ -168,6 +168,51 @@ header's vtable struct), its exact signature (`static_assert(std::is_same_v<...>
 function-pointer type), and each struct's size and field offsets. It covers the presenter's existing
 declarations too.
 
+## M2 part A: the binding and its check (2026-11-22)
+
+- **Declarations** (`src/OniMoono.Desktop/D3d11/`): typed interface structs, each `lpVtbl` with
+  a nested `Vtbl` whose methods sit at `FieldOffset(slot * 8)`, called as
+  `device->lpVtbl->CreateBuffer(device, ...)`; header-named structs, enums and constants;
+  `D3D11CreateDevice` and `CreateDXGIFactory2`. Each carries `[Native]` naming its header. Only
+  what the device needs (the original's call set, `d3d11-captures.md` §3 and §5, and the
+  inventory's checklist): 22 `ID3D11Device` methods, 40 `ID3D11DeviceContext` methods,
+  `ID3D11Texture2D::GetDesc`, `ID3D11Debug::ReportLiveDeviceObjects` and 3 `ID3D11InfoQueue`
+  methods, 19 DXGI methods on 14 interfaces, IUnknown's 3; 40 interfaces in all. No
+  `ID3D11DeviceContext1`, deferred contexts or debug object names yet (M6 or when needed).
+  `Gl/Dxgi.cs` keeps its API and calls through the same structs; its structs, constants, IIDs and
+  DLL functions are annotated too.
+- **The check.** `tools/ComCheckGen` reads every `[Native]` declaration by reflection on the
+  built assembly (so it checks the layouts, offsets and function-pointer types the runtime uses,
+  not source text; no Roslyn workspace needed) and writes `com_check.cpp`. MSVC compiles it twice,
+  never runs it: with `CINTERFACE` for the C vtables, then as C++ classes for `__uuidof`. It
+  asserts each method's `offsetof(XVtbl, M)`, its exact type (`std::is_same_v` on the vtable
+  member, the C type derived from the C# one: `int` → `INT`, an `int` return → `HRESULT`,
+  `uint` → `UINT`, pointers, enums by name), each IID, each declared base (`std::is_base_of_v`)
+  and IUnknown's `Release` at slot 2 for every interface, each struct's size and every field's
+  offset, exact type and size, every enum value and constant, and each DLL function's type. C#
+  has no const or typedefs, so `[Const(i)]` adds const to a pointee and `[As(i, "DWORD")]` names
+  the native type, itself asserted ABI-equal (`abi_same`). Totals: 40 interfaces (89 methods),
+  45 structs (219 fields), 32 enums (196 values), 56 constants, 50 IIDs, 10 functions.
+- **Where it runs.** `scripts/com-check.sh` (generate and compile; generate only without a Windows
+  side); `scripts/build-native-host.sh` stages it and `build.cmd` compiles it before the host, so a
+  difference fails `build-windows.sh` and CI's Windows build; `check.sh` runs `com-check.sh`.
+  `setup.ps1`'s from-source host build skips it (no generator there).
+- **Proof** (j0008180, a scratch copy, one change per run): slot `Map` 14 → 15 failed
+  "`ID3D11DeviceContext+Vtbl.Map: slot 15`"; `DrawIndexed`'s `int` → `uint` failed "`signature void
+  (STDMETHODCALLTYPE*)(ID3D11DeviceContext*, UINT, UINT, UINT)`"; `D3D11_DEPTH_STENCIL_VIEW_DESC.Texture2D`
+  at 8 failed "`offset 8`"; the `ID3D11Device` IID's last byte failed "`IID of ID3D11Device is
+  ...bf141`"; restored, it passes (j0008181). The first real run found one wrong declaration
+  already: `CloseHandle` returns BOOL, not HRESULT (fixed with `[As]`).
+- **Smoke test** (`tools/D3d11Smoke`, j0008182, light): a device on all 4 adapters, flags
+  BGRA_SUPPORT and BGRA_SUPPORT | DEBUG. Every value equals `d3d11-captures.md` §4: both RTX 3090
+  entries (LUIDs 125ad and 1f659) and the AMD iGPU FL 11_1; DriverConcurrentCreates 1;
+  DriverCommandLists 1 on NVIDIA, 0 on AMD; every D3D11_OPTIONS field read 1; CheckFormatSupport
+  20/19/21/45 = 0x3310b0/0x1210b0/0x4d217b0/0x3310b0, 10 = 0x12fef3f3 (NVIDIA), 0x32fef3f3 (AMD).
+  The Basic Render Driver (software) also gives 11_1, DriverCommandLists 0, format 10 0x2fef3f3.
+  **The debug layer works** (Graphics Tools installed): the debug device creates on every adapter
+  (GetCreationFlags 0x22), `ID3D11InfoQueue` and `ID3D11Debug` query, and the queue holds 0
+  messages after creation.
+
 ## Research so far (M0)
 
 Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so they survive):
