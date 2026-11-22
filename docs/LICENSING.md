@@ -104,6 +104,11 @@ Steamworks (`libsteam_api.so`, Steamworks.NET under MIT); `cimgui.so` (Dear ImGu
   (`source/smolv.cpp`, github.com/aras-p/smol-v, master as of 2026-10-30, file SHA-256
   99430333…6e017e2), © 2016–2024 Aras Pranckevicius, dual-licensed MIT or public domain (used
   under MIT). The notice is in the file's header and in `NOTICE.txt`.
+- `src/ThirdParty/DirectX-Headers/D3D12TokenizedProgramFormat.hpp`: microsoft/DirectX-Headers'
+  `include/directx/D3D12TokenizedProgramFormat.hpp` at commit 61c7718954ec73dbdd43c723240fe1a0452a3724,
+  unchanged, © Microsoft Corporation, MIT (`LICENSE` beside it). The Windows build compiles
+  `src/OniMoono.NativeHost/dxbc_check.cpp` against it to check the DXBC reader's constants; it is
+  never linked, so nothing of it ships and it is not in `NOTICE.txt`.
 - Native libraries from BRUTAL's packages (GLFW, glad, stb, FreeType with libpng and zlib, Vulkan
   Memory Allocator, and shaderc with glslang, SPIRV-Tools and SPIRV-Headers, which the Vulkan
   device uses to compile mods' GLCore shaders that carry no Vulkan programs U60 reads), under

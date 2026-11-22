@@ -1,6 +1,6 @@
 @echo off
 rem Builds OniMoono.exe (host.c, crash.c, crash_common.c, crash_window.c, crash_dialog.cpp, fmod_heap.c) with MSVC, in the current folder, which
-rem holds the sources (*.c, *.cpp, *.h), host.rc, the manifests, Moo.ico, the crash window's fonts
+rem holds the sources (*.c, *.cpp, *.h, and DirectX-Headers' D3D12TokenizedProgramFormat.hpp for dxbc_check.cpp), host.rc, the manifests, Moo.ico, the crash window's fonts
 rem (fonts\*.ttf, copied flat), and from the .NET SDK's
 rem Microsoft.NETCore.App.Host.win-x64 pack nethost.h, hostfxr.h and libnethost.lib
 rem (scripts/build-windows.sh and setup.ps1 copy them there).
@@ -23,6 +23,9 @@ rem SDK's apphost has (DllCharacteristics GUARD_CF).
 rem /utf-8: the crash window's Chinese strings. /Brepro: no timestamps in the objects and the exe
 rem (its PE timestamp is a hash of its contents), so a build of the same sources is the same.
 cl /nologo /Brepro /O2 /W4 /WX /MT /GS /guard:cf /utf-8 /DUNICODE /D_UNICODE /c host.c crash.c crash_common.c crash_window.c crash_dialog.cpp fmod_heap.c || exit /b 1
+rem The DXBC reader's token-format values against DirectX-Headers and the SDK (dxbc_check.cpp,
+rem scripts/gen-dxbc-check.py): compiled, never linked; a difference fails the build.
+cl /nologo /W4 /WX /EHsc /c /Fodxbc_check.obj dxbc_check.cpp || exit /b 1
 rem FMOD's allocator (fmod_heap.c) as the exe has it, against its unit tests: a failure fails the build.
 cl /nologo /O2 /W4 /WX /MT /Fefmod_heap_test.exe fmod_heap_test.c fmod_heap.obj || exit /b 1
 fmod_heap_test.exe || exit /b 1
