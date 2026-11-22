@@ -31,8 +31,8 @@ status=0
 log=$(cd "$stage" && MSYS2_ARG_CONV_EXCL='*' cmd.exe /c com_check.cmd 2>&1 | tr -d '\r') || status=$?
 # cmd.exe's exit code does not come through the pipe from every shell: the success line decides.
 if [ $status -ne 0 ] || ! grep -q '^com_check.cpp: every declaration matches' <<< "$log"; then
-    grep -E 'error|warning' <<< "$log" | head -40
+    grep -E 'error|warning|com_check.cmd' <<< "$log" | head -40
     echo "com-check: MSVC found declarations that differ from the Windows SDK headers" >&2
     exit 1
 fi
-echo "com-check: every declaration matches the Windows SDK headers (MSVC)"
+echo "com-check: ${log##*com_check.cpp: }"

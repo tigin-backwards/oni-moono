@@ -504,8 +504,8 @@ namespace OniMoono.Desktop.Gl
                 if (Dxgi.QueryDisplayConfig(Dxgi.QdcOnlyActivePaths, &pathCount, p, &modeCount, m, IntPtr.Zero) != 0) return 0;
                 for (int i = 0; i < pathCount; i++)
                 {
-                    var request = new Dxgi.DisplayConfigSourceName { Type = Dxgi.DisplayConfigGetSourceName, Size = 84, Adapter = p[i].SourceAdapter, Id = p[i].SourceId };
-                    if (Dxgi.DisplayConfigGetDeviceInfo(&request) != 0) continue;
+                    var request = new Dxgi.DisplayConfigSourceName { Header = new() { Type = Dxgi.DisplayConfigGetSourceName, Size = 84, Adapter = p[i].SourceAdapter, Id = p[i].SourceId } };
+                    if (Dxgi.DisplayConfigGetDeviceInfo(&request.Header) != 0) continue;
                     if (new string(request.GdiName, 0, 32).TrimEnd('\0') != name) continue;
                     uint num = p[i].RefreshNumerator, den = p[i].RefreshDenominator;
                     if (num == 0 || den == 0) return 0;

@@ -47,10 +47,13 @@ sealed class Generator(Assembly assembly)
     const int Return = -1;
     readonly StringBuilder c = new(), iids = new();
     readonly SortedSet<string> headers = new(StringComparer.Ordinal);
-    int interfaces, methods, structs, fields, enums, values, constants, guids, functions;
+    readonly SortedSet<string> exports = new(StringComparer.Ordinal), opaque = new(StringComparer.Ordinal);
+    readonly HashSet<MemberInfo> covered = [];
+    int interfaces, methods, structs, fields, enums, values, constants, guids, functions, pointers, notNative;
 
     public string Summary => $"{interfaces} interfaces ({methods} methods), {structs} structs ({fields} fields), {enums} enums ({values} values), " +
-        $"{constants} constants, {guids} IIDs, {functions} functions";
+        $"{constants} constants, {guids} IIDs, {functions} DLL functions, {pointers} function pointers, {exports.Count} exports, " +
+        $"{opaque.Count} opaque [As], {notNative} [NotNative]";
 
     static DeclarationException Error(string message) => throw new DeclarationException(message);
 
@@ -74,17 +77,31 @@ sealed class Generator(Assembly assembly)
     static Type BaseOf(Type t)
         => Attr(t, "NativeAttribute")?.NamedArguments.FirstOrDefault(n => n.MemberName == "Base").TypedValue.Value as Type;
 
-    /// [As(index, type)] by index (int.MinValue: a field's [As(type)]).
-    static Dictionary<int, string> AsTypes(MemberInfo m)
+    /// [As(index, type)] by index (int.MinValue: a field's [As(type)]), with its Opaque flag.
+    static Dictionary<int, (string Type, bool Opaque)> AsTypes(MemberInfo m)
     {
-        var r = new Dictionary<int, string>();
+        var r = new Dictionary<int, (string, bool)>();
         foreach (var a in Attrs(m, "AsAttribute"))
         {
             int index = a.ConstructorArguments.Count == 2 ? (int)a.ConstructorArguments[0].Value! : int.MinValue;
             string type = (string)a.ConstructorArguments[^1].Value!;
-            if (!r.TryAdd(index, type)) Error($"{Where(m)}: two [As] for {index}");
+            bool isOpaque = a.NamedArguments.Any(n => n.MemberName == "Opaque" && (bool)n.TypedValue.Value!);
+            if (!r.TryAdd(index, (type, isOpaque))) Error($"{Where(m)}: two [As] for {index}");
         }
         return r;
+    }
+
+    /// The assertion an [As] needs: the native type takes our C# type's place (abi_ok in the
+    /// emitted file), and Opaque is there only where it is needed.
+    void AbiAssert(string where, string native, string ours, bool isOpaque)
+    {
+        string o = isOpaque ? "true" : "false";
+        Assert(c, $"abi_ok<{native}, {ours}, {o}>()", $"{where}: {native} in place of {ours}{(isOpaque ? " (opaque)" : "")}");
+        if (isOpaque)
+        {
+            Assert(c, $"!abi_ok<{native}, {ours}, false>()", $"{where}: Opaque is not needed for {native}");
+            opaque.Add($"{where}: {native} as {ours}");
+        }
     }
 
     static HashSet<int> Consts(MemberInfo m)
@@ -154,7 +171,7 @@ sealed class Generator(Assembly assembly)
 
     /// The function-pointer type the C# signature gives, with [Const] and [As] applied, plus the
     /// ABI assertions each [As] needs.
-    string FunctionType(MemberInfo m, Type returnType, Type[] parameters, string callingConvention, List<(string, string)> abi)
+    string FunctionType(MemberInfo m, Type returnType, Type[] parameters, string callingConvention, List<(string, string, bool)> abi)
     {
         var asTypes = AsTypes(m);
         var consts = Consts(m);
@@ -170,8 +187,8 @@ sealed class Generator(Assembly assembly)
             }
             if (asTypes.TryGetValue(i, out var native))
             {
-                abi.Add((native, derived));
-                return native;
+                abi.Add((native.Type, derived, native.Opaque));
+                return native.Type;
             }
             return derived;
         }
@@ -187,6 +204,14 @@ sealed class Generator(Assembly assembly)
             Error($"{where}: {t} is not a blittable native type");
     }
 
+    /// A DllImport's parameters are marshalled: a char by value is ANSI by default
+    /// (learn.microsoft.com/dotnet/standard/native-interop/charset), so none is allowed there (a
+    /// char* is a pointer, passed as it is).
+    static void NoChar(Type t, string where)
+    {
+        if (t == typeof(char)) Error($"{where}: char in a DllImport marshals as ANSI by default; use ushort, or a char*");
+    }
+
     // ----- Declarations -----
 
     public string Emit()
@@ -199,9 +224,23 @@ sealed class Generator(Assembly assembly)
             else if (t.IsValueType) EmitStruct(t);
             else if (t.IsClass && t.IsAbstract && t.IsSealed) EmitClass(t);
             else Error($"{t.FullName}: [Native] on something that is not an interface, struct, enum or static class");
+            covered.Add(t);
         }
+        // Every member that carries a declaration attribute must have been emitted above: none
+        // may sit in a type the check does not read.
+        const BindingFlags all = BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+        string[] marks = ["NativeAttribute", "AsAttribute", "ConstAttribute", "NotNativeAttribute"];
+        foreach (var t in assembly.GetTypes())
+            foreach (var m in t.GetMembers(all).Append(t))
+                if (marks.Any(k => Attr(m, k) != null) && !covered.Contains(m))
+                    Error($"{Where(m)}: a declaration the check does not read (its type has no [Native], or it is not a constant, IID, DllImport or function pointer)");
         var o = new StringBuilder();
         o.Append($"// Generated by tools/ComCheckGen from OniMoono.Desktop's [Native] declarations: do not edit.\n// {Summary}\n");
+        o.Append("// Each DLL entry point, checked by com_check.cmd against the DLL's export table (dumpbin /exports):\n");
+        foreach (var e in exports) o.Append($"// export: {e}\n");
+        o.Append("// Where [As(Opaque = true)] lets an untyped pointer or handle stand for a typed one:\n");
+        foreach (var e in opaque) o.Append($"//   {e}\n");
+
         o.Append("""
             // Compile without COM_CHECK_IIDS for the C vtables (CINTERFACE) and with it for the C++
             // classes (__uuidof, bases). Compiled, never run: a failed static_assert is a difference.
@@ -223,23 +262,40 @@ sealed class Generator(Assembly assembly)
             #include <type_traits>
             #include <utility>
 
-            // A native type in place of the one derived from C# ([As]) must pass the same way: an
-            // integer or enum of the same size (and, integer for integer, signedness), a pointer or
-            // pointer-sized integer for a pointer, a reference for a pointer to its type.
-            template <class Native, class Ours> constexpr bool abi_same()
+            // A native type in place of the one derived from C# ([As]) must take its place exactly
+            // but for what C# cannot say:
+            // - values: the same type; or an integer for an integer of the same size and signedness;
+            //   or an enum for an integer of the same size, either way (never an enum for another
+            //   enum, never a float for an integer);
+            // - pointers and references: pointee by pointee, the same rules, const aside;
+            // - an untyped pointer (void*) or a pointer-sized integer for a typed pointer or handle
+            //   only when the [As] says Opaque (listed at the top of this file).
+            template <class N, class O> constexpr bool value_ok()
             {
-                using N = std::remove_cv_t<Native>;
-                using O = std::remove_cv_t<Ours>;
-                if constexpr (std::is_reference_v<N>)
-                    return std::is_pointer_v<O> && std::is_same_v<std::remove_cv_t<std::remove_reference_t<N>>, std::remove_cv_t<std::remove_pointer_t<O>>>;
+                if constexpr (std::is_same_v<N, O>) return true;
+                else if constexpr (std::is_integral_v<N> && std::is_integral_v<O>) return sizeof(N) == sizeof(O) && std::is_signed_v<N> == std::is_signed_v<O>;
+                else if constexpr ((std::is_enum_v<N> && std::is_integral_v<O>) || (std::is_integral_v<N> && std::is_enum_v<O>)) return sizeof(N) == sizeof(O);
+                else return false;
+            }
+            template <class N0, class O0, bool Opaque> constexpr bool pointee_ok()
+            {
+                using N = std::remove_cv_t<N0>;
+                using O = std::remove_cv_t<O0>;
+                if constexpr (std::is_void_v<O>) return std::is_void_v<N> || Opaque;
+                else if constexpr (std::is_pointer_v<N> && std::is_pointer_v<O>) return pointee_ok<std::remove_pointer_t<N>, std::remove_pointer_t<O>, Opaque>();
                 else if constexpr (std::is_pointer_v<N> || std::is_pointer_v<O>)
-                    return sizeof(N) == sizeof(O) && (std::is_pointer_v<N> || std::is_integral_v<N>) && (std::is_pointer_v<O> || std::is_integral_v<O>);
-                else if constexpr (std::is_integral_v<N> && std::is_integral_v<O>)
-                    return sizeof(N) == sizeof(O) && std::is_signed_v<N> == std::is_signed_v<O>;
-                else if constexpr ((std::is_enum_v<N> || std::is_integral_v<N>) && (std::is_enum_v<O> || std::is_integral_v<O>))
-                    return sizeof(N) == sizeof(O);
-                else
-                    return std::is_same_v<N, O>;
+                    return Opaque && sizeof(N) == sizeof(O) && (std::is_pointer_v<N> || std::is_integral_v<N>) && (std::is_pointer_v<O> || std::is_integral_v<O>);
+                else return value_ok<N, O>();
+            }
+            template <class N0, class O0, bool Opaque> constexpr bool abi_ok()
+            {
+                using N = std::remove_cv_t<N0>;
+                using O = std::remove_cv_t<O0>;
+                if constexpr (std::is_reference_v<N>) return std::is_pointer_v<O> && pointee_ok<std::remove_reference_t<N>, std::remove_pointer_t<O>, Opaque>();
+                else if constexpr (std::is_pointer_v<N> && std::is_pointer_v<O>) return pointee_ok<std::remove_pointer_t<N>, std::remove_pointer_t<O>, Opaque>();
+                else if constexpr (std::is_pointer_v<N> || std::is_pointer_v<O>)
+                    return Opaque && sizeof(N) == sizeof(O) && (std::is_pointer_v<N> || std::is_integral_v<N>) && (std::is_pointer_v<O> || std::is_integral_v<O>);
+                else return value_ok<N, O>();
             }
 
             #ifdef COM_CHECK_IIDS
@@ -275,6 +331,10 @@ sealed class Generator(Assembly assembly)
         var iid = t.GetField("IID", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
         if (iid == null || iid.FieldType != typeof(Guid) || !iid.IsInitOnly) Error($"{t.FullName}: no static readonly Guid IID");
         EmitGuid(t, n, (Guid)iid!.GetValue(null)!);
+        covered.Add(iid);
+        covered.Add(lp);
+        foreach (var f in t.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+            if (f != iid && !Generated(f)) Error($"{Where(f)}: an interface struct has no static fields but IID");
         if (BaseOf(t) is { } b)
         {
             if (!IsInterface(b)) Error($"{t.FullName}: Base {b} is not an interface");
@@ -306,11 +366,12 @@ sealed class Generator(Assembly assembly)
             foreach (var p in ps.Append(ret)) Blittable(p, where);
             if (ps.Length == 0 || ps[0] != t.MakePointerType()) Error($"{where}: the first parameter is {t.Name}*");
             string m = NativeName(f);
-            var abi = new List<(string, string)>();
+            var abi = new List<(string, string, bool)>();
             string type = FunctionType(f, ret, ps, "STDMETHODCALLTYPE", abi);
             Assert(c, $"offsetof({n}Vtbl, {m}) == {offset}", $"{where}: slot {offset / IntPtr.Size}");
             Assert(c, $"std::is_same_v<decltype({n}Vtbl::{m}), {type}>", $"{where}: signature {type}");
-            foreach (var (native, ours) in abi) Assert(c, $"abi_same<{native}, {ours}>()", $"{where}: {native} in place of {ours}");
+            foreach (var (native, ours, isOpaque) in abi) AbiAssert(where, native, ours, isOpaque);
+            covered.Add(f);
             methods++;
         }
     }
@@ -325,6 +386,8 @@ sealed class Generator(Assembly assembly)
         {
             long v = Convert.ToInt64(f.GetRawConstantValue());
             Assert(c, $"(long long)({NativeName(f)}) == {v}LL", $"{Where(f)} = {v}");
+            Assert(c, $"std::is_same_v<decltype({NativeName(f)}), {n}>", $"{Where(f)}: an enumerator of {n}");
+            covered.Add(f);
             values++;
         }
     }
@@ -354,51 +417,100 @@ sealed class Generator(Assembly assembly)
             int offset = (int)Marshal.OffsetOf(t, f.Name), fieldSize = SizeOf(f.FieldType);
             string member = $"decltype(std::declval<{n}&>().{path})";
             string type = ArrayOf(f) is { } a ? $"{CType(a.Element, where)}[{a.Count}]" : CType(f.FieldType, where);
-            if (AsTypes(f).TryGetValue(int.MinValue, out var native)) type = native;
+            if (AsTypes(f).TryGetValue(int.MinValue, out var native))
+            {
+                if (ArrayOf(f) != null) Error($"{where}: [As] on an array field");
+                AbiAssert(where, native.Type, type, native.Opaque);
+                type = native.Type;
+            }
             else if (AsTypes(f).Count > 0) Error($"{where}: [As(index, ...)] on a field");
             Assert(c, $"offsetof({n}, {path}) == {offset}", $"{where}: offset {offset}");
             Assert(c, $"std::is_same_v<{member}, {type}>", $"{where}: type {type}");
             Assert(c, $"sizeof({member}) == {fieldSize}", $"{where}: size {fieldSize}");
+            covered.Add(f);
             fields++;
         }
+        foreach (var f in t.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+            if (!Generated(f)) Error($"{Where(f)}: a static field in a [Native] struct");
+        foreach (var m in t.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+        {
+            if (m.GetCustomAttribute<DllImportAttribute>() != null || Attr(m, "LibraryImportAttribute") != null)
+                Error($"{Where(m)}: a DLL function in a struct (put it in a [Native] static class)");
+        }
     }
+
+    static bool Generated(MemberInfo m) => m.Name.StartsWith('<') || m.GetCustomAttribute<CompilerGeneratedAttribute>() != null;
 
     void EmitClass(Type t)
     {
         string classHeader = HeaderOf(t);
-        foreach (var f in t.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+        foreach (var f in t.GetFields(BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
         {
-            if (Attr(f, "NotNativeAttribute") != null) continue;
+            if (Generated(f)) continue;
+            covered.Add(f);
+            string where = Where(f);
+            if (Attr(f, "NotNativeAttribute") != null) { notNative++; continue; }
             if (f.IsLiteral)
             {
                 Header(f, classHeader);
                 var value = f.GetRawConstantValue();
-                if (value is not (int or uint or long or ulong or short or ushort or byte or sbyte)) Error($"{Where(f)}: a constant that is not an integer");
+                if (value is not (int or uint or long or ulong or short or ushort or byte or sbyte)) Error($"{where}: a constant that is not an integer");
                 string v = value is ulong u ? $"{u}ULL" : $"{Convert.ToInt64(value)}LL";
-                Assert(c, $"(long long)({NativeName(f)}) == (long long)({v})", $"{Where(f)} = {value}");
+                Assert(c, $"(long long)({NativeName(f)}) == (long long)({v})", $"{where} = {value}");
                 constants++;
             }
-            else if (f.FieldType == typeof(Guid) && f.IsInitOnly)
+            else if (f.FieldType == typeof(Guid) && f.IsInitOnly && f.IsStatic)
             {
-                if (Attr(f, "NativeAttribute") == null) Error($"{Where(f)}: an IID with no [Native(\"Interface\")]");
+                if (Attr(f, "NativeAttribute") == null) Error($"{where}: an IID with no [Native(\"Interface\")]");
                 Header(f, classHeader);
                 EmitGuid(f, NativeName(f), (Guid)f.GetValue(null)!);
             }
+            else if (f.FieldType.IsFunctionPointer && f.IsStatic)
+            {
+                // A function the code looks up (GetProcAddress): its type against the header's.
+                if (!f.FieldType.IsUnmanagedFunctionPointer) Error($"{where}: not a delegate* unmanaged");
+                string library = Named(Attr(f, "NativeAttribute"), "Library");
+                if (library == null) Error($"{where}: a function pointer names its DLL ([Native(Library = ...)])");
+                Header(f, classHeader);
+                var ps = f.FieldType.GetFunctionPointerParameterTypes();
+                var ret = f.FieldType.GetFunctionPointerReturnType();
+                foreach (var p in ps.Append(ret)) Blittable(p, where);
+                var abi = new List<(string, string, bool)>();
+                string type = FunctionType(f, ret, ps, "WINAPI", abi);
+                string entry = NativeName(f);
+                Assert(c, $"std::is_same_v<decltype(&{entry}), {type}>", $"{where}: {library}!{entry} is {type}");
+                foreach (var (native, ours, isOpaque) in abi) AbiAssert(where, native, ours, isOpaque);
+                exports.Add($"{library} {entry}");
+                pointers++;
+            }
+            else Error($"{where}: a field of a [Native] class that is not a constant, an IID, a function pointer or [NotNative]");
         }
-        foreach (var m in t.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
+        foreach (var m in t.GetMethods(BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly))
         {
-            var import = m.GetCustomAttribute<DllImportAttribute>();
-            if (import == null) continue;
             string where = Where(m);
+            if (Attr(m, "LibraryImportAttribute") != null) Error($"{where}: LibraryImport is not read by the check; use DllImport");
+            var import = m.GetCustomAttribute<DllImportAttribute>();
+            if (import == null)
+            {
+                if ((m.Attributes & MethodAttributes.PinvokeImpl) != 0) Error($"{where}: a P/Invoke the check cannot read");
+                continue;
+            }
+            covered.Add(m);
             Header(m, classHeader);
-            if (!import.PreserveSig || import.SetLastError) Error($"{where}: PreserveSig off or SetLastError");
+            if (!import.PreserveSig) Error($"{where}: PreserveSig off");
             var ps = m.GetParameters().Select(p => p.ParameterType).ToArray();
-            foreach (var p in ps.Append(m.ReturnType)) Blittable(p, where);
-            var abi = new List<(string, string)>();
+            foreach (var p in ps.Append(m.ReturnType))
+            {
+                Blittable(p, where);
+                NoChar(p, where);
+            }
+            var abi = new List<(string, string, bool)>();
             string type = FunctionType(m, m.ReturnType, ps, "WINAPI", abi);
             string entry = import.EntryPoint ?? m.Name;
-            Assert(c, $"std::is_same_v<decltype(&{entry}), {type}>", $"{where}: {import.Value}!{entry} is {type}");
-            foreach (var (native, ours) in abi) Assert(c, $"abi_same<{native}, {ours}>()", $"{where}: {native} in place of {ours}");
+            string library = import.Value.EndsWith(".dll", StringComparison.OrdinalIgnoreCase) ? import.Value : import.Value + ".dll";
+            Assert(c, $"std::is_same_v<decltype(&{entry}), {type}>", $"{where}: {library}!{entry} is {type}");
+            foreach (var (native, ours, isOpaque) in abi) AbiAssert(where, native, ours, isOpaque);
+            exports.Add($"{library.ToLowerInvariant()} {entry}");
             functions++;
         }
     }

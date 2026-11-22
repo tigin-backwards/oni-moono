@@ -25,7 +25,7 @@ namespace OniMoono.Desktop.D3d11
         [StructLayout(LayoutKind.Explicit)]
         public struct Vtbl
         {
-            [FieldOffset(8 * 8), As(1, "HWND")] public delegate* unmanaged<IDXGIFactory*, IntPtr, uint, int> MakeWindowAssociation;
+            [FieldOffset(8 * 8), As(1, "HWND", Opaque = true)] public delegate* unmanaged<IDXGIFactory*, IntPtr, uint, int> MakeWindowAssociation;
         }
     }
 
@@ -51,7 +51,7 @@ namespace OniMoono.Desktop.D3d11
         [StructLayout(LayoutKind.Explicit)]
         public struct Vtbl
         {
-            [FieldOffset(15 * 8), As(2, "HWND"), Const(3), As(4, "const DXGI_SWAP_CHAIN_FULLSCREEN_DESC*")]
+            [FieldOffset(15 * 8), As(2, "HWND", Opaque = true), Const(3), As(4, "const DXGI_SWAP_CHAIN_FULLSCREEN_DESC*", Opaque = true)]
             public delegate* unmanaged<IDXGIFactory2*, IUnknown*, IntPtr, Dxgi.SwapChainDesc1*, void*, IDXGIOutput*, IDXGISwapChain1**, int> CreateSwapChainForHwnd;
         }
     }
@@ -174,7 +174,7 @@ namespace OniMoono.Desktop.D3d11
         public struct Vtbl
         {
             [FieldOffset(31 * 8)] public delegate* unmanaged<IDXGISwapChain2*, uint, int> SetMaximumFrameLatency;
-            [FieldOffset(33 * 8), As(AsAttribute.Return, "HANDLE")] public delegate* unmanaged<IDXGISwapChain2*, IntPtr> GetFrameLatencyWaitableObject;
+            [FieldOffset(33 * 8), As(AsAttribute.Return, "HANDLE", Opaque = true)] public delegate* unmanaged<IDXGISwapChain2*, IntPtr> GetFrameLatencyWaitableObject;
         }
     }
 
@@ -187,7 +187,7 @@ namespace OniMoono.Desktop.D3d11
         [StructLayout(LayoutKind.Explicit)]
         public struct Vtbl
         {
-            [FieldOffset(13 * 8), As(1, "const SECURITY_ATTRIBUTES*"), As(2, "DWORD"), Const(3), As(4, "HANDLE*")]
+            [FieldOffset(13 * 8), As(1, "const SECURITY_ATTRIBUTES*", Opaque = true), As(2, "DWORD"), Const(3), As(4, "HANDLE*", Opaque = true)]
             public delegate* unmanaged<IDXGIResource1*, void*, uint, char*, IntPtr*, int> CreateSharedHandle;
         }
     }

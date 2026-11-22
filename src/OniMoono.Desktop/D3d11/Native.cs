@@ -25,14 +25,20 @@ namespace OniMoono.Desktop.D3d11
 
         /// On an interface: a base interface it may be used as (a C++ base class in the header).
         public Type Base { get; init; }
+
+        /// On a function pointer field of a [Native] class (a function looked up at run time): the
+        /// DLL that exports it, checked against its export table.
+        public string Library { get; init; }
     }
 
     /// The native type of a parameter (by index; `this` is 0 on a Vtbl method, -1 is the return)
     /// or, without an index, of a struct field, where the C# type differs from the one the check
     /// derives (HWND for IntPtr, DWORD for uint, LONG for int, an enum for uint). The check asserts
-    /// that the native type is exactly this one and that the C# type has its size and, for a
-    /// parameter, its ABI (integer or enum of the same size and signedness, pointer for pointer, a
-    /// reference for a pointer to its type).
+    /// that the native type is exactly this one and that the C# type takes its place: the same
+    /// value type, or an integer of the same size and signedness, or an enum for an integer of the
+    /// same size (never another enum, never float for an integer); pointers and references
+    /// pointee by pointee by the same rules. An untyped pointer (void*) or IntPtr for a typed
+    /// pointer or a handle needs Opaque, and the check lists every one.
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Method, AllowMultiple = true)]
     internal sealed class AsAttribute : Attribute
     {
@@ -40,6 +46,10 @@ namespace OniMoono.Desktop.D3d11
 
         public int Index { get; }
         public string Type { get; }
+
+        /// The C# type is an untyped pointer or a pointer-sized integer for this typed pointer or
+        /// handle (HWND, HANDLE, a struct the code only passes as null or as a buffer).
+        public bool Opaque { get; init; }
 
         public AsAttribute(int index, string type) => (Index, Type) = (index, type);
         public AsAttribute(string type) => (Index, Type) = (int.MinValue, type);

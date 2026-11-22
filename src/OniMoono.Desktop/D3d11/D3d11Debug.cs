@@ -31,6 +31,7 @@ namespace OniMoono.Desktop.D3d11
             [FieldOffset(4 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, void> ClearStoredMessages;
             [FieldOffset(5 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong, D3D11_MESSAGE*, nuint*, int> GetMessage;
             [FieldOffset(8 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessages;
+            [FieldOffset(9 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessagesAllowedByRetrievalFilter;
         }
     }
 
@@ -60,7 +61,7 @@ namespace OniMoono.Desktop.D3d11
         [As("D3D11_MESSAGE_CATEGORY")] public int Category;
         public D3D11_MESSAGE_SEVERITY Severity;
         [As("D3D11_MESSAGE_ID")] public int ID;
-        [As("const char*")] public byte* pDescription;
+        [As("const char*")] public sbyte* pDescription;
         public nuint DescriptionByteLength;
     }
 }

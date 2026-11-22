@@ -75,7 +75,7 @@ namespace OniMoono.Desktop.Gl
         {
             public uint Width, Height;
             [As("DXGI_FORMAT")] public uint Format;
-            [As("BOOL")] public uint Stereo;
+            public int Stereo;
             [Native("SampleDesc.Count")] public uint SampleCount;
             [Native("SampleDesc.Quality")] public uint SampleQuality;
             [As("DXGI_USAGE")] public uint BufferUsage;
@@ -123,8 +123,10 @@ namespace OniMoono.Desktop.Gl
             [FieldOffset(256)] public uint VendorId;
             [FieldOffset(260)] public uint DeviceId;
             [FieldOffset(272)] public nuint DedicatedVideoMemory;
-            [FieldOffset(296), Native("AdapterLuid"), As("LUID")] public long Luid;
+            [FieldOffset(296)] public LUID AdapterLuid;
             [FieldOffset(304)] public uint Flags;
+
+            public readonly long Luid => AdapterLuid.Value;
 
             public string Name
             {
@@ -141,7 +143,7 @@ namespace OniMoono.Desktop.Gl
         public struct OutputDesc
         {
             [FieldOffset(0)] public fixed char DeviceName[32];
-            [FieldOffset(88), As("HMONITOR")] public IntPtr Monitor;
+            [FieldOffset(88), As("HMONITOR", Opaque = true)] public IntPtr Monitor;
 
             public string Name
             {
@@ -157,10 +159,22 @@ namespace OniMoono.Desktop.Gl
         [StructLayout(LayoutKind.Explicit, Size = 72)]
         public struct DisplayConfigPath
         {
-            [FieldOffset(0), Native("sourceInfo.adapterId"), As("LUID")] public long SourceAdapter;
+            [FieldOffset(0), Native("sourceInfo.adapterId")] public LUID SourceAdapter;
             [FieldOffset(8), Native("sourceInfo.id")] public uint SourceId;
             [FieldOffset(48), Native("targetInfo.refreshRate.Numerator")] public uint RefreshNumerator;
             [FieldOffset(52), Native("targetInfo.refreshRate.Denominator")] public uint RefreshDenominator;
+        }
+
+        /// DISPLAYCONFIG_DEVICE_INFO_HEADER: what DisplayConfigGetDeviceInfo takes, at the start of
+        /// each request.
+        [Native("DISPLAYCONFIG_DEVICE_INFO_HEADER", Header = "wingdi.h")]
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DisplayConfigDeviceInfoHeader
+        {
+            [Native("type"), As("DISPLAYCONFIG_DEVICE_INFO_TYPE")] public int Type;
+            [Native("size")] public uint Size;
+            [Native("adapterId")] public LUID Adapter;
+            [Native("id")] public uint Id;
         }
 
         /// DISPLAYCONFIG_SOURCE_DEVICE_NAME (84 bytes).
@@ -168,10 +182,7 @@ namespace OniMoono.Desktop.Gl
         [StructLayout(LayoutKind.Explicit, Size = 84)]
         public struct DisplayConfigSourceName
         {
-            [FieldOffset(0), Native("header.type"), As("DISPLAYCONFIG_DEVICE_INFO_TYPE")] public int Type;
-            [FieldOffset(4), Native("header.size")] public uint Size;
-            [FieldOffset(8), Native("header.adapterId"), As("LUID")] public long Adapter;
-            [FieldOffset(16), Native("header.id")] public uint Id;
+            [FieldOffset(0), Native("header")] public DisplayConfigDeviceInfoHeader Header;
             [FieldOffset(20), Native("viewGdiDeviceName")] public fixed char GdiName[32];
         }
 
@@ -183,11 +194,11 @@ namespace OniMoono.Desktop.Gl
         [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG")]
         public static extern int GetDisplayConfigBufferSizes(uint flags, uint* paths, uint* modes);
 
-        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG"), As(4, "DISPLAYCONFIG_MODE_INFO*"), As(5, "DISPLAYCONFIG_TOPOLOGY_ID*")]
+        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG"), As(4, "DISPLAYCONFIG_MODE_INFO*", Opaque = true), As(5, "DISPLAYCONFIG_TOPOLOGY_ID*", Opaque = true)]
         public static extern int QueryDisplayConfig(uint flags, uint* pathCount, DisplayConfigPath* paths, uint* modeCount, void* modes, IntPtr topology);
 
-        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG"), As(0, "DISPLAYCONFIG_DEVICE_INFO_HEADER*")]
-        public static extern int DisplayConfigGetDeviceInfo(DisplayConfigSourceName* request);
+        [DllImport("user32.dll"), Native(Header = "winuser.h"), As(AsAttribute.Return, "LONG")]
+        public static extern int DisplayConfigGetDeviceInfo(DisplayConfigDeviceInfoHeader* request);
 
         /// DXGI_QUERY_VIDEO_MEMORY_INFO.
         [Native("DXGI_QUERY_VIDEO_MEMORY_INFO", Header = "dxgi1_4.h")]
@@ -205,10 +216,10 @@ namespace OniMoono.Desktop.Gl
             => D3D11.D3D11CreateDevice((IDXGIAdapter*)adapter, (D3D_DRIVER_TYPE)driverType, software, (D3D11_CREATE_DEVICE_FLAG)flags, (D3D_FEATURE_LEVEL*)featureLevels,
                 featureLevelCount, sdkVersion, (ID3D11Device**)device, (D3D_FEATURE_LEVEL*)featureLevel, (ID3D11DeviceContext**)immediateContext);
 
-        [DllImport("kernel32.dll"), Native(Header = "synchapi.h"), As(AsAttribute.Return, "DWORD"), As(0, "HANDLE"), As(1, "DWORD"), As(2, "BOOL")]
+        [DllImport("kernel32.dll"), Native(Header = "synchapi.h"), As(AsAttribute.Return, "DWORD"), As(0, "HANDLE", Opaque = true), As(1, "DWORD"), As(2, "BOOL")]
         public static extern uint WaitForSingleObjectEx(IntPtr handle, uint milliseconds, int alertable);
 
-        [DllImport("kernel32.dll"), Native(Header = "handleapi.h"), As(AsAttribute.Return, "BOOL"), As(0, "HANDLE")]
+        [DllImport("kernel32.dll"), Native(Header = "handleapi.h"), As(AsAttribute.Return, "BOOL"), As(0, "HANDLE", Opaque = true)]
         public static extern int CloseHandle(IntPtr handle);
 
         [Native("WAIT_OBJECT_0", Header = "winbase.h")] public const uint WaitObject0 = 0;

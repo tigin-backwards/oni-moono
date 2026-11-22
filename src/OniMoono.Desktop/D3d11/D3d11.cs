@@ -14,7 +14,7 @@ namespace OniMoono.Desktop.D3d11
     [Native(Header = "d3d11.h")]
     internal static unsafe class D3D11
     {
-        [DllImport("d3d11.dll"), As(2, "HMODULE"), As(3, "UINT"), Const(4)]
+        [DllImport("d3d11.dll"), As(2, "HMODULE", Opaque = true), As(3, "UINT"), Const(4)]
         public static extern int D3D11CreateDevice(IDXGIAdapter* pAdapter, D3D_DRIVER_TYPE DriverType, IntPtr Software, D3D11_CREATE_DEVICE_FLAG Flags,
             D3D_FEATURE_LEVEL* pFeatureLevels, uint FeatureLevels, uint SDKVersion, ID3D11Device** ppDevice, D3D_FEATURE_LEVEL* pFeatureLevel,
             ID3D11DeviceContext** ppImmediateContext);
@@ -543,7 +543,7 @@ namespace OniMoono.Desktop.D3d11
     [StructLayout(LayoutKind.Sequential)]
     internal unsafe struct D3D11_INPUT_ELEMENT_DESC
     {
-        [As("LPCSTR")] public byte* SemanticName;
+        [As("LPCSTR")] public sbyte* SemanticName;
         public uint SemanticIndex;
         public DXGI_FORMAT Format;
         public uint InputSlot;
