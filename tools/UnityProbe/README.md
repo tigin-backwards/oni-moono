@@ -918,3 +918,13 @@ what it logs:
   the content and the view to the root, as float bits. Install it in a spec that opens the
   screen, as `vitalsopen`, and diff the two players' last lines to find the first input that
   differs.
+
+With `PROBE_SCENARIO=d3d11` only the Direct3D 11 probe runs (`D3d11Probe.cs`, `D3d11Native.cs`,
+lines `DX …`, 10 s into the main menu, under a second). Run it once on the original's default
+renderer and once with `-force-glcore`. It logs SystemInfo and every format query,
+`GL.GetGPUProjectionMatrix`, render texture formats, the row order of ReadPixels, Blit,
+CopyTexture and AsyncGPUReadback, face culling, cleared depth, and texture uploads. On the render
+thread (`GL.IssuePluginEvent`) it then logs what `GetNativeTexturePtr` points to, the D3D11
+device's feature level and threading support, and the constant buffers (D3D11) or uniforms
+(GLCore) a program has bound after a camera's draw. `PROBE_D3D11_NATIVE=0` skips that part. It
+ends with a `DX done` line. `docs/research/d3d11-unity-probes.md` records what it measured.
