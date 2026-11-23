@@ -411,6 +411,15 @@ if [ "$which" != linux ]; then
             expect "windows fastfail-reported: end" "$log" 'native crash: the process ended with 0xC0000409 \(fast fail.*\); a fast fail skips every handler and leaves no dump'
             [ -z "$dump" ] && pass "windows fastfail-reported: no dump" || fail "windows fastfail-reported: a dump"; }
         run terminate && expect "windows terminate: end" "$log" "native crash: the process ended with 1 without the player's own exit"
+        # A fault noted at first chance (a stack overflow a native thread handles), then an end
+        # with another code no handler saw (#117): the noted fault kept as an earlier one, the end
+        # still unexplained; no dump, as the game was gone before anything asked for one.
+        run earlier-fault && { expect "windows earlier-fault: earlier fault" "$log" 'native crash: an earlier fault, [0-9]+\.[0-9] s before the end \(native code may have handled it\):[[:space:]]*$'
+            grep -A1 'native crash: an earlier fault' "$log" > "$stage/earlier-fault.txt" || true
+            expect "windows earlier-fault: its fault line next" "$stage/earlier-fault.txt" 'native crash: 0xC00000FD stack overflow in OniMoono\.exe\+0x[0-9A-F]+ \([0-9.]+, [^)]+\) on thread [0-9]+'
+            expect "windows earlier-fault: its stack" "$log" 'native crash stack: .*OniMoono\.exe\+0x[0-9A-F]+ \(x[0-9]{2,}\)'
+            expect "windows earlier-fault: end" "$log" 'native crash: the process ended with 0xC0000005 \(access violation\); no handler saw it[[:space:]]*$'
+            [ -z "$dump" ] && pass "windows earlier-fault: no dump" || fail "windows earlier-fault: a dump"; }
         run failfast && { expect "windows failfast: runtime text" "$log" 'native crash: runtime: Process terminated\.'
             expect "windows failfast: end" "$log" 'native crash: the process ended with 0x80131623'; dumped failfast none; }
         run managed-null && { expect "windows managed-null: caught" "$log" 'test native crash: the null reference was caught'

@@ -4160,6 +4160,7 @@ with .NET 10 (`--test-native-crash`):
 | Heap corruption (0xC0000374) | raised to the vectored handlers just before the heap ends the process | line, stack, dump |
 | `__fastfail`, a /GS check, `abort()` (0xC0000409) | nothing; Windows Error Reporting records it (its Application Error event 1000) before the process ends | the line from that record (module, offset and the fast fail's code, as `0xC0000409 fast fail 5 (an invalid parameter to the C runtime) in SimDLL.dll+0x9F1CB`), the exit code; no dump, as the process is gone (`--test-native-crash fastfail-reported`; the other cases turn Windows Error Reporting off) |
 | `TerminateProcess` by another module | nothing | the exit code alone |
+| A fault noted at first chance (a native stack overflow its thread handles), then an end with another code that no handler saw: a second fault on a thread with no stack left to run handlers on, or `TerminateProcess` (#117) | our vectored handler, for the first fault only | the first fault's line and stack as an earlier fault, with how long before the end it was; then as when nothing saw the end (Windows Error Reporting's record, if it has one; the exit code with `; no handler saw it`); no dump, as nothing asked for one before the process was gone (`--test-native-crash earlier-fault`) |
 | `Environment.FailFast`; a stack overflow on a managed thread (in managed code or native code it called) | the runtime's text (`Process terminated.`, `Stack overflow.`), which it handles first | that text with the managed stack, the exit code, a dump |
 | A managed null reference, caught or not; the mods' stack probes | the runtime's vectored handler, which is first, handles it | nothing (the managed exception is logged as before) |
 
@@ -4183,9 +4184,23 @@ with the game.
   at its own offset and would write over lines added while the game runs.
 - **Noting a fault.** In the game, a vectored handler added after the runtime's notes a fault
   the runtime left alone (so not one in managed code). Native code may still handle it then, so
-  the note is used only when the game then ends with that fault's code. The
-  unhandled-exception filter, set over the runtime's once it is up, notes a fault and calls the
-  runtime's after.
+  the note explains the end only when the game then ends with that fault's code. When it ends
+  with another, the note is written as an earlier fault, before the end's own record:
+
+  ```
+  [engine] native crash: an earlier fault, 0.0 s before the end (native code may have handled it):
+  [engine] native crash: 0xC00000FD stack overflow in OniMoono.exe+0x7B73 (1.0.0.0, %USERPROFILE%\...\OniMoono.exe) on thread 25012
+  [engine] native crash stack: OniMoono.exe+0x7B73, OniMoono.exe+0x7B8A (x95), ...
+  [engine] native crash: the process ended with 0xC0000005 (access violation); no handler saw it
+  ```
+
+  The unhandled-exception filter, set over the runtime's once it is up, notes a fault and calls
+  the runtime's after.
+- **Dumps.** The watcher writes a dump only while the game is still there: when the game's
+  handlers ask for one (a fault nothing handled, a heap failure) or when the runtime's
+  `Fatal error.` text starts. A fault noted at first chance asks for none, as native code may
+  handle it, and once the game has ended its memory is gone, so an end no handler saw has no
+  dump.
 - **Formatting.** A note copies the fault into the shared page and a thread made at start
   formats it there (the faulting thread may have no stack left; nothing allocates; a structured
   exception handler covers a broken stack).

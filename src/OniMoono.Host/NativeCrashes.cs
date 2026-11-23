@@ -154,7 +154,8 @@ namespace OniMoono.Host
         /// (scripts/check-native-crash.sh). `main` and `worker` fault in native code called from
         /// managed code (the main thread; a managed thread), `thread` and `stack-overflow` on a
         /// native thread, `main-stack-overflow` a native recursion called from the main thread, `fastfail`, `heap`, `gs`, `abort` and `terminate` as named
-        /// (`fastfail-reported` with Windows Error Reporting on, as in play),
+        /// (`fastfail-reported` with Windows Error Reporting on, as in play), `earlier-fault` a
+        /// stack overflow a native thread handles, then TerminateProcess with 0xC0000005,
         /// `failfast` is Environment.FailFast; `managed-null` is a null reference the runtime turns
         /// into a NullReferenceException that is caught, and the run goes on. On Linux `main` and
         /// `worker` fault in libc (strlen of address 1), `heap` is a double free glibc finds, and

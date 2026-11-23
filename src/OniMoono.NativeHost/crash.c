@@ -20,7 +20,8 @@
  *    (wer_record).
  * So the record is written by a watcher, a second OniMoono.exe started before the runtime, which
  * waits for the game to end. When it ends without the player's own exit, the watcher appends what
- * the game noted (a fault noted at first chance when its exit code is that fault's), the runtime's
+ * the game noted (a fault noted at first chance when its exit code is that fault's, else as an
+ * earlier fault before the end's own record), the runtime's
  * "Fatal error." text from standard error (which passes through the watcher on its way to where it
  * went before), and the exit code. Writing after the end also keeps the lines from being written
  * over: the log's own writer writes at its own offset. The watcher writes the minidump from outside
@@ -643,10 +644,21 @@ static DWORD WINAPI faulting_thread(void *what)
     return 0;
 }
 
+/* A stack overflow this thread handles itself (its stack's guard page then gone). */
+static DWORD WINAPI handled_overflow(void *unused)
+{
+    (void)unused;
+    __try { recurse(0); }
+    __except (GetExceptionCode() == EXCEPTION_STACK_OVERFLOW ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {}
+    return 0;
+}
+
 /* Faults on purpose, in native code: `access-violation` and `recursion` (a stack overflow) on the
  * calling thread, `thread` on a new native thread, `stack-overflow` there too, `fastfail`, `heap`,
  * `gs`, `abort`, `terminate`; `fastfail-reported` is `fastfail` with Windows Error Reporting on,
- * as in play (SEM_NOGPFAULTERRORBOX turns it off).
+ * as in play (SEM_NOGPFAULTERRORBOX turns it off); `earlier-fault` a stack overflow a native
+ * thread handles (noted at first chance), then TerminateProcess with 0xC0000005, an end with
+ * another code than the noted fault's that no handler saw (#117).
  * Returns 0 for an unknown name. No error dialog either way. */
 __declspec(dllexport) int moono_crash_test(const wchar_t *what)
 {
@@ -671,6 +683,12 @@ __declspec(dllexport) int moono_crash_test(const wchar_t *what)
     else if (wcscmp(what, L"gs") == 0) overrun(64);
     else if (wcscmp(what, L"abort") == 0) abort();
     else if (wcscmp(what, L"terminate") == 0) TerminateProcess(GetCurrentProcess(), 1);
+    else if (wcscmp(what, L"earlier-fault") == 0)
+    {
+        HANDLE thread = CreateThread(NULL, 0, handled_overflow, NULL, 0, NULL);
+        if (thread) WaitForSingleObject(thread, INFINITE);
+        TerminateProcess(GetCurrentProcess(), 0xC0000005);
+    }
     else return 0;
     return 1;
 }
@@ -1282,7 +1300,12 @@ int crash_watch(int argc, wchar_t **argv)
     out_t o = { text, 0, sizeof text };
     LONG seen = shared->seen;
     ULONGLONG ago = GetTickCount64() - shared->seen_tick;
-    if (seen == SEEN_UNHANDLED || (seen == SEEN_FIRST_CHANCE && shared->seen_code == code))
+    /* The noted fault explains the end when nothing handled it, or when the game ended with its
+     * code. A fault noted at first chance with another code came earlier (native code handled
+     * it, or the game went on to a second fault no handler saw, as a stack overflow's thread can):
+     * kept, as an earlier fault, but the end is still unexplained. */
+    int explained = seen == SEEN_UNHANDLED || (seen == SEEN_FIRST_CHANCE && shared->seen_code == code);
+    if (explained)
     {
         put(&o, shared->text);
         if (seen == SEEN_FIRST_CHANCE && ago > 10000)
@@ -1292,9 +1315,18 @@ int crash_watch(int argc, wchar_t **argv)
             put(&o, " s before the end; native code may have handled it)\r\n");
         }
     }
+    else if (seen == SEEN_FIRST_CHANCE && shared->text[0])
+    {
+        put(&o, "[engine] native crash: an earlier fault, ");
+        put_dec(&o, ago / 1000);
+        put(&o, ".");
+        put_dec(&o, ago % 1000 / 100);
+        put(&o, " s before the end (native code may have handled it):\r\n");
+        put(&o, shared->text);
+    }
     if (runtime.length) put(&o, runtime.text);
-    int nothing_seen = seen == SEEN_NONE && !runtime.length && !shared->clean;
-    int reported = nothing_seen && is_fault(code) && wer_record(code);
+    int unexplained = !explained && !runtime.length && !shared->clean;
+    int reported = unexplained && is_fault(code) && wer_record(code);
     if (reported)
     {
         /* As the fault line, from Windows Error Reporting's record. */
@@ -1337,7 +1369,7 @@ int crash_watch(int argc, wchar_t **argv)
     }
     else if (reported)
         put(&o, code == STATUS_STACK_BUFFER_OVERRUN_CODE ? "; a fast fail skips every handler and leaves no dump" : "; no handler saw it");
-    else if (seen == SEEN_NONE && !runtime.length)
+    else if (unexplained)
         put(&o, code == STATUS_STACK_BUFFER_OVERRUN_CODE ? "; a fast fail skips every handler, so nothing more is known"
                 : code < 0x10000 ? " without the player's own exit (ExitProcess or TerminateProcess from native code, or from outside)"
                 : is_fault(code) ? "; no handler saw it" : "");
@@ -1359,6 +1391,6 @@ int crash_watch(int argc, wchar_t **argv)
         CloseHandle(log);
     }
     int activate = dialog_wanted(code);
-    if (activate >= 0) show_dialog(code, seen == SEEN_UNHANDLED || (seen == SEEN_FIRST_CHANCE && shared->seen_code == code), &monitor, activate);
+    if (activate >= 0) show_dialog(code, explained, &monitor, activate);
     return 0;
 }
