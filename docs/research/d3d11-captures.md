@@ -492,7 +492,10 @@ only.
    B2), and the scene set's pixels show no input differing (M3); the original's extra elements
    matter only for parity of what a mod's program could read, which M7 owns.
 8. **The 4 unmatched shaders** (built-ins or StreamingAssets bundle shaders). **Moved to M7**:
-   the player's built-ins and bundles are what M7's mod and compatibility work reads.
+   the player's built-ins and bundles are what M7's mod and compatibility work reads. M3 part C
+   added the Spaced Out bundle's copies of Klei/LiquidSubstance and Klei/Substance to
+   `--check-shaders` (j0008865: 123 shaders, 1,082 subprograms, all built); which copy a draw
+   uses stays M7's.
 9. **TMP Surface s0p1/s0p2.** That they are shadow-caster passes. **Moved to M7**: no scene of
    the scene set draws them (M3's coverage list), so only a mod's use would show it.
 

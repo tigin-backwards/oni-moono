@@ -66,7 +66,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
-| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Open: the 68 refused programs (the user's call), 38 game shaders not drawn in play, how the original hands its camera texture to the screen (UNVERIFIED, M4) |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 4 within, 2 over (nav lines two rows thick, the northern lights mirrored against OpenGL: D3D11 equals Vulkan) and 2 unjudged. Open: those two over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4) |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
@@ -758,7 +758,7 @@ The 104 entries not created are the 68 programs the device refuses (M2's B2 list
 No code of Moono's engine sets `PROCEDURAL_INSTANCING_ON` or an `_MSAA_` keyword or uses
 BlitToDepth or the Physics2D debug shaders (`grep` of `src/`), so no draw can select these
 variants on any device; making them would need structured-buffer and multisample-texture
-bindings the device does not have. **Open, for the user:** implement those bindings so the
+bindings the device does not have. (Decided in part C: accepted as unreachable.) **Open, for the user:** implement those bindings so the
 check passes whole, or accept the 68 as unreachable and have the check list them apart (it
 counts them as failures now, exit 1).
 
@@ -926,6 +926,158 @@ setup failed on a null ResourceCategoryScreen, fixed), j0008694, j0008720; OpenG
 (coverage only), j0008718, j0008719 (base only); base runs j0008711-j0008717 failed waiting for
 the research tree to hold still (dropped for a mask; j0008712 and j0008713 cancelled);
 check.sh j0008737 (green, on e085648a5, whose code is fa6f8162d's).
+
+## M3 part C (2026-11-23, branch `d3d11-m3`)
+
+Part C: the 38 game shaders part B left undrawn, the bundle's two shader copies, and the 68
+refused programs.
+
+**The 68 refused programs: accepted as unreachable** (the user's decision, 2026-11-23). The
+evidence: no code of Moono's engine sets `PROCEDURAL_INSTANCING_ON` or an `_MSAA_` keyword, or
+uses BlitToDepth_MSAA, the frame debugger's display or the Physics2D debug shaders (part B's
+`grep` of `src/`); no device of Moono's binds either kind (the engine has no `SetBuffer`, the
+Vulkan device binds a zeroed 256-byte placeholder to storage-buffer slots, `emptyStorage`, and
+refuses multisample-texture variants, `VkPrograms`; the OpenGL device binds no storage buffers
+and has no multisample textures, `GlPrograms`). Revisit in M7 only if a mod needs them.
+`--check-shaders` now logs each as `d3d11 check: refused, unreachable: SHADER sSpP vs#… ps#…,
+program N (why)`, counts them apart and exits 0 when nothing else fails (`D3d11Check.cs`;
+j0008854: 68 refused, unreachable; 0 failed, 0 refused, 0 debug-layer messages).
+
+**The bundle's copies** (part B: "M7's"). Adding them was cheap: `ShaderCheck` loads
+`StreamingAssets/expansion1_bundle` as the game does (`AssetBundle.LoadFromFile`) and makes each
+of its shaders an object, so the device checks Klei/LiquidSubstance's and Klei/Substance's bundle
+copies too (j0008865: 123 shaders, 178 passes, 1,082 subprograms, 510 programs built, 1,530 input
+layouts, the same 68 refused and unreachable, nothing else). Which copy a draw uses stays M7's.
+
+**How each of the 38 was settled.** Each shader's referencing objects were named
+(`ShaderSurvey shader-refs DATADIR NAME…`, two levels: a material by name, a MonoBehaviour by its
+script and GameObject; j0008826), every material's shader listed (`ShaderSurvey materials`,
+j0008843), the components that would use them looked for in the data (`ShaderSurvey
+script-uses`, j0008841), and the U60 764025 code read for every `Shader.Find`, `Resources.Load`,
+`Assets.GetMaterial` and material field. Byte matches of small path IDs in the second level are
+mostly not PPtrs (texture, text and UI component bytes); only named components count as
+evidence. `Assets.ShaderAssets`/`Assets.Shaders` (the GameAssets list holding most Klei shaders)
+and the ResourceManager paths keep shaders in the build; no code reads `Assets.Shaders` or loads
+a shader by its Resources path.
+
+New scenes (ours only, Windows, `E2E_PLAYER_ARGS`, the frozen build), each spec's setup making
+the state the game makes, as the coverage spec does:
+- `d3d11-coverage-particles.yaml` (the landing): the effect prefabs the game instantiates
+  (`EffectPrefabs`: HappySingerFX, HugFrenzyFX, SparkleStreakFX, MissileSmokeTrailFX,
+  LongRangeMissileSmokeTrailFX, PlantPollinated, MeteorBackground), as HappySinger, HugMonitor,
+  SparkleStreaker, MissileProjectile, MissileLongRangeProjectile, PollinationVFXMonitor and
+  MeteorShowerEvent do, one second at speed 1.
+- `d3d11-coverage-debug.yaml` (the small base, debug mode): the dev tools (Ctrl+` reads
+  Input.GetKeyDown, which the synthetic input does not reach, so setup sets `showImGui` and
+  `UserAcceptedWarning` with the driver's new `setup.set`), a Duplicant's navigation grid
+  (NavPathDrawer.SetNavigator, what the Draw paths button calls) and a selected Space Scanner.
+- `d3d11-coverage-rockets.yaml` (the Spaced Out rockets fixture): the small habitat selected.
+- `d3d11-coverage-impactor.yaml` (the Prehistoric pack's colony): the research portal's event,
+  as `demolior-pointer.yaml` raises it, 20 seconds at speed 1.
+- `d3d11-coverage-sky.yaml` (the same colony): the world's `largeImpactorFragments` (1,
+  ALLOWED) and `northernlights` (1) and the tracker's `largeImpactorState` (Defeated) set, the
+  sky above the surface revealed.
+- Dropped: a gamepad spec. Setting `KInputManager.currentControllerIsGamepad` (what a gamepad's
+  input sets) drew Unlit/VirtualCursorCutoutShader but threw a NullReferenceException in
+  `VirtualInputModule.ActivateModule` (ours; the original not run) and the shot was the crash
+  screen (j0008855). No comparable shot.
+
+Results (`scenes.py`, part A's tolerance and method; D3D11 with the debug layer j0008866, OpenGL
+j0008867 and j0008868, Vulkan j0008871 for information; no debug-layer message stored):
+
+| Scene | OpenGL spread > 8 | Stable | > 16 | > 40 | PSNR | Verdict |
+|---|---|---|---|---|---|---|
+| particles | 0.77% | 97.4% | 0.078% | 0.043% | 40.5 dB | within |
+| debug/devtools | 2.00% | 93.8% | 0.122% | 0.092% | 33.7 dB | within |
+| debug/navgrid | 2.29% | 94.3% | 0.137% | 0.128% | 31.8 dB | **over** (> 40) |
+| debug/scanner | 2.25% | 94.2% | 0.010% | 0.001% | 46.8 dB | within |
+| rockets/launch-conditions | 0.13% | 99.7% | 0.006% | 0.000% | 58.7 dB | within |
+| impactor/after-reveal | 7.05% | 34.6% | 0.331% | 0.269% | 38.1 dB | unjudged |
+| impactor/impactor-world | 3.69% | 45.4% | 0.017% | 0.002% | 53.6 dB | unjudged |
+| sky | 0.00% | 99.8% | 22.86% | 5.744% | 26.7 dB | **over** |
+
+- **navgrid** (over by 0.028 points). The differing pixels are the grid's horizontal lines
+  (GL.Begin lines through Lines/Colored Blended): OpenGL draws them one row thick, Vulkan one
+  row (the row above OpenGL's), D3D11 two rows (both). The device's rasterizer has
+  MultisampleEnable 1, as the original's measured state (captures §2). "Quadrilateral lines take
+  2 endpoints and turn them into a simple rectangle with width 1.4f, drawn with triangles"
+  (D3D11.3 Functional Specification §3.4.5), and D3D11_RASTERIZER_DESC's table gives
+  quadrilateral lines for MultisampleEnable TRUE; its Remarks also say both settings "apply only
+  to multisample antialiasing (MSAA) render targets", and this target has one sample, so the
+  documentation does not settle which algorithm a single-sample target gets. Observed (RTX
+  3090): two-row lines, as a 1.4-wide rectangle would give. **UNVERIFIED** (M4, with the other
+  measurements of the original): whether the original's lines are two rows thick too.
+- **sky** (over). Klei/NorthernLights' shipped vertex program writes the clip position's x and
+  y from the mesh unchanged (`mov o0.xy, v0.xyxx`, `fxc /dumpbin`, j0008876), a quad already in
+  clip space with no projection, so its image is turned over in a target whose rows run the
+  other way: D3D11 draws the world camera into render textures with the flipped convention (as
+  the original, captures §2). D3D11 and Vulkan agree exactly (0.000% over 40), OpenGL differs
+  (5.75%): the aurora is mirrored top to bottom between them. Part B's light pools were the same
+  kind of question, and there the original sided with OpenGL; this brief does not run the
+  original (its run needs the user's registry and LocalLow). **UNVERIFIED** (M4): which way the
+  original draws it. Klei/LargeImpactorFragments and DemoliorBackground draw in the same shot.
+- **impactor** (unjudged). The planet's material gets `_Random` from Random.value and
+  `_UnscaledTime` every frame (ParallaxBackgroundObject.LateUpdate) and the reveal animates in
+  real time, so two OpenGL runs agree on under half the image. Drawn, not judged.
+
+Coverage in play (`coverage.py` over the D3D11 runs: part B's and j0008866, j0008858, j0008855):
+
+| | Before (part B) | After (part C) | Of |
+|---|---|---|---|
+| Shaders | 49 | 62 (61 in the committed specs) | 121 |
+| Passes | 51 | 64 | 176 |
+| Stage entries | 120 | 146 | 1,070 subprograms |
+| Programs | 60 | 73 | |
+
+**The 38** (each with what references it in the data and the code that would draw it):
+
+| Shader | Outcome | Evidence |
+|---|---|---|
+| Klei/BloomedParticleShader | drawn, within | particles (hearts_fx, music_notes, music_notes_2, Sparkle) |
+| Particles/Standard Surface | drawn, within | particles (smoke_trail) |
+| Particles/Standard Unlit | drawn, within | particles (missile_sparkle, pollinated_fx) |
+| Legacy Shaders/Particles/Additive | drawn, within | particles (meteorshowerparticle) |
+| Unlit/ImGui | drawn, within | debug/devtools (the ImGui material, ImGuiRenderer) |
+| Klei/PostFX/ScannerNetwork | drawn, within | debug/scanner |
+| Klei/PostFX/RocketLaunchCondition | drawn, within | rockets |
+| Lines/Colored Blended | drawn, over | debug/navgrid, above |
+| Klei/NorthernLights | drawn, over | sky, above |
+| Klei/LargeImpactorFragments | drawn, over (same shot) | sky |
+| Klei/DLC4/DemoliorBackground | drawn, unjudged; also in sky | impactor (BGPlanet, ParallaxBackgroundObject) |
+| Klei/PostFX/LargeImpactorVisualizerShader | drawn, unjudged | impactor |
+| Unlit/VirtualCursorCutoutShader | drawn once, no comparable shot | the dropped gamepad spec, above |
+| Klei/Standard Unlit | reachable, not drawn | long_smoke_trail on LongRangeMissileSmokeTrailFX's TrailFX2; instantiated in particles, nothing drew (why not traced: open) |
+| Klei/AnimationInvisible | reachable, not drawn | only LargeComet sets MaterialType.Invisible: the Demolior's crash, at the event's end |
+| Klei/DLC4/LargeImpactorCometShader | reachable, not drawn | LargeComet (Shader.Find), the same |
+| TextMeshPro/Sprite | reachable, not drawn | 13 TMP sprite-asset materials; `<sprite>` tags in storage rows (germs, food states: SimpleInfoScreen), bionic battery and Bonbon branch text, controller glyphs (SteamInputInterpreter) |
+| Standard | not traced | Default-Material, held by a MeshRenderer on a WaterExplode object; its use not traced |
+| Klei/BuildingCell | unreachable | BuildingCellVisualizerResources.Initialize makes its 10 materials; nothing reads them (the port icons are UI images: EntityCellVisualizer.DrawUtilityIcon) |
+| Klei/RocketPath | unreachable | no material, no Shader.Find of it; only GameAssets and Resources keep it |
+| Klei/TiledWall | unreachable | its one material, walls_insulation, is never asked for (Assets.GetMaterial names only tiles_solid and BGPlanet) |
+| Klei/Area Visualizer, Klei/PostFX/Desaturate, Fill, HueSaturation | unreachable | no material, no Shader.Find, no Resources.Load of their paths |
+| Klei/Biome/Unlit Transparent | unreachable | gasFlowVis and liquidFlowVis sit in Game's private gasFlowMaterial and liquidFlowMaterial, which no code reads |
+| Klei/LiquidSubstance | unreachable | the liquids' materials (matLiquid, matWater, …, both copies) are read only by LiquidTileOverlayRenderer, which no scene, prefab or code adds (script-uses: none) |
+| UI/Graphz | unreachable | its material Graphz is only a Resources path; nothing loads it |
+| GUI/Text Shader | unreachable | the fonts' Font Materials; only TextMesh draws with them, used only by TextMesh Pro's example scripts, none of which is in the data |
+| Hidden/LineShader | unreachable | RTEditorGUI's line material, for the NodeEditor's RuntimeNodeEditor, which the data does not hold |
+| Hidden/FrameDebuggerRenderTargetDisplay | unreachable | the editor's frame debugger; its variants are among the 68 |
+| TextMeshPro/Distance Field (Surface), Mobile/Distance Field (Surface), - 2 Pass, - Masking, Overlay | unreachable | each only in TextMesh Pro's sample materials, loaded by name only by its example scripts (none in the data); no `material=` tag in the game's text |
+| Legacy Shaders/Diffuse, VertexLit | unreachable | no material uses them; other shaders name them as Fallback, which applies only to a shader the device cannot run, and every game shader's program builds |
+
+**Driver.** `setup.set {target, member, value}` (E2eDriver, setup only, as setup.call): a field
+or property set by reflection, for state no method sets.
+
+**Left open.** The two UNVERIFIED items above (M4); Klei/Standard Unlit, AnimationInvisible,
+LargeImpactorCometShader, TextMeshPro/Sprite and Standard not drawn; the two impactor shots
+unjudged; VirtualCursorCutoutShader without a comparable shot.
+
+**Runs** (runq, burndown, owner `d3d11-m3`): ShaderSurvey j0008823 (a script without its
+interpreter line), j0008824 and j0008826 (refs), j0008841 (script-uses), j0008843 (materials);
+builds j0008848, j0008862; check-shaders j0008854 (unreachable counted apart), j0008865 (with
+the bundle); first D3D11 runs j0008855 (particles and gamepad drawn; the others' setup
+expressions fixed), j0008858; the comparison: D3D11 j0008866, OpenGL j0008867 and j0008868,
+Vulkan j0008871; NorthernLights' DXBC dumps j0008870, j0008872, j0008874 and `fxc /dumpbin` j0008873, j0008875,
+j0008876 (the first ones' scripts were wrong).
 
 ## Research so far (M0)
 
