@@ -3343,7 +3343,8 @@ Only the work posted for resources differs (`IResourceWork`).
 - *Diagnostics.*
   - **Validation.** `--vulkan-validation` (or `ONI_VULKAN_VALIDATION=1`) enables the Khronos
     validation layer, its messages in the log. `ONI_VULKAN_VALIDATION=sync` adds its synchronization
-    checks.
+    checks, `ONI_VULKAN_VALIDATION=best` its best-practices checks (performance warnings; the
+    vendor-specific ones are the layer's own settings, such as `VK_LAYER_VALIDATE_BEST_PRACTICES_AMD=true`; the layer has none for Intel).
   - **The layer.** Without an installed one, `scripts/get-vulkan-validation.sh` fetches a pinned
     release (Vulkan-ValidationLayers vulkan-sdk-1.4.363.0 from LunarG's SDK packages, checked by
     SHA-256; on Linux the distro's `vulkan-validationlayers` is used when installed) into the
@@ -3351,7 +3352,10 @@ Only the work posted for resources differs (`IResourceWork`).
     `vulkan-validation/` beside its executable, where `scripts/run-windows.sh` copies it) and points
     the loader at it through `VK_ADD_LAYER_PATH`.
   - **Counts.** `--frame-stats` counts draws, pipeline binds, render passes, passes ended by uploads
-    and submits. GPU frame time comes from timestamp queries.
+    and submits. GPU frame time comes from timestamp queries. With `--gpu-profile` too, a
+    `gpu by pass` line gives each pass's GPU time (timestamps at every pass's start and end), by
+    target and the program of its first draw, with the work between passes as `outside passes`
+    (VkGpuProfile; #115).
   - **`--check-shaders`** on Vulkan builds every variant and a pipeline for its pass's state, and
     counts what fails.
   - **`ONI_VK_ALT=NAME,...`** (measurement only, with `--frame-stats`; `writes-first`,

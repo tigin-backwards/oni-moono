@@ -50,7 +50,14 @@ namespace OniMoono.Desktop.Vulkan
             frames.Main.EndRendering();
             rendering = false;
             ready.PassEnded();
+            if (frames.Profile != null) frames.ProfileMark(passTarget + " " + (passProgram ?? "clears only"));
         }
+
+        /// --gpu-profile: the pass's target and the program of its first draw (VkGpuProfile).
+        string passTarget, passProgram;
+
+        static string Describe(VkImageResource image, int colours, VkImageResource depth) =>
+            $"{image.Width}x{image.Height} {image.Format}{(colours > 1 ? $" +{colours - 1} more" : "")}{(depth != null ? " with " + depth.Format : "")}{(image.Samples > 1 ? $" {image.Samples}x MSAA" : "")}";
 
         /// The rendering command buffer outside any pass, for a copy that must come at this
         /// point of the frame.
@@ -73,7 +80,7 @@ namespace OniMoono.Desktop.Vulkan
             Span<VkRenderingAttachmentInfo> colors = stackalloc VkRenderingAttachmentInfo[8];
             Span<VkFormat> formats = stackalloc VkFormat[8];
             int count = 0;
-            VkImageResource depth = null;
+            VkImageResource depth = null, firstColor = null;
             int width = int.MaxValue, height = int.MaxValue, samples = 1;
             void Size(VkImageResource image)
             {
@@ -88,6 +95,7 @@ namespace OniMoono.Desktop.Vulkan
                 var bb = presenter.BackBuffer(t.BackBufferWidth, t.BackBufferHeight, frames);
                 bb.Color.ForAttachment(cb);
                 colors[0] = Attachment(bb.Color, clearColor);
+                firstColor = bb.Color;
                 formats[0] = bb.Color.Format;
                 count = 1;
                 depth = bb.Depth;
@@ -115,6 +123,7 @@ namespace OniMoono.Desktop.Vulkan
                         vt.Dirty = true;
                         vt.LastUsedBatch = frames.Batch;
                         colors[count] = Attachment(image, clearColor);
+                        firstColor ??= image;
                         formats[count++] = image.Format;
                         Size(image);
                     }
@@ -147,6 +156,13 @@ namespace OniMoono.Desktop.Vulkan
             renderHeight = height;
             bool stencil = depth != null && VkImageResource.HasStencil(depth.Format);
             targetFormats = VkTargetFormats.Of(formats[..count], depth?.Format ?? VkFormat.Undefined, stencil ? depth.Format : VkFormat.Undefined, samples, flipped: !topFirst);
+            if (frames.Profile != null)
+            {
+                frames.ProfileMark("outside passes");
+                passTarget = (toBackBuffer ? "back buffer " : "")
+                             + (firstColor != null ? Describe(firstColor, count, depth) : depth != null ? $"{depth.Width}x{depth.Height} {depth.Format} (depth only)" : "no attachment");
+                passProgram = null;
+            }
             fixed (VkRenderingAttachmentInfo* c = colors)
             {
                 var info = new VkRenderingInfo
@@ -407,6 +423,7 @@ namespace OniMoono.Desktop.Vulkan
                 boundPipeline = pipeline;
                 pipelineBinds++;
             }
+            if (frames.Profile != null) passProgram ??= program.Name;
             var textureSet = BindTextures(r, program, cb);
             BindUniforms(r, program, cb, textureSet);
             return true;

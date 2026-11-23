@@ -188,20 +188,23 @@ namespace OniMoono.Desktop.Vulkan
             for (int i = 0; i < count; i++) extensions.Add(Marshal.PtrToStringUTF8((nint)required[i]));
             var layers = new HashSet<string>();
             // "info": the layer's and the loader's informational messages too (to see it is there);
-            // "sync": synchronization validation too (VK_EXT_validation_features), off by default.
+            // "sync": synchronization validation too (VK_EXT_validation_features), off by default;
+            // "best": the layer's best-practices checks, which report slow patterns as performance
+            // warnings (its vendor checks are layer settings: VK_LAYER_VALIDATE_BEST_PRACTICES_AMD
+            // and the like in the environment).
             var validationSetting = Environment.GetEnvironmentVariable("ONI_VULKAN_VALIDATION");
-            Validation |= validationSetting is "1" or "info" or "sync";
-            bool syncValidation = false;
+            Validation |= validationSetting is "1" or "info" or "sync" or "best";
+            bool extraValidation = false;
             if (Validation)
             {
                 if (LayerAvailable(VK.LAYER_KHRONOS_VALIDATION) || (AddLocalValidationLayer() && LayerAvailable(VK.LAYER_KHRONOS_VALIDATION)))
                 {
                     layers.Add(VK.LAYER_KHRONOS_VALIDATION);
                     extensions.Add(VK.EXT_DEBUG_UTILS_EXTENSION_NAME);
-                    if (validationSetting == "sync")
+                    if (validationSetting is "sync" or "best")
                     {
                         extensions.Add("VK_EXT_validation_features");
-                        syncValidation = true;
+                        extraValidation = true;
                     }
                 }
                 else
@@ -214,11 +217,11 @@ namespace OniMoono.Desktop.Vulkan
             fixed (byte* engineName = "Moono\0"u8)
             {
                 var app = new VkApplicationInfo { ApplicationName = appName, EngineName = engineName, ApiVersion = RequiredApi };
-                var syncFeature = VkValidationFeatureEnableEXT.SynchronizationValidationEXT;
+                var syncFeature = validationSetting == "best" ? VkValidationFeatureEnableEXT.BestPracticesEXT : VkValidationFeatureEnableEXT.SynchronizationValidationEXT;
                 var validationFeatures = new VkValidationFeaturesEXT { EnabledValidationFeatureCount = 1, EnabledValidationFeatures = &syncFeature };
                 Instance = Brutal.VulkanApi.Vulkan.CreateInstance(new Instance.CreateInfo
                 {
-                    AppInfo = app, EnabledExtensions = extensions, EnabledLayers = layers, Next = syncValidation ? &validationFeatures : null,
+                    AppInfo = app, EnabledExtensions = extensions, EnabledLayers = layers, Next = extraValidation ? &validationFeatures : null,
                 });
             }
             if (Validation)
@@ -227,11 +230,14 @@ namespace OniMoono.Desktop.Vulkan
                 {
                     MessageSeverity = VkDebugUtilsMessageSeverityFlagsEXT.ErrorBitEXT | VkDebugUtilsMessageSeverityFlagsEXT.WarningBitEXT
                                       | (validationSetting == "info" ? VkDebugUtilsMessageSeverityFlagsEXT.InfoBitEXT : 0),
-                    MessageType = VkDebugUtilsMessageTypeFlagsEXT.GeneralBitEXT | VkDebugUtilsMessageTypeFlagsEXT.ValidationBitEXT,
+                    MessageType = VkDebugUtilsMessageTypeFlagsEXT.GeneralBitEXT | VkDebugUtilsMessageTypeFlagsEXT.ValidationBitEXT
+                                  | VkDebugUtilsMessageTypeFlagsEXT.PerformanceBitEXT,
                     PfnUserCallback = new PfnVkDebugUtilsMessengerCallbackEXT(&OnValidationMessage),
                 };
                 messenger = Instance.CreateDebugUtilsMessengerEXT(info, null);
-                EngineLog.Engine(syncValidation ? "vulkan: Khronos validation layer on, with synchronization validation" : "vulkan: Khronos validation layer on");
+                EngineLog.Engine(!extraValidation ? "vulkan: Khronos validation layer on"
+                                 : validationSetting == "best" ? "vulkan: Khronos validation layer on, with its best-practices checks"
+                                 : "vulkan: Khronos validation layer on, with synchronization validation");
             }
 
             var candidates = new List<VkCandidate>();

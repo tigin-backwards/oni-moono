@@ -119,6 +119,7 @@ namespace OniMoono.Desktop.Vulkan
             public int DescriptorPoolIndex;
             public VkQueryPool Timestamps;
             public bool TimestampsWritten;
+            public int Index;
         }
 
         readonly VkContext vk;
@@ -144,6 +145,9 @@ namespace OniMoono.Desktop.Vulkan
         public double GpuMilliseconds;
         public int GpuFrames;
 
+        /// --gpu-profile: each pass's GPU time (null when off, or without timestamps).
+        public readonly VkGpuProfile Profile;
+
         public VkFrames(VkContext vk)
         {
             this.vk = vk;
@@ -152,11 +156,12 @@ namespace OniMoono.Desktop.Vulkan
             timestampPeriodNs = vk.Limits.TimestampPeriod;
             for (int i = 0; i < InFlight; i++)
             {
-                var s = slots[i] = new Slot();
+                var s = slots[i] = new Slot { Index = i };
                 s.Pool = vk.Device.CreateCommandPool(new VkCommandPoolCreateInfo { QueueFamilyIndex = vk.QueueFamily, Flags = VkCommandPoolCreateFlags.TransientBit }, null);
                 s.Fence = vk.Device.CreateFence(new VkFenceCreateInfo(), null);
                 if (timestamps) s.Timestamps = vk.Device.CreateQueryPool(new VkQueryPoolCreateInfo { QueryType = VkQueryType.Timestamp, QueryCount = 2 }, null);
             }
+            if (timestamps && GlGpuProfile.Enabled) Profile = new VkGpuProfile(vk, InFlight, timestampPeriodNs, 64);
         }
 
         Slot Current => slots[current];
@@ -177,6 +182,7 @@ namespace OniMoono.Desktop.Vulkan
                         vk.Device.PInvoke.vkCmdResetQueryPool.Invoke(main.Handle, s.Timestamps, 0, 2);
                         vk.Device.PInvoke.vkCmdWriteTimestamp2.Invoke(main.Handle, VkPipelineStageFlags2.TopOfPipeBit, s.Timestamps, 0);
                         s.TimestampsWritten = true;
+                        Profile?.BeginFrame(main, s.Index);
                     }
                 }
                 return main;
@@ -223,7 +229,10 @@ namespace OniMoono.Desktop.Vulkan
         {
             var s = Current;
             if (endFrame && timestamps && s.TimestampsWritten)
+            {
+                Profile?.Mark(Main, s.Index, "after the last pass");
                 vk.Device.PInvoke.vkCmdWriteTimestamp2.Invoke(Main.Handle, VkPipelineStageFlags2.BottomOfPipeBit, s.Timestamps, 1);
+            }
             Span<VkCommandBufferSubmitInfo> buffers = stackalloc VkCommandBufferSubmitInfo[2];
             int n = 0;
             // Closed before they are ended: a vkEndCommandBuffer that fails leaves its buffer
@@ -277,7 +286,11 @@ namespace OniMoono.Desktop.Vulkan
                 VkCheck.Ok(VkFenceWait.Wait(vk, fence, "frames: a frame slot's fence", current), "vkWaitForFences");
                 vk.Device.PInvoke.vkResetFences.Invoke(vk.Device.Handle, 1, &fence);
                 s.Pending = false;
-                if (s.TimestampsWritten) CollectTimestamps(s);
+                if (s.TimestampsWritten)
+                {
+                    CollectTimestamps(s);
+                    Profile?.Collect(s.Index);
+                }
             }
             s.TimestampsWritten = false;
             Release(s.Retired);
@@ -302,6 +315,12 @@ namespace OniMoono.Desktop.Vulkan
             if (r != VkResult.Success) return;
             GpuMilliseconds += (values[1] - values[0]) * timestampPeriodNs / 1e6;
             GpuFrames++;
+        }
+
+        /// --gpu-profile: ends the GPU segment since the last mark as `label` (outside any pass).
+        public void ProfileMark(string label)
+        {
+            if (Profile != null && Current.TimestampsWritten) Profile.Mark(Main, current, label);
         }
 
         /// Releases `release` once the GPU has finished the frame being recorded (resources the
@@ -511,6 +530,7 @@ namespace OniMoono.Desktop.Vulkan
                 vk.Device.DestroyFence(s.Fence, null);
                 vk.Device.DestroyCommandPool(s.Pool, null);
             }
+            Profile?.Dispose();
         }
     }
 }
