@@ -503,6 +503,7 @@ step. The original run itself records it and passes.
 setup:
   - driver: {seed: 12345}                            # before a random screen opens
   - driver: {setup.call: {type: "BlueprintsV2.Store", method: "Seed", args: ["e2e"]}}   # setup only
+  - driver: {setup.set: {target: "DevToolManager.Instance", member: showImGui, value: true}}   # setup only
   - driver: {camera.set: {pos: [128.5, 210.5], ortho: 20}}
   - driver: {count: {methods: ["Brain:UpdateBrain"]}}  # its calls from now on: E2eDriver.Counting.Of("Brain:UpdateBrain")
 steps:
@@ -515,7 +516,7 @@ whose research or materials setup just provided: until PlanScreen re-checks that
 cached state is the old one, so picking it opens the prebuild tool, and when the check comes
 depends on the frame rate (the original on llvmpipe draws a few frames a game second).
 
-`setup.call` (reflection) is allowed only in `setup:`. It may prepare a test, never perform the
+`setup.call` and `setup.set` (reflection) are allowed only in `setup:`. It may prepare a test, never perform the
 thing under test: issue #6 was "Played" through reflection while its screens were broken. An
 argument JSON cannot spell is given as a state expression, `{"$": "Db.Get().Techs.Get(\"HVAC\")"}`
 (E2eDriver's README, setup.call).

@@ -260,6 +260,7 @@ DRIVER_COMMANDS = {
     'canvas.hide',
     'canvas.show',
     'setup.call',
+    'setup.set',
     'seed',
     'count',
     'stopwatch',
@@ -464,7 +465,7 @@ def check_step(where, kind, value, in_setup):
             ((command, _),) = value.items()
             need(command in DRIVER_COMMANDS, f'unknown E2eDriver command {command!r}')
             # Reflection may prepare a test, never perform the thing under test (§1, issue #6).
-            need(in_setup or command != 'setup.call', 'driver setup.call is only allowed in setup:')
+            need(in_setup or command not in ('setup.call', 'setup.set'), f'driver {command} is only allowed in setup:')
     return problems
 
 

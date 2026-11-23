@@ -411,6 +411,22 @@ A reflective call. **The runner allows it only in a spec's `setup:` block**, nev
 << {"ok":true,"result":{"value":683,"type":"System.Int32"}}
 ```
 
+### setup.set `{target, member, value}`
+
+A reflective assignment, under setup.call's rule: **only in a spec's `setup:` block**. It sets
+the field or property `member` (public or not, base types included) of the value of `target`, a
+`state.get` expression, or of its type when `target` is `type:NAME`. `value` is converted as a
+setup.call argument is. A struct value's member cannot be set (the target would be a copy). For
+state no method sets, such as `DevToolManager.Instance.showImGui`, the dev tools' visibility,
+which only Ctrl+` (read through `Input.GetKeyDown`) toggles.
+
+- **Result:** `{value, type}` of the value assigned.
+
+```
+>> {"cmd":"setup.set","args":{"target":"DevToolManager.Instance","member":"showImGui","value":true}}
+<< {"ok":true,"result":{"value":true,"type":"System.Boolean"}}
+```
+
 ### seed `{n, krandom?}`
 
 The same random numbers in both players before a random screen opens (§5.4). It does three

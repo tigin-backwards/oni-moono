@@ -36,6 +36,7 @@ namespace E2eDriver
                 case "canvas.hide": CanvasHide(request); return null;
                 case "canvas.show": CanvasShow(request); return null;
                 case "setup.call": return State.Result(State.Call(a), a);
+                case "setup.set": return State.Result(State.Set(a), a);
                 case "seed": return Seeding.Seed(a);
                 case "count": return Counting.Start(a);
                 case "stopwatch": return MethodTimes.Start(request);

@@ -355,6 +355,42 @@ namespace E2eDriver
             return value;
         }
 
+        /// setup.set: assigns `value` (converted as a setup.call argument is) to the field or
+        /// property `member` of the `target` expression's value, or of its type when the
+        /// expression names a type (`type:NAME`), public or not, base types included. The
+        /// result is the value assigned. A field of a struct value is set on a copy, so the
+        /// target must be a reference (a class instance or a type).
+        public static object Set(JObject args)
+        {
+            var member = (string)args["member"] ?? throw new DriverError("setup.set needs a member");
+            var on = Eval((string)args["target"] ?? throw new DriverError("setup.set needs a target"));
+            if (on == null) throw new DriverError("the target is null");
+            if (on is Type t) on = new Static(t);
+            var isStatic = on is Static;
+            var type = isStatic ? ((Static)on).Type : on.GetType();
+            if (!isStatic && type.IsValueType) throw new DriverError($"setup.set: {Values.TypeName(type)} is a value type; set the member on what holds it");
+            var instance = isStatic ? null : on;
+            var flags = (isStatic ? BindingFlags.Static : BindingFlags.Instance | BindingFlags.Static) | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
+            for (var at = type; at != null; at = at.BaseType)
+            {
+                var field = at.GetField(member, flags);
+                if (field != null)
+                {
+                    if (!Values.Convert(args["value"], field.FieldType, out var value)) throw new DriverError($"setup.set: the value is not a {Values.TypeName(field.FieldType)}");
+                    field.SetValue(field.IsStatic ? null : instance, value);
+                    return value;
+                }
+                var property = at.GetProperty(member, flags);
+                if (property != null && property.CanWrite)
+                {
+                    if (!Values.Convert(args["value"], property.PropertyType, out var value)) throw new DriverError($"setup.set: the value is not a {Values.TypeName(property.PropertyType)}");
+                    property.SetValue(property.GetSetMethod(true).IsStatic ? null : instance, value);
+                    return value;
+                }
+            }
+            throw new DriverError($"no settable field or property {member} on {Values.TypeName(type)}");
+        }
+
         /// The latest non-null value a setup.call returned: "last:rest" reads from it, so a
         /// setup can act on what an earlier call made (an instantiated object, say).
         static object last;

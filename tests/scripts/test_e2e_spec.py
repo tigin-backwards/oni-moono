@@ -96,6 +96,16 @@ steps:
 ''')
         self.assertEqual(e2e.check_spec(s), ['steps 1: driver setup.call is only allowed in setup:'])
 
+    def test_setup_set_only_in_setup(self):
+        s = spec('''
+from: landing
+setup:
+  - driver: {setup.set: {target: X, member: y, value: 1}}
+steps:
+  - driver: {setup.set: {target: X, member: y, value: 1}}
+''')
+        self.assertEqual(e2e.check_spec(s), ['steps 1: driver setup.set is only allowed in setup:'])
+
     def test_problems_are_reported(self):
         s = spec('''
 from: landing
