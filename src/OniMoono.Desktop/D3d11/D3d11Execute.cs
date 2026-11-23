@@ -56,6 +56,8 @@ namespace OniMoono.Desktop.D3d11
         readonly nint[][] boundBuffers = [new nint[16], new nint[16], new nint[16]];
 
         long draws, constantMaps, shaderChanges;
+        /// Shaders logged drawing into fewer targets than their pixel stage writes (diagnostics).
+        readonly HashSet<string> fewerTargets = new();
         bool feedbackReported;
 
         // ----- Targets -----
@@ -421,6 +423,8 @@ namespace OniMoono.Desktop.D3d11
         /// samplers for a draw.
         void Bind(ProgramInputs r, D3d11Shaders program, D3d11Layout layout, D3D11_PRIMITIVE_TOPOLOGY topology)
         {
+            if (program.Targets > targetCount && fewerTargets.Add(program.Name))
+                EngineLog.Engine($"d3d11: shader '{program.Name}' writes {program.Targets} render targets into a target of {targetCount}");
             if (boundShaders != program)
             {
                 Ctx->lpVtbl->VSSetShader(Ctx, program.Vertex, null, 0);

@@ -44,6 +44,8 @@ namespace OniMoono.Desktop.D3d11
         /// Vertex, pixel and geometry stages (the geometry null when there is none).
         public D3d11Stage[] Stages = new D3d11Stage[3];
         public D3d11Input[] Inputs = [];
+        /// Render targets the pixel stage writes: one past its highest SV_Target register.
+        public int Targets;
         /// Input layouts by mesh layout (VkPipelines.LayoutKey; ImmediateLayout for GL.Begin).
         public readonly Dictionary<long, D3d11Layout> Layouts = new();
         public string Name;
@@ -230,6 +232,10 @@ namespace OniMoono.Desktop.D3d11
                 stage.Samplers = samplers.ToArray();
                 d3d.Stages[s] = stage;
                 dxbc[s] = entry.Dxbc.Bytes;
+                if (s == 1)
+                    foreach (var e in entry.Dxbc.Outputs)
+                        // D3D_NAME_TARGET (64, d3dcommon.h): SV_Target, its register the target slot.
+                        if (e.SystemValue == 64) d3d.Targets = Math.Max(d3d.Targets, (int)e.Register + 1);
                 if (s == 0)
                 {
                     var inputs = new List<D3d11Input>();
