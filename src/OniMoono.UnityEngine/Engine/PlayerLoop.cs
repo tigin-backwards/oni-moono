@@ -186,6 +186,13 @@ namespace OniMoono.Engine
         /// stats' time from a frame's start to its picture's present.
         public static long FrameStartedAt;
 
+        /// Diagnostics (ONI_FIXED_FRAME_SECONDS=S): every frame advances the game's clocks by S
+        /// seconds, whatever time it took, so that two runs show the same animation frame at the
+        /// same frame count (the renderers' pixel comparison, scripts/d3d11-pixel-diff.sh).
+        /// Real time (realtimeSinceStartup) runs on.
+        public static readonly float FixedFrameSeconds =
+            float.TryParse(Environment.GetEnvironmentVariable("ONI_FIXED_FRAME_SECONDS"), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float s) && s > 0 ? s : 0f;
+
         public static void RunFrame(float realDelta)
         {
             if (!started) throw new InvalidOperationException("PlayerLoop.Initialize must run first");
@@ -202,7 +209,7 @@ namespace OniMoono.Engine
             else Rendering.TexelCopies.Fence();
             Rendering.MeshNative.SweepSpares();
             UI.CanvasArrays.Sweep();
-            Time.BeginFrame(realDelta);
+            Time.BeginFrame(FixedFrameSeconds > 0 ? FixedFrameSeconds : realDelta);
             RunPhase(FrameStart);
 
             RunPhase(EarlyUpdate);
