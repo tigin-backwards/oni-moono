@@ -1,0 +1,44 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 part B; done
+# criterion 1): play the scene set does not do, so that more of the game's own shaders draw
+# through their shipped programs, each shot comparable between renderers as the scene set's are.
+# Ours only, on Windows (scripts/e2e-windows/run.py; the renderer from E2E_PLAYER_ARGS), with the
+# debug layer.
+#
+# The small base, debug mode on, with a space heater (a RangeVisualizer: Klei/PostFX/Range) and a
+# telescope (a SkyVisibilityVisualizer: Klei/PostFX/SkyVisibility) placed beside the pod by the
+# setup, then:
+# - each selected, so its visualizer draws (overlayNoDepth's image effects);
+# - the power overlay with the heater selected, whose ports draw through Klei/BuildingCell
+#   (BuildingCellVisualizerResources);
+# - dig orders and the priority tool, whose numbers draw through Klei/Prioritizable
+#   (PrioritizableRenderer);
+# - the report screen (its graphs).
+# The dev tools (ImGui) open on Ctrl+` read through Input.GetKeyDown
+# (DevToolManager.UpdateShouldShowTools), which the Windows runs' synthetic input has no binding
+# for, so they are not here.
+from: early-base
+setup:
+  # As debug_enable.txt in the game folder would (DebugHandler reads it at start-up).
+  - driver: {setup.call: {type: "DebugHandler", method: "SetDebugEnabled", args: [true]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"SpaceHeater\")", method: Build, args: [{"$": "Grid.XYToCell(118, 207)"}, Neutral, null, [Copper], 293.15]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"ClusterTelescope\")", method: Build, args: [{"$": "Grid.XYToCell(130, 207)"}, Neutral, null, [Copper], 293.15]}}
+steps:
+  - driver: {camera.set: {cell: [124, 209], ortho: 8}}
+  - click_world: {cell: [118, 207], select: SpaceHeater}
+  - world_shot: {name: range, ortho: 8, at: [124, 209]}
+  - click_world: {cell: [130, 207], select: ClusterTelescope}
+  - world_shot: {name: sky-visibility, ortho: 8, at: [124, 209]}
+  # Selected first: the power overlay lets SelectTool pick only what it moved to its
+  # MaskedOverlay layers, which the heater was not here (j0008692).
+  - click_world: {cell: [118, 207], select: SpaceHeater}
+  - call: {tool: navigation_control, args: {action: switch_view, view: power}}
+  - world_shot: {name: overlay-power, ortho: 8, at: [124, 209]}
+  - key: {code: Escape}
+  - call: {tool: navigation_control, args: {action: switch_view, view: normal}}
+  - dig: [110, 203, 136, 204]
+  - key: {code: P}
+  - world_shot: {name: priorities, ortho: 8, at: [124, 209]}
+  - key: {code: Escape}
+  - open: {management: report}
+  - shot: {name: report}
+  - open: {management: report}

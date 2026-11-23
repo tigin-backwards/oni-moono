@@ -16,10 +16,15 @@ and the verdict against TOLERANCE (below), which the stable comparison must meet
 
 --vulkan: a `--renderer vulkan` run of the same specs (Unity's Vulkan programs, drawn
 unmodified). A scene over the tolerance against OpenGL is compared with it too, the pixels the
-two OpenGL runs make unstable left out: when D3D11 is within the >40 tolerance of Vulkan and
-OpenGL is not, the difference is OpenGL's (Unity's GLCore programs draw it otherwise than their
-Direct3D 11 and Vulkan programs: d3d11-plan.md, M3). Such a scene is counted apart, not as
-within the tolerance; the plan records each.
+two OpenGL runs make unstable left out, and the result printed: whether D3D11 is within the >40
+tolerance of Vulkan. That does not make the difference OpenGL's: the original measured on Windows
+(j0008657) agreed with OpenGL, not with Vulkan and D3D11, in the mid-game colony's materials,
+conveyor and power overlays (d3d11-plan.md, M3 part B). Every scene over the tolerance counts as
+over.
+
+Masks: the rects a shot's spec masks (NAME.shot.json beside the D3D11 run's shot: content that
+moves in real time while the game is paused, such as a Duplicant's portrait) are left out of
+every comparison of that shot, and the share compared is of the pixels they leave.
 
 TOLERANCE, per scene (chosen from the OpenGL spread and the D3D11 results of M3's runs; the
 plan's M3 section has the numbers): at most 0.5 % of the stable pixels may differ by more than
@@ -36,7 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pixel_diff import compare  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SPECS = ('d3d11-scenes', 'd3d11-scenes-base', 'd3d11-scenes-mid')
+SPECS = ('d3d11-scenes', 'd3d11-scenes-base', 'd3d11-scenes-mid', 'd3d11-coverage')
 TOLERANCE = {'16': 0.005, '40': 0.001}
 MIN_STABLE = 0.5
 GROW = 3
@@ -45,6 +50,15 @@ GROW = 3
 def shots(spec, run):
     folder = os.path.join(ROOT, 'out', 'e2e', spec, run, 'ours-1')
     return folder, {os.path.basename(p)[:-4] for p in glob.glob(os.path.join(folder, '*.png'))} - {'end'}
+
+
+def shot_masks(folder, name):
+    """The shot's mask rects as its spec gave them (whole pixels)."""
+    path = os.path.join(folder, name + '.shot.json')
+    if not os.path.exists(path):
+        return []
+    with open(path) as f:
+        return [[int(round(v)) for v in rect] for rect in json.load(f).get('masks', [])]
 
 
 def main():
@@ -72,9 +86,10 @@ def main():
                 failed += 1
                 continue
             ra, rb, rc = (os.path.join(d, name + '.png') for d in (a_dir, b_dir, c_dir))
-            spread, _ = compare(ra, rc)
-            whole, _ = compare(ra, rb)
-            stable, image = compare(ra, rb, stable=[rc], grow_by=GROW)
+            masks = shot_masks(b_dir, name)
+            spread, _ = compare(ra, rc, masks=masks)
+            whole, _ = compare(ra, rb, masks=masks)
+            stable, image = compare(ra, rb, masks=masks, stable=[rc], grow_by=GROW)
             row = {'scene': scene, 'spread': spread, 'd3d11': whole, 'stable': stable}
             if 'note' in stable:
                 row['verdict'] = stable['note']
@@ -87,7 +102,9 @@ def main():
                 from PIL import Image
 
                 Image.fromarray(image).save(os.path.join(args.diffs, f'{spec}-{name}.png'))
-            share = stable['pixels'] / (stable['pixels'] + stable['masked'])
+            # The share compared, of the pixels the spec does not mask.
+            spec_masked = compare(ra, ra, masks=masks)[0]['masked'] if masks else 0
+            share = stable['pixels'] / (stable['pixels'] + stable['masked'] - spec_masked)
             f = stable['fraction_over']
             if share < MIN_STABLE:
                 verdict = f'unjudged ({share:.0%} stable)'
@@ -96,14 +113,15 @@ def main():
                 verdict = 'ok' if not over else 'over at ' + ', '.join('>' + k for k in over)
                 if over and name in v:
                     rv = os.path.join(v_dir, name + '.png')
-                    vulkan, _ = compare(rv, rb, stable_pairs=[(ra, rc)], grow_by=GROW)
-                    against, _ = compare(rv, ra, stable_pairs=[(ra, rc)], grow_by=GROW)
+                    vulkan, _ = compare(rv, rb, masks=masks, stable_pairs=[(ra, rc)], grow_by=GROW)
+                    against, _ = compare(rv, ra, masks=masks, stable_pairs=[(ra, rc)], grow_by=GROW)
                     row['vulkan'], row['opengl_vulkan'] = vulkan, against
                     fv, fo = vulkan.get('fraction_over', {}), against.get('fraction_over', {})
-                    if fv and fv['40'] <= TOLERANCE['40'] < fo['40']:
-                        verdict = f'OpenGL differs: >40 D3D11-Vulkan {fv["40"]:.3%}, OpenGL-Vulkan {fo["40"]:.3%}'
-                        explained += 1
-            failed += verdict != 'ok' and not verdict.startswith('OpenGL differs')
+                    if fv and fo:
+                        verdict += f'; >40 D3D11-Vulkan {fv["40"]:.3%}, OpenGL-Vulkan {fo["40"]:.3%}'
+                        if fv['40'] <= TOLERANCE['40'] < fo['40']:
+                            explained += 1
+            failed += verdict != 'ok'
             row['verdict'] = verdict
             row['stable_share'] = round(share, 4)
             rows.append(row)
@@ -116,7 +134,7 @@ def main():
         with open(args.json, 'w') as out:
             json.dump({'tolerance': TOLERANCE, 'min_stable': MIN_STABLE, 'grow': GROW, 'scenes': rows}, out, indent=1)
     print(
-        f'{len(rows) - failed - explained} of {len(rows)} scenes within the tolerance; {explained} where OpenGL differs from Vulkan and D3D11 alike; {failed} over'
+        f'{len(rows) - failed} of {len(rows)} scenes within the tolerance; {failed} over, {explained} of them where D3D11 and Vulkan agree and OpenGL differs'
     )
     return 1 if failed else 0
 

@@ -51,14 +51,17 @@ steps:
   - shot: {name: vitals}
   - open: {management: vitals}
   - open: {management: skills}
-  - shot: {name: skills}
+  # The Duplicant's portrait animates in real time, paused or not.
+  - shot: {name: skills, mask: [[0, 30, 225, 222]]}
   - open: {management: skills}
   - open: {management: database}
   - shot: {name: database}
   - open: {management: database}
   # Its research station lets the research screen open (ManagementMenu.ResearchAvailable).
   - open: {management: research}
-  - shot: {name: research}
+  # The tree moves in real time while the screen is open (a tech entry never held still for 30
+  # frames within 1,800: j0008715-j0008717), so only the side bar is compared.
+  - shot: {name: research, mask: [[374, 0, 906, 720]]}
   - open: {management: research}
   - save: d3d11-scenes-base
   - file_shot: {name: preview, path: "save_files/e2e/d3d11-scenes-base.png"}
