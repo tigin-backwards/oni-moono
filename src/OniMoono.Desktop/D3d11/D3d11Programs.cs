@@ -49,6 +49,11 @@ namespace OniMoono.Desktop.D3d11
         /// Input layouts by mesh layout (VkPipelines.LayoutKey; ImmediateLayout for GL.Begin).
         public readonly Dictionary<long, D3d11Layout> Layouts = new();
         public string Name;
+        /// What it draws, for the coverage count (done criterion 1): the shader, subshader and
+        /// pass, and each stage's program entry (its blob index) with the keywords selected.
+        public string Coverage;
+        /// It has drawn (its coverage line logged).
+        public bool Drawn;
 
         public void Release()
         {
@@ -173,7 +178,7 @@ namespace OniMoono.Desktop.D3d11
                 }
             var programs = shader.ProgramsFor(ShaderNative.D3D11Platform);
             if (programs == null) return program;
-            var d3d = new D3d11Shaders { Name = shader.ShaderName };
+            var d3d = new D3d11Shaders { Name = shader.ShaderName, Coverage = CoverageOf(shader, choice.Pass, stages) };
             var blockSizes = new List<int>();
             var dxbc = new byte[3][];
             for (int s = 0; s < 3; s++)
@@ -269,6 +274,23 @@ namespace OniMoono.Desktop.D3d11
             program.Id = (uint)System.Threading.Interlocked.Increment(ref nextId);
             program.D3d = d3d;
             return program;
+        }
+
+        /// "NAME sSUBpPASS vs#BLOB [keywords] ps#BLOB [keywords] gs#BLOB": the pass by its indexes,
+        /// each stage by its program entry.
+        static string CoverageOf(ShaderNative shader, ShaderPass pass, PlayerSubprogram?[] stages)
+        {
+            string where = "s?p?";
+            for (int si = 0; si < shader.SubShaders.Length; si++)
+            {
+                int pi = Array.IndexOf(shader.SubShaders[si].Passes, pass);
+                if (pi >= 0) where = $"s{si}p{pi}";
+            }
+            var text = new System.Text.StringBuilder($"{shader.ShaderName} {where}");
+            string[] names = ["vs", "ps", "gs"];
+            for (int s = 0; s < 3 && s < stages.Length; s++)
+                if (stages[s] is { } st) text.Append($" {names[s]}#{st.BlobIndex} [{string.Join(" ", st.Keywords)}]");
+            return text.ToString();
         }
 
         /// The shader objects, from the DXBC as shipped (ID3D11Device::CreateVertexShader and its

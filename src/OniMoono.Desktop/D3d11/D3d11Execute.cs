@@ -55,7 +55,7 @@ namespace OniMoono.Desktop.D3d11
         readonly nint[][] boundSamplers = [new nint[TrackedSlots], new nint[TrackedSlots], new nint[TrackedSlots]];
         readonly nint[][] boundBuffers = [new nint[16], new nint[16], new nint[16]];
 
-        long draws, constantMaps, shaderChanges;
+        long draws, constantMaps, shaderChanges, presents;
         /// Shaders logged drawing into fewer targets than their pixel stage writes (diagnostics).
         readonly HashSet<string> fewerTargets = new();
         bool feedbackReported;
@@ -81,7 +81,7 @@ namespace OniMoono.Desktop.D3d11
             Com.Release(ref backDepth);
         }
 
-        BoundTarget lastTarget = new(null, null, 0, false);
+        BoundTarget lastTarget = new(null, null, 0, false, null);
 
         void SetTarget(BoundTarget t)
         {
@@ -274,6 +274,7 @@ namespace OniMoono.Desktop.D3d11
             Ctx->lpVtbl->IASetIndexBuffer(Ctx, mesh.Indices, DXGI_FORMAT.DXGI_FORMAT_R32_UINT, 0);
             Ctx->lpVtbl->DrawIndexed(Ctx, (uint)r.SubMesh.Count, (uint)r.SubMesh.Offset, r.SubMesh.BaseVertex);
             draws++;
+            DrainAfterDraw(program);
             MarkDrawn();
         }
 
@@ -322,7 +323,24 @@ namespace OniMoono.Desktop.D3d11
             }
             else Ctx->lpVtbl->Draw(Ctx, (uint)count, 0);
             draws++;
+            DrainAfterDraw(program);
             MarkDrawn();
+        }
+
+        /// With the debug layer, its messages right after a draw are that draw's (or of a call
+        /// since the last drain): drained with the shader and target named (diagnostics only;
+        /// nothing is read without the layer).
+        void DrainAfterDraw(D3d11Shaders program)
+        {
+            // Each program's first draw (done criterion 1's coverage: which shaders, passes and
+            // variants drew through their DXBC).
+            if (!program.Drawn)
+            {
+                program.Drawn = true;
+                EngineLog.Engine($"d3d11 coverage: {program.Coverage}");
+            }
+            if (d3d.InfoQueue == null) return;
+            DrainDebugMessages($"shader '{program.Name}' into {targetCount} target(s) {lastTarget.Name ?? "the back buffer"}");
         }
 
         static D3D11_PRIMITIVE_TOPOLOGY Topology(uint mode) => mode switch
@@ -461,8 +479,8 @@ namespace OniMoono.Desktop.D3d11
         /// samplers for a draw.
         void Bind(ProgramInputs r, D3d11Shaders program, D3d11Layout layout, D3D11_PRIMITIVE_TOPOLOGY topology)
         {
-            if (program.Targets > targetCount && fewerTargets.Add(program.Name))
-                EngineLog.Engine($"d3d11: shader '{program.Name}' writes {program.Targets} render targets into a target of {targetCount}");
+            if (program.Targets > targetCount && fewerTargets.Add($"{program.Name} {targetCount} {lastTarget.Name}"))
+                EngineLog.Engine($"d3d11: shader '{program.Name}' writes {program.Targets} render targets into {targetCount} ({lastTarget.Name ?? "the back buffer"})");
             if (boundShaders != program)
             {
                 Ctx->lpVtbl->VSSetShader(Ctx, program.Vertex, null, 0);
@@ -631,11 +649,16 @@ namespace OniMoono.Desktop.D3d11
         // ----- Read-back and present -----
 
         /// Pixels of a render texture (or the back buffer) as OpenGL's ReadPixels(RGBA, FLOAT)
-        /// gives them, rows from the bottom; texels outside the image read 0. The rectangle is
+        /// gives them, rows from the bottom (RenderDevice.ReadPixels); texels outside the image
+        /// read 0. A texture's first row is its top ("The texel coordinate system has its origin
+        /// at the top-left corner of the texture", Direct3D 11.3 Functional Specification §3.3.2;
+        /// a box's top is that row, D3D11_BOX): the back buffer and a ScreenRows render texture
+        /// are stored top row first and are read turned over; a render texture rendered upside
+        /// down (the conventions above) holds OpenGL's rows as stored. The rectangle is
         /// copied into a STAGING texture (CopySubresourceRegion) and mapped for reading; Map waits
         /// for the copy (without D3D11_MAP_FLAG_DO_NOT_WAIT, which would return
         /// DXGI_ERROR_WAS_STILL_DRAWING instead: D3D11_MAP_FLAG).
-        float[] ReadNow(DeviceTexture device, bool autoMips, int x, int y, int w, int h)
+        float[] ReadNow(DeviceTexture device, bool autoMips, bool screenRows, int x, int y, int w, int h)
         {
             var read = new float[w * h * 4];
             if (lost != null) return read;
@@ -649,7 +672,7 @@ namespace OniMoono.Desktop.D3d11
                 if (t?.Resource == null || t.DepthOnly) return read;
                 PrepareForSampling(t, autoMips);
                 source = t.Resource;
-                (format, width, height, turned) = (t.Format, t.Width, t.Height, false);
+                (format, width, height, turned) = (t.Format, t.Width, t.Height, screenRows);
             }
             else
             {
@@ -668,8 +691,6 @@ namespace OniMoono.Desktop.D3d11
             D3d11Context.Check(Dev->lpVtbl->CreateTexture2D(Dev, &desc, null, &staging), "CreateTexture2D (readback)");
             try
             {
-                // The back buffer is stored top row first: its rows are read turned over (a
-                // render texture's as stored, as VkDevice.ReadNow).
                 var box = new D3D11_BOX { left = (uint)x0, right = (uint)x1, top = (uint)(turned ? height - y1 : y0), bottom = (uint)(turned ? height - y0 : y1), front = 0, back = 1 };
                 Ctx->lpVtbl->CopySubresourceRegion(Ctx, (ID3D11Resource*)staging, 0, 0, 0, 0, source, 0, &box);
                 D3D11_MAPPED_SUBRESOURCE mapped;
@@ -714,7 +735,9 @@ namespace OniMoono.Desktop.D3d11
         {
             if (lost != null) return;
             int hr = chain.Present(interval);
-            DrainDebugMessages();
+            DrainDebugMessages("Present");
+            if (++presents % 600 == 0) DebugTally();
+            PollReadbacks();
             if (hr < 0)
             {
                 // Present reports a removed or reset device (DXGI_ERROR_DEVICE_REMOVED/RESET); the

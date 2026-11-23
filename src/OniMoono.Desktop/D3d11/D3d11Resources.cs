@@ -641,6 +641,12 @@ namespace OniMoono.Desktop.D3d11
 
         void ReleaseShared()
         {
+            foreach (var r in pendingReadbacks)
+            {
+                Com.Release(ref r.Staging);
+                r.Fail();
+            }
+            pendingReadbacks.Clear();
             foreach (var t in liveTextures) t.Release();
             liveTextures.Clear();
             foreach (var m in liveMeshes) m.Release();

@@ -204,7 +204,8 @@ namespace OniMoono.Desktop.D3d11
 
         // ----- Targets, viewport, clears (main thread records) -----
 
-        internal sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int Level, bool ScreenRows);
+        /// Name: the first colour texture's, for diagnostics.
+        internal sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int Level, bool ScreenRows, string Name);
 
         Action<BoundTarget> setTarget;
         Action<Rect> setViewportNow;
@@ -225,7 +226,7 @@ namespace OniMoono.Desktop.D3d11
             // (RenderConventions), but for one rendered as the back buffer is (ScreenRows).
             bool screenRows = colors != null && binding.Colors[0].ScreenRows;
             recorder.Conventions = new RenderConventions(Vulkan: true, Flipped: colors != null && !screenRows);
-            worker.Post(worker.Arena.Command(setTarget ??= SetTarget, new BoundTarget(colors, depth, binding.MipLevel, screenRows)));
+            worker.Post(worker.Arena.Command(setTarget ??= SetTarget, new BoundTarget(colors, depth, binding.MipLevel, screenRows, colors == null ? null : $"'{binding.Colors[0].Name}'")));
         }
 
         public override void SetViewport(Rect pixels) => worker.Post(worker.Arena.Command(setViewportNow ??= SetViewportNow, pixels));
@@ -346,13 +347,13 @@ namespace OniMoono.Desktop.D3d11
             int w = Math.Min(rect.width, destination.Width - destX), h = Math.Min(rect.height, destination.Height - destY);
             if (w <= 0 || h <= 0 || !TextureFormats.CanEncode(destination.Format) || destination.Memory == null) return;
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
-            bool autoMips = source?.AutoGenerateMips ?? false;
+            bool autoMips = source?.AutoGenerateMips ?? false, screenRows = source?.ScreenRows ?? false;
             // A band of rows at a time (about a million pixels, as VkDevice reads).
             int band = Math.Clamp((1 << 20) / w, 1, h);
             for (int y0 = 0; y0 < h; y0 += band)
             {
                 int rows = Math.Min(band, h - y0), bandY = y0;
-                var pixels = worker.Call(() => ReadNow(device, autoMips, rect.x, rect.y + bandY, w, rows));
+                var pixels = worker.Call(() => ReadNow(device, autoMips, screenRows, rect.x, rect.y + bandY, w, rows));
                 var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
                 for (int y = 0; y < rows; y++)
                     for (int x = 0; x < w; x++)
@@ -371,14 +372,14 @@ namespace OniMoono.Desktop.D3d11
             if (stride % 4 != 0 || offset < 0 || (long)offset + (long)stride * (rect.height - 1) + rect.width * 4L > destination.Length)
                 throw new ArgumentOutOfRangeException(nameof(stride));
             var device = source != null ? GlTextures.Prepare(worker, source) : null;
-            bool autoMips = source?.AutoGenerateMips ?? false;
+            bool autoMips = source?.AutoGenerateMips ?? false, screenRows = source?.ScreenRows ?? false;
             int w = rect.width, h = rect.height;
             worker.TryCall(() =>
             {
                 float[] pixels;
                 try
                 {
-                    pixels = ReadNow(device, autoMips, rect.x, rect.y, w, h);
+                    pixels = ReadNow(device, autoMips, screenRows, rect.x, rect.y, w, h);
                 }
                 catch (Exception e)
                 {
@@ -439,14 +440,16 @@ namespace OniMoono.Desktop.D3d11
             return text;
         });
 
-        /// The debug layer's stored messages, each logged (up to 100), then cleared; read as
-        /// ID3D11InfoQueue::GetMessage's documentation says (an index below
-        /// GetNumStoredMessagesAllowedByRetrievalFilter, the size first). Messages the queue
-        /// dropped past its message count limit are not stored: GetNumMessagesDiscardedByMessage-
-        /// CountLimit says how many, logged when it grows and counted in the run's total (whether
-        /// ClearStoredMessages resets it is not documented, so a smaller value starts a new count).
-        /// On the device thread once it runs.
-        void DrainDebugMessages()
+        /// The debug layer's stored messages, read as ID3D11InfoQueue::GetMessage's documentation
+        /// says (an index below GetNumStoredMessagesAllowedByRetrievalFilter, the size first), then
+        /// cleared. Each is counted by its ID and `context` (the draw that made it, when drained
+        /// right after a draw: DrainAfterDraw), and logged in full the first time that pair is
+        /// seen; the counts are logged every 600 frames while they grow (DebugTally) and at the
+        /// end. Messages the queue dropped past its message count limit are not stored:
+        /// GetNumMessagesDiscardedByMessageCountLimit says how many, logged when it grows and
+        /// counted in the run's total (whether ClearStoredMessages resets it is not documented,
+        /// so a smaller value starts a new count). On the device thread once it runs.
+        void DrainDebugMessages(string context = null)
         {
             var queue = d3d.InfoQueue;
             if (queue == null) return;
@@ -460,8 +463,12 @@ namespace OniMoono.Desktop.D3d11
                 {
                     var m = (D3D11_MESSAGE*)b;
                     if (queue->lpVtbl->GetMessage(queue, i, m, &length) < 0 || m->pDescription == null || m->DescriptionByteLength == 0) continue;
-                    if (debugMessages++ < 100)
-                        EngineLog.Engine($"d3d11 debug layer: {m->Severity} {m->ID}: {new string(m->pDescription, 0, (int)m->DescriptionByteLength - 1)}");
+                    debugMessages++;
+                    var key = ($"{m->Severity} {m->ID}", context ?? "outside a draw");
+                    debugTally.TryGetValue(key, out long seen);
+                    debugTally[key] = seen + 1;
+                    if (seen == 0 && debugTally.Count <= 500)
+                        EngineLog.Engine($"d3d11 debug layer: {m->Severity} {m->ID} ({key.Item2}): {new string(m->pDescription, 0, (int)m->DescriptionByteLength - 1)}");
                 }
             }
             ulong discarded = queue->lpVtbl->GetNumMessagesDiscardedByMessageCountLimit(queue);
@@ -473,7 +480,19 @@ namespace OniMoono.Desktop.D3d11
                 EngineLog.Engine($"d3d11 debug layer: {more} messages dropped past the message count limit (GetNumMessagesDiscardedByMessageCountLimit {discarded})");
                 lastDiscarded = discarded;
             }
-            queue->lpVtbl->ClearStoredMessages(queue);
+            if (n > 0) queue->lpVtbl->ClearStoredMessages(queue);
+        }
+
+        readonly Dictionary<(string Message, string Context), long> debugTally = new();
+        long debugTallied;
+
+        /// The debug layer's counts by message and draw, when they grew (device thread).
+        void DebugTally(bool always = false)
+        {
+            if (debugMessages == debugTallied && !always) return;
+            debugTallied = debugMessages;
+            EngineLog.Engine($"d3d11 debug layer tally: {debugMessages} messages: "
+                             + string.Join("; ", System.Linq.Enumerable.Select(debugTally, kv => $"{kv.Key.Message} ({kv.Key.Context}) x{kv.Value}")));
         }
 
         ulong lastDiscarded;
@@ -483,6 +502,7 @@ namespace OniMoono.Desktop.D3d11
         {
             worker.Dispose();
             DrainDebugMessages();
+            DebugTally(always: true);
             EngineLog.Engine($"d3d11: {debugMessages} debug-layer messages in this run ({discardedMessages} of them dropped past the message count limit)");
         }
 
