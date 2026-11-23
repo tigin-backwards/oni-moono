@@ -45,6 +45,23 @@ namespace OniMoono.Host
                 foreach (var info in file.Objects)
                     if (file.TypeOf(info).ClassId == 48 && ObjectLoader.Load(file, info.PathId) is Shader) shaders++;
             }
+            // The Spaced Out bundle's own copies of Klei/LiquidSubstance and Klei/Substance
+            // (d3d11-plan.md M3 part C): loaded as the game loads the bundle (AssetBundle.
+            // LoadFromFile), each of its shaders made an object, so the device checks them too.
+            var bundlePath = System.IO.Path.Combine(dataDir, "StreamingAssets", "expansion1_bundle");
+            if (System.IO.File.Exists(bundlePath) && AssetBundle.LoadFromFile(bundlePath) is { } bundle)
+            {
+                var bundleFile = ((AssetBundleNative)bundle.NativeOrThrow).File;
+                int fromBundle = 0;
+                foreach (var info in bundleFile.Objects)
+                    if (bundleFile.TypeOf(info).ClassId == 48 && ObjectLoader.Load(bundleFile, info.PathId) is Shader s)
+                    {
+                        shaders++;
+                        fromBundle++;
+                        EngineLog.Engine($"shader check: expansion1_bundle shader '{s.name}'");
+                    }
+                Console.WriteLine($"expansion1_bundle: {fromBundle} shaders");
+            }
             // Every program built before the count is read (the game's warm-up does not wait on
             // OpenGL).
             if (device is OniMoono.Desktop.Gl.GlDevice gl) gl.WarmupShaders(wait: true);
