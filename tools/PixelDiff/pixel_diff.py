@@ -2,7 +2,11 @@
 """Pixel comparison of two images of the same frame from two renderers (the Direct3D 11 device
 against the OpenGL device: docs/research/d3d11-plan.md, M2 and done criterion 3).
 
-    pixel_diff.py REFERENCE NEW [--diff DIFF.png] [--mask X,Y,W,H ...] [--json OUT.json]
+    pixel_diff.py REFERENCE NEW [--stable AGAIN.png ...] [--diff DIFF.png] [--mask X,Y,W,H ...] [--json OUT.json]
+
+--stable: another image of the frame from the reference's renderer (another run); the pixels
+where it differs from REFERENCE differ between runs whatever the renderer (an animation not in
+step), and are masked as well.
 
 For the unmasked pixels it prints, and writes as JSON:
 - the size of each image (a difference fails at once);
@@ -28,7 +32,7 @@ def rect(text):
     return x, y, w, h
 
 
-def compare(reference, new, masks=()):
+def compare(reference, new, masks=(), stable=()):
     a = np.asarray(Image.open(reference).convert('RGBA'), dtype=np.int16)
     b = np.asarray(Image.open(new).convert('RGBA'), dtype=np.int16)
     result = {'reference': reference, 'new': new, 'size': [a.shape[1], a.shape[0]], 'new_size': [b.shape[1], b.shape[0]]}
@@ -38,6 +42,12 @@ def compare(reference, new, masks=()):
     counted = np.ones(a.shape[:2], dtype=bool)
     for x, y, w, h in masks:
         counted[max(0, y) : max(0, y + h), max(0, x) : max(0, x + w)] = False
+    for other in stable:
+        c = np.asarray(Image.open(other).convert('RGBA'), dtype=np.int16)
+        if c.shape != a.shape:
+            result['note'] = f'{other}: size differs'
+            return result, None
+        counted &= np.abs(a - c).max(axis=2) == 0
     d = np.abs(a - b)
     largest = d[..., :3].max(axis=2)
     n = int(counted.sum())
@@ -61,9 +71,10 @@ def main():
     p.add_argument('new')
     p.add_argument('--diff')
     p.add_argument('--mask', action='append', default=[], type=rect)
+    p.add_argument('--stable', action='append', default=[])
     p.add_argument('--json')
     args = p.parse_args()
-    result, image = compare(args.reference, args.new, args.mask)
+    result, image = compare(args.reference, args.new, args.mask, args.stable)
     if image is not None and args.diff:
         Image.fromarray(image).save(args.diff, format='PNG')
     text = json.dumps(result, indent=1)

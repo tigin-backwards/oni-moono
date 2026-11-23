@@ -234,8 +234,10 @@ namespace OniMoono.Desktop.D3d11
                 dxbc[s] = entry.Dxbc.Bytes;
                 if (s == 1)
                     foreach (var e in entry.Dxbc.Outputs)
-                        // D3D_NAME_TARGET (64, d3dcommon.h): SV_Target, its register the target slot.
-                        if (e.SystemValue == 64) d3d.Targets = Math.Max(d3d.Targets, (int)e.Register + 1);
+                        // SV_Target<n> writes render target n (in an output signature SV_Target
+                        // goes by its semantic; its system value need not be D3D_NAME_TARGET).
+                        if (e.SystemValue == 64 || string.Equals(e.SemanticName, "SV_Target", StringComparison.OrdinalIgnoreCase))
+                            d3d.Targets = Math.Max(d3d.Targets, (int)e.SemanticIndex + 1);
                 if (s == 0)
                 {
                     var inputs = new List<D3d11Input>();

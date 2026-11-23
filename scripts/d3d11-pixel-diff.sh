@@ -3,12 +3,14 @@
 # (docs/research/d3d11-plan.md, M2): ours is started twice in one run home, `--renderer opengl`
 # then `--renderer d3d11`, each capturing the same frame of the main menu (`--capture`, the
 # finished back buffer), and tools/PixelDiff/pixel_diff.py compares the two.
-#   scripts/d3d11-pixel-diff.sh [--frame N] [--renderers A,B] [-- EXTRA HOST ARGS...]
+#   scripts/d3d11-pixel-diff.sh [--frame N] [--renderers A,B] [--baseline] [-- EXTRA HOST ARGS...]
 # The game's clocks advance a fixed 1/60 s a frame (ONI_FIXED_FRAME_SECONDS, unless set), so both
 # runs show the same animation frame at frame N. Output (the run's $RUNQ_OUT, else
 # out/d3d11-pixel-diff): a-A.png, b-B.png, diff.png, diff.json and each run's log.
 # --renderers opengl,opengl (or d3d11,d3d11) compares two runs of one renderer: what differs
-# between runs whatever the renderer (animations not yet in step) is the baseline.
+# between runs whatever the renderer (animations not yet in step) is the baseline. --baseline
+# runs A a second time first and leaves out the pixels where A's two runs differ (pixel_diff.py
+# --stable).
 # Queues itself through runq as kind windows (docs/RUNQ.md); run-windows.sh's rules hold.
 set -euo pipefail
 source "$(dirname "$0")/env.sh"
@@ -16,12 +18,14 @@ source "$root/scripts/runq-submit.sh"
 runq_self_submit --kind windows --label "d3d11-pixel-diff.sh${*:+ $*}" -- "$root/scripts/d3d11-pixel-diff.sh" "$@"
 frame=600
 renderers=opengl,d3d11
+baseline=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --frame) frame="$2"; shift 2 ;;
     --renderers) renderers="$2"; shift 2 ;;
+    --baseline) baseline=1; shift ;;
     --) shift; break ;;
-    *) echo "usage: $0 [--frame N] [--renderers A,B] [-- HOST ARGS...]" >&2; exit 2 ;;
+    *) echo "usage: $0 [--frame N] [--renderers A,B] [--baseline] [-- HOST ARGS...]" >&2; exit 2 ;;
   esac
 done
 out="${RUNQ_OUT:-$root/out/d3d11-pixel-diff}"
@@ -32,7 +36,9 @@ win_temp="$(cmd.exe /c 'echo %TEMP%' 2>/dev/null | tr -d '\r')"
 run_home="${ONI_RUN_HOME:-$win_temp\\oni-brutal\\run-home}"
 first="${renderers%%,*}" second="${renderers#*,}"
 status=0
-for run in "a:$first" "b:$second"; do
+runs=("a:$first" "b:$second")
+[ "$baseline" = 0 ] || runs=("a:$first" "c:$first" "b:$second")
+for run in "${runs[@]}"; do
   renderer="${run#*:}" name="${run%%:*}-$renderer"
   shot="$run_home\\pixel-diff-$name.png"
   rm -f "$(wslpath "$shot")"
@@ -42,5 +48,7 @@ for run in "a:$first" "b:$second"; do
   cp "$(wslpath "$shot")" "$out/$name.png" || { echo "no capture from $renderer"; status=1; }
 done
 [ -f "$out/a-$first.png" ] && [ -f "$out/b-$second.png" ] || exit 1
-python3 "$root/tools/PixelDiff/pixel_diff.py" "$out/a-$first.png" "$out/b-$second.png" --diff "$out/diff.png" --json "$out/diff.json" || status=$?
+stable=()
+[ "$baseline" = 0 ] || stable=(--stable "$out/c-$first.png")
+python3 "$root/tools/PixelDiff/pixel_diff.py" "$out/a-$first.png" "$out/b-$second.png" "${stable[@]}" --diff "$out/diff.png" --json "$out/diff.json" || status=$?
 exit "$status"
