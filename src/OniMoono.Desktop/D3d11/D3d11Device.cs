@@ -32,17 +32,77 @@ namespace OniMoono.Desktop.D3d11
         /// The original reports True; this device runs no compute (M7 decides parity).
         public override bool SupportsComputeShaders => false;
 
-        /// The original's SupportsTextureFormat: all of the 64 values but the ETC, EAC, PVRTC and
-        /// ASTC formats and the crunched ETC ones (d3d11-unity-probes.md §1).
+        /// SupportsTextureFormat: what this device makes, as VkCaps answers: a format
+        /// D3d11Formats.Of has without decoding on the CPU, that the engine can encode or is block
+        /// compressed, and that the device samples as a 2D texture (CheckFormatSupport:
+        /// D3D11_FORMAT_SUPPORT_TEXTURE2D and SHADER_SAMPLE). The original says yes to more
+        /// (OriginalSupportsTexture); the formats where they differ are logged at start-up and
+        /// left to M7 (SystemInfo parity, done criterion 2).
         public override bool SupportsTexture(TextureFormat format)
+            => textures.GetOrAdd(format, f =>
+            {
+                try
+                {
+                    var d = D3d11Formats.Of(f);
+                    if (d.Conversion == Vulkan.TexelConversion.Decode || !(TextureFormats.IsBlockCompressed(f) || TextureFormats.CanEncode(f))) return false;
+                    return Has(d.Format, D3D11_FORMAT_SUPPORT.D3D11_FORMAT_SUPPORT_TEXTURE2D | D3D11_FORMAT_SUPPORT.D3D11_FORMAT_SUPPORT_SHADER_SAMPLE);
+                }
+                catch (NotSupportedException)
+                {
+                    return false;
+                }
+            });
+
+        /// SupportsRenderTextureFormat: a colour format D3d11Formats.Color makes that the device
+        /// renders to and samples (D3D11_FORMAT_SUPPORT_RENDER_TARGET and SHADER_SAMPLE); depth-only
+        /// formats always. The original says yes to all 28 (d3d11-unity-probes.md §1).
+        public override bool SupportsRenderTexture(RenderTextureFormat format)
+            => renderTextures.GetOrAdd(format, f =>
+            {
+                try
+                {
+                    var g = RenderTextureFormats.ToGraphicsFormat(f, false);
+                    if (g == UnityEngine.Experimental.Rendering.GraphicsFormat.None) return true;
+                    return Has(D3d11Formats.Color(g), D3D11_FORMAT_SUPPORT.D3D11_FORMAT_SUPPORT_RENDER_TARGET | D3D11_FORMAT_SUPPORT.D3D11_FORMAT_SUPPORT_SHADER_SAMPLE);
+                }
+                catch (Exception e) when (e is ArgumentException or NotSupportedException)
+                {
+                    return false;
+                }
+            });
+
+        readonly System.Collections.Concurrent.ConcurrentDictionary<TextureFormat, bool> textures = new();
+        readonly System.Collections.Concurrent.ConcurrentDictionary<RenderTextureFormat, bool> renderTextures = new();
+
+        /// Whether the device supports every use in `wanted` for `format`. ID3D11Device's methods
+        /// are free-threaded ("Introduction to multithreading in Direct3D 11"), so any thread asks.
+        unsafe bool Has(DXGI_FORMAT format, D3D11_FORMAT_SUPPORT wanted)
+        {
+            D3D11_FORMAT_SUPPORT support = 0;
+            var device = d3d.Device;
+            return device->lpVtbl->CheckFormatSupport(device, format, &support) >= 0 && (support & wanted) == wanted;
+        }
+
+        /// The original's SupportsTextureFormat on Direct3D 11: all of the 64 values but the ETC,
+        /// EAC, PVRTC and ASTC formats and the crunched ETC ones (d3d11-unity-probes.md §1).
+        internal static bool OriginalSupportsTexture(TextureFormat format)
         {
             string name = format.ToString();
             return !(name.StartsWith("ETC", StringComparison.Ordinal) || name.StartsWith("EAC", StringComparison.Ordinal)
                      || name.StartsWith("PVRTC", StringComparison.Ordinal) || name.StartsWith("ASTC", StringComparison.Ordinal));
         }
 
-        /// All 28 SupportsRenderTextureFormat values are True on the original (§1).
-        public override bool SupportsRenderTexture(RenderTextureFormat format) => true;
+        /// The formats this device answers otherwise than the original (logged at start-up).
+        public string DifferencesFromOriginal()
+        {
+            var textureNo = new List<string>();
+            foreach (TextureFormat f in Enum.GetValues<TextureFormat>())
+                if (SupportsTexture(f) != OriginalSupportsTexture(f)) textureNo.Add($"{f} {(SupportsTexture(f) ? "yes" : "no")}");
+            var renderNo = new List<string>();
+            foreach (RenderTextureFormat f in Enum.GetValues<RenderTextureFormat>())
+                if (!SupportsRenderTexture(f)) renderNo.Add(f.ToString());
+            return $"textures [{string.Join(", ", textureNo)}], render textures no [{string.Join(", ", renderNo)}]";
+        }
     }
 
     /// The Direct3D 11 render device (docs/research/d3d11-plan.md, milestone M2): Unity's shipped
@@ -97,6 +157,9 @@ namespace OniMoono.Desktop.D3d11
             chain = D3d11SwapChain.Create(d3d, platform.Win32Handle, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight);
             try
             {
+                // The first frame waits too (D3d11SwapChain.WaitForFrame); the rest wait after
+                // each Present (PresentNow), before the next frame renders.
+                chain.WaitForFrame();
                 CreateShared();
                 // The back buffer is the target until the game sets another.
                 SetTarget(lastTarget);
@@ -109,6 +172,7 @@ namespace OniMoono.Desktop.D3d11
             }
             EngineLog.Engine($"d3d11: {d3d.Adapter.Name} (vendor 0x{d3d.Adapter.VendorId:x4}, device 0x{d3d.Adapter.DeviceId:x4}), {d3d.VersionString}, "
                              + $"{(D3d11Context.Validation ? "debug layer on" : "no debug layer")}; {chain.Describe()}");
+            EngineLog.Engine($"d3d11: format answers unlike the original's (M7): {caps.DifferencesFromOriginal()}");
             DrainDebugMessages();
             // From here the immediate context belongs to the device thread.
             worker = new GlWorker("Direct3D 11", () => { }, () => { }, CommandFailed) { Resources = this };
@@ -377,8 +441,11 @@ namespace OniMoono.Desktop.D3d11
 
         /// The debug layer's stored messages, each logged (up to 100), then cleared; read as
         /// ID3D11InfoQueue::GetMessage's documentation says (an index below
-        /// GetNumStoredMessagesAllowedByRetrievalFilter, the size first). On the device thread
-        /// once it runs.
+        /// GetNumStoredMessagesAllowedByRetrievalFilter, the size first). Messages the queue
+        /// dropped past its message count limit are not stored: GetNumMessagesDiscardedByMessage-
+        /// CountLimit says how many, logged when it grows and counted in the run's total (whether
+        /// ClearStoredMessages resets it is not documented, so a smaller value starts a new count).
+        /// On the device thread once it runs.
         void DrainDebugMessages()
         {
             var queue = d3d.InfoQueue;
@@ -397,14 +464,26 @@ namespace OniMoono.Desktop.D3d11
                         EngineLog.Engine($"d3d11 debug layer: {m->Severity} {m->ID}: {new string(m->pDescription, 0, (int)m->DescriptionByteLength - 1)}");
                 }
             }
+            ulong discarded = queue->lpVtbl->GetNumMessagesDiscardedByMessageCountLimit(queue);
+            if (discarded != lastDiscarded)
+            {
+                ulong more = discarded > lastDiscarded ? discarded - lastDiscarded : discarded;
+                discardedMessages += (long)more;
+                debugMessages += (long)more;
+                EngineLog.Engine($"d3d11 debug layer: {more} messages dropped past the message count limit (GetNumMessagesDiscardedByMessageCountLimit {discarded})");
+                lastDiscarded = discarded;
+            }
             queue->lpVtbl->ClearStoredMessages(queue);
         }
+
+        ulong lastDiscarded;
+        long discardedMessages;
 
         public override void StopForQuit()
         {
             worker.Dispose();
             DrainDebugMessages();
-            EngineLog.Engine($"d3d11: {debugMessages} debug-layer messages in this run");
+            EngineLog.Engine($"d3d11: {debugMessages} debug-layer messages in this run ({discardedMessages} of them dropped past the message count limit)");
         }
 
         void Shutdown()

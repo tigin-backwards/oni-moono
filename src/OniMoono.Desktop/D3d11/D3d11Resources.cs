@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using OniMoono.Desktop.Gl;
+using OniMoono.Engine;
 using OniMoono.Engine.Rendering;
 using UnityEngine;
 using UnityEngine.Experimental.Rendering;
@@ -30,6 +31,8 @@ namespace OniMoono.Desktop.D3d11
         public int Width, Height, Depth = 1, Levels = 1, Layers = 1, Samples = 1;
         public uint Target = TexTarget2D;
         public bool RenderTarget, DepthOnly, HasStencil, Dirty;
+        /// Made with GENERATE_MIPS (levels, and a format with MIP_AUTOGEN support).
+        public bool AutoMips;
         public TextureFormat StorageFormat = (TextureFormat)(-1);
         /// The sampler its settings select (owned by the device's cache).
         public ID3D11SamplerState* Sampler;
@@ -229,12 +232,29 @@ namespace OniMoono.Desktop.D3d11
                 return;
             }
             t.Format = D3d11Formats.Color(shape.ColorFormat);
+            // GENERATE_MIPS only where the format has D3D11_FORMAT_SUPPORT_MIP_AUTOGEN
+            // ("Automatic generation of mipmaps is supported", D3D11_FORMAT_SUPPORT); otherwise
+            // the levels above 0 keep what they were cleared to, logged once per format.
+            t.AutoMips = t.Levels > 1 && FormatHas(t.Format, D3D11_FORMAT_SUPPORT.D3D11_FORMAT_SUPPORT_MIP_AUTOGEN);
+            if (t.Levels > 1 && !t.AutoMips && noAutoMips.Add(t.Format))
+                EngineLog.Engine($"d3d11: {t.Format} has no automatic mip generation on this device; render texture '{name}' keeps its levels above 0 as cleared");
+            // A sample count the device has for the format (CheckMultisampleQualityLevels: a
+            // combination it lacks gives a failure or 0 quality levels), and its depth's: the
+            // next lower power of two otherwise, logged once.
+            if (t.Samples > 1)
+            {
+                int asked = t.Samples;
+                var depthView = shape.DepthBits > 0 ? D3d11Formats.Depth(shape.DepthBits).View : DXGI_FORMAT.DXGI_FORMAT_UNKNOWN;
+                while (t.Samples > 1 && !(Multisamples(t.Format, t.Samples) && (depthView == DXGI_FORMAT.DXGI_FORMAT_UNKNOWN || Multisamples(depthView, t.Samples)))) t.Samples /= 2;
+                if (t.Samples != asked && fewerSamples.Add((t.Format, asked)))
+                    EngineLog.Engine($"d3d11: {t.Format} with {asked} samples is not supported on this device; render texture '{name}' gets {t.Samples}");
+            }
             var desc = new D3D11_TEXTURE2D_DESC
             {
                 Width = (uint)t.Width, Height = (uint)t.Height, MipLevels = (uint)t.Levels, ArraySize = 1, Format = t.Format, SampleDesc = new DXGI_SAMPLE_DESC { Count = 1 },
                 Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT, BindFlags = D3D11_BIND_FLAG.D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_FLAG.D3D11_BIND_RENDER_TARGET,
                 // GenerateMips needs it, with both binds (ID3D11DeviceContext::GenerateMips).
-                MiscFlags = t.Levels > 1 ? D3D11_RESOURCE_MISC_FLAG.D3D11_RESOURCE_MISC_GENERATE_MIPS : 0,
+                MiscFlags = t.AutoMips ? D3D11_RESOURCE_MISC_FLAG.D3D11_RESOURCE_MISC_GENERATE_MIPS : 0,
             };
             ID3D11Texture2D* tex;
             D3d11Context.Check(Dev->lpVtbl->CreateTexture2D(Dev, &desc, null, &tex), $"CreateTexture2D (render texture {name}, {t.Width}x{t.Height} {t.Format})");
@@ -288,6 +308,24 @@ namespace OniMoono.Desktop.D3d11
             t.Srv = ShaderView(t.Resource, shader, TexTarget2D, 1, 1);
         }
 
+        readonly HashSet<DXGI_FORMAT> noAutoMips = new();
+        readonly HashSet<(DXGI_FORMAT, int)> fewerSamples = new();
+
+        /// Whether the device supports every use in `wanted` for `format` (CheckFormatSupport).
+        bool FormatHas(DXGI_FORMAT format, D3D11_FORMAT_SUPPORT wanted)
+        {
+            D3D11_FORMAT_SUPPORT support = 0;
+            return Dev->lpVtbl->CheckFormatSupport(Dev, format, &support) >= 0 && (support & wanted) == wanted;
+        }
+
+        /// Whether `format` takes `samples` samples (CheckMultisampleQualityLevels: S_OK and a
+        /// positive quality-level count).
+        bool Multisamples(DXGI_FORMAT format, int samples)
+        {
+            uint levels = 0;
+            return Dev->lpVtbl->CheckMultisampleQualityLevels(Dev, format, (uint)samples, &levels) >= 0 && levels > 0;
+        }
+
         /// The render target view of a level (made on first use).
         ID3D11RenderTargetView* Rtv(D3d11Texture t, int level)
         {
@@ -310,7 +348,7 @@ namespace OniMoono.Desktop.D3d11
             if (!t.Dirty || !t.RenderTarget || t.DepthOnly) return;
             t.Dirty = false;
             if (t.Multisampled != null) Ctx->lpVtbl->ResolveSubresource(Ctx, t.Resource, 0, (ID3D11Resource*)t.Multisampled, 0, t.Format);
-            if (t.Levels > 1 && autoGenerateMips) Ctx->lpVtbl->GenerateMips(Ctx, t.Srv);
+            if (t.AutoMips && autoGenerateMips) Ctx->lpVtbl->GenerateMips(Ctx, t.Srv);
         }
 
         public void UploadTexture(DeviceTexture g, TexelUpload u)

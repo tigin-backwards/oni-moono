@@ -59,6 +59,7 @@ namespace OniMoono.Desktop.D3d11
         /// Shaders logged drawing into fewer targets than their pixel stage writes (diagnostics).
         readonly HashSet<string> fewerTargets = new();
         bool feedbackReported;
+        readonly HashSet<(int, int, int, int)> depthSizeReported = new();
 
         // ----- Targets -----
 
@@ -111,14 +112,25 @@ namespace OniMoono.Desktop.D3d11
                         var c = t.Colors[i]?.D3d;
                         targetCount = i + 1;
                         if (c?.Resource == null || c.DepthOnly) continue;
-                        int level = Math.Clamp(t.Level, 0, c.Levels - 1);
+                        // The multisampled surface has one level (CreateRenderTexture).
+                        int level = c.MultisampledRtv != null ? 0 : Math.Clamp(t.Level, 0, c.Levels - 1);
                         targetViews[i] = c.MultisampledRtv != null ? c.MultisampledRtv : Rtv(c, level);
                         targetTextures.Add(c);
                         width = Math.Min(width, Math.Max(1, c.Width >> level));
                         height = Math.Min(height, Math.Max(1, c.Height >> level));
                     }
                 hasDepth = hasStencil = false;
-                if (depthTexture?.Dsv != null)
+                // A depth view goes with colour views "of the same dimensions" (Direct3D 11.3
+                // Functional Specification §5.3.6.2, §17.16): a depth surface of another size
+                // than the colour views (a level above 0 of a texture with depth: the engine never
+                // asks for one, RenderTargetBinding's callers pass 0, and the OpenGL and Vulkan
+                // devices render level 0) is left unbound, and logged once.
+                if (depthTexture?.Dsv != null && targetCount > 0 && width != int.MaxValue && (depthTexture.Width != width || depthTexture.Height != height))
+                {
+                    if (depthSizeReported.Add((depthTexture.Width, depthTexture.Height, width, height)))
+                        EngineLog.Engine($"d3d11: a {depthTexture.Width}x{depthTexture.Height} depth surface with {width}x{height} colour targets (level {t.Level}): drawn without depth");
+                }
+                else if (depthTexture?.Dsv != null)
                 {
                     targetDepth = depthTexture.Dsv;
                     targetTextures.Add(depthTexture);
@@ -231,14 +243,23 @@ namespace OniMoono.Desktop.D3d11
             if (layout == null) return;
             Bind(r, program, layout, Topology(r.SubMesh.Mode));
             // Slots 0-11 the mesh's channels, each at its offset in the one buffer; the slots
-            // after them the constants (D3d11Layout.Constants).
+            // after them the constants (D3d11Layout.Constants). A channel is bound when the mesh
+            // layout has it, the same test the input layout made (Layout); the upload that
+            // recorded the layout wrote its data (GlMeshes.AddChannel sets both), so one without
+            // data is a broken invariant: the draw is left out rather than reading an unbound
+            // slot's zeros (FS §8.20).
             int n = (int)Channel.Count + layout.Constants.Length;
             var buffers = stackalloc ID3D11Buffer*[n];
             var strides = stackalloc uint[n];
             var offsets = stackalloc uint[n];
             for (int c = 0; c < (int)Channel.Count; c++)
             {
-                bool present = r.Layout.Components[c] != 0 && mesh.ChannelOffsets[c] >= 0;
+                bool present = r.Layout.Components[c] != 0;
+                if (present && mesh.ChannelOffsets[c] < 0)
+                {
+                    CommandFailed(new InvalidOperationException($"d3d11: a mesh layout names channel {(Channel)c}, which its upload did not write"));
+                    return;
+                }
                 buffers[c] = present ? mesh.Vertices : null;
                 strides[c] = present ? (uint)ChannelFormat(r.Layout, c).Stride : 0;
                 offsets[c] = present ? (uint)mesh.ChannelOffsets[c] : 0;
@@ -333,7 +354,8 @@ namespace OniMoono.Desktop.D3d11
         /// (VkDevice.ConstantOffset): white colour, position (0, 0, 0, 1), zero normal, tangent
         /// and texture coordinates; inputs no channel names (0, 0, 0, 1), as integers for an
         /// integer input. Offsets into the constants buffer (CreateShared).
-        static int ConstantOffset(int channel, uint componentType) => componentType is 1 or 2
+        static int ConstantOffset(int channel, D3D_REGISTER_COMPONENT_TYPE componentType)
+            => componentType is D3D_REGISTER_COMPONENT_TYPE.D3D_REGISTER_COMPONENT_UINT32 or D3D_REGISTER_COMPONENT_TYPE.D3D_REGISTER_COMPONENT_SINT32
             ? (channel < 0 ? 48 : 0)
             : channel switch
             {
@@ -369,6 +391,12 @@ namespace OniMoono.Desktop.D3d11
             if (program.Layouts.TryGetValue(key, out var known)) return known.Layout == null ? null : known;
             var made = new D3d11Layout();
             var inputs = program.Inputs;
+            if (inputs.Length > D3D11.D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT)
+            {
+                EngineLog.Engine($"d3d11: shader '{program.Name}' reads {inputs.Length} vertex inputs, more than an input layout holds; it is left out");
+                program.Layouts[key] = made;
+                return null;
+            }
             var elements = stackalloc D3D11_INPUT_ELEMENT_DESC[Math.Max(1, inputs.Length)];
             var constantOffsets = new List<int>();
             bool immediate = key == Vulkan.VkPipelines.ImmediateLayout;
@@ -393,11 +421,19 @@ namespace OniMoono.Desktop.D3d11
                 {
                     e.Format = input.ComponentType switch
                     {
-                        1 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_UINT,
-                        2 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_SINT,
+                        D3D_REGISTER_COMPONENT_TYPE.D3D_REGISTER_COMPONENT_UINT32 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_UINT,
+                        D3D_REGISTER_COMPONENT_TYPE.D3D_REGISTER_COMPONENT_SINT32 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_SINT,
                         _ => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT,
                     };
                     e.InputSlot = (uint)((immediate ? 1 : (int)Channel.Count) + constantOffsets.Count);
+                    // Input slots are 0 to D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT - 1 (32:
+                    // d3d11.h, and the Functional Specification's IA arrays and constant table).
+                    if (e.InputSlot >= D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT)
+                    {
+                        EngineLog.Engine($"d3d11: shader '{program.Name}' reads {inputs.Length} vertex inputs, more constant ones than the input slots left; its draws with that mesh layout are left out");
+                        program.Layouts[key] = made;
+                        return null;
+                    }
                     e.InputSlotClass = D3D11_INPUT_CLASSIFICATION.D3D11_INPUT_PER_INSTANCE_DATA;
                     e.InstanceDataStepRate = 0;
                     constantOffsets.Add(ConstantOffset(c, input.ComponentType));
@@ -664,6 +700,16 @@ namespace OniMoono.Desktop.D3d11
             return read;
         }
 
+        /// Presents the frame, resizes the buffers to the window's framebuffer when it changed,
+        /// sets the target again, then waits until the swap chain takes another frame before the
+        /// next one renders (D3d11SwapChain.WaitForFrame).
+        ///
+        /// A minimized window: the platform keeps the framebuffer size it had (Unity's player
+        /// does, GlfwPlatform.KeptFramebufferSize), so the buffers keep theirs and nothing is
+        /// resized; a window that has never had a size (0x0, minimized from the start) keeps the
+        /// swap chain's 1x1 or last size and is not resized every frame either. Frames go on, and
+        /// Present and the wait as when shown (a flip-model swap chain does not report
+        /// DXGI_STATUS_OCCLUDED: Microsoft's DXGI_STATUS list).
         void PresentNow(int interval, int width, int height)
         {
             if (lost != null) return;
@@ -681,7 +727,7 @@ namespace OniMoono.Desktop.D3d11
             }
             try
             {
-                if (width != chain.Width || height != chain.Height)
+                if (width > 0 && height > 0 && (width != chain.Width || height != chain.Height))
                 {
                     // ResizeBuffers needs every reference to the buffers released, the context's
                     // too: Resize clears the context's state, so nothing is bound any more.
@@ -698,6 +744,7 @@ namespace OniMoono.Desktop.D3d11
             // The flip model unbinds the back buffer at Present ("For best performance, use DXGI
             // flip model"): the target is set again, as the next frame finds it on OpenGL.
             SetTarget(lastTarget);
+            chain.WaitForFrame();
         }
 
         /// After ClearState: every binding at its default, the target the back buffer.

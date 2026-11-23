@@ -31,6 +31,8 @@ namespace OniMoono.Desktop.D3d11
         public const uint D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT = 4096;
         public const uint D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION = 16384;
         public const uint D3D11_REQ_TEXTURE3D_U_V_OR_W_DIMENSION = 2048;
+        /// The size of a BOOL, as CheckFeatureSupport's PRESENT_ALLOW_TEARING answer takes it.
+        [NativeExpression("sizeof(BOOL)"), Native(Header = "minwindef.h")] public const uint SizeOfBool = 4;
 
         [Native(Header = "winerror.h")] public const int S_FALSE = 1;
         [Native(Header = "winerror.h")] public const int E_INVALIDARG = unchecked((int)0x80070057);
@@ -59,6 +61,24 @@ namespace OniMoono.Desktop.D3d11
         D3D_FEATURE_LEVEL_10_1 = 0xa100,
         D3D_FEATURE_LEVEL_11_0 = 0xb000,
         D3D_FEATURE_LEVEL_11_1 = 0xb100,
+    }
+
+    /// A signature element's system value (DXBC signatures store it: Dxbc.cs's SystemValue).
+    [Native(Header = "d3dcommon.h")]
+    internal enum D3D_NAME
+    {
+        D3D_NAME_UNDEFINED = 0,
+        D3D_NAME_TARGET = 64,
+    }
+
+    /// A signature element's component type (Dxbc.cs's ComponentType).
+    [Native(Header = "d3dcommon.h")]
+    internal enum D3D_REGISTER_COMPONENT_TYPE
+    {
+        D3D_REGISTER_COMPONENT_UNKNOWN = 0,
+        D3D_REGISTER_COMPONENT_UINT32 = 1,
+        D3D_REGISTER_COMPONENT_SINT32 = 2,
+        D3D_REGISTER_COMPONENT_FLOAT32 = 3,
     }
 
     [Native(Header = "d3d11.h"), Flags]

@@ -86,7 +86,7 @@ namespace OniMoono.Desktop.D3d11
             if (Com.QueryInterface(Factory, IDXGIFactory5.IID, (void**)&f5) >= 0)
             {
                 int allow = 0;
-                Tearing = f5->lpVtbl->CheckFeatureSupport(f5, Dxgi.FeaturePresentAllowTearing, &allow, sizeof(int)) >= 0 && allow != 0;
+                Tearing = f5->lpVtbl->CheckFeatureSupport(f5, Dxgi.FeaturePresentAllowTearing, &allow, D3D11.SizeOfBool) >= 0 && allow != 0;
                 Com.Release(ref f5);
             }
         }

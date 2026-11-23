@@ -32,6 +32,7 @@ namespace OniMoono.Desktop.D3d11
             [FieldOffset(5 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong, D3D11_MESSAGE*, nuint*, int> GetMessage;
             [FieldOffset(8 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessages;
             [FieldOffset(9 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessagesAllowedByRetrievalFilter;
+            [FieldOffset(10 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumMessagesDiscardedByMessageCountLimit;
         }
     }
 

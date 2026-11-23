@@ -22,7 +22,7 @@ namespace OniMoono.Desktop.D3d11
 
     /// A vertex-shader input the input assembler feeds: the signature element (semantic, index,
     /// D3D_REGISTER_COMPONENT_TYPE) and the mesh channel it reads (-1: none, a constant).
-    internal readonly record struct D3d11Input(string Semantic, uint Index, uint ComponentType, int Channel);
+    internal readonly record struct D3d11Input(string Semantic, uint Index, D3D_REGISTER_COMPONENT_TYPE ComponentType, int Channel);
 
     /// An input layout made for one mesh layout: the layout, and per input-assembler slot past the
     /// channels' (Constants), the offset in the constants buffer it reads.
@@ -236,7 +236,7 @@ namespace OniMoono.Desktop.D3d11
                     foreach (var e in entry.Dxbc.Outputs)
                         // SV_Target<n> writes render target n (in an output signature SV_Target
                         // goes by its semantic; its system value need not be D3D_NAME_TARGET).
-                        if (e.SystemValue == 64 || string.Equals(e.SemanticName, "SV_Target", StringComparison.OrdinalIgnoreCase))
+                        if ((D3D_NAME)e.SystemValue == D3D_NAME.D3D_NAME_TARGET || string.Equals(e.SemanticName, "SV_Target", StringComparison.OrdinalIgnoreCase))
                             d3d.Targets = Math.Max(d3d.Targets, (int)e.SemanticIndex + 1);
                 if (s == 0)
                 {
@@ -245,8 +245,8 @@ namespace OniMoono.Desktop.D3d11
                     {
                         // System values (SV_VertexID, SV_InstanceID) come from the input
                         // assembler, not from a buffer.
-                        if (e.SystemValue != 0) continue;
-                        inputs.Add(new D3d11Input(e.SemanticName, e.SemanticIndex, e.ComponentType, ChannelOf(e.SemanticName, e.SemanticIndex)));
+                        if ((D3D_NAME)e.SystemValue != D3D_NAME.D3D_NAME_UNDEFINED) continue;
+                        inputs.Add(new D3d11Input(e.SemanticName, e.SemanticIndex, (D3D_REGISTER_COMPONENT_TYPE)e.ComponentType, ChannelOf(e.SemanticName, e.SemanticIndex)));
                     }
                     d3d.Inputs = inputs.ToArray();
                 }

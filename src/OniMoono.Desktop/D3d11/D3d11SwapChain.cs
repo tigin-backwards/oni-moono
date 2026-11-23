@@ -122,27 +122,70 @@ namespace OniMoono.Desktop.D3d11
         /// Presents the back buffer: `interval` vertical blanks after the last (with vsync), or at
         /// once, tearing where allowed. A flip-model back buffer must be bound again after Present
         /// ("For best performance, use DXGI flip model"): the device sets its targets each frame.
-        /// With vsync it then waits for the frame-latency object, as an app made with
-        /// FRAME_LATENCY_WAITABLE_OBJECT does before rendering its next frame ("Reduce latency with
-        /// DXGI 1.3 swap chains"); without vsync it does not wait, as the DXGI presenter
-        /// (DxgiSwapChain.PresentCopied: waiting was measured to cap the frame rate on the AMD
-        /// iGPU). Whether the original waits without vsync is UNVERIFIED. A wait that times out is
-        /// logged (the first three) and the frame goes on. Returns Present's result.
+        /// Nothing waits here: the device waits before it renders a frame (WaitForFrame). Returns
+        /// Present's result.
         public int Present(int interval)
         {
             interval = Math.Clamp(interval, 0, 4);
             uint presentFlags = interval == 0 && tearing ? Dxgi.PresentAllowTearing : 0;
+            long t = GlTimings.Now;
             int hr = ((IDXGISwapChain*)chain)->lpVtbl->Present((IDXGISwapChain*)chain, (uint)interval, presentFlags);
+            Trace(interval, presentTicks: GlTimings.Now - t);
             presents++;
-            if (hr < 0 || interval == 0) return hr;
-            uint waited = Dxgi.WaitForSingleObjectEx(waitable, WaitMilliseconds, 0);
-            if (waited != Dxgi.WaitObject0 && timeouts++ < 3)
-                EngineLog.Engine($"d3d11: present {presents}: the frame-latency wait ended with 0x{waited:X} ({(waited == Dxgi.WaitTimeout ? $"timed out after {WaitMilliseconds} ms" : "not signalled")}); going on");
             return hr;
         }
 
+        /// Waits until the swap chain takes a new frame, before the device renders one, the first
+        /// included, with vsync or without: "Your rendering loop should wait for the swap chain
+        /// to signal via the waitable object before it begins rendering every frame. This
+        /// includes the first frame rendered with the swap chain" (Microsoft, "Reduce latency
+        /// with DXGI 1.3 swap chains", step 4, whose sample waits at most 1 second). So at most
+        /// MaximumFrameLatency frames are queued. A wait that times out is logged (the first
+        /// three) and the frame goes on; the signal it missed is taken when it comes (`owed`),
+        /// so the frames in flight stay at the latency set. Device thread (the constructor's
+        /// thread before the first frame).
+        public void WaitForFrame()
+        {
+            long t = GlTimings.Now;
+            uint waited = Dxgi.WaitForSingleObjectEx(waitable, WaitMilliseconds, 0);
+            if (waited != Dxgi.WaitObject0)
+            {
+                owed++;
+                if (timeouts++ < 3)
+                    EngineLog.Engine($"d3d11: present {presents}: the frame-latency wait ended with 0x{waited:X} ({(waited == Dxgi.WaitTimeout ? $"timed out after {WaitMilliseconds} ms" : "not signalled")}); going on");
+            }
+            else
+                while (owed > 0 && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0)
+                    owed--;
+            long ticks = GlTimings.Now - t;
+            waitTicks += ticks;
+            waitMax = Math.Max(waitMax, ticks);
+        }
+
         long presents;
-        int timeouts;
+        int timeouts, owed;
+
+        // ONI_PRESENT_TRACE: every 120 presents (and at each change of interval) the frame-latency
+        // waits and the Present calls, mean and largest, in ms.
+        long waitTicks, waitMax, presentTicks, presentMax;
+        int traced, tracedInterval;
+
+        void Trace(int interval, long presentTicks)
+        {
+            if (!PresentTrace.Enabled) return;
+            if (traced >= 120 || traced > 0 && interval != tracedInterval)
+            {
+                double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
+                PresentTrace.Log($"d3d11: the {traced} presents to {presents} at interval {tracedInterval}, {Width}x{Height}: frame-latency wait mean {waitTicks * ms / traced:F2} ms, "
+                                 + $"largest {waitMax * ms:F2}; Present mean {this.presentTicks * ms / traced:F2} ms, largest {presentMax * ms:F2}; timeouts {timeouts}, owed {owed}");
+                traced = 0;
+                waitTicks = waitMax = this.presentTicks = presentMax = 0;
+            }
+            tracedInterval = interval;
+            this.presentTicks += presentTicks;
+            presentMax = Math.Max(presentMax, presentTicks);
+            traced++;
+        }
 
         public string Describe()
             => $"swap chain {Width}x{Height} R8G8B8A8_UNORM, FLIP_SEQUENTIAL, {BufferCount} buffers, maximum frame latency {MaximumFrameLatency} (waitable), "
