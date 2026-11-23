@@ -66,7 +66,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); open: the BatchedAnimationUI debug-layer warning, the user's decision |
-| M3 | Full draw feature set | A colony plays; scene-set pixel parity | |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23 ("M3"): three colonies draw, debug layer clean but for the open RTV warning, scene set and tolerance defined (67 of 70 within, 2 OpenGL's), M3 UNVERIFIED settled or moved; open: coverage (46 of 121 shaders), one scene over, the RTV warning (the user's) |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
@@ -411,7 +411,7 @@ declarations too.
       with the images aligned (a one-pixel shift either way raises the mean to 5-12), which M3
       explains (filtering or BC decoding of the logo textures). The menu buttons: largest 40,
       mean 0.23. A scene-set tolerance and deterministic scenes are M3's (done criterion 3).
-  - **UNVERIFIED in B2** (each with the milestone that settles it):
+  - **UNVERIFIED in B2** (each with the milestone that settles it; M3's outcomes are in "M3"):
     1. `FrontCounterClockwise` 0 into the back buffer: the colony's UI draws had 0, that they
        target the back buffer is captures UNVERIFIED 6 (M3; the menu shows no culling difference).
     2. Whether two textures of one program share a sampler slot (the first's state is taken): not
@@ -531,6 +531,183 @@ nothing else, none dropped. Stable pixels (the 1,003,208 where the two OpenGL ru
 left out; RGB mask now): > 0 8.98%, > 1 6.28%, > 2 5.10%, > 4 2.69%, > 8 1.73%, > 16 0.94%,
 > 40 0.35%; mean per channel R 0.72, G 0.53, B 0.48; PSNR 34.0 dB (j0008449: 32.5 dB with the
 RGBA mask, which left more animated pixels in).
+
+## M3: a colony plays (2026-11-23, branch `d3d11-m3`), part A
+
+Part A: a colony draws on D3D11 with the debug layer, the scene set and its tolerance are
+defined and measured, and the M3 UNVERIFIED items are settled or moved. Part B (below, "Left
+for M3 part B") is the rest of done criterion 1's coverage.
+
+**Design.**
+- **AsyncGPUReadback** (`D3d11Readback.cs`): the render texture's level 0 is copied
+  (`CopySubresourceRegion`) into a STAGING texture with the frame's work; after each Present the
+  device thread tries `Map(READ, D3D11_MAP_FLAG_DO_NOT_WAIT)`, which "should return
+  DXGI_ERROR_WAS_STILL_DRAWING when the GPU blocks the CPU from accessing a resource"
+  (`D3D11_MAP_FLAG`), and once it maps the rows are copied out (converted on a pool thread when
+  the format asked is not the texture's, as VkReadback does). `Wait` maps without the flag. The
+  Timelapser's colony preview (each save) and timelapse frames take this path
+  (`Timelapser.CapturePng`, U60 764025).
+- **CopyTargetRect**: `CopySubresourceRegion` between two render textures' level 0, whose
+  resources "Must have compatible DXGI formats (identical or from the same type group)"
+  (`ID3D11DeviceContext::CopySubresourceRegion`); the device asks for identical ones and
+  logs a failed command otherwise. Rows turned over in a ScreenRows texture, as
+  VkDevice.CopyTargetRect. Only the loading animation uses it, which M4 turns on
+  (`AnimatesLoading` stays false here).
+- **ScreenRows readback** (B2 UNVERIFIED 6, below): read turned over, as the back buffer.
+- **Debug-layer attribution**: with `--d3d11-debug` the info queue is drained after every draw
+  and its messages counted by (message, shader, target count, target name), each pair logged
+  in full once, the counts every 600 frames (`d3d11 debug layer tally`) and at the end.
+- **Coverage log**: each program's first draw logs `d3d11 coverage: SHADER sSUBpPASS vs#BLOB
+  [keywords] ps#BLOB [keywords]` (`tools/PixelDiff/coverage.py` counts them).
+- Nothing else was missing for a colony: render textures (MRT included: the world camera's
+  MRT0/MRT1 targets, `Camera.SetTargetBuffers`), 2D arrays, 3D textures, readbacks
+  (ScreenCapture, ReadPixels), every overlay's shaders and the starmap drew with M2's paths.
+
+**The scene set** (done criterion 3; `tests/e2e/d3d11-scenes*.yaml`, run by
+`scripts/e2e-windows/run.py --player ours` with `E2E_PLAYER_ARGS='--renderer R'`, the frozen
+`E:\oni-builds\oni-win-764025`, 1280×720 windowed on monitor 2, RTX 3090): three colonies, each
+paused after its load (paused frames are deterministic: `paused-overlays.yaml`):
+- a small landing with four gases side by side: the world close and wide, all 17 overlays, the
+  UI, the starmap and the save's colony preview;
+- a small base with Duplicants, buildings and debris: the world close and wide, all 17
+  overlays, the UI, the vitals, skills and database screens, the colony preview and the debug
+  8x screenshot (`ScreenCapture.CaptureScreenshot(path, 8)`, 10240×5760, read back in bands);
+- a mid-game Spaced Out colony with every DLC: the world close and wide, all 17 overlays, the
+  UI, the starmap and the colony preview.
+- Overlays are set through OniMcp's `switch_view` (the F-keys did not reach the mid-game
+  colony). 70 shots in all. Not compared: the loading screens, drawn on D3D11 during each load but
+  animated (M4 owns the loading animation); the research screen and the mid-game colony's
+  starmap did not open through `open: {management: …}` in either renderer (the research shot
+  equals the UI shot; the mid-game "starmap" shot shows the colony, 1.7% of its pixels unlike
+  the UI shot's), so the starmap compared is the landing's.
+
+**The tolerance and how it was chosen.** `tools/PixelDiff/scenes.py` compares each D3D11 shot
+with an OpenGL run's, leaving out the pixels where two OpenGL runs differ and those within 3
+pixels of them (`--grow 3`: content that changes between runs, the random dig cracks of tiles
+and the pulse of status icons, matches in two runs here and there by chance; without the
+growth those chance matches put up to 0.35% of pixels over 40 in M3's first comparison).
+- **Spread** (OpenGL against OpenGL): two OpenGL runs differ in 0-3.1% of their pixels by more
+  than 8 (animations not in step); measured over 4 OpenGL runs (two series), the method's own
+  floor, a third OpenGL run against the first with the other's mask, is at most 0.110% over 16
+  and 0.045% over 40 (the 8x screenshot; under 0.01% elsewhere), but for the mid-game colony's
+  UI shot, which differed between the two spec versions.
+- **Tolerance per scene**: at most 0.5% of the compared pixels over 16 in a channel and 0.1%
+  over 40, and at least half the image compared. Small differences (2-8 levels) over 1-20% of
+  the pixels are left to PSNR: they are the same with anisotropy off (B2 item 4) and are not
+  localized.
+- A scene over against OpenGL is checked against a Vulkan run: where D3D11 is within 0.1% over
+  40 of Vulkan and OpenGL is not, the difference is OpenGL's and is listed apart.
+
+**Results** (j0008619, the committed device, `--d3d11-debug`, against OpenGL runs j0008612 and
+j0008613, Vulkan j0008617; `scenes.py`; per colony, the largest fraction of the compared pixels
+whose largest channel difference exceeds each level, over the scenes within the tolerance):
+
+| Colony | Shots | OpenGL spread > 8 (max) | Compared (min) | > 2 | > 8 | > 16 | > 40 | PSNR (min) | Within |
+|---|---|---|---|---|---|---|---|---|---|
+| Landing (gases) | 23 | 1.73% | 92% | 20.3% | 0.22% | 0.018% | 0.004% | 44.7 dB | 23 of 23 |
+| Small base | 25 | 2.07% | 90% | 13.6% | 0.39% | 0.095% | 0.035% | 43.8 dB | 25 of 25 |
+| Mid-game Spaced Out | 22 | 1.78% | 67% | 20.4% | 2.64% | 0.256% | 0.083% | 39.7 dB | 19 of 22 |
+
+- 67 of 70 shots within the tolerance; the UI, management screens, starmap, colony previews
+  (AsyncGPUReadback) and the 8x screenshot (ReadPixels in bands) among them. j0008614 gave the
+  same verdicts.
+- **Where OpenGL differs from D3D11 and Vulkan alike** (2): the mid-game colony's materials
+  overlay (1.535% of pixels over 40 against OpenGL; D3D11 against Vulkan 0.015%, OpenGL against
+  Vulkan 1.572%) and conveyor overlay (0.178%; 0.088% and 0.258%). The pixels are round pools
+  of room light on buildings: on OpenGL those buildings are unlit (a cat tree purple where D3D11
+  and Vulkan draw it lit, cream). This is the kind of light-buffer read issue #76 fixed for
+  Klei/BatchedAnimation and Klei/BatchedAnimationHuman on OpenGL (`AnimationLight`), in a shader
+  that change does not cover: an OpenGL-device finding, not D3D11's.
+- **Over** (1): the mid-game colony's power overlay, 0.883% over 16 and 0.124% over 40, in the
+  same light pools (wire segments brighter near lit rooms) and on animated wires (the OpenGL
+  runs themselves differ in 0.95% over 8 there): D3D11 against Vulkan 0.18% over 40, OpenGL
+  against Vulkan 0.32%. Most likely the same OpenGL difference, but the one Vulkan run cannot
+  show it within the rule, so it stays listed as over.
+
+**Debug layer** (`--d3d11-debug`, every D3D11 run): no error, no corruption, no message
+dropped; one message, warning `D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET`
+(3146081), the one the user's open decision covers, now attributed per draw:
+Klei/BatchedAnimationUI, Klei/StatusItem, Klei/BatchedAnimationPstTemperature and
+Klei/BatchedAnimation into the back buffer (one target), and Klei/Stipple and Klei/Unlit Transparent into `TempBuffer 1 1280x720` (one
+target): 537, 710 and 1,309 messages in the three colonies' runs, nothing else.
+The original binds the same single target for these: in its recorded colony frames
+(j0008168) Klei/StatusItem and the three Klei/BatchedAnimationPstTemperature passes draw into
+one 1024×768 target with `rtv1` null, the world shaders (Substance, TiledBlock, BatchedAnimation
+and the rest) into MRT0 and MRT1 as here. The world shaders' single-target draws here go to
+temporary render textures (`TempBuffer 1 1280x720`, `TempBuffer 8 1272x808` and
+`… 1444x608`), not the world camera's MRT; which cameras' those are, and whether the original
+binds one target there too, was not measured (its recordings are of the screen camera's
+frames). So the open decision is about this message ID for every such draw, not
+BatchedAnimationUI alone.
+
+**Coverage** (done criterion 1; `coverage.py` over the D3D11 runs' logs): 46 of the 121
+shaders, 48 of their 176 passes, 56 programs (vertex and pixel combinations), 112 distinct
+stage entries of the 1,070 subprograms: every shader the
+three colonies, the menus and the loading screens draw. No program failed to build or was
+refused, none drew with a geometry stage (the one gs_4_0 is not drawn).
+
+**UNVERIFIED items assigned to M3.**
+- B2 1, FrontCounterClockwise 0 into the back buffer, with captures UNVERIFIED 6: **settled**
+  (observed, j0008168's recordings): the original's FrontCounterClockwise 0 state is bound only
+  with the views the main menu's whole frame and the colony's UI and last draw go to (the
+  screen, rendered unflipped), every render-texture draw has 1. As this device does.
+- B2 2, two textures sharing a sampler slot: **settled** (ShaderSurvey d3d11, j0008601): no
+  subprogram of the game data (1,722 textures) or of the 2022.3+ mods read (497) has two
+  textures naming one sampler slot; the first-texture rule never applies.
+- B2 3, B8G8R8A8 render textures made R8G8B8A8: **settled for the game, moved to M7 for
+  mods**. No game code makes one: the U60 764025 assemblies name only ARGB32, ARGBHalf, RFloat
+  and RGFloat render textures (and Depth in a support query), and `new RenderTexture(w, h, d)`
+  is ARGB32. Which of the two the resource is cannot change a pixel (both sample and read back
+  as RGBA; ReadPixels converts by format); only `GetNativeTexturePtr`, which Moono does not
+  offer, would show it. A mod's BGRA32 render texture is M7's to measure. (Measuring the
+  original here would need its run's registry key and LocalLow folder, which this brief
+  forbids.)
+- B2 4, ANISOTROPIC filtering where OpenGL keeps the nearest level: **settled** (documented,
+  observed). `D3D11_FILTER_ANISOTROPIC`: "Use anisotropic interpolation for minification,
+  magnification, and mip-level sampling", and the original's colony samplers are ANISOTROPIC
+  with MaxAnisotropy 4 (captures §2), so the device keeps it. With anisotropy off (a temporary
+  build, j0008615) D3D11 was no closer to OpenGL (the landing's world: 21.9% of pixels over 2
+  against 20.3% with it), so the small differences above are not this.
+- B2 6, readback of a ScreenRows render texture: **settled** (documented). RenderDevice's
+  ReadPixels and BeginReadback give rows from the bottom; "The texel coordinate system has its
+  origin at the top-left corner of the texture" (Direct3D 11.3 Functional Specification
+  §3.3.2), so a texture stored top row first is read turned over, as the back buffer was.
+  Only the loading screen's frames are ScreenRows, and nothing reads them back (no game
+  readback reaches them). VkDevice reads them as stored, which would give top-first rows: a
+  latent difference there, reported, not changed here.
+- Captures UNVERIFIED 5 (factor and units) closed for the game, 7, 8 and 9 moved to M7, each
+  with its reason in `d3d11-captures.md`.
+
+**Runs** (runq, burndown, owner `d3d11-m3`): builds j0008597, j0008603, j0008606, j0008611,
+j0008616; ShaderSurvey j0008601, j0008618; scene runs j0008604 (first, Vulkan: the e2e
+lane's renderer variable does not pass runq's environment filter, `E2E_PLAYER_ARGS` does),
+j0008605 and j0008607 (first D3D11 colony runs), j0008608-j0008610 (first scene set: OpenGL
+twice, D3D11), j0008612-j0008615 (OpenGL twice, D3D11, D3D11 with anisotropy off), j0008617 (Vulkan),
+j0008619 (D3D11 with the debug layer, the committed device); check.sh JCHECK. j0008600, the
+first submission, waited behind a perf job's reservation and ran the landing's spec on Vulkan
+later (the renderer variable did not reach it); its result is not used.
+
+**Left for M3 part B.**
+- Coverage: 75 shaders not drawn by the scene set. Game shaders that need play the scene
+  set does not do: Klei/BuildingCell, Klei/Prioritizable, Klei/Area Visualizer, Klei/RocketPath,
+  Klei/TiledWall, Klei/LiquidSubstance, Klei/BloomedParticleShader, Klei/NorthernLights,
+  Klei/AnimationInvisible, Klei/Biome/Unlit Transparent, Klei/Standard Unlit,
+  Klei/LargeImpactorFragments, Klei/DLC4/DemoliorBackground and LargeImpactorCometShader, the
+  PostFX Desaturate, Fill, HueSaturation, Range, RocketLaunchCondition, ScannerNetwork,
+  SkyVisibility and LargeImpactorVisualizerShader, UI/Graphz, Lines/Colored Blended,
+  Sprites/Mask, Unlit/ImGui, Unlit/VirtualCursorCutoutShader, GUI/Text Shader, the TextMeshPro
+  Surface, Masking, Overlay, 2 Pass and Sprite shaders, Legacy Shaders (Diffuse, VertexLit,
+  Particles/Additive), Particles/Standard Surface and Unlit, Standard; and Unity's built-ins
+  (Hidden/*: blits, Internal-* GUI, loading, error and clear shaders, Physics2D, VR, TextCore,
+  video decode, frame debugger). Each needs a scene (the build tool, priorities, rockets and
+  the impactor DLC, debug views, IMGUI) or, for built-ins the game never uses, a check that
+  nothing reaches them; then every pass and variant, which a scene set cannot reach alone
+  (`--check-shaders`-style building of every variant).
+- The BatchedAnimationUI-class warning: the user's decision (M2's open item), now known to
+  cover StatusItem, the PstTemperature passes, Stipple and Unlit Transparent single-target draws.
+- The OpenGL device's light-buffer read in the mid-game colony's overlays (the two scenes where
+  OpenGL differs from D3D11 and Vulkan alike): an OpenGL-device finding (issue #76's turn in
+  shaders AnimationLight does not change), for the OpenGL device's owners.
 
 ## Research so far (M0)
 

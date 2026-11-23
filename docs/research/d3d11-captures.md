@@ -471,17 +471,30 @@ only.
    recorder (tools/D3d11Native), which keeps the isolation; no later milestone lists a question
    only RenderDoc answers. Reopened only if one does.
 
-**M3 (full draw feature set)**
+**M3 (full draw feature set)**, each settled or moved in M3 (d3d11-plan.md, "M3"):
 5. **Factor and units.** That factor feeds SlopeScaledDepthBias and units DepthBias is cited, not
    measured: no shipped shader has factor ≠ units. The GLCore renderer's polygon-offset values
-   are not measured.
-6. **The UI's winding.** Why the UI's rasterizer state has FrontCounterClockwise 0. Test: the
-   probe's state read-back on a draw to the screen.
-7. **Input layouts.** What the R8_UNORM-at-slot-0 entries and the slot-1 entries stand for, and
-   what feeds slot 1. The signature blobs' origin.
-8. **The 4 unmatched shaders** (built-ins or StreamingAssets bundle shaders).
-9. **TMP Surface s0p1/s0p2.** That they are shadow-caster passes; ShaderSurvey `states` does not
-   print LightMode.
+   are not measured. **Closed for the game**: with factor = units in every shipped pass (§2,
+   ShaderSurvey `states`) the two assignments give the same state, so no game draw can tell
+   them apart; the cited one stays. **Moved to M7** for mods (a mod pass with factor ≠ units
+   would tell them apart). GLCore's values are not needed for D3D11 parity.
+6. **The UI's winding.** **Settled** (observed, j0008168's recordings): the state with
+   FrontCounterClockwise 0 is bound only with the two 1024×768 views the main menu's frame draws
+   everything into (the menu scene, its UI at stride 76, and the frame's last draw, stride 88,
+   without depth), the same views in the colony frames: the screen's surfaces, which Unity
+   renders unflipped (d3d11-unity-probes.md §2; that these views are the screen's is inferred
+   from what they take, the pointers were not compared with buffer 0); every draw into a render texture (MRT0 and MRT1 with
+   depth, the light buffer, the blur, bloom and fog-of-war targets) has FrontCounterClockwise
+   1. So the winding follows the target: unflipped screen 0, flipped render texture 1, as the
+   device binds them (D3d11States).
+7. **Input layouts.** What the R8_UNORM-at-slot-0 entries and the slot-1 entries stand for.
+   **Moved to M7**: the device's layouts name only the inputs a program reads (d3d11-plan.md,
+   B2), and the scene set's pixels show no input differing (M3); the original's extra elements
+   matter only for parity of what a mod's program could read, which M7 owns.
+8. **The 4 unmatched shaders** (built-ins or StreamingAssets bundle shaders). **Moved to M7**:
+   the player's built-ins and bundles are what M7's mod and compatibility work reads.
+9. **TMP Surface s0p1/s0p2.** That they are shadow-caster passes. **Moved to M7**: no scene of
+   the scene set draws them (M3's coverage list), so only a mod's use would show it.
 
 **M4 (presentation and frame pacing)**
 10. **The full-screen swap chain.** Its description (`FullScreenWindow` and exclusive), and
