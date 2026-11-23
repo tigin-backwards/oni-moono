@@ -518,21 +518,21 @@ namespace OniMoono.Desktop.Gl
         }
     }
 
-    /// The light the game's animations take from the light buffer, read where Direct3D 11 reads
-    /// it (issue #76). `Klei/BatchedAnimation` and `Klei/BatchedAnimationHuman` (buildings,
-    /// plants, critters and Duplicants) shade each pixel by the light buffer at its world
-    /// position, which their GLCore text alone turns into `1 - y / height` before the light
-    /// buffer's camera reads it back; the vertex stage gives the position as it is, not
-    /// already turned. So on GLCore they read the light at the world position mirrored about
-    /// the world's middle row: with lights on screen there, as Beakons swimming a tank above,
-    /// an animation far from any light brightens and darkens as the lights move. Measured on
-    /// Windows (the reporter's colony, its Beakon tank and the farm below it on screen): a
-    /// building's light-grey parts vary by up to 13 levels on `-force-glcore` and by none on
-    /// Direct3D 11. On Windows the device drops the turn, so the position is the pixel's own.
-    /// Linux keeps GLCore's, which the original draws there.
+    /// The light the game's animations take from the light buffer, read where Direct3D 11 reads it
+    /// (issue #76). `Klei/BatchedAnimation`, `Klei/BatchedAnimationHuman` and
+    /// `Klei/BatchedAnimationConduit` (buildings, plants, critters, Duplicants and conduits) shade
+    /// each pixel by the light buffer at its world position, which their GLCore text alone turns
+    /// into `1 - y / height` before the light buffer's camera reads it back; the vertex stage gives
+    /// the position as it is, not already turned. So on GLCore they read the light at the world
+    /// position mirrored about the world's middle row: with lights on screen there, as Beakons
+    /// swimming a tank above, an animation far from any light brightens and darkens as the lights
+    /// move. Measured on Windows (the reporter's colony, its Beakon tank and the farm below it on
+    /// screen): a building's light-grey parts vary by up to 13 levels on `-force-glcore` and by
+    /// none on Direct3D 11. On Windows the device drops the turn, so the position is the pixel's
+    /// own. Linux keeps GLCore's, which the original draws there.
     internal static class AnimationLight
     {
-        static readonly HashSet<string> shaders = new(StringComparer.Ordinal) { "Klei/BatchedAnimation", "Klei/BatchedAnimationHuman" };
+        static readonly HashSet<string> shaders = new(StringComparer.Ordinal) { "Klei/BatchedAnimation", "Klei/BatchedAnimationHuman", "Klei/BatchedAnimationConduit" };
 
         /// The turned world row: `u_xlatN.c = (-vs_TEXCOORDm.y) * _WorldSizeInfo.w + 1.0;`.
         static readonly System.Text.RegularExpressions.Regex turned = new(

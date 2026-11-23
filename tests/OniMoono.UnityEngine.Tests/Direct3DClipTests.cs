@@ -79,6 +79,7 @@ namespace OniMoono.Tests
             Assert.Same(other, AnimationLight.Fragment("Klei/BatchedAnimation", other));
             Assert.Equal(OperatingSystem.IsWindows(), AnimationLight.Applies("Klei/BatchedAnimation"));
             Assert.Equal(OperatingSystem.IsWindows(), AnimationLight.Applies("Klei/BatchedAnimationHuman "));
+            Assert.Equal(OperatingSystem.IsWindows(), AnimationLight.Applies("Klei/BatchedAnimationConduit"));
             Assert.False(AnimationLight.Applies("Klei/TiledBlock"));
         }
     }
