@@ -90,6 +90,16 @@ namespace OniMoono.Desktop.D3d11
         /// samplers, structured buffers, multisample textures, bindings unlike their DXBC).
         public static int Refused;
 
+        /// Of Refused, the variants with structured buffers or multisample textures: accepted as
+        /// unreachable (the user's decision, d3d11-plan.md M3 part C): no engine code sets their
+        /// keywords (PROCEDURAL_INSTANCING_ON, _MSAA_*) or uses their shaders, and no device of
+        /// Moono's binds either kind. --check-shaders counts them apart, not as failures.
+        public static int RefusedUnreachable;
+
+        /// The reason the latest Build on this thread refused its program (null: none), for the
+        /// check's per-program list.
+        [ThreadStatic] public static string LastRefusal;
+
         /// Platform 4 when the shader carries Direct3D 11 programs, else 0 (not drawn, logged once).
         public static uint PlatformOf(ShaderNative shader)
         {
@@ -124,9 +134,11 @@ namespace OniMoono.Desktop.D3d11
             }
         }
 
-        static void NotDrawn(ShaderNative shader, string[] keywords, string why)
+        static void NotDrawn(ShaderNative shader, string[] keywords, string why, bool unreachable = false)
         {
             System.Threading.Interlocked.Increment(ref Refused);
+            if (unreachable) System.Threading.Interlocked.Increment(ref RefusedUnreachable);
+            LastRefusal = why;
             lock (reported)
                 if (reported.Add($"{shader.ShaderName}\n{why}"))
                     EngineLog.Engine($"d3d11: shader '{shader.ShaderName}' variants with {why} are not drawn (first: [{string.Join(" ", keywords)}])");
@@ -206,7 +218,7 @@ namespace OniMoono.Desktop.D3d11
                 }
                 if (bindings.StructuredBuffers.Length > 0)
                 {
-                    NotDrawn(shader, sub.Keywords, "structured buffers");
+                    NotDrawn(shader, sub.Keywords, "structured buffers", unreachable: true);
                     return program;
                 }
                 var stage = new D3d11Stage();
@@ -226,7 +238,7 @@ namespace OniMoono.Desktop.D3d11
                 {
                     if (t.MultiSampled)
                     {
-                        NotDrawn(shader, sub.Keywords, "multisample textures");
+                        NotDrawn(shader, sub.Keywords, "multisample textures", unreachable: true);
                         return program;
                     }
                     uint target = t.Dimension switch { 3 => TexTarget3D, 4 => TexTargetCubeMap, 5 => TexTarget2DArray, _ => TexTarget2D };
@@ -283,6 +295,14 @@ namespace OniMoono.Desktop.D3d11
 
         /// "NAME sSUBpPASS vs#BLOB [keywords] ps#BLOB [keywords] gs#BLOB": the pass by its indexes,
         /// each stage by its program entry.
+        /// CoverageOf for a key Select gave (its pass and stages, as the coverage log names them).
+        public static string CoverageOfKey(ShaderNative shader, int key)
+        {
+            var c = choices.GetOrCreateValue(shader);
+            lock (c)
+                return key >= 0 && key < c.List.Count ? CoverageOf(shader, c.List[key].Pass, c.List[key].Stages) : "?";
+        }
+
         static string CoverageOf(ShaderNative shader, ShaderPass pass, PlayerSubprogram?[] stages)
         {
             string where = "s?p?";

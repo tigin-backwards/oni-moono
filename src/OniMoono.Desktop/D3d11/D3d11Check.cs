@@ -13,16 +13,19 @@ namespace OniMoono.Desktop.D3d11
     /// build for its keywords, and each vertex program gets the input layouts a draw makes,
     /// which CreateInputLayout validates against the vertex stage's input signature. Nothing is
     /// drawn. Counted: subprograms selected and created, programs built, layouts made, and every
-    /// refusal or failure.
+    /// refusal or failure. Programs refused for structured buffers or multisample textures are
+    /// listed one by one and counted apart, as refused and unreachable, not as failures
+    /// (d3d11-plan.md M3 part C, the user's decision).
     internal sealed unsafe partial class D3d11Device
     {
         /// --check-shaders: WarmupShaders builds every subprogram (else programs are built at
         /// their first draw; the warm-up's prebuilding is M6's).
         public static bool CheckPrograms;
 
-        /// Programs that failed, were refused, subprograms no keyword set selects, input layouts
-        /// that could not be made, and debug-layer messages (--check-shaders).
-        public static int CheckFailures => D3d11Programs.Failures + D3d11Programs.Refused + checkUnselected + checkLayoutFailures + checkDebugMessages;
+        /// Programs that failed, were refused (but for the unreachable ones), subprograms no
+        /// keyword set selects, input layouts that could not be made, and debug-layer messages
+        /// (--check-shaders).
+        public static int CheckFailures => D3d11Programs.Failures + D3d11Programs.Refused - D3d11Programs.RefusedUnreachable + checkUnselected + checkLayoutFailures + checkDebugMessages;
 
         static int checkUnselected, checkLayoutFailures, checkDebugMessages;
 
@@ -97,8 +100,11 @@ namespace OniMoono.Desktop.D3d11
                 long fullKey = Vulkan.VkPipelines.LayoutKey(full), noneKey = Vulkan.VkPipelines.LayoutKey(new MeshLayout());
                 foreach (var (shader, key) in work)
                 {
+                    D3d11Programs.LastRefusal = null;
                     var p = D3d11Programs.Get(Dev, shader, key);
                     DrainDebugMessages($"building '{shader.ShaderName}' program {key}");
+                    if (D3d11Programs.LastRefusal is { } why)
+                        EngineLog.Engine($"d3d11 check: refused{(why is "structured buffers" or "multisample textures" ? ", unreachable" : "")}: {D3d11Programs.CoverageOfKey(shader, key)}, program {key} ({why})");
                     if (p.D3d is not D3d11Shaders d3d) continue;
                     programs++;
                     foreach (var part in d3d.Coverage.Split(' '))
@@ -128,10 +134,10 @@ namespace OniMoono.Desktop.D3d11
             foreach (var g in geometry) EngineLog.Engine($"d3d11 check: geometry stage created: {g}");
             EngineLog.Engine($"d3d11 check: {shaders} shaders, {passes} passes, {subprograms} subprograms ({entries.Count} distinct entries); "
                              + $"{work.Count} programs to build, {programs} built, {created.Count} distinct stage entries created; "
-                             + $"{layouts} input layouts made, {checkLayoutFailures} not; {D3d11Programs.Failures} failed, {D3d11Programs.Refused} refused, "
-                             + $"{checkUnselected} subprograms not selected by their own keywords; {debugMessages} debug-layer messages");
+                             + $"{layouts} input layouts made, {checkLayoutFailures} not; {D3d11Programs.Failures} failed, {D3d11Programs.Refused - D3d11Programs.RefusedUnreachable} refused, "
+                             + $"{D3d11Programs.RefusedUnreachable} refused, unreachable; {checkUnselected} subprograms not selected by their own keywords; {debugMessages} debug-layer messages");
             Console.WriteLine($"d3d11 check: {subprograms} subprograms, {created.Count} distinct stage entries created in {programs} programs, {layouts} input layouts; "
-                              + $"{D3d11Programs.Failures} failed, {D3d11Programs.Refused} refused, {checkUnselected} unselected, {checkLayoutFailures} layouts not made, {debugMessages} debug-layer messages");
+                              + $"{D3d11Programs.Failures} failed, {D3d11Programs.Refused - D3d11Programs.RefusedUnreachable} refused, {D3d11Programs.RefusedUnreachable} refused, unreachable, {checkUnselected} unselected, {checkLayoutFailures} layouts not made, {debugMessages} debug-layer messages");
         }
     }
 }
