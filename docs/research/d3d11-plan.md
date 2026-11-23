@@ -66,7 +66,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
-| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the light pools traced to the frame renderer. Open: the materials, conveyor and power overlays of the mid-game colony over the tolerance (the light pools, shared with Vulkan), the 68 refused programs (the user's call), 38 game shaders not drawn in play |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Open: the 68 refused programs (the user's call), 38 game shaders not drawn in play, how the original hands its camera texture to the screen (UNVERIFIED, M4) |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
@@ -623,7 +623,7 @@ whose largest channel difference exceeds each level, over the scenes within the 
   room light on buildings: on OpenGL those buildings are unlit (a cat tree purple where D3D11 and
   Vulkan draw it lit, cream). Part A took the agreement of D3D11 and Vulkan as OpenGL's error;
   the original, measured on Windows afterwards, agrees with OpenGL: D3D11 and Vulkan read the
-  light buffer mirrored there ("The light pools", part B).
+  light buffer mirrored there; part B fixed it ("The light pools", part B).
 
 **Debug layer** (`--d3d11-debug`, every D3D11 run): no error, no corruption, no message
 dropped; before the storage filter below, one message, warning
@@ -834,29 +834,30 @@ UnityFS bundles under StreamingAssets):
   both OpenGL runs by chance. Its rect is masked; `scenes.py` now applies a shot's spec masks
   (`NAME.shot.json`) to every comparison of it.
 
-**Scene-set results, part B** (`scenes.py`; D3D11 with the debug layer j0008694 and, for the
-small base, j0008720; OpenGL j0008693 and j0008692, for the coverage spec j0008693 and j0008703,
+**Scene-set results, part B** (`scenes.py`, after the light-pool fix below: D3D11 with the
+debug layer j0008732; OpenGL j0008693 and j0008692, for the coverage spec j0008693 and j0008703,
 for the small base j0008718 and j0008719; the tolerance and method of part A, now with each
 shot's spec masks applied):
 
 | Colony | Shots | OpenGL spread > 8 (max) | Compared (min) | > 2 | > 8 | > 16 | > 40 | PSNR (min) | Within |
 |---|---|---|---|---|---|---|---|---|---|
-| Landing (gases) | 22 | 1.74% | 92% | 20.4% | 0.22% | 0.022% | 0.008% | 44.3 dB | 22 of 22 |
-| Small base | 26 | 2.10% | 89% | 13.6% | 0.39% | 0.104% | 0.042% | 43.5 dB | 26 of 26 |
-| Mid-game Spaced Out | 22 | 2.05% | 86% | 20.6% | 2.53% | 0.238% | 0.080% | 41.3 dB | 19 of 22 |
-| Coverage (small base) | 5 | 2.37% | 94% | 11.6% | 0.28% | 0.117% | 0.054% | 44.6 dB | 5 of 5 |
+| Landing (gases) | 22 | 1.74% | 92% | 20.4% | 0.22% | 0.018% | 0.003% | 44.5 dB | 22 of 22 |
+| Small base | 26 | 2.10% | 89% | 13.6% | 0.29% | 0.098% | 0.037% | 43.7 dB | 26 of 26 |
+| Mid-game Spaced Out | 22 | 2.05% | 86% | 20.6% | 0.94% | 0.397% | 0.022% | 42.8 dB | 22 of 22 |
+| Coverage (small base) | 5 | 2.37% | 94% | 11.6% | 0.28% | 0.150% | 0.079% | 43.5 dB | 5 of 5 |
 
-72 of 75 within; the research screen (its side bar), the mid-game UI with its HUD and the
-cluster map among them. Over: the mid-game colony's materials (1.541% over 40), conveyor (0.175%)
-and power (0.122% over 40, 0.851% over 16) overlays, the light pools below. No debug-layer
-message was stored in any D3D11 run (the storage filter's denials apart).
+75 of 75 within; the research screen (its side bar), the mid-game UI with its HUD and the
+cluster map among them. Before the fix (D3D11 j0008694, j0008720) 72 were: the mid-game
+colony's materials (1.541% over 40), conveyor (0.175%) and power (0.122% over 40, 0.851% over
+16) overlays were over, the light pools below. No debug-layer message was stored in any D3D11
+run (the storage filter's denials apart).
 
 **The light pools in the mid-game colony's overlays** (part A's "OpenGL differs" note, reversed).
 The original, measured on Windows (D3D11, j0008657, another agent's run), agrees with OpenGL, not
 with Vulkan and D3D11: pixels over 40 against the original in the materials, conveyor and power
 overlays: OpenGL 0.093%, 0.198%, 0.411%; Vulkan 1.633%, 0.439%, 0.877%; D3D11 1.597%, 0.365%,
-0.554%. So those three scenes count as over the tolerance on D3D11 (and Vulkan), not as OpenGL's.
-The cause, as far as it is measured here (not fixed in M3; it is not the D3D11 device's own):
+0.554%. So those three scenes counted as over the tolerance on D3D11 (and Vulkan), not as
+OpenGL's, until part B fixed them. The cause and the fix:
 
 - **The read.** Klei/BatchedAnimation's shipped pixel program (blob 3, `fxc /dumpbin`, j0008666)
   reads the light buffer at `unity_MatrixVP · unity_ObjectToWorld · (world position)`, then
@@ -886,19 +887,37 @@ The cause, as far as it is measured here (not fixed in M3; it is not the D3D11 d
   Klei/BatchedAnimation and Klei/StatusItem drawing into the back buffer (part A's
   attribution, j0008619). With the back buffer's unflipped `unity_MatrixVP` and the light buffer
   stored flipped, the program reads the light mirrored about the screen's middle row.
-- **So** the difference is which target `overlayNoDepth` (a screen camera after a screen camera
-  with image effects) renders into: the original renders it, flipped, into the render texture the
-  overlay camera's image-effect chain ended in, and draws the result to the screen afterwards;
-  ours renders it into the screen. That is the frame renderer's (shared by the Vulkan and D3D11
-  devices; OpenGL flips nothing, so it reads right), not a device convention. Which rule
-  Unity follows (when a screen camera's chain ends in a render texture, and when the screen
-  surface takes over: the UI camera's draws go to 31A0) is UNVERIFIED: the recorder lists
-  distinct draws only and not the copies, so the step from 18A0 to 31A0 is not recorded.
-  Settling it needs a recording of every draw and copy of one overlay frame (M4, with B2's
-  UNVERIFIED 5, the screen's intermediate texture). Reported to the agent fixing the Vulkan side.
+- **So** the difference was which target `overlayNoDepth` (a screen camera after a screen
+  camera with image effects) renders into: the original renders it, with a render texture's
+  conventions, into the render texture the overlay camera's image-effect chain ended in; ours
+  rendered it into the back buffer. OpenGL flips nothing, so it read right.
+- **The fix** (fec8443bd, after merging origin/master for e84be8586, Vulkan's fix). Vulkan gives
+  a camera's back-buffer passes a render texture's projection and turns the viewport over (a
+  negative height). Direct3D 11 cannot: "In all cases, Width and Height must be >= 0"
+  (D3D11_VIEWPORT, Remarks). So the device takes the original's own route
+  (`RenderDevice.CameraPassesOffscreen`, set by the Direct3D 11 device alone): every camera to
+  the screen, and the last image effect of each, draws into the frame renderer's screen-sized
+  render texture (`FrameRenderer.CameraScreen`, R8G8B8A8, depth 24, remade on a resize), with
+  a render texture's conventions, which is drawn into the back buffer (Graphics.Blit, Unity's
+  shipped Hidden/BlitCopy) before the overlay canvases. Observed: the device's target lines now
+  name `CameraScreen` for Klei/StatusItem, BatchedAnimation, BatchedAnimationConduit,
+  BatchedAnimationPstTemperature, BatchedAnimationShine and ConduitBall, as the original's 18A0,
+  and the back buffer only for the UI (Klei/BatchedAnimationUI), as its 31A0 (j0008732).
+- **Measured** (the other agent's shots of the original were in a worktree since removed, and
+  this brief does not run the original on Windows; OpenGL, which matched the original within
+  0.1-0.4% over 40 in j0008657, stands in): `gl-lightpool`, pixels over 40 against OpenGL
+  (j0008733, the other OpenGL run j0008734 masking what moves): materials 2.009% before
+  (D3D11 j0008694's same shot) to 0.001% after (j0008732), conveyor 1.107% to 0.003%, power
+  0.872% to 0.003%; the liquid and gas pipe overlays 0.003% after; the normal view 0.014%.
+- **UNVERIFIED** (M4, with B2's UNVERIFIED 5, the screen's intermediate texture): how the
+  original's 18A0 reaches the screen surface (the recorder lists distinct draws, not copies;
+  its draw 1283 into 31A0 reads a screen-sized texture, presumably that blit), and the rule by
+  which Unity ends a frame's camera texture (the UI camera's draws went to 31A0). The device's
+  hand-over before the overlay canvases is this branch's reading of those recordings.
 
 **Runs** (runq, burndown, owner `d3d11-m3`): check-shaders j0008662 (first), j0008704 (final);
-builds j0008661, j0008681 (with `shader-refs`); ShaderSurvey dump j0008665 and `fxc /dumpbin`
+builds j0008661, j0008681 (with `shader-refs`), j0008730 (the light-pool fix); the fix's runs:
+D3D11 j0008732 (`gl-lightpool` and the scene set), OpenGL j0008733 and j0008734 (`gl-lightpool`); ShaderSurvey dump j0008665 and `fxc /dumpbin`
 j0008666 (Klei/BatchedAnimation and siblings, for the light pools); probe of the overlay
 camera's components j0008667-j0008669 (j0008667: run.py not executable, run with python3 since;
 j0008668: a Camera member ours lacks); scene and coverage runs: D3D11 j0008675 (the mid-game
