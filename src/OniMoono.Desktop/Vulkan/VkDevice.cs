@@ -171,6 +171,18 @@ namespace OniMoono.Desktop.Vulkan
             for (int i = 0; i < memory.MemoryHeapCount; i++)
                 if ((memory.MemoryHeaps[i].Flags & VkMemoryHeapFlags.DeviceLocalBit) != 0) deviceLocal = Math.Max(deviceLocal, (long)memory.MemoryHeaps[i].Size.Value);
             caps.MemoryMB = (int)(deviceLocal >> 20);
+            // The heaps and the types in each, which tell where the game's textures can go when
+            // the device runs out of memory (#114).
+            var heaps = new System.Text.StringBuilder();
+            for (int i = 0; i < memory.MemoryHeapCount; i++)
+            {
+                var types = new List<string>();
+                for (int t = 0; t < memory.MemoryTypeCount; t++)
+                    if (memory.MemoryTypes[t].HeapIndex == i) types.Add($"{t} ({memory.MemoryTypes[t].PropertyFlags})");
+                heaps.Append(i == 0 ? "" : "; ").Append($"heap {i} {(long)memory.MemoryHeaps[i].Size.Value / 1_000_000} MB {memory.MemoryHeaps[i].Flags}, types ")
+                     .Append(string.Join(", ", types));
+            }
+            EngineLog.Engine($"vulkan: memory: {heaps}");
             maxAnisotropy = vk.SamplerAnisotropy ? p.Limits.MaxSamplerAnisotropy : 1f;
             maxLodBias = p.Limits.MaxSamplerLodBias;
             depthFormat = (caps.Features(VkFormat.D24UNormS8UInt) & VkFormatFeatureFlags.DepthStencilAttachmentBit) != 0 ? VkFormat.D24UNormS8UInt : VkFormat.D32SFloatS8UInt;
@@ -192,6 +204,7 @@ namespace OniMoono.Desktop.Vulkan
         readonly HashSet<string> failuresLogged = new();
 
         long failedCommands;
+        bool outOfMemoryNoted;
 
         /// Commands that failed (CommandFailed), a lost device's included: a capture that saw
         /// one writes nothing (FrameRenderer.Capture).
@@ -210,6 +223,16 @@ namespace OniMoono.Desktop.Vulkan
                 return;
             }
             if (failuresLogged.Add($"{e.GetType().FullName}: {e.Message}")) Debug.LogException(e);
+            // VMA has tried every memory type the resource allows: the game cannot keep its
+            // textures in this device's memory (#114: a 1.9 GB heap). The next start under auto
+            // uses OpenGL, whose driver places and moves allocations itself.
+            if (!outOfMemoryNoted && (e is VkResultError { Result: VkResult.ErrorOutOfDeviceMemory } || e.InnerException is VkResultError { Result: VkResult.ErrorOutOfDeviceMemory }))
+            {
+                outOfMemoryNoted = true;
+                guard?.RanOutOfMemory();
+                EngineLog.Engine($"vulkan: out of video memory ({caps.Name}, {vk.DriverInfo}): {e.Message}; {HeapUsage()}; "
+                                 + (guard != null ? "the next start under the auto renderer uses OpenGL" : "start with --renderer opengl if it keeps happening"));
+            }
             if (rendering && frames.MainOpen)
             {
                 try
@@ -665,6 +688,28 @@ namespace OniMoono.Desktop.Vulkan
             frames.GpuFrames = 0;
             return ms;
         });
+
+        /// Every heap's use and budget as VMA counts them, and on Windows the process's video
+        /// memory on the adapter as Windows counts it (device thread).
+        string HeapUsage()
+        {
+            try
+            {
+                var memory = vk.Physical.GetMemoryProperties();
+                Span<Brutal.VulkanApi.Vma.VmaBudget> budgets = new Brutal.VulkanApi.Vma.VmaBudget[memory.MemoryHeapCount];
+                vk.Allocator.GetHeapBudgets(budgets);
+                var text = new System.Text.StringBuilder();
+                for (int i = 0; i < budgets.Length; i++)
+                    text.Append(i == 0 ? "" : ", ").Append($"heap {i} {(long)budgets[i].Usage.Value / 1_000_000} MB used of {(long)budgets[i].Budget.Value / 1_000_000} MB budget");
+                if (OperatingSystem.IsWindows() && vk.DxgiInterop && vk.Luid != 0 && OniMoono.Desktop.Gl.Dxgi.ProcessVideoMemory(vk.Luid) is var (local, nonLocal))
+                    text.Append($", process {local / 1_000_000} MB local, {nonLocal / 1_000_000} MB non-local");
+                return text.ToString();
+            }
+            catch (Exception e)
+            {
+                return $"heap use unknown ({e.GetType().Name})";
+            }
+        }
 
         public override string MemoryCounters() => worker.Call(() =>
         {

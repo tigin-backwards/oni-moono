@@ -208,12 +208,25 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (PresentTrace.Enabled)
                 PresentTrace.Log($"frame {Frame}: back buffer {b.Index} allocated {width}x{height} (was {b.Width}x{b.Height}){(b.DrawnThisFrame ? ", discarding what the frame drew into it" : "")}");
+            // Both images are made before the old pair is retired: one that cannot be made (out of
+            // device memory, #114) leaves the buffer as it was, not holding a retired image or
+            // half a pair.
+            var color = VkImageResource.Create(vk, VkFormat.R8G8B8A8UNorm, VkImageViewType._2D, width, height, 1, 1, 1,
+                VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.TransferSrcBit | VkImageUsageFlags.TransferDstBit, name: "back buffer", kind: "presenter");
+            VkImageResource depth;
+            try
+            {
+                depth = VkImageResource.Create(vk, depthFormat, VkImageViewType._2D, width, height, 1, 1, 1,
+                    VkImageUsageFlags.DepthStencilAttachmentBit, name: "back buffer depth", kind: "presenter");
+            }
+            catch
+            {
+                color.Destroy(vk);
+                throw;
+            }
             var (oldColor, oldDepth) = (b.Color, b.Depth);
             if (oldColor != null) frames.Retire(() => { oldColor.Destroy(vk); oldDepth.Destroy(vk); });
-            b.Color = VkImageResource.Create(vk, VkFormat.R8G8B8A8UNorm, VkImageViewType._2D, width, height, 1, 1, 1,
-                VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.TransferSrcBit | VkImageUsageFlags.TransferDstBit, name: "back buffer", kind: "presenter");
-            b.Depth = VkImageResource.Create(vk, depthFormat, VkImageViewType._2D, width, height, 1, 1, 1,
-                VkImageUsageFlags.DepthStencilAttachmentBit, name: "back buffer depth", kind: "presenter");
+            (b.Color, b.Depth) = (color, depth);
             b.Width = width;
             b.Height = height;
             b.DrawnSinceAllocation = false;

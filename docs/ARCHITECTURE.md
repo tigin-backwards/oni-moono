@@ -2234,7 +2234,12 @@ DriverDenyList).
   Another one tries Vulkan again.
 - **`--renderer vulkan`** always tries Vulkan, and its clean start clears the key.
 - **A clean fallback** (Vulkan unavailable) leaves no line.
-- **Later failures.** The guard is not consulted for anything that happens later. A device lost
+- **Out of video memory.** A run whose device ran out of video memory, at any time, leaves
+  `out of memory KEY`, kept when the start is cleared, and auto starts that key on OpenGL as for
+  a crash. VMA has tried every memory type the resource allows by then. The failed allocations
+  stay engine faults, and the run goes on. (#114: AMD's 25.8.1 driver for Vega iGPUs offered a
+  1.9 GB device-local heap, and textures and the back buffer could not be made before the menu.)
+- **Later failures.** Otherwise the guard is not consulted for anything that happens later. A device lost
   in play, or presenting that fails for good, quits the game with an error naming Vulkan, Moono
   Tweaks' "Renderer" row and `--renderer opengl` and giving the log's path, and the next start
   tries Vulkan as before.

@@ -225,7 +225,13 @@ namespace OniMoono.Desktop.Vulkan
                 vk.Device.PInvoke.vkCmdWriteTimestamp2.Invoke(Main.Handle, VkPipelineStageFlags2.BottomOfPipeBit, s.Timestamps, 1);
             Span<VkCommandBufferSubmitInfo> buffers = stackalloc VkCommandBufferSubmitInfo[2];
             int n = 0;
-            if (uploadsOpen)
+            // Closed before they are ended: a vkEndCommandBuffer that fails leaves its buffer
+            // invalid (only a reset or free may follow), so the next command must begin another
+            // rather than be recorded into it (#114). The pool's reset at the slot's next use
+            // makes the failed one usable again.
+            bool endUploads = uploadsOpen, endMain = mainOpen;
+            uploadsOpen = mainOpen = false;
+            if (endUploads)
             {
                 // Copies into fresh buffers (meshes) before the rendering reads them; images
                 // have barriers of their own.
@@ -238,8 +244,7 @@ namespace OniMoono.Desktop.Vulkan
                 uploads.PipelineBarrier2(new VkDependencyInfo { MemoryBarrierCount = 1, MemoryBarriers = &barrier });
                 buffers[n++] = new VkCommandBufferSubmitInfo { CommandBuffer = End(uploads) };
             }
-            if (mainOpen) buffers[n++] = new VkCommandBufferSubmitInfo { CommandBuffer = End(main) };
-            uploadsOpen = mainOpen = false;
+            if (endMain) buffers[n++] = new VkCommandBufferSubmitInfo { CommandBuffer = End(main) };
             if (n > 0 || endFrame)
             {
                 fixed (VkCommandBufferSubmitInfo* b = buffers)

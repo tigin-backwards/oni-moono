@@ -43,6 +43,54 @@ namespace OniMoono.Tests
             Assert.Empty(VkStartGuard.Cleared(lines, key));
         }
 
+        /// #114: a run that ran out of video memory, crashed or not, keeps auto on OpenGL.
+        [Fact]
+        public void ARunOutOfVideoMemoryKeepsAutoOnOpenGL()
+        {
+            string key = VkStartGuard.KeyOf(Rtx, "b1"), other = VkStartGuard.KeyOf(Rtx, "b2");
+            var (refusal, lines) = VkStartGuard.Enter([], key, honour: true);
+            lines = VkStartGuard.WithOutOfMemory(lines, key);
+            Assert.Equal(lines, VkStartGuard.WithOutOfMemory(lines, key));
+            // Its first frames got on screen after it ran out: the mark stays.
+            lines = VkStartGuard.Cleared(lines, key, keepOutOfMemory: true);
+            Assert.Equal(["out of memory\t" + key], lines);
+            (refusal, lines) = VkStartGuard.Enter(lines, key, honour: true);
+            Assert.StartsWith("Vulkan ran out of video memory", refusal);
+            Assert.Equal(["out of memory\t" + key], lines);
+            // Another build tries Vulkan; --renderer vulkan tries, and a clean start clears it.
+            (refusal, _) = VkStartGuard.Enter(lines, other, honour: true);
+            Assert.Null(refusal);
+            (refusal, lines) = VkStartGuard.Enter(lines, key, honour: false);
+            Assert.Null(refusal);
+            Assert.Empty(VkStartGuard.Cleared(lines, key));
+        }
+
+        [Fact]
+        public void TheGuardFileKeepsARunOutOfVideoMemory()
+        {
+            var dir = Path.Combine(Path.GetTempPath(), "oni-guard-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                var path = VkStartGuard.FileIn(dir);
+                var guard = new VkStartGuard(path, VkStartGuard.KeyOf(Rtx, "b1"));
+                Assert.Null(guard.Enter(honour: true));
+                guard.RanOutOfMemory();
+                guard.Clear();
+                Assert.StartsWith("Vulkan ran out of video memory", new VkStartGuard(path, guard.Key).Enter(honour: true));
+                // Cleared first, then out of memory: the same.
+                File.Delete(path);
+                guard = new VkStartGuard(path, guard.Key);
+                Assert.Null(guard.Enter(honour: true));
+                guard.Clear();
+                guard.RanOutOfMemory();
+                Assert.NotNull(new VkStartGuard(path, guard.Key).Enter(honour: true));
+            }
+            finally
+            {
+                if (Directory.Exists(dir)) Directory.Delete(dir, true);
+            }
+        }
+
         [Fact]
         public void TheGuardFileFollowsAStart()
         {

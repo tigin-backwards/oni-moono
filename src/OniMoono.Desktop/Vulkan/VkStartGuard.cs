@@ -18,11 +18,13 @@ namespace OniMoono.Desktop.Vulkan
     /// that, the key's lines go. A `starting` line found at the next launch means that start
     /// never got there (a crash, a hang the user ended): it becomes `crashed KEY`, and under
     /// auto every start with that key uses OpenGL. Another GPU, driver or build tries Vulkan
-    /// again; `--renderer vulkan` always tries, and its clean start clears the key.
+    /// again; `--renderer vulkan` always tries, and its clean start clears the key. A run whose
+    /// device ran out of video memory (RanOutOfMemory, at any time) leaves `out of memory KEY`,
+    /// which auto honours the same way (#114).
     internal sealed class VkStartGuard
     {
         public const int FramesToClear = 60;
-        const string Starting = "starting\t", Crashed = "crashed\t";
+        const string Starting = "starting\t", Crashed = "crashed\t", OutOfMemory = "out of memory\t";
 
         readonly string path;
         public readonly string Key;
@@ -44,22 +46,36 @@ namespace OniMoono.Desktop.Vulkan
         public static (string Refusal, List<string> Lines) Enter(IReadOnlyList<string> lines, string key, bool honour)
         {
             var crashed = new List<string>();
+            var outOfMemory = new List<string>();
             foreach (var line in lines)
             {
                 string k = line.StartsWith(Starting, StringComparison.Ordinal) ? line[Starting.Length..]
                     : line.StartsWith(Crashed, StringComparison.Ordinal) ? line[Crashed.Length..] : null;
                 if (k != null && !crashed.Contains(k)) crashed.Add(k);
+                if (line.StartsWith(OutOfMemory, StringComparison.Ordinal) && !outOfMemory.Contains(line[OutOfMemory.Length..]))
+                    outOfMemory.Add(line[OutOfMemory.Length..]);
             }
-            var kept = crashed.Select(k => Crashed + k).ToList();
+            var kept = crashed.Select(k => Crashed + k).Concat(outOfMemory.Select(k => OutOfMemory + k)).ToList();
             if (honour && crashed.Contains(key))
                 return ($"Vulkan did not finish starting in an earlier run with this GPU, driver and Moono build ({key}); OpenGL is used until one of them changes (--renderer vulkan tries Vulkan again)", kept);
+            if (honour && outOfMemory.Contains(key))
+                return ($"Vulkan ran out of video memory in an earlier run with this GPU, driver and Moono build ({key}); OpenGL is used until one of them changes (--renderer vulkan tries Vulkan again)", kept);
             kept.Add(Starting + key);
             return (null, kept);
         }
 
-        /// The lines without `key`'s (a start that got its first frames on screen).
-        public static List<string> Cleared(IReadOnlyList<string> lines, string key)
-            => lines.Where(l => l != Starting + key && l != Crashed + key && l.Length > 0).ToList();
+        /// The lines without `key`'s (a start that got its first frames on screen), its `out of
+        /// memory` line kept when `keepOutOfMemory` (this run ran out).
+        public static List<string> Cleared(IReadOnlyList<string> lines, string key, bool keepOutOfMemory = false)
+            => lines.Where(l => l != Starting + key && l != Crashed + key && (keepOutOfMemory || l != OutOfMemory + key) && l.Length > 0).ToList();
+
+        /// The lines with `key`'s `out of memory` line added (once).
+        public static List<string> WithOutOfMemory(IReadOnlyList<string> lines, string key)
+        {
+            var result = lines.Where(l => l.Length > 0).ToList();
+            if (!result.Contains(OutOfMemory + key)) result.Add(OutOfMemory + key);
+            return result;
+        }
 
         /// Enter, on the file: the refusal, or null with this start recorded.
         public string Enter(bool honour)
@@ -78,10 +94,19 @@ namespace OniMoono.Desktop.Vulkan
         {
             if (cleared) return;
             cleared = true;
-            Write(Cleared(Read(), Key));
+            Write(Cleared(Read(), Key, ranOutOfMemory));
         }
 
-        bool cleared;
+        /// The device ran out of video memory (device thread, once a run): under auto the next
+        /// start with this key uses OpenGL. Kept when the start is cleared before or after.
+        public void RanOutOfMemory()
+        {
+            if (ranOutOfMemory) return;
+            ranOutOfMemory = true;
+            Write(WithOutOfMemory(Read(), Key));
+        }
+
+        bool cleared, ranOutOfMemory;
 
         List<string> Read()
         {
