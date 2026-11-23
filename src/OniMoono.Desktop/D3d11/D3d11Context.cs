@@ -98,9 +98,12 @@ namespace OniMoono.Desktop.D3d11
         /// of messages that you want to deny", D3D11_INFO_QUEUE_FILTER). The draws it names bind
         /// as the original's do (a pixel stage writing more targets than are bound; the warning
         /// itself says "writes of an unbound Render Target View are discarded"). The device still
-        /// logs each such shader and target (D3d11Device.Bind), and the count the filter denied
-        /// ("Get the number of messages that were denied passage through a storage filter",
-        /// GetNumMessagesDeniedByStorageFilter) with its debug-layer tallies.
+        /// logs each such shader and target (D3d11Device.Bind), and with its debug-layer tallies
+        /// the count of messages the storage filters denied ("Get the number of messages that were
+        /// denied passage through a storage filter", GetNumMessagesDeniedByStorageFilter). That
+        /// count is not this warning's alone: a --check-shaders run, which draws nothing, had
+        /// 2,582 denied (j0008662); it made about 2,500 shader objects and input layouts, and
+        /// which messages were denied is not read.
         static void DenyUnboundTargetWarning(ID3D11InfoQueue* queue)
         {
             int id = D3D11SdkLayers.D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET;
