@@ -9,13 +9,15 @@ namespace OniMoono.Host
     /// Device gate: every variant of every shader in the player data builds on this machine's
     /// driver, with the device the renderer option opens: on OpenGL each GLCore variant compiles
     /// and links; on Vulkan each of U60's Vulkan programs (or, for a shader without them, its
-    /// GLCore program compiled to SPIR-V) is made a module and a pipeline for its pass's state.
+    /// GLCore program compiled to SPIR-V) is made a module and a pipeline for its pass's state;
+    /// on Direct3D 11 every subprogram's shader object and its program's input layouts are made
+    /// (D3d11Device.WarmupShaders).
     /// Failures are counted, and the run goes on to the end.
     internal static class ShaderCheck
     {
         static readonly string[] files =
         [
-            "level0", "level1", "level2", "resources.assets", "sharedassets0.assets", "sharedassets1.assets", "sharedassets2.assets",
+            "level0", "level1", "level2", "globalgamemanagers.assets", "resources.assets", "sharedassets0.assets", "sharedassets1.assets", "sharedassets2.assets",
             "Resources/unity default resources", "Resources/unity_builtin_extra",
         ];
 
@@ -26,6 +28,8 @@ namespace OniMoono.Host
             PlayerLoop.Initialize();
             OniMoono.Desktop.Vulkan.VkContext.Validation = options.VulkanValidation;
             OniMoono.Desktop.Vulkan.VkDevice.CheckPipelines = true;
+            OniMoono.Desktop.D3d11.D3d11Context.Validation = options.D3d11Debug;
+            OniMoono.Desktop.D3d11.D3d11Device.CheckPrograms = true;
             var (platform, device) = Player.OpenDevice(options, new OniMoono.Desktop.WindowSettings("shader check", 64, 64, FullScreenMode.Windowed));
             GraphicsDevice.Install(device);
             int errors = 0;
@@ -47,6 +51,9 @@ namespace OniMoono.Host
             else Shader.WarmupAllShaders();
             // The Vulkan device logs what it cannot build without raising errors.
             errors += OniMoono.Desktop.Vulkan.VkDevice.CheckFailures;
+            // The Direct3D 11 device counts what it cannot build or refuses, and the debug
+            // layer's messages (D3d11Device.WarmupShaders).
+            errors += OniMoono.Desktop.D3d11.D3d11Device.CheckFailures;
             Console.WriteLine($"{shaders} shaders warmed up, {errors} compile/link errors{(device is OniMoono.Desktop.Vulkan.VkDevice ? $" ({OniMoono.Desktop.Vulkan.VkDevice.CheckFailures} Vulkan programs or pipelines not built)" : "")}");
             platform.Dispose();
             return errors == 0 ? 0 : 1;

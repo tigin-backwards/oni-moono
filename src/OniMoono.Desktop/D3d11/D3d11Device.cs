@@ -407,9 +407,6 @@ namespace OniMoono.Desktop.D3d11
             }
         }
 
-        /// Programs are built at their first draw (the warm-up's prebuilding is M6's).
-        public override void WarmupShaders() { }
-
         public override void FlushRecorded() => worker.Submit();
 
         // ----- Present -----

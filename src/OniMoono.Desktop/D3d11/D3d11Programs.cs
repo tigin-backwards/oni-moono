@@ -86,6 +86,10 @@ namespace OniMoono.Desktop.D3d11
         /// Variants that could not be built (--check-shaders).
         public static int Failures;
 
+        /// Variants the device refuses to draw (NotDrawn: a hull or domain stage, inline
+        /// samplers, structured buffers, multisample textures, bindings unlike their DXBC).
+        public static int Refused;
+
         /// Platform 4 when the shader carries Direct3D 11 programs, else 0 (not drawn, logged once).
         public static uint PlatformOf(ShaderNative shader)
         {
@@ -122,6 +126,7 @@ namespace OniMoono.Desktop.D3d11
 
         static void NotDrawn(ShaderNative shader, string[] keywords, string why)
         {
+            System.Threading.Interlocked.Increment(ref Refused);
             lock (reported)
                 if (reported.Add($"{shader.ShaderName}\n{why}"))
                     EngineLog.Engine($"d3d11: shader '{shader.ShaderName}' variants with {why} are not drawn (first: [{string.Join(" ", keywords)}])");
