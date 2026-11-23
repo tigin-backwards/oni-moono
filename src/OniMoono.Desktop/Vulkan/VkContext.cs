@@ -299,11 +299,19 @@ namespace OniMoono.Desktop.Vulkan
                 Next = new Brutal.Pointers.Ptr(&enable),
             });
             Queue = Device.GetQueue(QueueFamily, 0);
+            // ONI_VULKAN_FAIL=heap-limit:MB (tests): VMA treats each device-local heap as at
+            // most MB, as a small iGPU heap would be (#114: 1,879 MB).
+            var memory = Physical.GetMemoryProperties();
+            var limits = stackalloc Brutal.ByteSize[Math.Max(1, (int)memory.MemoryHeapCount)];
+            long heapLimit = (long)VkFault.Number("heap-limit") * 1_000_000;
+            for (int i = 0; i < memory.MemoryHeapCount; i++)
+                limits[i] = (Brutal.ByteSize)HeapSizeLimit(heapLimit, (long)memory.MemoryHeaps[i].Size.Value, (memory.MemoryHeaps[i].Flags & VkMemoryHeapFlags.DeviceLocalBit) != 0);
             Allocator = Device.CreateVmaAllocator(new VmaAllocatorCreateInfo
             {
                 PhysicalDevice = Physical,
                 Device = Device,
                 VulkanApiVersion = (uint)RequiredApi,
+                PHeapSizeLimit = heapLimit > 0 ? limits : null,
             });
             PipelineCache = CreatePipelineCache();
             FailAt("context");
@@ -316,6 +324,11 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         static string YesNo(bool b) => b ? "yes" : "no";
+
+        /// VMA's limit for a heap under ONI_VULKAN_FAIL=heap-limit (`limit` bytes, 0: none):
+        /// device-local heaps at most `limit`, the others unlimited (VK_WHOLE_SIZE).
+        internal static ulong HeapSizeLimit(long limit, long heapSize, bool deviceLocal)
+            => limit > 0 && deviceLocal ? (ulong)Math.Min(limit, heapSize) : ulong.MaxValue;
 
         /// Descriptors a pushed set may hold.
         public int MaxPushDescriptors;

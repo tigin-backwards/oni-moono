@@ -268,6 +268,13 @@ namespace OniMoono.Desktop.Vulkan
             frames.Submit(endFrame: false);
             vk.Queue.WaitIdle();
             frames.ReuseStaging();
+            // The storage this burst replaced (a mipmap limit's change uploads every loaded
+            // texture again) is freed now rather than at the frame's end, so the textures made
+            // next take its place in VMA's blocks. Made while the old was still held, they took
+            // new blocks, and the old storage's surviving neighbours kept the old ones: 2 GB more
+            // video memory and commit than the original at the menu with Low Res Textures on
+            // (#114).
+            frames.ReleaseStorage();
             stagingWaits++;
         }
 
@@ -316,7 +323,7 @@ namespace OniMoono.Desktop.Vulkan
                 if (image != null)
                 {
                     var (old, oldDepth, oldMulti) = (image, vt.DepthStencil, vt.Multisampled);
-                    frames.Retire(() => { old.Destroy(vk); oldDepth?.Destroy(vk); oldMulti?.Destroy(vk); });
+                    frames.RetireStorage(() => { old.Destroy(vk); oldDepth?.Destroy(vk); oldMulti?.Destroy(vk); });
                 }
                 vt.DepthStencil = vt.Multisampled = null;
                 vt.RenderTarget = vt.DepthOnly = false;

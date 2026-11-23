@@ -3289,6 +3289,13 @@ Only the work posted for resources differs (`IResourceWork`).
     written directly. `ONI_VULKAN_MESHES=staged|mapped` decides.
   - **Partial re-uploads.** Re-uploads into unchanged storage send only the changed rows, as on
     OpenGL.
+  - **Replaced storage.** A burst of uploads waits for the queue once its staging passes 64 MB.
+    The texture storage it replaced is destroyed there, not at the frame's end, so the textures
+    made next reuse its place in VMA's blocks. A mipmap limit's change (Low Res Textures) uploads
+    every loaded texture again. Its old storage held to the frame's end left blocks that the
+    surviving textures beside it kept: 2.9 GB of video memory and 4.7 GB of commit at the menu
+    on an RTX 3090, 2.3 GB and 4.1 GB now (OpenGL 0.9 GB and 2.7 GB, the original 0.9 GB and
+    2.5 GB). The rest is VMA's partly used blocks (#114).
 - *Presentation.* `VkPresenter` keeps `GlPresenter`'s design:
   - three offscreen back buffers;
   - at most two frames queued (one with vsync);
@@ -3330,6 +3337,7 @@ Only the work posted for resources differs (`IResourceWork`).
     - `present-oom-after:N` makes three swapchain creations run out of memory from frame N;
     - `alloc-every:N`, `pipeline-every:N` and `program-every:N` make every Nth texture or mesh
       allocation, pipeline or program build run out of memory;
+    - `heap-limit:MB` caps VMA's device-local heaps at MB (a small iGPU heap, #114: 1,879 MB);
     - `crash-at:N` ends the process at presented frame N as a crash would;
     - `guard-build:X` keys the start-up guard to build X.
 - *Diagnostics.*

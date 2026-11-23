@@ -13,6 +13,7 @@ namespace OniMoono.Desktop.Vulkan
     ///   memory (retried with backoff, then presenting goes on);
     /// - `alloc-every:N`, `pipeline-every:N`, `program-every:N`: every Nth texture or mesh
     ///   allocation, pipeline, or program build runs out of device memory.
+    /// - `heap-limit:MB`: VMA treats each device-local heap as at most MB (a small iGPU's);
     /// - `crash-at:N`: the process ends at presented frame N without shutting down, as a
     ///   crash would (the start-up guard's test);
     /// - `guard-build:X`: the start-up guard keys this run's build as X.

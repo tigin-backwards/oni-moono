@@ -114,6 +114,7 @@ namespace OniMoono.Desktop.Vulkan
             public readonly List<Chunk> Uniforms = new();
             public int UniformIndex;
             public readonly List<Action> Retired = new();
+            public readonly List<Action> RetiredStorage = new();
             public readonly List<VkDescriptorPool> DescriptorPools = new();
             public int DescriptorPoolIndex;
             public VkQueryPool Timestamps;
@@ -279,8 +280,8 @@ namespace OniMoono.Desktop.Vulkan
                 if (s.TimestampsWritten) CollectTimestamps(s);
             }
             s.TimestampsWritten = false;
-            foreach (var release in s.Retired) release();
-            s.Retired.Clear();
+            Release(s.Retired);
+            Release(s.RetiredStorage);
             vk.Device.PInvoke.vkResetCommandPool.Invoke(vk.Device.Handle, s.Pool, 0);
             s.NextBuffer = 0;
             RecycleChunks(s.Chunks);
@@ -360,6 +361,23 @@ namespace OniMoono.Desktop.Vulkan
             foreach (var c in s.Staging) c.Used = 0;
             s.StagingIndex = 0;
             Staged = 0;
+        }
+
+        /// A texture's replaced storage, released as Retire does, or sooner by ReleaseStorage.
+        public void RetireStorage(Action release) => Current.RetiredStorage.Add(release);
+
+        /// The storage RetireStorage took in any frame slot released now: the caller has
+        /// submitted everything recorded and the GPU has finished it (ReuseStaging's condition),
+        /// so no command names it. Its memory is then free for what the caller makes next.
+        public void ReleaseStorage()
+        {
+            foreach (var s in slots) Release(s.RetiredStorage);
+        }
+
+        static void Release(List<Action> retired)
+        {
+            foreach (var release in retired) release();
+            retired.Clear();
         }
 
         public (VkBuffer Buffer, long Offset) Staging(ReadOnlySpan<byte> data, long alignment)
@@ -483,8 +501,8 @@ namespace OniMoono.Desktop.Vulkan
                     VkFenceWait.Wait(vk, fence, "frames: a frame slot's fence at disposal");
                     s.Pending = false;
                 }
-                foreach (var release in s.Retired) release();
-                s.Retired.Clear();
+                Release(s.Retired);
+                Release(s.RetiredStorage);
                 foreach (var c in s.Chunks) c.Buffer.Destroy(vk);
                 foreach (var c in s.Staging) c.Buffer.Destroy(vk);
                 foreach (var c in s.Uniforms) c.Buffer.Destroy(vk);

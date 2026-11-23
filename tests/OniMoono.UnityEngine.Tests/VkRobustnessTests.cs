@@ -39,5 +39,16 @@ namespace OniMoono.Tests
             Assert.Equal("test", f["guard-build"]);
             Assert.Empty(VkFault.Parse(null));
         }
+
+        /// heap-limit:MB caps the device-local heaps alone, as a small iGPU's would be (#114).
+        [Fact]
+        public void HeapLimitCapsDeviceLocalHeapsOnly()
+        {
+            Assert.Equal("1879", VkFault.Parse("heap-limit:1879")["heap-limit"]);
+            Assert.Equal(1_879_000_000UL, VkContext.HeapSizeLimit(1_879_000_000, 24_000_000_000, deviceLocal: true));
+            Assert.Equal(256_000_000UL, VkContext.HeapSizeLimit(1_879_000_000, 256_000_000, deviceLocal: true));
+            Assert.Equal(ulong.MaxValue, VkContext.HeapSizeLimit(1_879_000_000, 27_000_000_000, deviceLocal: false));
+            Assert.Equal(ulong.MaxValue, VkContext.HeapSizeLimit(0, 24_000_000_000, deviceLocal: true));
+        }
     }
 }
