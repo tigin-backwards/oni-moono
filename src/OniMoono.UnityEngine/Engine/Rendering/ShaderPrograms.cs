@@ -45,6 +45,7 @@ namespace OniMoono.Engine.Rendering
         readonly Dictionary<int, ShaderVariant> variants = new();
         readonly Dictionary<int, MetalProgram> metalPrograms = new();
         readonly Dictionary<int, VulkanProgram> vulkanPrograms = new();
+        readonly Dictionary<int, D3d11Program> d3d11Programs = new();
         readonly Dictionary<(Fields Pass, string Stage, int Blob), ShaderParameters> parameters = new();
         /// Legacy shaders: each blob's channel mask, from the parsed form (null otherwise).
         readonly Dictionary<int, uint> legacyChannels;
@@ -139,6 +140,19 @@ namespace OniMoono.Engine.Rendering
                 v = VulkanProgram.Read(table.Get(blobIndex));
                 vulkanPrograms[blobIndex] = v;
                 return v;
+            }
+        }
+
+        /// A Direct3D 11 stage program (its DXBC), decoded on first use.
+        public D3d11Program D3d11(int blobIndex)
+        {
+            if (Platform != ShaderNative.D3D11Platform) throw new InvalidOperationException($"Shader platform {Platform} has no D3D11 programs.");
+            lock (d3d11Programs)
+            {
+                if (d3d11Programs.TryGetValue(blobIndex, out var p)) return p;
+                p = D3d11Program.Read(table.Get(blobIndex));
+                d3d11Programs[blobIndex] = p;
+                return p;
             }
         }
 

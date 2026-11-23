@@ -22,6 +22,12 @@ namespace OniMoono.Assets.Shaders
 
         public bool IsEmpty => Vertex.Length == 0 && Fragment.Length == 0;
 
+        /// No programs for any stage (a legacy pass, or one without keyword names).
+        public static readonly D3d11Variants Empty = new()
+        {
+            Stages = Array.ConvertAll(PlayerSubprograms.Stages, _ => Array.Empty<PlayerSubprogram>()),
+        };
+
         public static D3d11Variants Of(Fields pass, string[] keywordNames)
         {
             var stages = new PlayerSubprogram[PlayerSubprograms.Stages.Length][];

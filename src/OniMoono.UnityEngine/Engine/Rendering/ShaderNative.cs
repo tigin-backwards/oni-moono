@@ -75,6 +75,12 @@ namespace OniMoono.Engine.Rendering
         public ProgramVariant[] VulkanVariants => vulkanVariants ??= Legacy || KeywordNames == null
             ? Array.Empty<ProgramVariant>() : ShaderPrograms.StageVariants(Data, "progVertex", KeywordNames, ShaderNative.VulkanPlatform);
         ProgramVariant[] vulkanVariants;
+        /// Its Direct3D 11 programs, one list per stage, each keyed by the keywords that stage
+        /// uses (D3d11Variants); empty lists for shaders without them. Read on first use (only
+        /// the Direct3D 11 device asks).
+        public D3d11Variants D3d11 => d3d11Variants ??= Legacy || KeywordNames == null
+            ? D3d11Variants.Empty : D3d11Variants.Of(Data, KeywordNames);
+        D3d11Variants d3d11Variants;
         /// The shader's keyword names, and whether it is a legacy (pre-parsed-form) shader.
         public string[] KeywordNames;
         public bool Legacy;
@@ -105,6 +111,8 @@ namespace OniMoono.Engine.Rendering
         public const uint MetalPlatform = ShaderCompilerPlatform.Metal;
         /// Vulkan in ShaderCompilerPlatform.
         public const uint VulkanPlatform = ShaderCompilerPlatform.Vulkan;
+        /// D3D11 in ShaderCompilerPlatform.
+        public const uint D3D11Platform = ShaderCompilerPlatform.D3D11;
 
         public string ShaderName = "";
         /// The device's compiled programs (see MeshNative.Gpu).
@@ -132,6 +140,8 @@ namespace OniMoono.Engine.Rendering
         bool metalProgramsLoaded;
         ShaderPrograms vulkanPrograms;
         bool vulkanProgramsLoaded;
+        ShaderPrograms d3d11Programs;
+        bool d3d11ProgramsLoaded;
 
         /// The OpenGLCore programs (null when the shader has none).
         public ShaderPrograms Programs
@@ -150,11 +160,21 @@ namespace OniMoono.Engine.Rendering
         /// Whether the shader carries programs for a ShaderCompilerPlatform.
         public bool HasProgramsFor(uint platform) => platform == OpenGLCorePlatform ? HasOpenGLCorePrograms : Array.IndexOf(Platforms, platform) >= 0;
 
-        /// The programs for a ShaderCompilerPlatform (OpenGLCore, Metal or Vulkan; null when the
-        /// shader has none for it).
+        /// The programs for a ShaderCompilerPlatform (OpenGLCore, Metal, Vulkan or D3D11; null
+        /// when the shader has none for it).
         public ShaderPrograms ProgramsFor(uint platform)
         {
             if (platform == OpenGLCorePlatform) return Programs;
+            if (platform == D3D11Platform)
+                lock (this)
+                {
+                    if (!d3d11ProgramsLoaded)
+                    {
+                        d3d11Programs = Data == null ? null : ShaderPrograms.Load(Data, D3D11Platform);
+                        d3d11ProgramsLoaded = true;
+                    }
+                    return d3d11Programs;
+                }
             if (platform == VulkanPlatform)
                 lock (this)
                 {
@@ -165,7 +185,7 @@ namespace OniMoono.Engine.Rendering
                     }
                     return vulkanPrograms;
                 }
-            if (platform != MetalPlatform) throw new ArgumentOutOfRangeException(nameof(platform), platform, "Programs are read for OpenGLCore (15), Metal (14) and Vulkan (18).");
+            if (platform != MetalPlatform) throw new ArgumentOutOfRangeException(nameof(platform), platform, "Programs are read for OpenGLCore (15), Metal (14), Vulkan (18) and D3D11 (4).");
             lock (this)
             {
                 if (!metalProgramsLoaded)
