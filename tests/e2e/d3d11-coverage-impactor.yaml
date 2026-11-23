@@ -1,0 +1,18 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 part C; done
+# criterion 1): the Prehistoric pack's Demolior. Ours only, on Windows
+# (scripts/e2e-windows/run.py; the renderer from E2E_PLAYER_ARGS).
+#
+# Raising the research portal's event (as demolior-pointer.yaml does) starts the impactor's
+# reveal: LargeImpactorEvent creates the impactor, whose ParallaxBackgroundObject draws the
+# planet behind the world with BGPlanet (Klei/DLC4/DemoliorBackground), and whose
+# LargeImpactorVisualizer, once active, the overlay camera's LargeImpactorVisualizerEffect draws
+# (Klei/PostFX/LargeImpactorVisualizerShader) (U60 764025).
+from: prehistoric1
+setup:
+  - driver: {setup.call: {target: "Game.Instance", method: Trigger, args: [1633134300, {"$": "all:POITechItemUnlockWorkable::[0].gameObject"}]}}
+steps:
+  - ui_wait: {path: "**/LargeImpactorSequenceReticle/CalculatingImpactSection/label", cond: exists, frames: 600}
+  # The sequence moves the camera to the surface, below the planet, and shows its card.
+  - run: {seconds: 20, speed: 1}
+  - shot: {name: after-reveal}
+  - world_shot: {name: impactor-world, ortho: 30}

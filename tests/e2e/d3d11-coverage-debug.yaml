@@ -1,0 +1,24 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 part C; done
+# criterion 1): the debug views of the small base. Ours only, on Windows
+# (scripts/e2e-windows/run.py; the renderer from E2E_PLAYER_ARGS), with the debug layer.
+#
+# - The dev tools (Unlit/ImGui, the ImGui material of ImGuiRenderer): Ctrl+` toggles them through
+#   Input.GetKeyDown (DevToolManager.UpdateShouldShowTools, U60 764025), which the Windows runs'
+#   synthetic input has no binding for, so setup sets what that key sets (showImGui) and what
+#   accepting the dev tools' warning sets (UserAcceptedWarning, else only its menu bar draws).
+# - A Duplicant's navigation grid (Lines/Colored Blended, NavPathDrawer's material): what the
+#   Duplicant's "Draw paths" debug button does (Navigator.OnDrawPaths: NavPathDrawer.SetNavigator).
+# - A Space Scanner, selected (Klei/PostFX/ScannerNetwork, ScannerNetworkVisualizerEffect on the
+#   overlay camera; CometDetectorConfig adds its ScannerNetworkVisualizer).
+from: early-base
+setup:
+  - driver: {setup.call: {type: "DebugHandler", method: "SetDebugEnabled", args: [true]}}
+  - driver: {setup.set: {target: "DevToolManager.Instance", member: UserAcceptedWarning, value: true}}
+  - driver: {setup.set: {target: "DevToolManager.Instance", member: showImGui, value: true}}
+  - driver: {setup.call: {target: "NavPathDrawer.Instance", method: SetNavigator, args: [{"$": "Components.LiveMinionIdentities.Items[0].GetComponent<Navigator>"}]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CometDetector\")", method: Build, args: [{"$": "Grid.XYToCell(124, 207)"}, Neutral, null, [Copper], 293.15]}}
+steps:
+  - shot: {name: devtools}
+  - world_shot: {name: navgrid, ortho: 8, at: [124, 209]}
+  - click_world: {cell: [124, 208], select: CometDetector}
+  - world_shot: {name: scanner, ortho: 8, at: [124, 209]}

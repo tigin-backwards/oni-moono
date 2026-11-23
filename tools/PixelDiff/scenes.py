@@ -41,7 +41,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pixel_diff import compare  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SPECS = ('d3d11-scenes', 'd3d11-scenes-base', 'd3d11-scenes-mid', 'd3d11-coverage')
+SPECS = ('d3d11-scenes', 'd3d11-scenes-base', 'd3d11-scenes-mid', 'd3d11-coverage', 'd3d11-coverage-particles', 'd3d11-coverage-debug',
+         'd3d11-coverage-rockets', 'd3d11-coverage-impactor', 'd3d11-coverage-sky')
 TOLERANCE = {'16': 0.005, '40': 0.001}
 MIN_STABLE = 0.5
 GROW = 3

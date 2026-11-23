@@ -1,0 +1,37 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 part C; done
+# criterion 1): the game's particle effects, whose shaders play reaches only when a Duplicant
+# sings, hugs or streaks sparkles from joy, a missile flies, a plant is pollinated or a meteor
+# shower passes. Ours only, on Windows (scripts/e2e-windows/run.py; the renderer from
+# E2E_PLAYER_ARGS).
+#
+# Setup instantiates each effect prefab as the game's own code does (Util.KInstantiate of the
+# EffectPrefabs field at a position: HappySinger, HugMonitor, SparkleStreaker, MissileProjectile,
+# MissileLongRangeProjectile, PollinationVFXMonitor, MeteorShowerEvent, U60 764025), side by side
+# in the revealed sky above the landing's surface (the cells issue-47-missile-trail.yaml uses).
+# Their materials' shaders (ShaderSurvey materials): Klei/BloomedParticleShader (music_notes,
+# music_notes_2, hearts_fx, Sparkle), Particles/Standard Surface (smoke_trail), Particles/Standard
+# Unlit (missile_sparkle, pollinated_fx), Klei/Standard Unlit (long_smoke_trail) and Legacy
+# Shaders/Particles/Additive (meteorshowerparticle). One second at speed 1 lets them emit; the
+# shot is of the paused frame after it.
+from: landing
+setup:
+  - driver: {setup.call: {type: GridVisibility, method: Reveal, args: [123, 330, 40, 40.0]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "EffectPrefabs.Instance.HappySingerFX"}, [108.5, 322, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "EffectPrefabs.Instance.HugFrenzyFX"}, [113.5, 322, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "EffectPrefabs.Instance.SparkleStreakFX"}, [118.5, 322, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "EffectPrefabs.Instance.MissileSmokeTrailFX"}, [123.5, 322, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "EffectPrefabs.Instance.LongRangeMissileSmokeTrailFX"}, [128.5, 322, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "EffectPrefabs.Instance.PlantPollinated"}, [133.5, 322, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  # MeteorShowerEvent places it at the world's top, turned 90 degrees about x, at z 25.
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "EffectPrefabs.Instance.MeteorBackground"}, [123.5, 330, 25]]}}
+  - driver: {setup.call: {target: "last:transform", method: Rotate, args: [90.0, 0.0, 0.0]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - run: {seconds: 1, speed: 1}
+  - world_shot: {name: particles, ortho: 10, at: [121, 324]}

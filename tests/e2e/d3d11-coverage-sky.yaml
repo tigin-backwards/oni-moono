@@ -1,0 +1,18 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 part C; done
+# criterion 1): the sky behind a world, as TerrainBG.LateUpdate draws it (U60 764025): the
+# Demolior's fragments once the impactor is defeated on a world that allows them
+# (Klei/LargeImpactorFragments: largeImpactorFragments ALLOWED, 1, and ColonyAchievementTracker.
+# largeImpactorState Defeated) and the northern lights of a world with that trait
+# (Klei/NorthernLights: WorldContainer.northernlights above 0, the Frosty Planet pack's Ceres
+# worlds). No fixture has either, so setup sets the three values the game would, and reveals the
+# sky above the surface (the world is 240 by 380 cells), where nothing hides the background
+# planes. Ours only, on
+# Windows (scripts/e2e-windows/run.py; the renderer from E2E_PLAYER_ARGS).
+from: prehistoric1
+setup:
+  - driver: {setup.set: {target: "ClusterManager.Instance.activeWorld", member: largeImpactorFragments, value: 1}}
+  - driver: {setup.set: {target: "ClusterManager.Instance.activeWorld", member: northernlights, value: 1}}
+  - driver: {setup.set: {target: "SaveGame.Instance.ColonyAchievementTracker", member: largeImpactorState, value: Defeated}}
+  - driver: {setup.call: {type: GridVisibility, method: Reveal, args: [120, 350, 60, 60.0]}}
+steps:
+  - world_shot: {name: sky, ortho: 30, at: [120, 345]}

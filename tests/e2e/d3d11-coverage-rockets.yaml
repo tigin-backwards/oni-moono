@@ -1,0 +1,23 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 part C; done
+# criterion 1): a Spaced Out rocket's habitat selected, so the overlay camera's
+# RocketLaunchConditionVisualizerEffect draws its launch conditions
+# (Klei/PostFX/RocketLaunchCondition; HabitatModuleSmallConfig adds the
+# RocketLaunchConditionVisualizer, U60 764025). Ours only, on Windows
+# (scripts/e2e-windows/run.py; the renderer from E2E_PLAYER_ARGS).
+#
+# The fixture's Calipso XL (rocket-launch.yaml) stands on its pad; its fourth module is the small
+# habitat. Setup selects it and puts the camera on it.
+from: rockets-so
+setup:
+  - driver: {setup.call: {target: "SelectTool.Instance", method: Select, args: [{"$": "Components.Clustercrafts.Items[1].ModuleInterface.ClusterModules[3].Get().GetComponent<KSelectable>"}]}}
+  - driver: {setup.call: {target: "CameraController.Instance", method: SnapTo, args: [{"$": "Components.Clustercrafts.Items[1].ModuleInterface.ClusterModules[3].Get().transform.position"}, 14.0]}}
+steps:
+  # The save predates two rounds of changes, and the game shows a dialog for each.
+  - expect_ui: {"**/SpriteListDialog": {count: 2}}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton", index: 1}
+  - click: {ui: "**/SpriteListDialog/**/ConfigurableButton"}
+  - ui_wait: {path: "**/SpriteListDialog", cond: gone, frames: 120}
+  - expect_state:
+      "Components.Clustercrafts.Items[1].ModuleInterface.ClusterModules[3].Get().name": {save_as: habitat}
+      "Components.Clustercrafts.Items[1].ModuleInterface.ClusterModules[3].Get().transform.position": {save_as: habitat_pos}
+  - world_shot: {name: launch-conditions}
