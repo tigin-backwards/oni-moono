@@ -5,8 +5,9 @@ against the OpenGL device: docs/research/d3d11-plan.md, M2 and done criterion 3)
     pixel_diff.py REFERENCE NEW [--stable AGAIN.png ...] [--diff DIFF.png] [--mask X,Y,W,H ...] [--json OUT.json]
 
 --stable: another image of the frame from the reference's renderer (another run); the pixels
-where it differs from REFERENCE differ between runs whatever the renderer (an animation not in
-step), and are masked as well.
+where its RGB differs from REFERENCE's differ between runs whatever the renderer (an animation
+not in step), and are masked as well. RGB, as the fractions and PSNR below: alpha is reported
+per channel only (the back buffer's alpha is not shown).
 
 For the unmasked pixels it prints, and writes as JSON:
 - the size of each image (a difference fails at once);
@@ -48,7 +49,7 @@ def compare(reference, new, masks=(), stable=()):
         if c.shape != a.shape:
             result['note'] = f'{other}: size differs'
             return result, None
-        counted &= np.abs(a - c).max(axis=2) == 0
+        counted &= np.abs(a - c)[..., :3].max(axis=2) == 0
     d = np.abs(a - b)
     largest = d[..., :3].max(axis=2)
     n = int(counted.sum())
