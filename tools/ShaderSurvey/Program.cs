@@ -19,7 +19,12 @@
 //                               parameters, inputs and Vulkan variants (D3d11Survey.cs)
 //   d3d11-bundles WSDIR         the same for the mod bundles under WSDIR (read only)
 //   shader-refs DATADIR         each shader with the objects (by class ID) whose bytes hold a
-//                               reference to it, data files and StreamingAssets bundles (ShaderRefs.cs)
+//                               reference to it, data files and StreamingAssets bundles (ShaderRefs.cs);
+//                               with shader names after DATADIR, those shaders' referencing objects
+//                               described two levels deep
+//   materials DATADIR           every material with its shader's name (ShaderRefs.cs)
+//   script-uses DATADIR CLASS...  each MonoBehaviour of those script classes in the data, with
+//                               its GameObject and root (ShaderRefs.cs)
 //   dxbc DATADIR                each Direct3D 11 (platform 4) subprogram's DXBC container checksum
 //                               (bytes 4..19 after the magic), with shader, pass, stage and keywords:
 //                               names the shaders a running player creates by their bytecode
@@ -54,7 +59,9 @@ switch (mode)
     case "bundles": return BundleSurvey.Run(dataDir, Console.Out);
     case "d3d11": return D3d11Survey.RunGame(dataDir, Console.Out);
     case "d3d11-bundles": return D3d11Survey.RunBundles(dataDir, Console.Out);
-    case "shader-refs": return ShaderRefs.Run(dataDir, Console.Out);
+    case "script-uses": return ShaderRefs.ScriptUses(dataDir, args.Skip(2).ToList(), Console.Out);
+    case "materials": return ShaderRefs.Materials(dataDir, Console.Out);
+    case "shader-refs": return ShaderRefs.Run(dataDir, Console.Out, args.Skip(2).ToList());
     case "compare-metal": return MetalCompare.Run(Data.Shaders(dataDir), Console.Out, args.Length > 2 ? args[2] : null);
     default: Console.Error.WriteLine("unknown mode " + mode); return 2;
 }
