@@ -223,8 +223,8 @@ namespace OniMoono.Desktop.D3d11
                     int index = program.Samplers.Count;
                     program.Samplers.Add(new SamplerBinding { Location = t.Slot, Unit = index, Target = target, PropertyId = ShaderPropertyIds.Get(t.Name) });
                     textures.Add((t.Slot, index));
-                    // A sampler slot two textures name takes the first's state (none in U60's
-                    // data share one: each texture has its own sampler_ slot).
+                    // A sampler slot two textures name takes the first's state. Whether any
+                    // program shares one is UNVERIFIED (d3d11-plan.md, B2's list).
                     if (t.Sampler >= 0 && !samplers.Exists(x => x.Item1 == t.Sampler)) samplers.Add((t.Sampler, index));
                 }
                 stage.ConstantBuffers = cbs.ToArray();

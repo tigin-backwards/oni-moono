@@ -65,7 +65,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 |---|---|---|---|
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | built, review pending |
-| M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | |
+| M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | B2 built 2026-11-22: main menu draws, pixel-diff tooling; one debug-layer warning kind open (BatchedAnimationUI's targets), review pending |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
@@ -278,7 +278,7 @@ declarations too.
   Observed working after the change: `--renderer opengl` through the DXGI presenter on the RTX 3090,
   900 frames, interop opened, registered and locked every frame with no failure logged (j0008281).
 
-## M2 part B: device bring-up (in progress)
+## M2 part B: device bring-up
 
 - **B1, done** (`D3d11Context`, `D3d11SwapChain`, `D3d11Device`; `--renderer d3d11`, not in the
   Tweaks row, Windows only; `--d3d11-debug`): the adapter from `--gpu` (EnumAdapters1(0), or
@@ -303,26 +303,125 @@ declarations too.
     renderer row shows locked when the running renderer is one it does not offer.
   - UNVERIFIED: the version string on an 11_0 device; DeviceVendor on AMD and Intel (empty for
     now); MemorySizeMB (DedicatedVideoMemory in MiB) against the original's 24322 on the 3090.
-- **B2, next: the draw path**, modelled on the Vulkan device (`VkDevice*.cs`, `VkPrograms.cs`),
-  which already takes Unity's own programs and parameters:
-  1. The device thread: a `GlWorker` and a `GlDrawRecorder` whose `PlatformOf` gives 4 and
-     whose `VariantsOf` takes M1's `D3d11Variants` (the recorder now knows only GLCore and
-     Vulkan variants).
-  2. Programs (`IResourceWork.Program`): M1's `D3d11Program` gives the DXBC per stage and
-     `D3d11Bindings` the t#, s#, b# slots and the cbuffers' members, which become
-     `DeviceProgram.Uniforms` and `BlockSizes` as `VkPrograms.BuildShipped` does, so the recorder's
-     Blocks are the constant buffers' bytes. `CreateVertexShader`/`CreatePixelShader`/
-     `CreateGeometryShader` from the DXBC; input layouts of 14 elements as the original's
-     (`d3d11-captures.md` §3).
-  3. Constant buffers: one DYNAMIC buffer per cbuffer slot, `Map(WRITE_DISCARD)` per draw where
-     its bytes changed, as the original.
-  4. Textures (`UploadTexture`), samplers, meshes (`UploadMesh`), render textures with depth
-     D32_FLOAT_S8X24 (24-bit depth, as the original), the state objects from `ResolvedState`
-     (reversed Z, depth bias = −units and −factor, `FrontCounterClockwise` 1:
-     `d3d11-captures.md` §2), viewport and scissor (top-left origin).
-  5. `RenderConventions` for D3D11 (reversed Z, render textures flipped, no y epilogue); the
-     OpenGL device's D3D11 imitations (`Direct3DClip`) off on this device.
-  6. Then the main menu, the debug layer clean over it, and a pixel diff against OpenGL.
+- **B2: the draw path** (2026-11-22, branch `d3d11-m2`). Files: `D3d11Device.cs` (main thread),
+  `D3d11Execute.cs` (device thread), `D3d11Resources.cs`, `D3d11Programs.cs`, `D3d11States.cs`,
+  `D3d11Formats.cs`.
+  - **Threading.** A `GlWorker` ("Direct3D 11") and a `GlDrawRecorder`, as the Vulkan device. The
+    device thread alone uses the immediate context, and presents (the swap chain's Present,
+    ResizeBuffers and its latency wait moved there). No deferred contexts, no command lists of
+    D3D11's (the original uses none: captures §5).
+  - **Programs.** `ShaderNative.ProgramsFor(4)` and `ShaderPrograms.D3d11` read M1's entries;
+    each pass keeps its `D3d11Variants`. The recorder's variant key is chosen by a new hook,
+    `GlDrawRecorder.SelectStages` (`D3d11Programs.Select`): each stage selected from its own list
+    by `VariantSelection`, the (pass, vertex, pixel, geometry) choice kept per shader, its index
+    the key. `D3d11Programs.Build` checks each stage's `D3d11Bindings` against its DXBC
+    (`Check`), refuses hull/domain stages, inline samplers (M1 left their encoding unread; no game
+    shader has one), structured buffers and multisample textures (logged once, not drawn), and
+    makes the shaders from the shipped DXBC bytes unmodified. Each stage's cbuffers become
+    blocks of `DeviceProgram.BlockSizes` (Unity's size rounded to 16) with their members as
+    `VkPrograms.Uniform` lays them out (one register per matrix column: the original's cbuffers
+    are column-major, probes §1); textures become `DeviceProgram.Samplers` with their t# and s#.
+  - **Constant buffers.** One DYNAMIC buffer per (stage, slot, size), of that size, bound whole;
+    `Map(WRITE_DISCARD)` only when the draw's bytes differ from what it holds ("the previous
+    contents of the resource will be undefined", `D3D11_MAP`).
+  - **Input layouts**, per program and mesh layout: an element for each input of the vertex
+    stage's signature (the original always declares 14; UNVERIFIED there, 7). A channel the mesh
+    has: slot = channel. One it lacks: its own slot, per instance with `InstanceDataStepRate` 0,
+    which "takes special meaning, that the instance data should never be stepped at all"
+    (Direct3D 11.3 Functional Specification §8.1.3), reading OpenGL's constant (white colour,
+    (0, 0, 0, 1) position, zeros) from a 64-byte buffer. Missing components read 0, alpha 1
+    (§19.1.3.3). Meshes: every channel in one DYNAMIC vertex buffer, 32-bit indices in a DYNAMIC
+    index buffer, rewritten with WRITE_DISCARD; a replaced buffer is released while draws may
+    still use it ("Direct3D 11 defers the destruction of objects", `Flush` remarks).
+  - **Textures** as the original's formats where measured (probes §5: RGBA32/ARGB32/RGB24/
+    RGBA4444 as R8G8B8A8, BGRA32, A8, R8, B5G6R5, the half and float formats, BC1/BC3/BC7),
+    else as the OpenGL device reads them (`D3d11Formats.Of`; ARGB32's bytes reordered on upload,
+    as D3D11 views cannot swizzle). Made DEFAULT with their texels as initial data; a re-upload
+    into the same storage is `UpdateSubresource`. BC textures whose level 0 is no whole number of
+    blocks are decoded. Samplers as the original's (MinLOD −FLT_MAX, MaxLOD FLT_MAX, NEVER,
+    ANISOTROPIC above 1).
+  - **Render textures**: a colour Texture2D (SRV | RTV, GENERATE_MIPS with levels), RTVs per level,
+    a multisampled texture resolved before reading; depth R32G8X24_TYPELESS with DSV
+    D32_FLOAT_S8X24 above 16 bits, R16_TYPELESS/D16 at 16 or less (probes §3, §5), SRV for a
+    depth-only texture; new surfaces cleared (colour 0, depth 0 = far). The back buffer gets a
+    D32_FLOAT_S8X24 depth surface (the original's screen depth, probes §2).
+  - **States** (`D3d11States`, checked by `D3d11StatesTests` against the captures' §2 tables):
+    DepthBias −trunc(units), SlopeScaledDepthBias −factor, clamp 0; comparisons reversed;
+    `FrontCounterClockwise` 1 into a render texture, 0 into the back buffer (the colony's UI
+    draws; that they target the back buffer is captures UNVERIFIED 6); colour factors in the alpha
+    slots as their alpha forms (`D3D11_RENDER_TARGET_BLEND_DESC`; the original's Zero/SrcColor
+    has alpha Zero/SrcAlpha).
+  - **Targets.** Viewport and scissor turned over in the back buffer (top row first), kept in a
+    render texture (rendered upside down); clears ignore the scissor; depth cleared to 1 − v.
+    `RenderConventions(Vulkan: true, Flipped)`, as measured (probes §2, §3). The viewport puts
+    clip y = 1 at the top (FS §15.6), so the programs carry no y negation; the pixel diff
+    shows it. A texture is never sampled while it is a target (the default is read; logged once);
+    binding a target first unbinds its sampled views. `Direct3DClip` and `AnimationLight` touch
+    only the OpenGL device's GLSL, so nothing of them runs here.
+  - **Readback.** `CopySubresourceRegion` into a STAGING texture and `Map(READ)`, which waits for
+    the copy (`D3D11_MAP_FLAG_DO_NOT_WAIT`); the back buffer's rows turned over.
+  - **Not yet** (M3–M4): the warm-up's prebuilding, AsyncGPUReadback, `CopyTargetRect`, loading
+    animation and splash, frame repeats, multi-target draws into fewer targets.
+  - **Pixel diff** (`scripts/d3d11-pixel-diff.sh`, `tools/PixelDiff/pixel_diff.py`): one Windows
+    job runs ours twice in one run home (`--renderers A,B`, default opengl,d3d11), each capturing
+    frame N of the main menu (`--capture`), with the game's clocks advancing 1/60 s a frame
+    (`ONI_FIXED_FRAME_SECONDS`, new: `PlayerLoop.FixedFrameSeconds`), and compares: per-channel
+    max and mean, the fraction over 0, 1, 2, 4, 8, 16 and 40, PSNR, a diff image.
+  - **Results** (RTX 3090, the main menu, frame 600, 2560x1369 windowed, `--d3d11-debug`):
+    - **The main menu draws** on D3D11 (j0008437, f19b3da24): every element of the OpenGL frame
+      is there, the same at a glance (news tiles, BRUTAL tile, title, buttons, the scene, the DLC
+      logos). Unit tests `D3d11StatesTests` and `RendererChoiceTests`: 28 passed (j0008439).
+    - **Debug layer**: no error, no corruption; one warning kind, twice a run (j0008437, j0008445,
+      j0008449): `D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET` (3146081 =
+      `D3D11_MESSAGE_ID_D3D11_1_MESSAGES_START` + 353, d3d11sdklayers.h), "The Pixel Shader expects
+      a Render Target View bound to slot 1 [and 2], but none is bound. This is OK, as writes of an
+      unbound Render Target View are discarded." The device names the shader (f108dc615):
+      `Klei/BatchedAnimationUI` (the menu's UI kanims), whose pixel stage writes SV_Target0-2,
+      drawn into the one target the game sets. The original binds the same: in its recorded menu
+      frame (d3d11-captures, j0008168 `report-menu.txt`) every one of the 41 draws has `rtv1`
+      null. OPEN, for the user to decide: accept it (the original's binding, the API's
+      documented discard), deny that one ID in the info queue's storage filter (new [Native]
+      declarations), or bind throwaway targets at slots 1-2 for such draws (extra GPU writes the
+      original does not make). Until then the debug layer is clean but for this warning.
+    - **B1 re-run** with the measured swap chain (j0008432, 75e8f19f9): level 11_1, the swap chain
+      as described, 900 frames, a clean exit, no debug-layer message.
+    - **Pixel diff, whole frame**, fraction of pixels whose largest channel difference exceeds
+      0 / 2 / 8 / 40, and PSNR (RGB):
+
+      | Job | Pair | > 0 | > 2 | > 8 | > 40 | PSNR |
+      |---|---|---|---|---|---|---|
+      | j0008437 | opengl, d3d11 | 32.9% | 21.5% | 7.9% | 2.38% | 26.4 dB |
+      | j0008445 | opengl, d3d11 | 31.9% | 20.7% | 9.0% | 3.25% | 25.0 dB |
+      | j0008446 | opengl, opengl (baseline) | 32.0% | 23.4% | 10.0% | 3.81% | 24.1 dB |
+
+      Two OpenGL runs differ as much as OpenGL and D3D11: the menu's animations are not in step
+      between runs even with the fixed clock (the scene's machines, the smoke, a robot that walks
+      in), so whole-frame numbers measure run-to-run animation, not the renderer.
+    - **Pixel diff, stable pixels** (j0008449, `--baseline`: two OpenGL runs and one D3D11 run;
+      the 987,875 pixels where the OpenGL runs differ, 28%, left out): > 0 11.10%, > 1 8.54%,
+      > 2 7.28%, > 4 4.16%, > 8 2.75%, > 16 1.55%, > 40 0.62%; mean per channel R 1.03, G 0.84,
+      B 0.76; PSNR 32.5 dB. In the diff image what remains is still animated content that happened
+      to match in the two OpenGL runs (the machines, the smoke column, the robot), and faint
+      outlines of the title and the DLC logos: the title's largest difference is 55 (mean 1.3)
+      with the images aligned (a one-pixel shift either way raises the mean to 5-12), which M3
+      explains (filtering or BC decoding of the logo textures). The menu buttons: largest 40,
+      mean 0.23. A scene-set tolerance and deterministic scenes are M3's (done criterion 3).
+  - **UNVERIFIED in B2** (each with the milestone that settles it):
+    1. `FrontCounterClockwise` 0 into the back buffer: the colony's UI draws had 0, that they
+       target the back buffer is captures UNVERIFIED 6 (M3; the menu shows no culling difference).
+    2. Whether two textures of one program share a sampler slot (the first's state is taken): not
+       counted in the data (M3, a ShaderSurvey count).
+    3. B8G8R8A8 render textures made R8G8B8A8: the original's resource format for them is not
+       measured (M3).
+    4. Bilinear with anisotropy above 1 becomes ANISOTROPIC, which also filters between levels;
+       the OpenGL device keeps nearest-level with anisotropy (M3, pixel diff of the world).
+    5. The original renders the screen into an R8G8B8A8_TYPELESS texture, not the swap chain's
+       buffer (probes §2, captures §1 inference); this device draws into buffer 0 (M4).
+    6. Readback of a ScreenRows render texture reads its rows as stored, as VkDevice does (M3).
+    7. The open debug-layer warning above (BatchedAnimationUI's targets): the user's decision.
+  - **Settled in B2**: Unity's DXBC carries no y negation (the item under "Conventions" below):
+    with the projection as measured and the viewport's y (FS §15.6), the D3D11 frame comes out
+    upright and aligned with OpenGL's (j0008437: the title's difference is least unshifted).
 
 ## Research so far (M0)
 
@@ -348,7 +447,7 @@ Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so 
   `ID3D11Device` 43 slots, `ID3D11DeviceContext` 115, existing Dxgi.cs D3D11 slots match.
 - **Conventions.** As Vulkan's: reversed Z, 0..w clip depth, UV origin at the top, render textures
   rendered flipped, top-left viewport/scissor. Different: the viewport flips y (no shader-side
-  negation; UNVERIFIED that Unity's DXBC has none: disassemble), constant-buffer packing, inputs
+  negation; that Unity's DXBC has none is observed in B2's pixel diff), constant-buffer packing, inputs
   bound by semantic, depth sampled through typeless formats. No half-texel offset; Gamma, so no sRGB.
 - **Device.** Implements `RenderDevice` (`OniMoono.UnityEngine/Engine/Rendering/RenderDevice.cs`)
   and `IResourceWork`; draws arrive as `ProgramInputs` via `GlDrawRecorder`'s `RunDraw`. To change:
