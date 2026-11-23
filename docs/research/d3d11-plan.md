@@ -925,7 +925,7 @@ setup failed on a null ResourceCategoryScreen, fixed), j0008694, j0008720; OpenG
 (the coverage spec's selection in the power overlay failed, fixed), j0008693, j0008703
 (coverage only), j0008718, j0008719 (base only); base runs j0008711-j0008717 failed waiting for
 the research tree to hold still (dropped for a mask; j0008712 and j0008713 cancelled);
-check.sh CHECKJOB.
+check.sh j0008737 on fa6f8162d (queued behind the machine's load at hand-off; its result is not recorded here).
 
 ## Research so far (M0)
 
