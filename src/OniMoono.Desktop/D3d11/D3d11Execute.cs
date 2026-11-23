@@ -321,7 +321,9 @@ namespace OniMoono.Desktop.D3d11
             int components = layout.Components[c], size = Math.Abs(components);
             var format = size switch
             {
-                1 => DXGI_FORMAT.DXGI_FORMAT_R32_FLOAT, 2 => DXGI_FORMAT.DXGI_FORMAT_R32G32_FLOAT, 3 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT,
+                1 => DXGI_FORMAT.DXGI_FORMAT_R32_FLOAT,
+                2 => DXGI_FORMAT.DXGI_FORMAT_R32G32_FLOAT,
+                3 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT,
                 _ => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT,
             };
             return (format, components < 0 ? 16 : size * 4);

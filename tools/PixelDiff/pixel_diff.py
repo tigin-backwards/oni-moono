@@ -17,6 +17,7 @@ For the unmasked pixels it prints, and writes as JSON:
 - the bounding box of the pixels differing by more than 8.
 DIFF gets an image of the largest channel difference per pixel, scaled by 4 (clipped at 255),
 masked pixels mid grey, so small differences show."""
+
 import argparse
 import json
 import sys
