@@ -30,9 +30,11 @@ namespace OniMoono.Desktop.D3d11
         {
             [FieldOffset(4 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, void> ClearStoredMessages;
             [FieldOffset(5 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong, D3D11_MESSAGE*, nuint*, int> GetMessage;
+            [FieldOffset(7 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumMessagesDeniedByStorageFilter;
             [FieldOffset(8 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessages;
             [FieldOffset(9 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessagesAllowedByRetrievalFilter;
             [FieldOffset(10 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumMessagesDiscardedByMessageCountLimit;
+            [FieldOffset(12 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, D3D11_INFO_QUEUE_FILTER*, int> AddStorageFilterEntries;
         }
     }
 
@@ -64,5 +66,36 @@ namespace OniMoono.Desktop.D3d11
         [As("D3D11_MESSAGE_ID")] public int ID;
         [As("const char*")] public sbyte* pDescription;
         public nuint DescriptionByteLength;
+    }
+
+    /// D3D11_INFO_QUEUE_FILTER_DESC: one list of a storage or retrieval filter (categories,
+    /// severities, message IDs).
+    [Native(Header = "d3d11sdklayers.h")]
+    [StructLayout(LayoutKind.Sequential)]
+    internal unsafe struct D3D11_INFO_QUEUE_FILTER_DESC
+    {
+        public uint NumCategories;
+        [As("D3D11_MESSAGE_CATEGORY*")] public int* pCategoryList;
+        public uint NumSeverities;
+        public D3D11_MESSAGE_SEVERITY* pSeverityList;
+        public uint NumIDs;
+        [As("D3D11_MESSAGE_ID*")] public int* pIDList;
+    }
+
+    /// D3D11_INFO_QUEUE_FILTER: the allow list and the deny list of a filter.
+    [Native(Header = "d3d11sdklayers.h")]
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct D3D11_INFO_QUEUE_FILTER
+    {
+        public D3D11_INFO_QUEUE_FILTER_DESC AllowList;
+        public D3D11_INFO_QUEUE_FILTER_DESC DenyList;
+    }
+
+    /// The debug layer's message IDs the device names (D3D11_MESSAGE_ID).
+    [Native(Header = "d3d11sdklayers.h")]
+    internal static class D3D11SdkLayers
+    {
+        /// "The Pixel Shader expects a Render Target View bound to slot N, but none is bound."
+        public const int D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET = 3146081;
     }
 }

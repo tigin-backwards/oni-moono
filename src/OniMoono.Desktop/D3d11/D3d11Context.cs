@@ -81,6 +81,7 @@ namespace OniMoono.Desktop.D3d11
                 ID3D11InfoQueue* queue;
                 Check(Com.QueryInterface(Device, ID3D11InfoQueue.IID, (void**)&queue), "QueryInterface ID3D11InfoQueue");
                 InfoQueue = queue;
+                DenyUnboundTargetWarning(queue);
             }
             IDXGIFactory5* f5;
             if (Com.QueryInterface(Factory, IDXGIFactory5.IID, (void**)&f5) >= 0)
@@ -89,6 +90,22 @@ namespace OniMoono.Desktop.D3d11
                 Tearing = f5->lpVtbl->CheckFeatureSupport(f5, Dxgi.FeaturePresentAllowTearing, &allow, D3D11.SizeOfBool) >= 0 && allow != 0;
                 Com.Release(ref f5);
             }
+        }
+
+        /// The debug layer stores no DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET warning (the user's
+        /// decision, d3d11-plan.md "M3", B2 item 7): AddStorageFilterEntries ("Add storage filters
+        /// to the top of the storage-filter stack") with that ID in the filter's DenyList ("Types
+        /// of messages that you want to deny", D3D11_INFO_QUEUE_FILTER). The draws it names bind
+        /// as the original's do (a pixel stage writing more targets than are bound; the warning
+        /// itself says "writes of an unbound Render Target View are discarded"). The device still
+        /// logs each such shader and target (D3d11Device.Bind), and the count the filter denied
+        /// ("Get the number of messages that were denied passage through a storage filter",
+        /// GetNumMessagesDeniedByStorageFilter) with its debug-layer tallies.
+        static void DenyUnboundTargetWarning(ID3D11InfoQueue* queue)
+        {
+            int id = D3D11SdkLayers.D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET;
+            var filter = new D3D11_INFO_QUEUE_FILTER { DenyList = new D3D11_INFO_QUEUE_FILTER_DESC { NumIDs = 1, pIDList = &id } };
+            Check(queue->lpVtbl->AddStorageFilterEntries(queue, &filter), "ID3D11InfoQueue::AddStorageFilterEntries");
         }
 
         IDXGIAdapter1* ChooseAdapter(string gpu)

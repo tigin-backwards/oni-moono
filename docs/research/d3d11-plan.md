@@ -65,8 +65,8 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 |---|---|---|---|
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
-| M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); open: the BatchedAnimationUI debug-layer warning, the user's decision |
-| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23 ("M3"): three colonies draw, debug layer clean but for the open RTV warning, scene set and tolerance defined (67 of 70 within, 2 OpenGL's), M3 UNVERIFIED settled or moved; open: coverage (46 of 121 shaders), one scene over, the RTV warning (the user's) |
+| M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23 ("M3"): three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined (67 of 70 within, 2 OpenGL's), M3 UNVERIFIED settled or moved; open: coverage (46 of 121 shaders), one scene over |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
@@ -227,9 +227,10 @@ declarations too.
     The check proves each declaration is the header's and each declared base a real base class
     (`std::is_base_of_v`), not that a C# cast between interface pointers follows a declared base;
     a reviewer reads those against the `Base` the interface declares.
-  - Totals now (after M2's review fixes, j0008579): 41 interfaces (92 methods), 47 structs (224
-    fields), 35 enums (206 values), 60 constants, 51 IIDs, 18 DLL functions and their exports, 19
-    Opaque, 3 expressions, 75 `[NotNative]`. (Before the fixes the generator reported 200 values
+  - Totals now (after M3's storage filter, j0008637): 41 interfaces (94 methods), 49 structs (232
+    fields), 35 enums (206 values), 61 constants, 51 IIDs, 18 DLL functions and their exports, 19
+    Opaque, 3 expressions, 75 `[NotNative]`. (After M2's review fixes, j0008579: 92 methods, 47
+    structs, 224 fields, 60 constants.) (Before the fixes the generator reported 200 values
     and 59 constants, not the 199 and 57 this line said.)
 - **The SDK.** The check compiles against the Windows SDK and MSVC that `vcvars64.bat` picks (the
   newest installed), not a pinned one; `com_check.cmd`'s last line names both. Here: Windows SDK
@@ -387,7 +388,8 @@ declarations too.
       null. OPEN, for the user to decide: accept it (the original's binding, the API's
       documented discard), deny that one ID in the info queue's storage filter (new [Native]
       declarations), or bind throwaway targets at slots 1-2 for such draws (extra GPU writes the
-      original does not make). Until then the debug layer is clean but for this warning.
+      original does not make). **Decided by the user 2026-11-23: deny it** in the storage filter
+      (M3, "The RTV warning").
     - **B1 re-run** with the measured swap chain (j0008432, 75e8f19f9): level 11_1, the swap chain
       as described, 900 frames, a clean exit, no debug-layer message.
     - **Pixel diff, whole frame**, fraction of pixels whose largest channel difference exceeds
@@ -423,7 +425,8 @@ declarations too.
     5. The original renders the screen into an R8G8B8A8_TYPELESS texture, not the swap chain's
        buffer (probes §2, captures §1 inference); this device draws into buffer 0 (M4).
     6. Readback of a ScreenRows render texture reads its rows as stored, as VkDevice does (M3).
-    7. The open debug-layer warning above (BatchedAnimationUI's targets): the user's decision.
+    7. The debug-layer warning above (BatchedAnimationUI's targets): **settled** by the user's
+       decision, the ID denied in the storage filter (M3, "The RTV warning").
   - **Settled in B2**: Unity's DXBC carries no y negation (the item under "Conventions" below):
     with the projection as measured and the viewport's y (FS §15.6), the D3D11 frame comes out
     upright and aligned with OpenGL's (j0008437: the title's difference is least unshifted).
@@ -441,7 +444,8 @@ runs), or moved to a named milestone with the reason.
    the isolation) closed as not pursued, each with its reason in `d3d11-captures.md`; B1's wait
    note settled (finding 2) with the original's behaviour moved to M4; B1's SystemInfo items and
    M1's inline `m_Samplers` moved to M7 (SystemInfo parity; mods), above. B2's 1-6 name M3 or
-   M4; 7 (BatchedAnimationUI's `DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET`) stays open for the user.
+   M4; 7 (BatchedAnimationUI's `DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET`) stayed open for the user,
+   who decided it in M3 (denied in the storage filter).
 2. **The frame-latency wait** (documented, observed). The no-wait-without-vsync rule came from
    the DXGI presenter, whose reasons (its resync after repeats, the interop lock keeping a
    picture in flight) do not apply here. The device now waits as "Reduce latency with DXGI 1.3
@@ -625,8 +629,8 @@ whose largest channel difference exceeds each level, over the scenes within the 
   show it within the rule, so it stays listed as over.
 
 **Debug layer** (`--d3d11-debug`, every D3D11 run): no error, no corruption, no message
-dropped; one message, warning `D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET`
-(3146081), the one the user's open decision covers, now attributed per draw:
+dropped; before the storage filter below, one message, warning
+`D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET` (3146081), attributed per draw:
 Klei/BatchedAnimationUI, Klei/StatusItem, Klei/BatchedAnimationPstTemperature and
 Klei/BatchedAnimation into the back buffer (one target), and Klei/Stipple and Klei/Unlit Transparent into `TempBuffer 1 1280x720` (one
 target): 537, 710 and 1,309 messages in the three colonies' runs, nothing else.
@@ -637,8 +641,22 @@ and the rest) into MRT0 and MRT1 as here. The world shaders' single-target draws
 temporary render textures (`TempBuffer 1 1280x720`, `TempBuffer 8 1272x808` and
 `… 1444x608`), not the world camera's MRT; which cameras' those are, and whether the original
 binds one target there too, was not measured (its recordings are of the screen camera's
-frames). So the open decision is about this message ID for every such draw, not
-BatchedAnimationUI alone.
+frames).
+
+**The RTV warning** (B2 item 7; decided by the user 2026-11-23: hide it). `D3d11Context`
+adds the ID to the debug layer's storage filter when the layer is on:
+`ID3D11InfoQueue::AddStorageFilterEntries` ("Add storage filters to the top of the
+storage-filter stack") with a `D3D11_INFO_QUEUE_FILTER` whose `DenyList` ("Types of messages
+that you want to deny") names `D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET` alone.
+The reason: the original binds the same way (above, and M2 B2), and the warning itself says
+"writes of an unbound Render Target View are discarded". The new slots (AddStorageFilterEntries
+12, GetNumMessagesDeniedByStorageFilter 7), the two structs and the ID constant are under the
+MSVC check (j0008637). The device's own log line for a shader writing more targets than are
+bound stays (`d3d11: shader '…' writes N render targets into M (…)`), and each tally line says
+how many warnings the filter denied ("Get the number of messages that were denied passage
+through a storage filter", GetNumMessagesDeniedByStorageFilter). Observed (j0008638, the
+landing's scene spec with `--d3d11-debug`): 0 debug-layer messages stored, 11,273 of this
+warning denied, the 27 shader-and-target lines logged.
 
 **Coverage** (done criterion 1; `coverage.py` over the D3D11 runs' logs): 46 of the 121
 shaders, 48 of their 176 passes, 56 programs (vertex and pixel combinations), 112 distinct
@@ -683,7 +701,7 @@ j0008616; ShaderSurvey j0008601, j0008618; scene runs j0008604 (first, Vulkan: t
 lane's renderer variable does not pass runq's environment filter, `E2E_PLAYER_ARGS` does),
 j0008605 and j0008607 (first D3D11 colony runs), j0008608-j0008610 (first scene set: OpenGL
 twice, D3D11), j0008612-j0008615 (OpenGL twice, D3D11, D3D11 with anisotropy off), j0008617 (Vulkan),
-j0008619 (D3D11 with the debug layer, the committed device); check.sh JCHECK. j0008600, the
+j0008619 (D3D11 with the debug layer, the committed device); check.sh JCHECK; the storage filter: build and check j0008637, run j0008638. j0008600, the
 first submission, waited behind a perf job's reservation and ran the landing's spec on Vulkan
 later (the renderer variable did not reach it); its result is not used.
 
@@ -703,8 +721,6 @@ later (the renderer variable did not reach it); its result is not used.
   the impactor DLC, debug views, IMGUI) or, for built-ins the game never uses, a check that
   nothing reaches them; then every pass and variant, which a scene set cannot reach alone
   (`--check-shaders`-style building of every variant).
-- The BatchedAnimationUI-class warning: the user's decision (M2's open item), now known to
-  cover StatusItem, the PstTemperature passes, Stipple and Unlit Transparent single-target draws.
 - The OpenGL device's light-buffer read in the mid-game colony's overlays (the two scenes where
   OpenGL differs from D3D11 and Vulkan alike): an OpenGL-device finding (issue #76's turn in
   shaders AnimationLight does not change), for the OpenGL device's owners.

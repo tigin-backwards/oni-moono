@@ -489,11 +489,17 @@ namespace OniMoono.Desktop.D3d11
         /// The debug layer's counts by message and draw, when they grew (device thread).
         void DebugTally(bool always = false)
         {
-            if (debugMessages == debugTallied && !always) return;
+            var queue = d3d.InfoQueue;
+            ulong denied = queue != null ? queue->lpVtbl->GetNumMessagesDeniedByStorageFilter(queue) : 0;
+            if (debugMessages == debugTallied && denied == deniedTallied && !always) return;
             debugTallied = debugMessages;
+            deniedTallied = denied;
             EngineLog.Engine($"d3d11 debug layer tally: {debugMessages} messages: "
-                             + string.Join("; ", System.Linq.Enumerable.Select(debugTally, kv => $"{kv.Key.Message} ({kv.Key.Context}) x{kv.Value}")));
+                             + string.Join("; ", System.Linq.Enumerable.Select(debugTally, kv => $"{kv.Key.Message} ({kv.Key.Context}) x{kv.Value}"))
+                             + $"; {denied} DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET warnings denied by the storage filter");
         }
+
+        ulong deniedTallied;
 
         ulong lastDiscarded;
         long discardedMessages;
