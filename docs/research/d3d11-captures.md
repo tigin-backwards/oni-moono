@@ -452,14 +452,24 @@ only.
 
 ## UNVERIFIED, by the milestone that needs it
 
-**M2 (device bring-up, own swap chain)**
+**M2 (device bring-up, own swap chain)**, each settled or moved by M2's review fixes
+(d3d11-plan.md, "M2 review fixes"):
 1. **The frame-latency waitable.** Whether and when the game waits on it; Unity's
-   `GetFrameStatistics` use (only its log line is known).
+   `GetFrameStatistics` use (only its log line is known). **Moved to M4** (presentation and frame
+   pacing): the device no longer copies any rule from the original here. It waits as Microsoft
+   documents ("Reduce latency with DXGI 1.3 swap chains", step 4: before rendering every frame,
+   the first included), so nothing rests on the original's choice until M4 compares pacing.
+   Test: a hook of `WaitForSingleObjectEx` on the swap chain's waitable handle in the recorder.
 2. **The frame's last draw.** Whether it targets swap-chain buffer 0. Compare the RTV resource
-   with buffer 0 in the recorder.
-3. **The duplicate RTX 3090** in DXGI's adapter enumeration. It matters for the GPU choice.
+   with buffer 0 in the recorder. **Moved to M4**, with d3d11-plan.md's B2 UNVERIFIED 5 (the
+   screen drawn into an R8G8B8A8_TYPELESS texture): the device draws into buffer 0 until then.
+3. **The duplicate RTX 3090** in DXGI's adapter enumeration. **Moved to M5**: it matters only
+   for the GPU choice rule (done criterion 5), which M5 settles; M2 takes EnumAdapters1(0) or
+   EnumAdapterByGpuPreference and never walks the list.
 4. **RenderDoc under the isolation.** Why Doorstop does not run under RenderDoc's injection.
-   Needed only if RenderDoc captures of the original are wanted again; not used until then.
+   **Closed, not pursued**: every capture question of M0 to M2 was answered by the in-process
+   recorder (tools/D3d11Native), which keeps the isolation; no later milestone lists a question
+   only RenderDoc answers. Reopened only if one does.
 
 **M3 (full draw feature set)**
 5. **Factor and units.** That factor feeds SlopeScaledDepthBias and units DepthBias is cited, not

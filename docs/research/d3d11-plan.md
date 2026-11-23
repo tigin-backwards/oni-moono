@@ -64,8 +64,8 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | # | Milestone | Ends when | Status |
 |---|---|---|---|
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
-| M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | built, review pending |
-| M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | B2 built 2026-11-22: main menu draws, pixel-diff tooling; one debug-layer warning kind open (BatchedAnimationUI's targets), review pending |
+| M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
+| M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); open: the BatchedAnimationUI debug-layer warning, the user's decision |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
@@ -126,8 +126,10 @@ vkd3d-shader's `checksum.c` built and run, equal to an independent Python transl
 **Unknown, kept raw** (read, used by nothing, so no claim rests on them): the cbuffer binding's
 second int, prefix byte 0 and bytes 4–37, the entry statistics, the pair's component code.
 
-**Carried to M2.** Decode `m_Samplers`' `sampler` value (its encoding is unknown; the two mod
-inline samplers, 2990227046's Hidden/Dither, need it to draw).
+**Carried to M2, then to M7.** Decode `m_Samplers`' `sampler` value (its encoding is unknown; the
+two mod inline samplers, 2990227046's Hidden/Dither, need it to draw). M2 refuses programs with
+inline samplers (logged, not drawn: `D3d11Programs.Build`); no game shader has one, so only that
+mod needs it, and mods are M7's (done criterion 6).
 
 **Unsettled, noted.**
 - A typed `Buffer<T>` (dimension 1): how Unity records its binding is not measured; the reader
@@ -176,7 +178,7 @@ declarations too.
   `D3D11CreateDevice` and `CreateDXGIFactory2`. Each carries `[Native]` naming its header. Only
   what the device needs (the original's call set, `d3d11-captures.md` §3 and §5, and the
   inventory's checklist): 22 `ID3D11Device` methods, 40 `ID3D11DeviceContext` methods,
-  `ID3D11Texture2D::GetDesc`, `ID3D11Debug::ReportLiveDeviceObjects`, 4 `ID3D11InfoQueue`
+  `ID3D11Texture2D::GetDesc`, `ID3D11Debug::ReportLiveDeviceObjects`, 5 `ID3D11InfoQueue`
   methods, 20 DXGI methods on 15 interfaces, IUnknown's 3. No `ID3D11DeviceContext1`, deferred
   contexts or debug object names yet (M6 or when needed). `Gl/Dxgi.cs` keeps its API and calls
   through the same structs; its structs, constants, IIDs and DLL functions are annotated too.
@@ -209,14 +211,14 @@ declarations too.
   - Names: a `[Native]` name is an identifier the headers declare (a dotted path of identifiers
     for a struct field); a constant checked against an expression says so with
     `[NativeExpression("sizeof(X)")]`, which must name an SDK identifier, and each is listed at
-    the top of `com_check.cpp` (2: the DISPLAYCONFIG struct sizes).
+    the top of `com_check.cpp` (3: the DISPLAYCONFIG struct sizes and `sizeof(BOOL)`).
   - Nothing is skipped silently. The generator sweeps the whole OniMoono.Desktop assembly: every
     DllImport, LibraryImport, unmanaged function-pointer field, `[UnmanagedFunctionPointer]`
     delegate and vtable struct, and every struct those take, is `[Native]` (and checked) or
     `[NotNative("why")]`, else it fails listing them all. A `[Native]` member the generator does
     not emit, a static field that is neither a constant, an IID nor a function pointer, a
     LibraryImport, and a `char` by value in a DllImport (ANSI by default) fail it too. Every
-    `[NotNative]` member is listed with its reason at the top of `com_check.cpp`: 74 now, window,
+    `[NotNative]` member is listed with its reason at the top of `com_check.cpp`: 75 now, window,
     input and IME calls outside the renderer's binding, Linux libraries, GL extension functions
     (glext.h and wglext.h are not in the SDK: ARB_bindless_texture, WGL_EXT_swap_control,
     WGL_NV_DX_interop), and D3DDDIERR_DEVICEREMOVED (a WDK value). Function-pointer fields (a
@@ -225,9 +227,10 @@ declarations too.
     The check proves each declaration is the header's and each declared base a real base class
     (`std::is_base_of_v`), not that a C# cast between interface pointers follows a declared base;
     a reviewer reads those against the `Base` the interface declares.
-  - Totals now: 41 interfaces (91 methods), 47 structs (224 fields), 33 enums (199 values), 57
-    constants, 51 IIDs, 18 DLL functions and their exports, 19 Opaque, 2 expressions, 74
-    `[NotNative]`.
+  - Totals now (after M2's review fixes, j0008579): 41 interfaces (92 methods), 47 structs (224
+    fields), 35 enums (206 values), 60 constants, 51 IIDs, 18 DLL functions and their exports, 19
+    Opaque, 3 expressions, 75 `[NotNative]`. (Before the fixes the generator reported 200 values
+    and 59 constants, not the 199 and 57 this line said.)
 - **The SDK.** The check compiles against the Windows SDK and MSVC that `vcvars64.bat` picks (the
   newest installed), not a pinned one; `com_check.cmd`'s last line names both. Here: Windows SDK
   10.0.26100.0, MSVC 14.44.35207 (j0008218). CI's `windows-2025` runner may have a newer SDK;
@@ -287,11 +290,10 @@ declarations too.
   measured settings (`d3d11-captures.md` §1): 2 buffers, FLIP_SEQUENTIAL, R8G8B8A8_UNORM,
   BufferUsage SHADER_INPUT | RENDER_TARGET_OUTPUT (0x30), AlphaMode UNSPECIFIED, scaling STRETCH,
   ALLOW_MODE_SWITCH | FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING, maximum frame latency 2,
-  Present(1, 0) or Present(0, ALLOW_TEARING), resized with the window. With vsync it waits for
-  the frame-latency object after Present (a timeout is logged); without vsync it does not wait,
-  the DXGI presenter's measured rule (waiting capped the frame rate on the AMD iGPU).
-  UNVERIFIED: whether the original waits on it, with or without vsync (a hook in
-  tools/D3d11Native's recorder would tell). It clears and presents
+  Present(1, 0) or Present(0, ALLOW_TEARING), resized with the window. It waits for the
+  frame-latency object before every frame, the first included (changed by the review fixes
+  below, finding 2). Whether the original waits on it is M4's (captures UNVERIFIED 1, moved).
+  It clears and presents
   the back buffer, logs the debug layer's messages, and reports SystemInfo as the original's
   (DeviceType Direct3D11, `Direct3D 11.0 [level 11.1]`, the texture-format answers of
   `d3d11-unity-probes.md` §1). Draws, resources and readbacks are counted and dropped. A device
@@ -301,14 +303,17 @@ declarations too.
   nothing drawn yet).
   - `d3d11` is a command-line choice only (settings.json refuses it), and the Tweaks screen's
     renderer row shows locked when the running renderer is one it does not offer.
-  - UNVERIFIED: the version string on an 11_0 device; DeviceVendor on AMD and Intel (empty for
-    now); MemorySizeMB (DedicatedVideoMemory in MiB) against the original's 24322 on the 3090.
+  - UNVERIFIED, M7's (SystemInfo parity): the version string on an 11_0 device; DeviceVendor on
+    AMD and Intel (empty for now); MemorySizeMB (DedicatedVideoMemory in MiB) against the
+    original's 24322 on the 3090.
 - **B2: the draw path** (2026-11-22, branch `d3d11-m2`). Files: `D3d11Device.cs` (main thread),
   `D3d11Execute.cs` (device thread), `D3d11Resources.cs`, `D3d11Programs.cs`, `D3d11States.cs`,
   `D3d11Formats.cs`.
   - **Threading.** A `GlWorker` ("Direct3D 11") and a `GlDrawRecorder`, as the Vulkan device. The
     device thread alone uses the immediate context, and presents (the swap chain's Present,
-    ResizeBuffers and its latency wait moved there). No deferred contexts, no command lists of
+    ResizeBuffers and its latency wait moved there): "your application should also use that same
+    thread for [DXGI] operations, especially ... Present" ("Introduction to Multithreading in
+    Direct3D 11"). The message pump's side is finding 3 of the review fixes. No deferred contexts, no command lists of
     D3D11's (the original uses none: captures §5).
   - **Programs.** `ShaderNative.ProgramsFor(4)` and `ShaderPrograms.D3d11` read M1's entries;
     each pass keeps its `D3d11Variants`. The recorder's variant key is chosen by a new hook,
@@ -422,6 +427,110 @@ declarations too.
   - **Settled in B2**: Unity's DXBC carries no y negation (the item under "Conventions" below):
     with the projection as measured and the viewport's y (FS §15.6), the D3D11 frame comes out
     upright and aligned with OpenGL's (j0008437: the title's difference is least unshifted).
+
+
+## M2 review fixes (2026-11-23, branch `d3d11-m2`)
+
+The adversarial review of M2 (parts A and B) gave 10 findings and 3 minor ones. Each outcome, and
+its class: documented (cited), observed (job, RTX 3090, NVIDIA driver 32.0.16.1088 as in M0's
+runs), or moved to a named milestone with the reason.
+
+1. **Process.** d3d11-m2 merged `d3d11` at 61788ffcf (M1 done and reviewed). The open M2
+   UNVERIFIED items: captures 1 (does the original wait on the waitable; GetFrameStatistics) and
+   2 (the frame's last draw) moved to M4, 3 (the duplicate RTX 3090) to M5, 4 (RenderDoc under
+   the isolation) closed as not pursued, each with its reason in `d3d11-captures.md`; B1's wait
+   note settled (finding 2) with the original's behaviour moved to M4; B1's SystemInfo items and
+   M1's inline `m_Samplers` moved to M7 (SystemInfo parity; mods), above. B2's 1-6 name M3 or
+   M4; 7 (BatchedAnimationUI's `DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET`) stays open for the user.
+2. **The frame-latency wait** (documented, observed). The no-wait-without-vsync rule came from
+   the DXGI presenter, whose reasons (its resync after repeats, the interop lock keeping a
+   picture in flight) do not apply here. The device now waits as "Reduce latency with DXGI 1.3
+   swap chains" says (step 4: "wait for the swap chain to signal ... before it begins rendering
+   every frame. This includes the first frame"): once before the first frame, then after each
+   Present, before the next frame renders, vsync or not, at most 1000 ms (the article's sample).
+   A timed-out wait's signal is taken when it comes, so the frames in flight stay at 2. Nothing
+   of the original's was measured to keep (captures UNVERIFIED 1, now M4's). Observed (j0008581,
+   the main menu with `--d3d11-debug` and ONI_PRESENT_TRACE, vsync toggled at run time by
+   `--input N:vsync:V`): with vsync the wait averages 15.7-16.1 ms a frame (60 Hz; Present
+   itself 0.05 ms), without it 0.05-1.1 ms (largest 16 ms, the switch), no timeout in 1,500
+   frames, and switching back and forth needs nothing more.
+3. **Present and ResizeBuffers off the message-pump thread** (documented, observed; full screen
+   moved to M4). Microsoft's two pages pull opposite ways: "Introduction to Multithreading in
+   Direct3D 11" wants DXGI calls, "especially ... Present", on the thread that uses the
+   immediate context, and calls using the immediate context concurrently with most DXGI
+   functions invalid; "DXGI best practices" and the DXGI overview's "Multithread considerations"
+   say never to let the pump wait on a thread whose DXGI calls send it messages. The overview
+   names when they do: "Be careful that you never have the message-pump thread wait on the render
+   thread when you use full-screen swap chains ... When a mode change occurs, ... Present1 calls
+   ::SetWindowPos() or ::SetWindowStyle() and either of these methods call ::SendMessage()". So
+   Present stays with the context on the device thread, and the device keeps the DXGI
+   presenter's conditions that keep it out of that case: DXGI is told to leave the window alone
+   (`DXGI_MWA_NO_WINDOW_CHANGES | NO_ALT_ENTER`), the swap chain is windowed only and never put
+   in DXGI's full-screen state (no `SetFullscreenState` or `ResizeTarget`); full screen is the
+   window's (GLFW). The main thread waits on the device thread at every frame's hand-over
+   (`GlWorker.Submit`), not only in `ReadPixels` and `TakeFrameCounters`, so a Present or
+   ResizeBuffers that sent the window a message would hang the run within a frame. Observed: in
+   j0008581, 1,500 presents, a minimize and restore and a resize to 1280x720 (ResizeBuffers on the
+   device thread while the main thread waited) went through. The Vulkan device's VkDxgiTarget and
+   OpenGL's DxgiSwapChain do the same, measured over 300 resizes, minimizes and mode switches
+   (ARCHITECTURE §3.5). **M4** owns full screen: any DXGI full-screen state there must either keep
+   the pump from waiting on the device thread or move to the pump's thread with the context.
+4. **Depth view size at a level above 0** (documented). FS §5.3.6.2 and §17.16: the depth view
+   goes with colour views "of the same dimensions". A depth surface of another size than the
+   colour views is now left unbound and logged once. The engine never asks for a level above 0
+   (every `RenderTargetBinding` passes 0), and the OpenGL and Vulkan devices render level 0.
+5. **Caps** (documented, observed). `SupportsTexture` and `SupportsRenderTexture` answer from
+   what the device makes: D3d11Formats has the format (not CPU-decoded; encodable or block
+   compressed, as VkCaps) and CheckFormatSupport has TEXTURE2D | SHADER_SAMPLE (textures) or
+   RENDER_TARGET | SHADER_SAMPLE (render textures). Where that differs from the original's
+   measured answers (d3d11-unity-probes.md §1) the device logs it at start-up; j0008581 on the
+   RTX 3090: textures YUY2, RGB9e5Float, DXT1Crunched, DXT5Crunched and the 8 `_SIGNED` formats
+   no (the original yes); render textures ARGBInt, RGInt, RInt, RGBAUShort and the other formats
+   D3d11Formats.Color lacks no (the original yes to all 28). Done criterion 2 wants them equal:
+   **M7** (SystemInfo parity) adds those formats or records the gap.
+6. **Raw values under the check** (documented: MSVC). `D3D_NAME` (UNDEFINED, TARGET) and
+   `D3D_REGISTER_COMPONENT_TYPE` are `[Native]` enums of d3dcommon.h, used for the signature's
+   system values and component types; `SizeOfBool` is `[NativeExpression("sizeof(BOOL)")]`; an
+   input layout whose constant inputs would need a slot at or past
+   `D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT`, or more elements than
+   `D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT`, is refused and logged. Check green
+   (j0008579); totals above.
+7. **Messages past the info queue's limit** (documented, observed). `GetNumMessagesDiscardedBy-
+   MessageCountLimit` (slot 10, checked) is read at each drain; growth is logged and counted in
+   the run's total ("new messages coming in will push old messages out",
+   SetMessageCountLimit). Whether ClearStoredMessages resets it is not documented, so a smaller
+   value starts a new count. j0008581: 0 dropped.
+8. **Minimized** (observed). The platform keeps a minimized window's framebuffer size (Unity's
+   player does; GlfwPlatform), so the buffers keep theirs and bindings are not forgotten; a
+   window 0x0 from the start is no longer resized every frame. j0008581, minimized with vsync
+   (`--input N:minimize`, then `restore`, ShowWindow without activation): no timeout, waits of
+   18.3-19.4 ms a frame on average (largest 33 ms), so about 52-55 frames a second, under the
+   60 the original keeps minimized (ARCHITECTURE §3.5); the restore came back at full size.
+9. **Pixel diff** (a9f01bf52): `--stable` compares RGB, as the fractions and PSNR do. The other
+   statistical limits (whole-frame fractions under animation, no per-region tolerance) are M3's
+   tolerance work (done criterion 3).
+10. **Stale numbers**: the totals above, recounted from the generator (j0008579).
+
+Minor:
+- **Sample counts** checked with CheckMultisampleQualityLevels (S_OK and a positive count: its
+  remarks), for the colour format and its depth's; else the next lower power of two, logged.
+- **GENERATE_MIPS** only where CheckFormatSupport has MIP_AUTOGEN ("Automatic generation of
+  mipmaps is supported"); without it the levels above 0 keep their clear, logged once.
+- **Channels**: a draw binds a channel by the mesh layout alone, the input layout's test; the
+  layout is recorded with its upload (`GlMeshes.AddChannel` sets both), so a layout channel with
+  no uploaded data is a failed command rather than a read of an unbound slot's zeros (FS §8.20).
+
+Seen in passing (not M2's, reported): the scripted `resize` (Screen.SetResolution on a window
+GLFW reports maximized) restores it with `glfwRestoreWindow`, and j0008581's window took the
+focus at that frame; later jobs here leave `resize` out.
+
+Re-run after the fixes (j0008585, `d3d11-pixel-diff.sh --frame 600 --baseline -- --d3d11-debug`,
+the frozen build `E:\oni-builds\oni-win-764025`, as j0008437/j0008449 on the Steam install):
+the main menu draws on D3D11; the debug layer gives the same two BatchedAnimationUI warnings and
+nothing else, none dropped. Stable pixels (the 1,003,208 where the two OpenGL runs differ, 29%,
+left out; RGB mask now): > 0 8.98%, > 1 6.28%, > 2 5.10%, > 4 2.69%, > 8 1.73%, > 16 0.94%,
+> 40 0.35%; mean per channel R 0.72, G 0.53, B 0.48; PSNR 34.0 dB (j0008449: 32.5 dB with the
+RGBA mask, which left more animated pixels in).
 
 ## Research so far (M0)
 
