@@ -66,7 +66,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
-| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23 ("M3"): three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined (67 of 70 within, 2 OpenGL's), M3 UNVERIFIED settled or moved; open: coverage (46 of 121 shaders), one scene over |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the light pools traced to the frame renderer. Open: the materials, conveyor and power overlays of the mid-game colony over the tolerance (the light pools, shared with Vulkan), the 68 refused programs (the user's call), 38 game shaders not drawn in play |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
@@ -599,8 +599,9 @@ growth those chance matches put up to 0.35% of pixels over 40 in M3's first comp
   over 40, and at least half the image compared. Small differences (2-8 levels) over 1-20% of
   the pixels are left to PSNR: they are the same with anisotropy off (B2 item 4) and are not
   localized.
-- A scene over against OpenGL is checked against a Vulkan run: where D3D11 is within 0.1% over
-  40 of Vulkan and OpenGL is not, the difference is OpenGL's and is listed apart.
+- A scene over against OpenGL is checked against a Vulkan run, for information only: part A
+  counted a scene where D3D11 is within 0.1% over 40 of Vulkan and OpenGL is not as OpenGL's;
+  part B dropped that rule, because the original sided with OpenGL in the three such scenes.
 
 **Results** (j0008619, the committed device, `--d3d11-debug`, against OpenGL runs j0008612 and
 j0008613, Vulkan j0008617; `scenes.py`; per colony, the largest fraction of the compared pixels
@@ -615,18 +616,14 @@ whose largest channel difference exceeds each level, over the scenes within the 
 - 67 of 70 shots within the tolerance; the UI, management screens, starmap, colony previews
   (AsyncGPUReadback) and the 8x screenshot (ReadPixels in bands) among them. j0008614 gave the
   same verdicts.
-- **Where OpenGL differs from D3D11 and Vulkan alike** (2): the mid-game colony's materials
-  overlay (1.535% of pixels over 40 against OpenGL; D3D11 against Vulkan 0.015%, OpenGL against
-  Vulkan 1.572%) and conveyor overlay (0.178%; 0.088% and 0.258%). The pixels are round pools
-  of room light on buildings: on OpenGL those buildings are unlit (a cat tree purple where D3D11
-  and Vulkan draw it lit, cream). This is the kind of light-buffer read issue #76 fixed for
-  Klei/BatchedAnimation and Klei/BatchedAnimationHuman on OpenGL (`AnimationLight`), in a shader
-  that change does not cover: an OpenGL-device finding, not D3D11's.
-- **Over** (1): the mid-game colony's power overlay, 0.883% over 16 and 0.124% over 40, in the
-  same light pools (wire segments brighter near lit rooms) and on animated wires (the OpenGL
-  runs themselves differ in 0.95% over 8 there): D3D11 against Vulkan 0.18% over 40, OpenGL
-  against Vulkan 0.32%. Most likely the same OpenGL difference, but the one Vulkan run cannot
-  show it within the rule, so it stays listed as over.
+- **Over** (3; part A first counted 2 of them as OpenGL's, which part B reversed): the mid-game
+  colony's materials overlay (1.535% of pixels over 40 against OpenGL; D3D11 against Vulkan
+  0.015%, OpenGL against Vulkan 1.572%), conveyor overlay (0.178%; 0.088% and 0.258%) and power
+  overlay (0.883% over 16 and 0.124% over 40; 0.18% and 0.32%). The pixels are round pools of
+  room light on buildings: on OpenGL those buildings are unlit (a cat tree purple where D3D11 and
+  Vulkan draw it lit, cream). Part A took the agreement of D3D11 and Vulkan as OpenGL's error;
+  the original, measured on Windows afterwards, agrees with OpenGL: D3D11 and Vulkan read the
+  light buffer mirrored there ("The light pools", part B).
 
 **Debug layer** (`--d3d11-debug`, every D3D11 run): no error, no corruption, no message
 dropped; before the storage filter below, one message, warning
@@ -653,10 +650,13 @@ The reason: the original binds the same way (above, and M2 B2), and the warning 
 12, GetNumMessagesDeniedByStorageFilter 7), the two structs and the ID constant are under the
 MSVC check (j0008637). The device's own log line for a shader writing more targets than are
 bound stays (`d3d11: shader '…' writes N render targets into M (…)`), and each tally line says
-how many warnings the filter denied ("Get the number of messages that were denied passage
-through a storage filter", GetNumMessagesDeniedByStorageFilter). Observed (j0008638, the
-landing's scene spec with `--d3d11-debug`): 0 debug-layer messages stored, 11,273 of this
-warning denied, the 27 shader-and-target lines logged.
+how many messages the storage filters denied ("Get the number of messages that were denied
+passage through a storage filter", GetNumMessagesDeniedByStorageFilter). Observed (j0008638, the
+landing's scene spec with `--d3d11-debug`): 0 debug-layer messages stored, 11,273 denied, the 27
+shader-and-target lines logged. That count is not this warning's alone, as part A first wrote:
+a `--check-shaders` run, which draws nothing, had 2,582 denied (part B, j0008662), so the
+debug layer denies other messages by itself (which ones is not read); the tally line now says
+"messages denied by the storage filters".
 
 **Coverage** (done criterion 1; `coverage.py` over the D3D11 runs' logs): 46 of the 121
 shaders, 48 of their 176 passes, 56 programs (vertex and pixel combinations), 112 distinct
@@ -705,25 +705,207 @@ j0008619 (D3D11 with the debug layer, the committed device); check.sh j0008641 (
 first submission, waited behind a perf job's reservation and ran the landing's spec on Vulkan
 later (the renderer variable did not reach it); its result is not used.
 
-**Left for M3 part B.**
-- Coverage: 75 shaders not drawn by the scene set. Game shaders that need play the scene
-  set does not do: Klei/BuildingCell, Klei/Prioritizable, Klei/Area Visualizer, Klei/RocketPath,
-  Klei/TiledWall, Klei/LiquidSubstance, Klei/BloomedParticleShader, Klei/NorthernLights,
-  Klei/AnimationInvisible, Klei/Biome/Unlit Transparent, Klei/Standard Unlit,
-  Klei/LargeImpactorFragments, Klei/DLC4/DemoliorBackground and LargeImpactorCometShader, the
-  PostFX Desaturate, Fill, HueSaturation, Range, RocketLaunchCondition, ScannerNetwork,
-  SkyVisibility and LargeImpactorVisualizerShader, UI/Graphz, Lines/Colored Blended,
-  Sprites/Mask, Unlit/ImGui, Unlit/VirtualCursorCutoutShader, GUI/Text Shader, the TextMeshPro
-  Surface, Masking, Overlay, 2 Pass and Sprite shaders, Legacy Shaders (Diffuse, VertexLit,
-  Particles/Additive), Particles/Standard Surface and Unlit, Standard; and Unity's built-ins
-  (Hidden/*: blits, Internal-* GUI, loading, error and clear shaders, Physics2D, VR, TextCore,
-  video decode, frame debugger). Each needs a scene (the build tool, priorities, rockets and
-  the impactor DLC, debug views, IMGUI) or, for built-ins the game never uses, a check that
-  nothing reaches them; then every pass and variant, which a scene set cannot reach alone
-  (`--check-shaders`-style building of every variant).
-- The OpenGL device's light-buffer read in the mid-game colony's overlays (the two scenes where
-  OpenGL differs from D3D11 and Vulkan alike): an OpenGL-device finding (issue #76's turn in
-  shaders AnimationLight does not change), for the OpenGL device's owners.
+**Left for M3 part B** (part A's list; what became of each is in part B below): coverage (75
+shaders not drawn by the scene set, and every pass and variant), and the mid-game overlays' light
+pools, which part A took for an OpenGL-device finding.
+
+## M3 part B (2026-11-23, branch `d3d11-m3`)
+
+**How done criterion 1 is proven (decided here).** "Every pass and variant draws" cannot be
+shown by play alone: a variant draws only when the game sets its keywords, and many are for
+features the game never turns on (procedural instancing, MSAA copies, stereo). The proof has
+three parts:
+
+1. **Every subprogram is made on the device** (`--check-shaders --renderer d3d11 --d3d11-debug`,
+   `D3d11Check.cs`): each player subprogram of every pass of every shader is selected by its own
+   keywords through the draw path's own selection (D3d11Variants.Select must give back that
+   subprogram), its program built as a draw builds it (D3d11Programs.Get: the bindings checked
+   against the DXBC, `CreateVertexShader`/`CreatePixelShader`/`CreateGeometryShader` on the
+   shipped bytes), and its input layouts made for a full mesh layout, no channels (every input a
+   constant) and the immediate layout. `CreateInputLayout`'s `pShaderBytecodeWithInputSignature`
+   is "A pointer to the compiled shader. The compiled shader code contains a input signature
+   which is validated against the array of elements" (ID3D11Device::CreateInputLayout). Nothing
+   is drawn. A refusal, a failure, a subprogram its own keywords do not
+   select, a layout not made or any debug-layer message fails the run. This is the proof for
+   variants play cannot reach: the device accepts each program and its inputs as the draw path
+   would bind them; only the per-draw state (constant buffers, textures, targets) goes unproven
+   for those.
+2. **What the game draws in play, draws** (the scene set and `d3d11-coverage.yaml`, with the
+   debug layer, pixels within the scene-set tolerance): the shaders the game's content reaches.
+3. **What play does not draw is accounted for** (`ShaderSurvey shader-refs`): each shader no
+   run drew, with the objects that reference it. A shader referenced only by GraphicsSettings
+   and the ScriptMapper (Unity's always-included list and Shader.Find's name table) is reached
+   only by an engine feature; one referenced by the game's materials, MonoBehaviours or
+   Resources needs a scene, or a reason it cannot be reached.
+
+**The validation run** (j0008704, the frozen `E:\oni-builds\oni-win-764025`, RTX 3090, debug
+layer): 121 shaders, 176 passes, 1,070 subprograms (960 distinct entries), as M1's survey; every
+subprogram selected by its own keywords; 504 programs built, 856 entries created, among them the
+one geometry stage (Hidden/VR/BlitFromTex2DToTexArraySlice gs#8); 1,512 input layouts made, none
+refused; no build failure and no debug-layer message. (j0008662, before ShaderCheck read
+globalgamemanagers.assets: 120 shaders, 175 passes, 1,062 subprograms, the same refusals.)
+The 104 entries not created are the 68 programs the device refuses (M2's B2 list), by shader:
+
+| Shader | Entries | Why refused | Referenced by (shader-refs) |
+|---|---|---|---|
+| Particles/Standard Surface | 64 | structured buffers (`PROCEDURAL_INSTANCING_ON` variants) | a material (sharedassets0) |
+| Particles/Standard Unlit | 14 | the same | 2 materials |
+| Klei/Standard Unlit | 8 | the same | a material |
+| Hidden/Physics2D/SDF_* (5 shaders) | 2 each | structured buffers | GraphicsSettings only |
+| Hidden/FrameDebuggerRenderTargetDisplay | 6 | multisample textures (`_MSAA_*`) | a built-in material |
+| Hidden/BlitToDepth_MSAA | 2 | multisample textures | GraphicsSettings only |
+
+No code of Moono's engine sets `PROCEDURAL_INSTANCING_ON` or an `_MSAA_` keyword or uses
+BlitToDepth or the Physics2D debug shaders (`grep` of `src/`), so no draw can select these
+variants on any device; making them would need structured-buffer and multisample-texture
+bindings the device does not have. **Open, for the user:** implement those bindings so the
+check passes whole, or accept the 68 as unreachable and have the check list them apart (it
+counts them as failures now, exit 1).
+
+**Coverage in play** (`coverage.py` over the D3D11 runs: part A's j0008619 and part B's
+j0008675, j0008694, j0008720):
+
+| | Before (part A) | After (part B) | Of |
+|---|---|---|---|
+| Shaders | 46 | 49 | 121 |
+| Passes | 48 | 51 | 176 |
+| Stage entries (subprograms drawn, by blob) | 112 | 120 | 1,070 subprograms (960 entries) |
+| Programs (vertex, pixel, geometry combinations) | 56 | 60 | |
+
+New: Klei/Prioritizable (the priority tool over dig orders), Klei/PostFX/Range (a selected space
+heater's RangeVisualizer) and Klei/PostFX/SkyVisibility (a selected telescope), from
+`d3d11-coverage.yaml` (the small base, debug mode on, a space heater and a telescope built by the
+setup; its five shots within the tolerance against two OpenGL runs, j0008693 and j0008703).
+Tried and not drawn: Klei/BuildingCell (a selected heater in the power overlay drew no port
+icon); the dev tools' ImGui (Ctrl+` is read through Input.GetKeyDown, DevToolManager.
+UpdateShouldShowTools, which the Windows runs' synthetic input has no binding for); the
+Spaced Out starmap, now open, drew no RocketPath (no rocket in flight in that colony).
+
+**Not drawn in play** (72; `shader-refs`, j0008681, over the data's serialized files and the 15
+UnityFS bundles under StreamingAssets):
+- **34 referenced only by GraphicsSettings and the ScriptMapper**, Unity's built-ins: the
+  Hidden blits (BlitCopyDepth, BlitCopyHDRTonemap, BlitCopyWithDepth, BlitToDepth,
+  BlitToDepth_MSAA, ConvertTexture, Compositing), Internal-* (Colored, CombineDepthNormals,
+  CubemapToEquirect, DebugPattern, GUIRoundedRect, GUIRoundedRectWithColorPerBorder,
+  GUITexture, GUITextureBlit, GUITextureClip, GUITextureClipText, Loading, ODSWorldTexture,
+  StencilWrite, UIRAtlasBlitCopy, UIRDefault), InternalClear, InternalErrorShader, the five
+  Physics2D SDF shaders, TextCore's Distance Field SSD, the two VR blits, VideoDecode, and
+  Sprites/Mask. No game object references them; a draw reaches them only through an engine
+  feature. Moono's engine names four of them (Hidden/Internal-GUITexture in Graphics, Sprites/
+  Mask, Hidden/InternalErrorShader for a material without a shader, and GUI/Text Shader,
+  below), so those want a scene that makes the engine use them; the rest are proven by the
+  validation run alone.
+- **38 referenced by game objects** (materials, MonoBehaviours, Resources): the Klei shaders of
+  features no scene reaches yet (AnimationInvisible, Area Visualizer, Biome/Unlit Transparent,
+  BloomedParticleShader, BuildingCell, DLC4 DemoliorBackground and LargeImpactorCometShader,
+  LargeImpactorFragments, LiquidSubstance, NorthernLights, the PostFX Desaturate, Fill,
+  HueSaturation, LargeImpactorVisualizerShader, RocketLaunchCondition and ScannerNetwork,
+  RocketPath, Standard Unlit, TiledWall), Lines/Colored Blended (NavPathDrawer), UI/Graphz,
+  Unlit/ImGui, Unlit/VirtualCursorCutoutShader, GUI/Text Shader, Hidden/LineShader, the frame
+  debugger's display, the TextMeshPro Surface, 2 Pass, Masking, Overlay and Sprite shaders,
+  Legacy Shaders (Diffuse, VertexLit, Particles/Additive), Particles/Standard Surface and
+  Unlit, and Standard. Each still wants a scene (rockets in flight, the impactor DLC, debug
+  views, a gamepad's virtual cursor, IMGUI) or a reason it cannot be reached; until then the
+  validation run is their only proof. Left for M3's close-out or M8's QA.
+- Two shaders sit in a StreamingAssets bundle as well as in the data (Klei/LiquidSubstance and
+  Klei/Substance in `expansion1_bundle`); the validation run builds the data's copies only.
+  Which copy a draw uses, and the bundle copies' programs, are M7's (bundles; captures
+  UNVERIFIED 8).
+
+**The scene fixes** (the research screen and the mid-game starmap never opened through
+`open: {management: …}` on any renderer):
+- **Research.** ManagementMenu.ToggleScreen opens the research screen only when
+  ResearchAvailable(), which needs a research station (`Components.ResearchCenters`) unless in
+  instant-build or sandbox mode (U60 764025); the landing has none. Its shot moved to the small
+  base, which has one, and now shows the tree. The tree moves in real time while the screen is
+  open (a tech entry never held still for 30 frames within 1,800, j0008715-j0008717), so the
+  comparison masks it and judges the side bar.
+- **The mid-game starmap.** The colony reaches a victory imperative as it loads:
+  ColonyAchievementTracker.BeginVictorySequence pauses, hides the HUD (ToggleVictoryUI, the
+  management menu among it) and opens a StoryMessageScreen whose OnKeyDown consumes every key,
+  so the starmap's action reached nothing and part A's UI shot was that message. The spec's
+  setup now waits for the message, deactivates it (its `restoreInterfaceOnClose` is false, so
+  closing it that way starts nothing; PROCEED would start the victory video) and shows the HUD
+  again as the message does when it restores the interface (StoryMessageScreen.HideInterface
+  (false)), with the hover text, and gives back the camera. The starmap (the cluster map) and the
+  UI with its HUD are shot now.
+- **The skills screen** (small base) was within the tolerance in part A and over in part B's
+  first run: the Duplicant's portrait animates in real time, paused or not, and had matched in
+  both OpenGL runs by chance. Its rect is masked; `scenes.py` now applies a shot's spec masks
+  (`NAME.shot.json`) to every comparison of it.
+
+**Scene-set results, part B** (`scenes.py`; D3D11 with the debug layer j0008694 and, for the
+small base, j0008720; OpenGL j0008693 and j0008692, for the coverage spec j0008693 and j0008703,
+for the small base j0008718 and j0008719; the tolerance and method of part A, now with each
+shot's spec masks applied):
+
+| Colony | Shots | OpenGL spread > 8 (max) | Compared (min) | > 2 | > 8 | > 16 | > 40 | PSNR (min) | Within |
+|---|---|---|---|---|---|---|---|---|---|
+| Landing (gases) | 22 | 1.74% | 92% | 20.4% | 0.22% | 0.022% | 0.008% | 44.3 dB | 22 of 22 |
+| Small base | 26 | 2.10% | 89% | 13.6% | 0.39% | 0.104% | 0.042% | 43.5 dB | 26 of 26 |
+| Mid-game Spaced Out | 22 | 2.05% | 86% | 20.6% | 2.53% | 0.238% | 0.080% | 41.3 dB | 19 of 22 |
+| Coverage (small base) | 5 | 2.37% | 94% | 11.6% | 0.28% | 0.117% | 0.054% | 44.6 dB | 5 of 5 |
+
+72 of 75 within; the research screen (its side bar), the mid-game UI with its HUD and the
+cluster map among them. Over: the mid-game colony's materials (1.541% over 40), conveyor (0.175%)
+and power (0.122% over 40, 0.851% over 16) overlays, the light pools below. No debug-layer
+message was stored in any D3D11 run (the storage filter's denials apart).
+
+**The light pools in the mid-game colony's overlays** (part A's "OpenGL differs" note, reversed).
+The original, measured on Windows (D3D11, j0008657, another agent's run), agrees with OpenGL, not
+with Vulkan and D3D11: pixels over 40 against the original in the materials, conveyor and power
+overlays: OpenGL 0.093%, 0.198%, 0.411%; Vulkan 1.633%, 0.439%, 0.877%; D3D11 1.597%, 0.365%,
+0.554%. So those three scenes count as over the tolerance on D3D11 (and Vulkan), not as OpenGL's.
+The cause, as far as it is measured here (not fixed in M3; it is not the D3D11 device's own):
+
+- **The read.** Klei/BatchedAnimation's shipped pixel program (blob 3, `fxc /dumpbin`, j0008666)
+  reads the light buffer at `unity_MatrixVP · unity_ObjectToWorld · (world position)`, then
+  `uv = clip.xy · (0.5, −0.5) + 0.5` (`mad r1.zw, r1.zzzw, l(0, 0, 0.5, −0.5), l(0, 0, 0.5, 0.5)`,
+  then `sample … t12` = `_LightBufferTex`). No `_ProjectionParams` correction. So the read is
+  right only when the draw's `unity_MatrixVP` has the same y sign as the light buffer's own
+  render: both flipped (render textures) or both not.
+- **The original.** In its recorded colony and temperature-overlay frames (j0008168,
+  `report-*.txt`), every world draw goes to a render texture with FrontCounterClockwise 1 (the
+  flipped convention): Klei/BatchedAnimation, Conduit, Human and TiledBlock into MRT0 (9220),
+  the light buffer (Klei/Lightbuffer) into 9FAA0. The `overlayNoDepth` camera's draws
+  (Klei/StatusItem; the KAnim post-processing passes Klei/BatchedAnimationPstTemperature, drawn
+  with Graphics.DrawMesh on the Overlay layer from KAnimActivePostProcessingEffects.OnRenderImage)
+  go into render texture 18A0, 1024×768, FrontCounterClockwise 1, with the depth view the overlay
+  camera's last image effect (ClusterCoverPostFX) used; only the UI and the frame's last draw go
+  to the screen surfaces (31A0, 2D20, FrontCounterClockwise 0).
+- **Ours.** The overlay modes move the buildings they show to the MaskedOverlay layer and add it
+  to `Camera.main`'s culling mask (OverlayModes, U60 764025: `Camera.main.cullingMask |=
+  cameraLayerMask`); `Camera.main` is
+  `overlayNoDepth` (CameraController.OnPrefabInit tags it MainCamera and the overlay camera
+  Untagged). Ours renders that camera, which has no image effects (its components:
+  NavPathDrawer and the visualizer effects; the overlay camera's chain is ColorCorrectionLookup,
+  BloomEffect, SimDebugViewCompositor, KAnimActivePostProcessingEffects, GridCompositor,
+  FogOfWarPostFX, CustomActiveScreenPostProcessingEffects, ClusterCoverPostFX,
+  CameraReferenceTexture: j0008669), straight into the back buffer: the D3D11 device logs
+  Klei/BatchedAnimation and Klei/StatusItem drawing into the back buffer (part A's
+  attribution, j0008619). With the back buffer's unflipped `unity_MatrixVP` and the light buffer
+  stored flipped, the program reads the light mirrored about the screen's middle row.
+- **So** the difference is which target `overlayNoDepth` (a screen camera after a screen camera
+  with image effects) renders into: the original renders it, flipped, into the render texture the
+  overlay camera's image-effect chain ended in, and draws the result to the screen afterwards;
+  ours renders it into the screen. That is the frame renderer's (shared by the Vulkan and D3D11
+  devices; OpenGL flips nothing, so it reads right), not a device convention. Which rule
+  Unity follows (when a screen camera's chain ends in a render texture, and when the screen
+  surface takes over: the UI camera's draws go to 31A0) is UNVERIFIED: the recorder lists
+  distinct draws only and not the copies, so the step from 18A0 to 31A0 is not recorded.
+  Settling it needs a recording of every draw and copy of one overlay frame (M4, with B2's
+  UNVERIFIED 5, the screen's intermediate texture). Reported to the agent fixing the Vulkan side.
+
+**Runs** (runq, burndown, owner `d3d11-m3`): check-shaders j0008662 (first), j0008704 (final);
+builds j0008661, j0008681 (with `shader-refs`); ShaderSurvey dump j0008665 and `fxc /dumpbin`
+j0008666 (Klei/BatchedAnimation and siblings, for the light pools); probe of the overlay
+camera's components j0008667-j0008669 (j0008667: run.py not executable, run with python3 since;
+j0008668: a Camera member ours lacks); scene and coverage runs: D3D11 j0008675 (the mid-game
+setup failed on a null ResourceCategoryScreen, fixed), j0008694, j0008720; OpenGL j0008692
+(the coverage spec's selection in the power overlay failed, fixed), j0008693, j0008703
+(coverage only), j0008718, j0008719 (base only); base runs j0008711-j0008717 failed waiting for
+the research tree to hold still (dropped for a mask; j0008712 and j0008713 cancelled);
+check.sh CHECKJOB.
 
 ## Research so far (M0)
 
