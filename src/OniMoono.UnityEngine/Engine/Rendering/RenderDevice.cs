@@ -73,6 +73,13 @@ namespace OniMoono.Engine.Rendering
         /// render the light buffer each for themselves.
         public virtual bool CaptureTileShaders => true;
 
+        /// Cameras drawing to the screen draw into a screen-sized render texture of the frame
+        /// renderer's, with a render texture's conventions, which is drawn into the back buffer
+        /// before the overlay canvases (FrameRenderer.CameraScreen), as the original does on
+        /// Direct3D 11. For a device that cannot give back-buffer passes a render texture's
+        /// projection right side up (Direct3D 11 has no negative viewport height).
+        public virtual bool CameraPassesOffscreen => false;
+
         /// Reads a rectangle of a render target (null: the back buffer) as RGBA 8-bit rows,
         /// bottom row first, into `destination` from `offset`, rows `stride` bytes apart. This
         /// default reads through a texture; a device reads straight into the array.

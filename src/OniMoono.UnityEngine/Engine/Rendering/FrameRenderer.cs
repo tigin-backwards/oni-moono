@@ -411,6 +411,7 @@ namespace OniMoono.Engine.Rendering
                 if (entry.Camera && (lightCamera is null || !ReferenceEquals(entry.Camera.EngineState, lightCamera))) RenderCamera(entry.Camera);
             order.Clear();
             screenOrder = order;
+            HandOverCameraScreen();
             if (overlays) RenderOverlays?.Invoke();
         }
 
@@ -1196,7 +1197,8 @@ namespace OniMoono.Engine.Rendering
         static void ImageEffectsCore(Camera camera, CameraNative cam, List<(MonoBehaviour Behaviour, Action<MonoBehaviour, RenderTexture, RenderTexture> Effect)> effects, RenderTexture source)
         {
             Execute(camera, cam, CameraEvent.BeforeImageEffects);
-            var finalTarget = cam.TargetTexture;
+            // To the screen: the cameras' screen texture where the device draws cameras there.
+            var finalTarget = cam.TargetTexture ? cam.TargetTexture : cam.TargetColorBuffers == null ? CameraScreen() : null;
             for (int i = 0; i < effects.Count; i++)
             {
                 bool last = i == effects.Count - 1;
@@ -1219,7 +1221,46 @@ namespace OniMoono.Engine.Rendering
                 return new RenderTargetBinding(colors, depth, 0);
             }
             if (cam.TargetTexture) return RenderTargetBinding.Of((RenderTextureNative)cam.TargetTexture.NativeOrThrow);
-            return screenOverride == null ? RenderTargetBinding.CameraBackBuffer : ScreenBinding;
+            if (screenOverride != null) return ScreenBinding;
+            return CameraScreen() is { } screen ? RenderTargetBinding.Of((RenderTextureNative)screen.NativeOrThrow) : RenderTargetBinding.CameraBackBuffer;
+        }
+
+        /// The render texture cameras drawing to the screen draw into, on a device that asks
+        /// for it (RenderDevice.CameraPassesOffscreen); null otherwise, and during a capture
+        /// (which has its own target). The original on Direct3D 11 does this: in its recorded
+        /// colony and overlay frames (d3d11-captures.md, j0008168) the overlay camera's last
+        /// image effect (ClusterCoverPostFX) and the overlayNoDepth camera's draws after it
+        /// (Klei/StatusItem, Klei/BatchedAnimationPstTemperature) go to one screen-sized
+        /// R8G8B8A8 render texture, rasterized as render textures are (FrontCounterClockwise 1),
+        /// and only the UI goes to the screen's surface. A screen-sized texture, depth 24, the
+        /// back buffer's format; made again when the screen's size changes. Drawn into the back
+        /// buffer before the overlay canvases (HandOverCameraScreen).
+        static RenderTexture CameraScreen()
+        {
+            if (screenOverride != null || !GraphicsDevice.Current.CameraPassesOffscreen) return null;
+            var size = ScreenPixelSize;
+            int w = Math.Max(1, (int)size.x), h = Math.Max(1, (int)size.y);
+            if (cameraScreen && (cameraScreen.width != w || cameraScreen.height != h))
+            {
+                cameraScreen.Release();
+                UnityEngine.Object.Destroy(cameraScreen);
+                cameraScreen = null;
+            }
+            if (!cameraScreen) cameraScreen = new RenderTexture(w, h, 24, RenderTextureFormat.ARGB32) { name = "CameraScreen" };
+            cameraScreenDrawn = true;
+            return cameraScreen;
+        }
+
+        static RenderTexture cameraScreen;
+        static bool cameraScreenDrawn;
+
+        /// The cameras' screen texture drawn into the back buffer (Graphics.Blit), once cameras
+        /// drew into it this frame.
+        static void HandOverCameraScreen()
+        {
+            if (!cameraScreenDrawn) return;
+            cameraScreenDrawn = false;
+            if (cameraScreen) Graphics.Blit(cameraScreen, (RenderTexture)null);
         }
 
         /// Binds a target, creating render textures on first use.

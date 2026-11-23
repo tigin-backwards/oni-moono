@@ -189,6 +189,16 @@ namespace OniMoono.Desktop.D3d11
         public override bool RendersFrames => true;
         public override bool Supports(ShaderNative shader) => shader.HasProgramsFor(ShaderNative.D3D11Platform);
 
+        /// Cameras to the screen draw into the frame renderer's screen-sized render texture
+        /// (FrameRenderer.CameraScreen), as the original's do, so Unity's programs read a render
+        /// texture's projection there: Klei/BatchedAnimation, BatchedAnimationHuman and
+        /// BatchedAnimationConduit take the light buffer at (unity_MatrixVP · world
+        /// position).xy · (0.5, −0.5) + 0.5 (their shipped pixel programs, `fxc /dumpbin`),
+        /// right only with a render texture's y-negated projection. D3D11 cannot turn the
+        /// viewport over instead, as the Vulkan device does: "In all cases, Width and Height
+        /// must be >= 0" (D3D11_VIEWPORT, Remarks).
+        public override bool CameraPassesOffscreen => true;
+
         /// Unity's Direct3D 11 programs cannot take CaptureTiles' changes (as Vulkan's).
         public override bool CaptureTileShaders => false;
 
