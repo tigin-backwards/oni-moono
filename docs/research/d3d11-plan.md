@@ -701,7 +701,7 @@ j0008616; ShaderSurvey j0008601, j0008618; scene runs j0008604 (first, Vulkan: t
 lane's renderer variable does not pass runq's environment filter, `E2E_PLAYER_ARGS` does),
 j0008605 and j0008607 (first D3D11 colony runs), j0008608-j0008610 (first scene set: OpenGL
 twice, D3D11), j0008612-j0008615 (OpenGL twice, D3D11, D3D11 with anisotropy off), j0008617 (Vulkan),
-j0008619 (D3D11 with the debug layer, the committed device); check.sh JCHECK; the storage filter: build and check j0008637, run j0008638. j0008600, the
+j0008619 (D3D11 with the debug layer, the committed device); check.sh j0008641 (green, on 85e3ae0b6); the storage filter: build and check j0008637, run j0008638. j0008600, the
 first submission, waited behind a perf job's reservation and ran the landing's spec on Vulkan
 later (the renderer variable did not reach it); its result is not used.
 
