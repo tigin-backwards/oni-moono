@@ -230,6 +230,17 @@ namespace OniMoono.Engine.Rendering
     internal readonly record struct RenderTargetBinding(RenderTextureNative[] Colors, RenderTextureNative Depth, int MipLevel)
     {
         public static readonly RenderTargetBinding BackBuffer = new(null, null, 0);
+
+        /// The back buffer as a camera's passes draw to it. Unity's Direct3D 11 player renders
+        /// those into a render texture of its own, with a render texture's projection, and draws
+        /// only the UI after it into the back buffer itself (the original's frame recordings). A
+        /// device whose programs read the projection differently in the two (Vulkan) gives these
+        /// passes a render texture's.
+        public static readonly RenderTargetBinding CameraBackBuffer = new(null, null, 0) { Camera = true };
+
+        /// A camera's passes to the back buffer (CameraBackBuffer).
+        public bool Camera { get; init; }
+
         /// The texture as colour and depth (the array is the texture's, and never written).
         public static RenderTargetBinding Of(RenderTextureNative texture) => texture == null ? BackBuffer : new(texture.AsTarget ??= [texture], texture, 0);
     }

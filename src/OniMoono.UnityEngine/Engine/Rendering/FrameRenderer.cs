@@ -1218,7 +1218,8 @@ namespace OniMoono.Engine.Rendering
                 var depth = ObjectTable.FindByInstanceId(cam.TargetDepthBuffer.m_RenderTextureInstanceID)?.NativeRecord as RenderTextureNative;
                 return new RenderTargetBinding(colors, depth, 0);
             }
-            return cam.TargetTexture ? RenderTargetBinding.Of((RenderTextureNative)cam.TargetTexture.NativeOrThrow) : ScreenBinding;
+            if (cam.TargetTexture) return RenderTargetBinding.Of((RenderTextureNative)cam.TargetTexture.NativeOrThrow);
+            return screenOverride == null ? RenderTargetBinding.CameraBackBuffer : ScreenBinding;
         }
 
         /// Binds a target, creating render textures on first use.

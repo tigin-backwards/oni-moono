@@ -3190,6 +3190,20 @@ Only the work posted for resources differs (`IResourceWork`).
   - **Render textures.** Into a render texture the projection's y is negated as well
     (`_ProjectionParams.x` -1). That leaves render textures' rows in OpenGL's order, so sampling
     them reads what OpenGL's do.
+  - **Cameras drawing to the screen.** A camera with no target texture draws its passes with a
+    render texture's projection (`RenderTargetBinding.CameraBackBuffer`) and the viewport turned
+    over (a negative height), so the pixels and front faces are the back buffer's. The original
+    on Direct3D 11 renders those cameras into a render texture of its own and draws only the UI
+    after it into the back buffer (its frame recordings: the overlay camera's last image effect
+    writes a screen-sized render texture, with a render texture's front faces, and the
+    animations drawn after it go there too). The projection shows where a program reads it outside its position:
+    `Klei/BatchedAnimation`, `BatchedAnimationHuman` and `BatchedAnimationConduit` take the light
+    buffer at `(MatrixVP · world position).xy · (0.5, -0.5) + 0.5`. The overlays draw the
+    buildings and pipes they show with `overlayNoDepth`, a camera to the screen with no image
+    effects; with the back buffer's projection they took their light from the position mirrored
+    about the screen's middle row. Against the original in a mid-game colony's materials overlay,
+    the pixels more than 40 levels off went from 1.6 % to 0.01 % (`gl-lightpool`); what is left
+    in the other overlays is status icons and pipe contents, which move with real time.
   - **`Klei/Stars`.** A program that derives texture coordinates from its clip-space position
     therefore reads them turned over in a render texture. `Klei/Stars` (the space and nebula
     background, drawn into the base camera's render texture) takes its UVs from clip y, so its

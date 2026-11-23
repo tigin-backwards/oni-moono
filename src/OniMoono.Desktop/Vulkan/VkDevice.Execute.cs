@@ -28,6 +28,9 @@ namespace OniMoono.Desktop.Vulkan
         /// The target's rows are stored top first (the back buffer, a ScreenRows render
         /// texture): rectangles from the bottom left are turned over.
         bool topFirst;
+        /// A camera's passes to the back buffer, drawn with a render texture's projection
+        /// (BoundTarget.CameraPasses): the viewport is turned over to put them the right way up.
+        bool turnedViewport;
         UnityEngine.Rect viewport = new(0, 0, 1, 1);
         Rect? scissor;
         long draws, pipelineBinds, renderPasses, uploadBreaks;
@@ -90,6 +93,7 @@ namespace OniMoono.Desktop.Vulkan
             }
             toBackBuffer = t.Colors == null;
             topFirst = toBackBuffer || t.ScreenRows;
+            turnedViewport = toBackBuffer && t.CameraPasses;
             if (toBackBuffer)
             {
                 var bb = presenter.BackBuffer(t.BackBufferWidth, t.BackBufferHeight, frames);
@@ -198,7 +202,10 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         /// The viewport (from the bottom left): the same rectangle in a render texture, turned
-        /// over in the back buffer.
+        /// over in the back buffer. A camera's passes there (turnedViewport) are projected as
+        /// into a render texture, upside down for the back buffer, so their viewport runs from
+        /// the rectangle's bottom row up (a negative height, core since Vulkan 1.1): the same
+        /// pixels, and the same front faces, as the back buffer's projection gives.
         void ApplyViewport()
         {
             int h = Math.Max(1, (int)viewport.height);
@@ -207,6 +214,7 @@ namespace OniMoono.Desktop.Vulkan
                 X = (int)viewport.x, Y = topFirst ? renderHeight - (int)viewport.y - h : (int)viewport.y,
                 Width = Math.Max(1, (int)viewport.width), Height = h, MaxDepth = 1f,
             };
+            if (turnedViewport) (v.Y, v.Height) = (v.Y + h, -h);
             frames.Main.SetViewport(0, new ReadOnlySpan<VkViewport>(&v, 1));
         }
 

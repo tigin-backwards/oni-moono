@@ -1,0 +1,18 @@
+# Room light on buildings and pipes in the overlays: a mid-game Spaced Out colony, paused after its
+# load, at the camera the save keeps, shot in the normal view and the materials, conveyor, power,
+# liquid and gas pipe overlays. The overlays draw the buildings and pipes they show with their own
+# camera, which the light buffer's position must follow (ARCHITECTURE.md, Vulkan conventions). Compared
+# between players and renderers (shots only, no reference).
+from: 2minnow
+steps:
+  - world_shot: {name: world, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: materials}}
+  - world_shot: {name: overlay-materials, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: conveyor}}
+  - world_shot: {name: overlay-conveyor, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: power}}
+  - world_shot: {name: overlay-power, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: liquid_conduits}}
+  - world_shot: {name: overlay-liquid-conduits, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: gas_conduits}}
+  - world_shot: {name: overlay-gas-conduits, ortho: 20}

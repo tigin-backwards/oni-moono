@@ -297,7 +297,7 @@ namespace OniMoono.Desktop.Vulkan
 
         // ----- Targets, viewport, clears (main thread records) -----
 
-        sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int BackBufferWidth, int BackBufferHeight, bool ScreenRows = false);
+        sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int BackBufferWidth, int BackBufferHeight, bool ScreenRows = false, bool CameraPasses = false);
 
         public override void SetRenderTarget(in RenderTargetBinding binding)
         {
@@ -310,10 +310,14 @@ namespace OniMoono.Desktop.Vulkan
                 if (binding.Depth != null) depth = binding.Depth == binding.Colors[0] ? colors[0] : GlTextures.Prepare(worker, binding.Depth);
             }
             // Unity's Vulkan programs render into render textures upside down (RenderConventions),
-            // but for one rendered as the back buffer is (ScreenRows).
+            // but for one rendered as the back buffer is (ScreenRows). A camera's passes to the
+            // back buffer take a render texture's projection, as the original renders them into a
+            // render texture (RenderTargetBinding.CameraBackBuffer); the viewport turns them
+            // over again (ApplyViewport), so the pixels land where the back buffer's would.
             bool screenRows = colors != null && binding.Colors[0].ScreenRows;
-            var bound = new BoundTarget(colors, depth, platform.FramebufferWidth, platform.FramebufferHeight, screenRows);
-            recorder.Conventions = new RenderConventions(Vulkan: true, Flipped: colors != null && !screenRows);
+            bool cameraPasses = colors == null && binding.Camera;
+            var bound = new BoundTarget(colors, depth, platform.FramebufferWidth, platform.FramebufferHeight, screenRows, cameraPasses);
+            recorder.Conventions = new RenderConventions(Vulkan: true, Flipped: (colors != null && !screenRows) || cameraPasses);
             worker.Post(worker.Arena.Command(setTarget ??= SetTarget, bound));
         }
 
