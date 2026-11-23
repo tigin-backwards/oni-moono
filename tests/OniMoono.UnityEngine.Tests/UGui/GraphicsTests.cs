@@ -363,5 +363,31 @@ namespace OniMoono.Tests.UGui
             Canvas.ForceUpdateCanvases();
             Assert.Contains("ColorMask:0", own.GetMaterial().name);
         }
+
+        /// The Colony Summary's flourish (AchievementWidget.Flourish): a widget below the list's
+        /// mask turns on its canvas's overrideSorting to draw over the veils, and off again. Its
+        /// graphics count the masks only up to that canvas while it overrides, so they draw
+        /// unmasked then; with the list's stencil test kept, they vanished for the flourish.
+        [Fact]
+        public void OverridingSortingRecountsTheMasksAboveTheGraphics()
+        {
+            UseGameAssets();
+            var canvas = NewCanvas();
+            var list = NewRect("List", canvas.transform, 100, 100, typeof(Image), typeof(Mask));
+            var widget = NewRect("Widget", list, 50, 50, typeof(Canvas));
+            var image = NewRect("BG", widget, 50, 50, typeof(Image)).GetComponent<Image>();
+            Canvas.ForceUpdateCanvases();
+            Assert.StartsWith("Stencil Id:1, Op:Keep, Comp:Equal", image.canvasRenderer.GetMaterial().name);
+
+            var sorting = widget.GetComponent<Canvas>();
+            sorting.overrideSorting = true;
+            sorting.sortingOrder = 30;
+            Canvas.ForceUpdateCanvases();
+            Assert.Equal(Graphic.defaultGraphicMaterial, image.canvasRenderer.GetMaterial());
+
+            sorting.overrideSorting = false;
+            Canvas.ForceUpdateCanvases();
+            Assert.StartsWith("Stencil Id:1, Op:Keep, Comp:Equal", image.canvasRenderer.GetMaterial().name);
+        }
     }
 }

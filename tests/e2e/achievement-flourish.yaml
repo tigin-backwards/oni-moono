@@ -1,0 +1,43 @@
+# The flourish a newly earned colony achievement plays in the Colony Summary
+# (AchievementWidget.Flourish). Opened from the pause menu, LoadColony plays it for each id in
+# ColonyAchievementTracker.achievementsToDisplay: a second later the list scrolls to the widget,
+# the widget's Canvas overrides sorting (order 30) to draw over the veils, its icon scales along
+# flourish_iconScaleCurve while the sheen slides across it, then the sparks kanim plays, the
+# widget turns gold (SetAchievedNow) and its Canvas sorts with the list again. The setup puts one
+# achievement in that list, as earning it does.
+#
+# While it overrides sorting the widget's graphics count the masks only up to its canvas, so
+# they draw without the list's stencil test. Ours kept the list's (no OnCanvasHierarchyChanged
+# when overrideSorting changed) and the widget vanished for the whole flourish.
+#
+# The list's glide to the widget (KScrollRect's auto-scroll) stops within 1 % of its target, at a
+# place that depends on the frame times, so the widget is compared by its own crop and state.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "SaveGame.Instance.ColonyAchievementTracker.completedAchievementsToDisplay", method: Add, args: ["Survived100Cycles"]}}
+steps:
+  - key: {code: Escape, until: "**/PauseScreen"}
+  - ui_wait: {path: "**/PauseScreen/LayoutContent", cond: stable}
+  - click: {text: "Colony Summary", under: "**/PauseScreen/LayoutContent"}
+  # During the flourish: the background, below the list's mask, draws unmasked; the icon's own
+  # graphics keep the icon's mask.
+  - wait_state:
+      state: {"RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].GetComponent<Canvas>.overrideSorting": true}
+      seconds: 20
+  - expect_state:
+      "RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].transform.Find(\"BG\").GetComponent<UnityEngine.UI.Image>.m_StencilValue": 0
+      "RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].transform.Find(\"Header/Icon/BG\").GetComponent<UnityEngine.UI.Image>.m_StencilValue": 1
+  # After it: the widget sorts with the list again, inside its mask, and the veils are gone.
+  - wait_state:
+      state:
+        "RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].GetComponent<Canvas>.overrideSorting": false
+        "RetiredColonyInfoScreen.Instance.achievementVeils[0].activeSelf": false
+      seconds: 20
+  - ui_wait: {path: "**/RetiredColonyInfoScreen", cond: stable, frames: 600}
+  - expect_state:
+      "RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].transform.Find(\"BG\").GetComponent<UnityEngine.UI.Image>.m_StencilValue": [1, "== original"]
+      "RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].GetComponent<MultiToggle>.CurrentState": "== original"
+      "RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].transform.Find(\"Header/Icon\").localScale.x": "== original"
+      "RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].GetComponent<AchievementWidget>.flourish_iconScaleCurve.Evaluate(0.6)": "== original"
+      "RetiredColonyInfoScreen.Instance.achievementEntries[\"Survived100Cycles\"].GetComponent<AchievementWidget>.flourish_sheenPositionCurve.Evaluate(0.6)": "== original"
+  - shot: {name: earned, crop: "**/AchievementScroll/Content/AchievementPrefab[0]", threshold: 0.04}

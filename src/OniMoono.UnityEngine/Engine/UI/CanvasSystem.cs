@@ -120,7 +120,17 @@ namespace OniMoono.Engine.UI
         }
 
         /// overrideSorting changed: the canvas's elements move to another sort root.
-        public static void SortingChanged(CanvasNative c) => Rehomed(c);
+        /// A live canvas that starts or stops sorting on its own also tells the scripts at and
+        /// below it, as enabling one does: a graphic's stencil depth counts the masks up to the
+        /// nearest canvas that overrides sorting, so uGUI's graphics recompute it. Without that
+        /// the Colony Summary's newly earned achievement (AchievementWidget.Flourish sorts it over
+        /// the veils) kept the depth of the list's mask, which its own draw no longer sits
+        /// inside, and vanished for its flourish; the original draws it throughout.
+        public static void SortingChanged(CanvasNative c)
+        {
+            Rehomed(c);
+            if (IsLive(c)) HierarchyChanged(c);
+        }
 
         // ----- Depth numbering -----
         //
