@@ -6,9 +6,8 @@ Ours: out/win (scripts/build-windows.sh) staged in %TEMP%\\oni-brutal\\qa-win\\h
 Windows data (WIN_GAME, default E:\\oni-builds\\oni-win-764025), --renderer from WIN_RENDERER
 (default vulkan; empty for none). The original: a renamed copy of that install (WIN_ORIG, default
 E:\\oni-builds\\BrutalNotIncluded-764025), set up by scripts/original-windows.sh on its first run
-(WIN_BEPINEX_SOURCE: a game folder with BepInEx 6), on Unity's default renderer (Direct3D 11);
-WIN_ORIG_PRODUCT is the product name in its globalgamemanagers. Both players run windowed
-1280x720 on the second monitor, never focused, and muted (volume prefs 0; ours --audio-wav, the
+(WIN_BEPINEX_SOURCE: a game folder with BepInEx 6), on Unity's default renderer (Direct3D 11).
+Both players run windowed 1280x720 on the second monitor, never focused, and muted (volume prefs 0; ours --audio-wav, the
 original's isolation writes a wav); guard.ps1 kills a window that stays on the first monitor
 for over half a second. One player at a time, on lane WIN_LANE (default 25).
 
@@ -51,9 +50,6 @@ def windows_python():
 # WIN_PYTHON: the Windows Python that runs bridge.py (default: python on the Windows PATH).
 WIN_PY = os.environ.get('WIN_PYTHON') or windows_python()
 WSL_TEMP = subprocess.run(['wslpath', '-u', windows_env('TEMP')], capture_output=True, text=True).stdout.strip()
-LOCAL_LOW = subprocess.run(['wslpath', '-u', windows_env('USERPROFILE') + '\\AppData\\LocalLow'], capture_output=True, text=True).stdout.strip()
-# The original's product name (globalgamemanagers): its LocalLow folder holds OniMcp's options.
-ORIG_PRODUCT = os.environ.get('WIN_ORIG_PRODUCT', 'Brutal Not Included')
 STAGE = 'oni-brutal\\qa-win'
 WIN_GAME = os.environ.get('WIN_GAME', 'E:\\oni-builds\\oni-win-764025')
 WIN_ORIG = os.environ.get('WIN_ORIG', 'E:\\oni-builds\\BrutalNotIncluded-764025')
@@ -479,17 +475,16 @@ class WinPlayer(e2e.Player):
         )
         assert 'Volume_Master: 0' in text
         open(prefs, 'w').write(text)
-        # OniMcp reads its options from Application.persistentDataPath first: the original's is
-        # its copy's own LocalLow folder (WIN_ORIG_PRODUCT), ours' the run home's.
+        # OniMcp reads its options from Application.persistentDataPath first, then its mod
+        # folder. Ours' is the run home's. The original's is the real LocalLow, under the product
+        # name original-windows.sh makes up for each run, so it holds no options and the mod
+        # folder's copy is read: nothing is written to the real LocalLow.
         config = open(os.path.join(self.profile, 'OniMcpConfig.json')).read()
-        local_low = (
-            os.path.join(LOCAL_LOW, 'Klei', ORIG_PRODUCT)
-            if kind == 'original'
-            else os.path.join(self.whome_u, 'AppData', 'LocalLow', 'Klei', 'Oxygen Not Included')
-        )
-        os.makedirs(local_low, exist_ok=True)
-        with open(os.path.join(local_low, 'OniMcpConfig.json'), 'w') as f:
-            f.write(config)
+        if kind != 'original':
+            local_low = os.path.join(self.whome_u, 'AppData', 'LocalLow', 'Klei', 'Oxygen Not Included')
+            os.makedirs(local_low, exist_ok=True)
+            with open(os.path.join(local_low, 'OniMcpConfig.json'), 'w') as f:
+                f.write(config)
         with open(os.path.join(self.profile, 'mods', 'Local', 'OniMcp', 'OniMcpConfig.json'), 'w') as f:
             f.write(config)
         self.log = os.path.normpath(os.path.join(self.whome_u, 'player.log' if kind == 'ours' else 'Player.log'))
