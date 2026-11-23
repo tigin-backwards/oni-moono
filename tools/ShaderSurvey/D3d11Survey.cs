@@ -29,13 +29,14 @@ static class D3d11Survey
 {
     public sealed class Totals
     {
-        public int Shaders, Subprograms, Entries, VulkanKeys, Passes, LegacyShaders, Failures, Textures, TexturesWithoutSampler, InlineSamplers, ConstantBuffers;
+        public int Shaders, Subprograms, Entries, VulkanKeys, Passes, LegacyShaders, Failures, Textures, TexturesWithoutSampler, InlineSamplers, ConstantBuffers, SharedSamplerSlots;
         public long DxbcBytes;
         public readonly SortedDictionary<string, int> ChunkSets = new(StringComparer.Ordinal);
         public readonly SortedDictionary<string, int> Models = new(StringComparer.Ordinal);
         public readonly SortedDictionary<string, int> Components = new(StringComparer.Ordinal);
         public readonly SortedDictionary<string, int> PrefixRest = new(StringComparer.Ordinal);
         public readonly SortedDictionary<string, int> CbSecondInt = new(StringComparer.Ordinal);
+        public readonly SortedDictionary<string, int> SharedSamplers = new(StringComparer.Ordinal);
     }
 
     public static int RunGame(string dataDir, TextWriter o) => Report(Game(dataDir, o), o);
@@ -114,6 +115,7 @@ static class D3d11Survey
         o.WriteLine("prefix bytes 0 and 4-37: " + string.Join(", ", t.PrefixRest.Select(kv => $"{kv.Key} {kv.Value}")));
         o.WriteLine("constant buffer bindings' second int: " + string.Join(", ", t.CbSecondInt.Select(kv => $"{kv.Key} {kv.Value}")));
         o.WriteLine($"bindings checked: {t.Textures} textures ({t.TexturesWithoutSampler} without a sampler), {t.InlineSamplers} inline samplers, {t.ConstantBuffers} constant buffers");
+        o.WriteLine($"sampler slots two or more textures of one subprogram name: {t.SharedSamplerSlots}" + string.Concat(t.SharedSamplers.Select(kv => $"\n  {kv.Key} ({kv.Value} subprograms)")));
         o.WriteLine($"{t.Shaders} shaders, {t.Passes} passes, {t.Subprograms} subprograms, {t.Entries} distinct entries ({t.DxbcBytes} DXBC bytes), " +
             $"{t.VulkanKeys} Vulkan variant keys mapped, {t.Failures} failures");
         return t.Failures == 0 ? 0 : 1;
@@ -176,6 +178,12 @@ static class D3d11Survey
                     t.Textures += bindings.Textures.Length;
                     t.TexturesWithoutSampler += bindings.Textures.Count(b => b.Sampler < 0);
                     t.InlineSamplers += bindings.Samplers.Length;
+                    // Sampler slots that more than one texture of the subprogram names.
+                    foreach (var g in bindings.Textures.Where(b => b.Sampler >= 0).GroupBy(b => b.Sampler).Where(g => g.Count() > 1))
+                    {
+                        t.SharedSamplerSlots++;
+                        Tally(t.SharedSamplers, $"{name}: s{g.Key} for {string.Join(", ", g.Select(b => b.Name))}");
+                    }
                     t.ConstantBuffers += bindings.ConstantBuffers.Length;
                 }
                 catch (InvalidDataException e)

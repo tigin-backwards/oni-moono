@@ -1,0 +1,64 @@
+# The Direct3D 11 scene set's second colony (d3d11-scenes.yaml has the reasons): a small base
+# with Duplicants, buildings and debris, paused after its load. The world close up and wide,
+# every overlay (set through OniMcp), management screens, then the save's colony preview (the
+# Timelapser's render, read back through AsyncGPUReadback where the device has it) and the
+# debug 8x screenshot (ScreenCapture.CaptureScreenshot at 8 times the screen's size, read back
+# in bands).
+from: early-base
+setup:
+  # As debug_enable.txt in the game folder would (DebugHandler reads it at start-up).
+  - driver: {setup.call: {type: "DebugHandler", method: "SetDebugEnabled", args: [true]}}
+steps:
+  - world_shot: {name: world, ortho: 8, at: [124, 210]}
+  - world_shot: {name: world-wide, ortho: 24, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: oxygen}}
+  - world_shot: {name: overlay-oxygen, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: power}}
+  - world_shot: {name: overlay-power, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: temperature}}
+  - world_shot: {name: overlay-temperature, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: heat_flow}}
+  - world_shot: {name: overlay-heat-flow, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: conductivity}}
+  - world_shot: {name: overlay-conductivity, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: materials}}
+  - world_shot: {name: overlay-materials, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: light}}
+  - world_shot: {name: overlay-light, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: decor}}
+  - world_shot: {name: overlay-decor, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: rooms}}
+  - world_shot: {name: overlay-rooms, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: germs}}
+  - world_shot: {name: overlay-germs, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: radiation}}
+  - world_shot: {name: overlay-radiation, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: exosuit}}
+  - world_shot: {name: overlay-exosuit, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: farming}}
+  - world_shot: {name: overlay-farming, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: gas_conduits}}
+  - world_shot: {name: overlay-gas-conduits, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: liquid_conduits}}
+  - world_shot: {name: overlay-liquid-conduits, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: conveyor}}
+  - world_shot: {name: overlay-conveyor, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: automation}}
+  - world_shot: {name: overlay-automation, ortho: 8, at: [124, 210]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: normal}}
+  - shot: {name: ui}
+  - open: {management: vitals}
+  - shot: {name: vitals}
+  - open: {management: vitals}
+  - open: {management: skills}
+  - shot: {name: skills}
+  - open: {management: skills}
+  - open: {management: database}
+  - shot: {name: database}
+  - open: {management: database}
+  - save: d3d11-scenes-base
+  - file_shot: {name: preview, path: "save_files/e2e/d3d11-scenes-base.png"}
+  - key: {code: "Alt+S"}
+  - key: {code: "Alt+3"}
+  - wait_state: {state: {"file:save_files/e2e/screenshot": ">= 1"}, seconds: 600}
+  - file_shot: {name: screenshot-8x, path: "save_files/e2e/screenshot/*.png", wait: 600}

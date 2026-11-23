@@ -2,11 +2,13 @@
 """Pixel comparison of two images of the same frame from two renderers (the Direct3D 11 device
 against the OpenGL device: docs/research/d3d11-plan.md, M2 and done criterion 3).
 
-    pixel_diff.py REFERENCE NEW [--stable AGAIN.png ...] [--diff DIFF.png] [--mask X,Y,W,H ...] [--json OUT.json]
+    pixel_diff.py REFERENCE NEW [--stable AGAIN.png ... [--grow N]] [--diff DIFF.png] [--mask X,Y,W,H ...] [--json OUT.json]
 
 --stable: another image of the frame from the reference's renderer (another run); the pixels
 where its RGB differs from REFERENCE's differ between runs whatever the renderer (an animation
-not in step), and are masked as well. RGB, as the fractions and PSNR below: alpha is reported
+not in step), and are masked as well; --grow N masks the pixels within N of those too (content
+that changes between runs matches in two runs here and there by chance: the random dig cracks
+of a colony's tiles, a status icon's pulse). RGB, as the fractions and PSNR below: alpha is reported
 per channel only (the back buffer's alpha is not shown).
 
 For the unmasked pixels it prints, and writes as JSON:
@@ -34,7 +36,17 @@ def rect(text):
     return x, y, w, h
 
 
-def compare(reference, new, masks=(), stable=()):
+def grow(unstable, radius):
+    """The pixels within `radius` (a square, Chebyshev distance) of an unstable one."""
+    out = unstable.copy()
+    h, w = unstable.shape
+    for dy in range(-radius, radius + 1):
+        for dx in range(-radius, radius + 1):
+            out[max(0, dy) : h + min(0, dy), max(0, dx) : w + min(0, dx)] |= unstable[max(0, -dy) : h + min(0, -dy), max(0, -dx) : w + min(0, -dx)]
+    return out
+
+
+def compare(reference, new, masks=(), stable=(), grow_by=0, stable_pairs=()):
     a = np.asarray(Image.open(reference).convert('RGBA'), dtype=np.int16)
     b = np.asarray(Image.open(new).convert('RGBA'), dtype=np.int16)
     result = {'reference': reference, 'new': new, 'size': [a.shape[1], a.shape[0]], 'new_size': [b.shape[1], b.shape[0]]}
@@ -49,7 +61,17 @@ def compare(reference, new, masks=(), stable=()):
         if c.shape != a.shape:
             result['note'] = f'{other}: size differs'
             return result, None
-        counted &= np.abs(a - c)[..., :3].max(axis=2) == 0
+        unstable = np.abs(a - c)[..., :3].max(axis=2) != 0
+        counted &= ~(grow(unstable, grow_by) if grow_by else unstable)
+    # Two runs of another renderer: the pixels where they differ (and those within grow_by).
+    for first, second in stable_pairs:
+        x = np.asarray(Image.open(first).convert('RGBA'), dtype=np.int16)
+        y = np.asarray(Image.open(second).convert('RGBA'), dtype=np.int16)
+        if x.shape != a.shape or y.shape != a.shape:
+            result['note'] = f'{first} or {second}: size differs'
+            return result, None
+        unstable = np.abs(x - y)[..., :3].max(axis=2) != 0
+        counted &= ~(grow(unstable, grow_by) if grow_by else unstable)
     d = np.abs(a - b)
     largest = d[..., :3].max(axis=2)
     n = int(counted.sum())
@@ -74,9 +96,10 @@ def main():
     p.add_argument('--diff')
     p.add_argument('--mask', action='append', default=[], type=rect)
     p.add_argument('--stable', action='append', default=[])
+    p.add_argument('--grow', type=int, default=0)
     p.add_argument('--json')
     args = p.parse_args()
-    result, image = compare(args.reference, args.new, args.mask, args.stable)
+    result, image = compare(args.reference, args.new, args.mask, args.stable, args.grow)
     if image is not None and args.diff:
         Image.fromarray(image).save(args.diff, format='PNG')
     text = json.dumps(result, indent=1)

@@ -1,0 +1,49 @@
+# The Direct3D 11 scene set's third colony (d3d11-scenes.yaml has the reasons): a mid-game
+# Spaced Out colony with every DLC, paused after its load, at the camera the save keeps: the
+# world close and wide, every overlay (set through OniMcp), the UI, the starmap with its
+# rockets and points of interest, then the save's colony preview.
+from: 2minnow
+steps:
+  - world_shot: {name: world, ortho: 10}
+  - world_shot: {name: world-wide, ortho: 40}
+  - call: {tool: navigation_control, args: {action: switch_view, view: oxygen}}
+  - world_shot: {name: overlay-oxygen, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: power}}
+  - world_shot: {name: overlay-power, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: temperature}}
+  - world_shot: {name: overlay-temperature, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: heat_flow}}
+  - world_shot: {name: overlay-heat-flow, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: conductivity}}
+  - world_shot: {name: overlay-conductivity, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: materials}}
+  - world_shot: {name: overlay-materials, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: light}}
+  - world_shot: {name: overlay-light, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: decor}}
+  - world_shot: {name: overlay-decor, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: rooms}}
+  - world_shot: {name: overlay-rooms, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: germs}}
+  - world_shot: {name: overlay-germs, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: radiation}}
+  - world_shot: {name: overlay-radiation, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: exosuit}}
+  - world_shot: {name: overlay-exosuit, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: farming}}
+  - world_shot: {name: overlay-farming, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: gas_conduits}}
+  - world_shot: {name: overlay-gas-conduits, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: liquid_conduits}}
+  - world_shot: {name: overlay-liquid-conduits, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: conveyor}}
+  - world_shot: {name: overlay-conveyor, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: automation}}
+  - world_shot: {name: overlay-automation, ortho: 20}
+  - call: {tool: navigation_control, args: {action: switch_view, view: normal}}
+  - shot: {name: ui}
+  - open: {management: starmap}
+  - shot: {name: starmap}
+  - open: {management: starmap}
+  - save: d3d11-scenes-mid
+  - file_shot: {name: preview, path: "save_files/e2e/d3d11-scenes-mid.png"}

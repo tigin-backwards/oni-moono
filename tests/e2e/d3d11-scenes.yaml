@@ -1,0 +1,55 @@
+# The Direct3D 11 renderer's scene set (docs/research/d3d11-plan.md, M3; done criterion 3),
+# first colony: a small landing with four gases side by side, paused after its load, shot the
+# same way by ours on each renderer, so scripts/d3d11-scenes.sh can compare D3D11's shots with
+# OpenGL's. Ours only, on Windows (scripts/e2e-windows/run.py; the renderer from
+# E2E_PLAYER_ARGS). Every shot is of a paused frame: every overlay (set through OniMcp), the UI, the research
+# screen and the starmap, then the save's colony preview. d3d11-scenes-base.yaml and
+# d3d11-scenes-mid.yaml are the other two colonies.
+from: gas-boundary
+steps:
+  - world_shot: {name: world, ortho: 4, at: [113, 215]}
+  - world_shot: {name: world-wide, ortho: 14, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: oxygen}}
+  - world_shot: {name: overlay-oxygen, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: power}}
+  - world_shot: {name: overlay-power, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: temperature}}
+  - world_shot: {name: overlay-temperature, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: heat_flow}}
+  - world_shot: {name: overlay-heat-flow, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: conductivity}}
+  - world_shot: {name: overlay-conductivity, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: materials}}
+  - world_shot: {name: overlay-materials, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: light}}
+  - world_shot: {name: overlay-light, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: decor}}
+  - world_shot: {name: overlay-decor, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: rooms}}
+  - world_shot: {name: overlay-rooms, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: germs}}
+  - world_shot: {name: overlay-germs, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: radiation}}
+  - world_shot: {name: overlay-radiation, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: exosuit}}
+  - world_shot: {name: overlay-exosuit, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: farming}}
+  - world_shot: {name: overlay-farming, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: gas_conduits}}
+  - world_shot: {name: overlay-gas-conduits, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: liquid_conduits}}
+  - world_shot: {name: overlay-liquid-conduits, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: conveyor}}
+  - world_shot: {name: overlay-conveyor, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: automation}}
+  - world_shot: {name: overlay-automation, ortho: 4, at: [113, 215]}
+  - call: {tool: navigation_control, args: {action: switch_view, view: normal}}
+  - shot: {name: ui}
+  - open: {management: research}
+  - shot: {name: research}
+  - open: {management: research}
+  - open: {management: starmap}
+  - shot: {name: starmap}
+  - open: {management: starmap}
+  - save: d3d11-scenes
+  - file_shot: {name: preview, path: "save_files/e2e/d3d11-scenes.png"}
