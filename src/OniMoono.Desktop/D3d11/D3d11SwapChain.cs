@@ -33,6 +33,9 @@ namespace OniMoono.Desktop.D3d11
         /// The back buffer's render target view for this frame (valid until the next Resize).
         public ID3D11RenderTargetView* View => view;
 
+        /// The back buffer (buffer 0; valid until the next Resize).
+        public ID3D11Texture2D* Buffer => buffer;
+
         D3d11SwapChain(ID3D11Device* device, ID3D11DeviceContext* context, bool tearing)
         {
             this.device = device;

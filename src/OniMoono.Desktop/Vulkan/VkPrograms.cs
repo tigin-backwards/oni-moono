@@ -510,7 +510,7 @@ namespace OniMoono.Desktop.Vulkan
         /// A constant of a constant buffer as GlUniforms writes it: matrices as four vec4
         /// columns (Unity's Vulkan programs lay them out as HLSLcc's GLSL does), arrays at a
         /// 16-byte stride.
-        static UniformBinding Uniform(ShaderConstant m, int block)
+        internal static UniformBinding Uniform(ShaderConstant m, int block)
         {
             var u = new UniformBinding { Name = m.Name, Block = block, Offset = m.Offset };
             if (m.IsMatrix)

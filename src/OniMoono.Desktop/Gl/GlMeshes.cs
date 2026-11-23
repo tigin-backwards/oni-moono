@@ -67,6 +67,8 @@ namespace OniMoono.Desktop.Gl
 
         /// The Vulkan device's buffers (null on OpenGL, whose fields above it leaves unused).
         public Vulkan.VkMesh Vk;
+        /// The Direct3D 11 device's buffers (null on the other devices).
+        public D3d11.D3d11Mesh D3d;
 
         public const string Kind = "mesh buffers";
 

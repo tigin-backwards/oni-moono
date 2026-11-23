@@ -399,9 +399,15 @@ namespace OniMoono.Desktop.Gl
             return blob;
         }
 
+        /// A device whose programs are selected per stage (the Direct3D 11 device): the key of the
+        /// pass's program for the enabled keywords (-1: none), which Program then builds; null:
+        /// one all-stage variant of VariantsOf is selected.
+        public Func<ShaderNative, ShaderPass, Func<string, bool>, int> SelectStages;
+
         // Its own method, so the predicate's closure is allocated only when a variant is selected.
         int SelectVariant(MaterialNative material, ShaderNative passShader, ShaderPass pass, string[] keywords)
-            => ShaderPrograms.SelectVariant(VariantsOf(passShader, pass), k => KeywordEnabled(k, material, keywords));
+            => SelectStages != null ? SelectStages(passShader, pass, k => KeywordEnabled(k, material, keywords))
+                : ShaderPrograms.SelectVariant(VariantsOf(passShader, pass), k => KeywordEnabled(k, material, keywords));
 
         // ----- Draw queues -----
 

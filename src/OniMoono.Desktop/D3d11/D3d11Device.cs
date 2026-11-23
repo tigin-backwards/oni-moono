@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using OniMoono.Desktop.Gl;
 using OniMoono.Engine;
 using OniMoono.Engine.Rendering;
@@ -44,13 +45,27 @@ namespace OniMoono.Desktop.D3d11
         public override bool SupportsRenderTexture(RenderTextureFormat format) => true;
     }
 
-    /// The Direct3D 11 render device (docs/research/d3d11-plan.md, milestone M2). So far: the
-    /// device, its own swap chain, clears of the back buffer and presents, with the debug layer's
-    /// messages in the log under `--d3d11-debug`. Draws, textures, meshes, render textures and
-    /// readbacks are not yet made: they are counted and dropped. Everything runs on the main
-    /// thread (Present on the immediate context's thread, as DXGI asks: "Multithreading
-    /// Considerations"); the device thread comes with the draws.
-    internal sealed unsafe class D3d11Device : RenderDevice
+    /// The Direct3D 11 render device (docs/research/d3d11-plan.md, milestone M2): Unity's shipped
+    /// Direct3D 11 programs (shader platform 4, DXBC unmodified) with Unity's Direct3D 11
+    /// conventions, rendering the pixels the OpenGL device renders. Its main-thread side is the
+    /// other devices': GlDrawRecorder records each draw (program, resolved state, constant-buffer
+    /// bytes, textures, mesh) and GlWorker hands frames to the device thread, whose resource work
+    /// is this device's (IResourceWork). The device thread alone uses the immediate context, and
+    /// presents (the original makes every call on one thread, its immediate context only, and no
+    /// deferred contexts: d3d11-captures.md §1 and §5); the swap chain is the device's own
+    /// (D3d11SwapChain).
+    ///
+    /// The conventions are Vulkan's, as measured on the original (d3d11-unity-probes.md §2, §3):
+    /// reversed Z (`GetGPUProjectionMatrix`'s z row is the Vulkan device's GpuProjection, a clear
+    /// to v stores 1 - v), render textures rendered upside down (`_ProjectionParams.x` -1 and the
+    /// projection's y negated into one, not on the screen), so RenderConventions(Vulkan: true,
+    /// Flipped). Direct3D's viewport puts clip-space y = 1 at its top row ("Y rt = (1 - Y) *
+    /// Viewport.Height * 0.5 + Viewport.TopLeftY", Direct3D 11.3 Functional Specification §15.6
+    /// Viewport), so with no y negation in the programs (Vulkan's carry one; that Unity's DXBC
+    /// has none follows from the original drawing the screen upright with the projection not
+    /// negated, and the pixel diff against OpenGL shows it) the screen comes out upright and a
+    /// render texture's rows in OpenGL's order, as on Vulkan.
+    internal sealed unsafe partial class D3d11Device : RenderDevice, IResourceWork
     {
         /// `--vsync N`: the swap interval in place of QualitySettings.vSyncCount.
         public static int SwapIntervalOverride = -1;
@@ -59,103 +74,311 @@ namespace OniMoono.Desktop.D3d11
         readonly D3d11Context d3d;
         readonly D3d11SwapChain chain;
         readonly D3d11Caps caps;
-        bool toBackBuffer = true, quitRequested;
-        long dropped, debugMessages;
-        string lost;
+        readonly GlWorker worker;
+        readonly GlDrawRecorder recorder;
+        readonly D3d11States states;
+        CameraConstants camera;
+        Material passMaterial;
+        int passIndex;
+        bool quitRequested;
+        long debugMessages;
+        /// Why the device stopped (set on the device thread; the main thread quits at its next
+        /// present).
+        volatile string lost;
+        long failedCommands;
+        readonly HashSet<string> failuresLogged = new();
 
         public D3d11Device(GlfwPlatform platform, D3d11Context d3d)
         {
             this.platform = platform;
             this.d3d = d3d;
             caps = new D3d11Caps(d3d);
+            states = new D3d11States(d3d.Device);
             chain = D3d11SwapChain.Create(d3d, platform.Win32Handle, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight);
+            try
+            {
+                CreateShared();
+                // The back buffer is the target until the game sets another.
+                SetTarget(lastTarget);
+            }
+            catch
+            {
+                ReleaseShared();
+                chain.Dispose();
+                throw;
+            }
             EngineLog.Engine($"d3d11: {d3d.Adapter.Name} (vendor 0x{d3d.Adapter.VendorId:x4}, device 0x{d3d.Adapter.DeviceId:x4}), {d3d.VersionString}, "
                              + $"{(D3d11Context.Validation ? "debug layer on" : "no debug layer")}; {chain.Describe()}");
             DrainDebugMessages();
+            // From here the immediate context belongs to the device thread.
+            worker = new GlWorker("Direct3D 11", () => { }, () => { }, CommandFailed) { Resources = this };
+            recorder = new GlDrawRecorder(worker, DefaultTexture, RunDraw)
+            {
+                PlatformOf = D3d11Programs.PlatformOf,
+                SelectStages = D3d11Programs.Select,
+                Conventions = new RenderConventions(Vulkan: true, Flipped: false),
+            };
+            platform.Closing += Shutdown;
         }
 
         public override GraphicsCaps Caps => caps;
         public override bool RendersFrames => true;
-        public override long FailedCommands => lost != null ? 1 : 0;
+        public override bool Supports(ShaderNative shader) => shader.HasProgramsFor(ShaderNative.D3D11Platform);
 
-        // ----- Not made yet: counted, and said once -----
+        /// Unity's Direct3D 11 programs cannot take CaptureTiles' changes (as Vulkan's).
+        public override bool CaptureTileShaders => false;
 
-        void Dropped(string what)
+        public override long FailedCommands => System.Threading.Interlocked.Read(ref failedCommands) + (lost != null ? 1 : 0);
+
+        /// A recorded command threw (device thread): logged once per kind of failure, and the
+        /// frame goes on.
+        void CommandFailed(Exception e)
         {
-            if (dropped++ == 0) EngineLog.Engine($"d3d11: {what} and the rest of drawing are not implemented yet: dropped (M2 in progress)");
+            System.Threading.Interlocked.Increment(ref failedCommands);
+            if (failuresLogged.Add($"{e.GetType().FullName}: {e.Message}")) Debug.LogException(e);
         }
 
-        public override void ReadPixels(RenderTextureNative source, RectInt rect, Texture2DNative destination, int destX, int destY) => Dropped("ReadPixels");
-        public override void ReleaseResource(object gpu) { }
-        public override bool SetPass(Material material, int pass) => true;
-        public override void WarmupShaders() { }
-        protected override void ApplyCamera(in CameraConstants camera) { }
-        public override void Draw(in DrawRequest draw) => Dropped("draws");
-        public override void DrawImmediate(ImmediatePrimitive primitive, ReadOnlySpan<ImmediateVertex> vertices, Matrix4x4 modelView, Matrix4x4 projection) => Dropped("immediate draws");
-        public override void DrawMeshNow(MeshNative mesh, int subMesh, Matrix4x4 objectToWorld, Matrix4x4 view, Matrix4x4 projection) => Dropped("DrawMeshNow");
+        // ----- Targets, viewport, clears (main thread records) -----
 
-        // ----- Targets and clears -----
+        internal sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int Level, bool ScreenRows);
 
-        public override void SetRenderTarget(in RenderTargetBinding target) => toBackBuffer = target.Colors == null;
-        public override void SetViewport(Rect pixels) { }
-        public override void SetScissor(Rect? pixels) { }
+        Action<BoundTarget> setTarget;
+        Action<Rect> setViewportNow;
+        Action<Rect?> setScissorNow;
+        Action<(bool Color, bool Depth, Color Background, float DepthValue)> clearNow;
 
-        /// Clears the back buffer to the colour as given: the game renders in gamma space, so the
-        /// UNORM back buffer takes it unconverted (d3d11-plan.md "Conventions": no sRGB).
+        public override void SetRenderTarget(in RenderTargetBinding binding)
+        {
+            DeviceTexture[] colors = null;
+            DeviceTexture depth = null;
+            if (binding.Colors != null && binding.Colors.Length > 0 && binding.Colors[0] != null)
+            {
+                colors = new DeviceTexture[binding.Colors.Length];
+                for (int i = 0; i < colors.Length; i++) colors[i] = binding.Colors[i] == null ? null : GlTextures.Prepare(worker, binding.Colors[i]);
+                if (binding.Depth != null) depth = binding.Depth == binding.Colors[0] ? colors[0] : GlTextures.Prepare(worker, binding.Depth);
+            }
+            // Unity's Direct3D 11 programs render into render textures upside down
+            // (RenderConventions), but for one rendered as the back buffer is (ScreenRows).
+            bool screenRows = colors != null && binding.Colors[0].ScreenRows;
+            recorder.Conventions = new RenderConventions(Vulkan: true, Flipped: colors != null && !screenRows);
+            worker.Post(worker.Arena.Command(setTarget ??= SetTarget, new BoundTarget(colors, depth, binding.MipLevel, screenRows)));
+        }
+
+        public override void SetViewport(Rect pixels) => worker.Post(worker.Arena.Command(setViewportNow ??= SetViewportNow, pixels));
+
+        public override void SetScissor(Rect? pixels) => worker.Post(worker.Arena.Command(setScissorNow ??= SetScissorNow, pixels));
+
         public override void Clear(bool color, bool depth, Color backgroundColor, float depthValue)
+            => worker.Post(worker.Arena.Command(clearNow ??= c => ClearNow(c.Color, c.Depth, c.Background, c.DepthValue), (color, depth, backgroundColor, depthValue)));
+
+        protected override void ApplyCamera(in CameraConstants c)
         {
-            if (!toBackBuffer || !color || lost != null) return;
-            var rgba = stackalloc float[] { backgroundColor.r, backgroundColor.g, backgroundColor.b, backgroundColor.a };
-            d3d.Context->lpVtbl->ClearRenderTargetView(d3d.Context, chain.View, rgba);
+            camera = c;
+            recorder.Camera = c;
         }
+
+        // ----- Drawing -----
+
+        public override void Draw(in DrawRequest draw) => recorder.Draw(draw);
+
+        public override void DrawQueue(List<DrawItem> items) => recorder.DrawQueue(items);
+
+        public override bool SetPass(Material material, int pass)
+        {
+            passMaterial = material;
+            passIndex = pass;
+            return true;
+        }
+
+        /// Records the pass set by SetPass for one immediate draw (as VkDevice.RecordPass).
+        ProgramInputs RecordPass(Matrix4x4 objectToWorld, Matrix4x4 view, Matrix4x4 projection)
+        {
+            if (!passMaterial) return null;
+            var material = (MaterialNative)passMaterial.NativeOrThrow;
+            if (!material.Shader) return null;
+            var shader = (ShaderNative)material.Shader.NativeOrThrow;
+            var sub = shader.ActiveSubShader;
+            if (sub == null || passIndex >= sub.Passes.Length) return null;
+            var pass = sub.Passes[passIndex];
+            if (D3d11Programs.PlatformOf(shader) == 0) return null;
+            int key = recorder.Variant(material, shader, pass, null);
+            if (key < 0) return null;
+            var program = recorder.Program(shader, key);
+            if (program.Id == 0) return null;
+            var inputs = new DrawInputs
+            {
+                ObjectToWorld = objectToWorld,
+                Camera = camera with { View = view, Projection = projection },
+                Conventions = recorder.Conventions,
+                Material = material,
+                Shader = shader,
+            };
+            return recorder.Record(program, recorder.StateOf(pass), inputs, worker.Arena);
+        }
+
+        /// GL.Begin geometry, interleaved as VkDevice.DrawImmediate writes it (position, colour,
+        /// eight texture coordinates), quads as two triangles each.
+        public override void DrawImmediate(ImmediatePrimitive primitive, ReadOnlySpan<ImmediateVertex> vertices, Matrix4x4 modelView, Matrix4x4 projection)
+        {
+            if (vertices.Length == 0) return;
+            var recorded = RecordPass(modelView, Matrix4x4.identity, projection);
+            if (recorded == null) return;
+            const int floats = Vulkan.VkPipelines.ImmediateStride / 4;
+            var data = new float[vertices.Length * floats];
+            for (int i = 0; i < vertices.Length; i++)
+            {
+                var v = vertices[i];
+                int o = i * floats;
+                data[o] = v.Position.x; data[o + 1] = v.Position.y; data[o + 2] = v.Position.z;
+                data[o + 3] = v.Color.r; data[o + 4] = v.Color.g; data[o + 5] = v.Color.b; data[o + 6] = v.Color.a;
+                Uv(data, o, 0, v.Uv0); Uv(data, o, 1, v.Uv1); Uv(data, o, 2, v.Uv2); Uv(data, o, 3, v.Uv3);
+                Uv(data, o, 4, v.Uv4); Uv(data, o, 5, v.Uv5); Uv(data, o, 6, v.Uv6); Uv(data, o, 7, v.Uv7);
+            }
+            int[] indices = null;
+            if (primitive == ImmediatePrimitive.Quads)
+            {
+                int quads = vertices.Length / 4;
+                indices = new int[quads * 6];
+                for (int q = 0; q < quads; q++)
+                {
+                    int b = q * 4;
+                    indices.AsSpan(q * 6, 6).SetValues(b, b + 1, b + 2, b, b + 2, b + 3);
+                }
+            }
+            int count = vertices.Length;
+            worker.Post(() => ExecuteImmediate(recorded, primitive, data, count, indices));
+        }
+
+        static void Uv(float[] data, int vertex, int set, Vector4 uv)
+        {
+            int at = vertex + 7 + set * 4;
+            data[at] = uv.x;
+            data[at + 1] = uv.y;
+            data[at + 2] = uv.z;
+            data[at + 3] = uv.w;
+        }
+
+        public override void DrawMeshNow(MeshNative mesh, int subMesh, Matrix4x4 objectToWorld, Matrix4x4 view, Matrix4x4 projection)
+        {
+            int count = mesh.SubMeshes.Count;
+            if (count == 0 || subMesh >= count) return;
+            int first = subMesh < 0 ? 0 : subMesh, last = subMesh < 0 ? count - 1 : subMesh;
+            var device = GlMeshes.Prepare(worker, mesh);
+            for (int s = first; s <= last; s++)
+            {
+                var recorded = RecordPass(objectToWorld, view, projection);
+                if (recorded == null) return;
+                recorded.Mesh = device;
+                recorded.Layout = device.Layout;
+                recorded.SubMesh = device.SubMeshes[s];
+                worker.Post(recorded.RunDraw);
+            }
+        }
+
+        // ----- Read-back and resources -----
+
+        public override void ReadPixels(RenderTextureNative source, RectInt rect, Texture2DNative destination, int destX, int destY)
+        {
+            int w = Math.Min(rect.width, destination.Width - destX), h = Math.Min(rect.height, destination.Height - destY);
+            if (w <= 0 || h <= 0 || !TextureFormats.CanEncode(destination.Format) || destination.Memory == null) return;
+            var device = source != null ? GlTextures.Prepare(worker, source) : null;
+            bool autoMips = source?.AutoGenerateMips ?? false;
+            // A band of rows at a time (about a million pixels, as VkDevice reads).
+            int band = Math.Clamp((1 << 20) / w, 1, h);
+            for (int y0 = 0; y0 < h; y0 += band)
+            {
+                int rows = Math.Min(band, h - y0), bandY = y0;
+                var pixels = worker.Call(() => ReadNow(device, autoMips, rect.x, rect.y + bandY, w, rows));
+                var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
+                for (int y = 0; y < rows; y++)
+                    for (int x = 0; x < w; x++)
+                    {
+                        int o = (y * w + x) * 4;
+                        TextureFormats.Encode(destination.Format, mip, destination.Width, destX + x, destY + y0 + y, new Color(pixels[o], pixels[o + 1], pixels[o + 2], pixels[o + 3]));
+                    }
+            }
+        }
+
+        /// Reads as 8-bit RGBA straight into the array (a capture's band): a read that fails on
+        /// the device thread counts as a failed command.
+        public override void ReadPixelsRgba8(RenderTextureNative source, RectInt rect, byte[] destination, int offset, int stride)
+        {
+            if (rect.width <= 0 || rect.height <= 0) return;
+            if (stride % 4 != 0 || offset < 0 || (long)offset + (long)stride * (rect.height - 1) + rect.width * 4L > destination.Length)
+                throw new ArgumentOutOfRangeException(nameof(stride));
+            var device = source != null ? GlTextures.Prepare(worker, source) : null;
+            bool autoMips = source?.AutoGenerateMips ?? false;
+            int w = rect.width, h = rect.height;
+            worker.TryCall(() =>
+            {
+                float[] pixels;
+                try
+                {
+                    pixels = ReadNow(device, autoMips, rect.x, rect.y, w, h);
+                }
+                catch (Exception e)
+                {
+                    CommandFailed(e);
+                    return 0;
+                }
+                for (int y = 0; y < h; y++)
+                {
+                    var row = destination.AsSpan(offset + y * stride, w * 4);
+                    for (int i = 0; i < row.Length; i++) row[i] = (byte)Math.Clamp((int)MathF.Round(pixels[y * w * 4 + i] * 255f), 0, 255);
+                }
+                return 0;
+            }, out _);
+        }
+
+        public override void Upload(TextureNative texture) => GlTextures.Prepare(worker, texture);
+
+        public override void ReleaseResource(object gpu)
+        {
+            switch (gpu)
+            {
+                case DeviceTexture t: worker.Post(() => ReleaseTexture(t)); break;
+                case DeviceMesh m: worker.Post(() => ReleaseMesh(m)); break;
+                case DeviceProgramSet p: worker.Post(() => ReleasePrograms(p)); break;
+            }
+        }
+
+        /// Programs are built at their first draw (the warm-up's prebuilding is M6's).
+        public override void WarmupShaders() { }
+
+        public override void FlushRecorded() => worker.Submit();
 
         // ----- Present -----
 
         public override void Present()
         {
-            if (lost != null)
+            if (lost != null && !quitRequested)
             {
-                if (!quitRequested)
-                {
-                    quitRequested = true;
-                    Debug.LogError($"Direct3D 11 stopped working: {lost}, so the game quits. The log is {EngineLog.FilePath ?? Application.consoleLogPath}.");
-                    PlayerLoop.RequestQuit(1);
-                }
-                return;
+                quitRequested = true;
+                Debug.LogError($"Direct3D 11 stopped working: {lost}, so the game quits. The log is {EngineLog.FilePath ?? Application.consoleLogPath}.");
+                PlayerLoop.RequestQuit(1);
             }
             int interval = SwapIntervalOverride >= 0 ? SwapIntervalOverride : QualitySettings.vSyncCount;
-            int hr = chain.Present(interval);
-            DrainDebugMessages();
-            if (hr < 0)
-            {
-                // Present reports a removed or reset device (DXGI_ERROR_DEVICE_REMOVED/RESET); the
-                // reason is asked of the device before it is released ("Handle device removed
-                // scenarios in Direct3D 11").
-                lost = Dxgi.DeviceLost(hr)
-                    ? $"the graphics device was lost ({Dxgi.Hr(hr)}, reason {Dxgi.Hr(d3d.Device->lpVtbl->GetDeviceRemovedReason(d3d.Device))})"
-                    : $"Present failed ({Dxgi.Hr(hr)})";
-                EngineLog.Engine($"d3d11: {lost}");
-                return;
-            }
-            try
-            {
-                chain.Resize(platform.WindowFramebufferWidth, platform.WindowFramebufferHeight);
-            }
-            catch (D3d11UnavailableException e)
-            {
-                lost = e.Message;
-                EngineLog.Engine($"d3d11: {lost}");
-                return;
-            }
-            // The flip model unbinds the back buffer at Present: bound again for the next frame.
-            var view = chain.View;
-            d3d.Context->lpVtbl->OMSetRenderTargets(d3d.Context, 1, &view, null);
-            toBackBuffer = true;
+            int width = platform.WindowFramebufferWidth, height = platform.WindowFramebufferHeight;
+            worker.Post(() => PresentNow(interval, width, height));
+            worker.Submit();
         }
+
+        // ----- Diagnostics and shutdown -----
+
+        public override string TakeQueueCounters(int frames) => GlDrawRecorder.TakeCounters(frames);
+
+        public override string TakeFrameCounters(int n) => worker.Call(() =>
+        {
+            string text = $"d3d11: draws {draws / n}, constant-buffer maps {constantMaps / n}, shader changes {shaderChanges / n}, programs {livePrograms.Count}, state objects {states.Made}, "
+                          + $"textures {liveTextures.Count}, meshes {liveMeshes.Count}, debug-layer messages {debugMessages}";
+            draws = constantMaps = shaderChanges = 0;
+            return text;
+        });
 
         /// The debug layer's stored messages, each logged (up to 100), then cleared; read as
         /// ID3D11InfoQueue::GetMessage's documentation says (an index below
-        /// GetNumStoredMessagesAllowedByRetrievalFilter, the size first).
+        /// GetNumStoredMessagesAllowedByRetrievalFilter, the size first). On the device thread
+        /// once it runs.
         void DrainDebugMessages()
         {
             var queue = d3d.InfoQueue;
@@ -177,12 +400,22 @@ namespace OniMoono.Desktop.D3d11
             queue->lpVtbl->ClearStoredMessages(queue);
         }
 
-        public override string TakeFrameCounters(int frames) => dropped == 0 ? null : $"d3d11: {dropped} draw calls dropped so far, {debugMessages} debug-layer messages";
-
         public override void StopForQuit()
         {
+            worker.Dispose();
             DrainDebugMessages();
-            if (debugMessages > 0) EngineLog.Engine($"d3d11: {debugMessages} debug-layer messages in this run");
+            EngineLog.Engine($"d3d11: {debugMessages} debug-layer messages in this run");
+        }
+
+        void Shutdown()
+        {
+            worker.Dispose();
+            DrainDebugMessages();
+            Ctx->lpVtbl->ClearState(Ctx);
+            ReleaseShared();
+            chain.Dispose();
+            Ctx->lpVtbl->Flush(Ctx);
+            d3d.Dispose();
         }
     }
 }

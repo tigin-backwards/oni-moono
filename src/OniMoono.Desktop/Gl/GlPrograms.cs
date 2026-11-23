@@ -81,6 +81,8 @@ namespace OniMoono.Desktop.Gl
         public ulong[] SamplerHandles;
         /// The Vulkan device's program (null on OpenGL; Id is then not a GL name).
         public Vulkan.VkProgram Vk;
+        /// The Direct3D 11 device's program (null on the other devices).
+        public D3d11.D3d11Shaders D3d;
         /// The draw buffers the fragment stage writes, one bit per output location (all when
         /// its source declares none by location); GlStateCache.Outputs masks the others.
         public uint Outputs = ~0u;

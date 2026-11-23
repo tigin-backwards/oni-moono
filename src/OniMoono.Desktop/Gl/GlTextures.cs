@@ -76,6 +76,8 @@ namespace OniMoono.Desktop.Gl
 
         /// The Vulkan device's texture (null on OpenGL, whose fields above it leaves unused).
         public Vulkan.VkTexture Vk;
+        /// The Direct3D 11 device's texture (null on the other devices).
+        public D3d11.D3d11Texture D3d;
 
         /// Released (GL thread): work queued ahead of use (GlAhead) leaves it alone.
         public bool Deleted;
