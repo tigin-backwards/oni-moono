@@ -49,8 +49,17 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 # 0.001%, j0008881; d3d11-plan.md M3 part C).
 VULKAN_REFERENCE = {'d3d11-coverage-sky/sky'}
 
-SPECS = ('d3d11-scenes', 'd3d11-scenes-base', 'd3d11-scenes-mid', 'd3d11-coverage', 'd3d11-coverage-particles', 'd3d11-coverage-debug',
-         'd3d11-coverage-rockets', 'd3d11-coverage-impactor', 'd3d11-coverage-sky')
+SPECS = (
+    'd3d11-scenes',
+    'd3d11-scenes-base',
+    'd3d11-scenes-mid',
+    'd3d11-coverage',
+    'd3d11-coverage-particles',
+    'd3d11-coverage-debug',
+    'd3d11-coverage-rockets',
+    'd3d11-coverage-impactor',
+    'd3d11-coverage-sky',
+)
 TOLERANCE = {'16': 0.005, '40': 0.001}
 MIN_STABLE = 0.5
 GROW = 3
