@@ -18,6 +18,8 @@
 //   d3d11 DATADIR               every D3D11 (platform 4) program read and checked against its
 //                               parameters, inputs and Vulkan variants (D3d11Survey.cs)
 //   d3d11-bundles WSDIR         the same for the mod bundles under WSDIR (read only)
+//   shader-refs DATADIR         each shader with the objects (by class ID) whose bytes hold a
+//                               reference to it, data files and StreamingAssets bundles (ShaderRefs.cs)
 //   dxbc DATADIR                each Direct3D 11 (platform 4) subprogram's DXBC container checksum
 //                               (bytes 4..19 after the magic), with shader, pass, stage and keywords:
 //                               names the shaders a running player creates by their bytecode
@@ -34,7 +36,7 @@ using ShaderSurvey;
 
 if (args.Length < 2)
 {
-    Console.Error.WriteLine("usage: ShaderSurvey summary|variants|check-metal|compare-metal|d3d11 DATADIR | ShaderSurvey d3d11-bundles WSDIR | ShaderSurvey dump DATADIR NAME|* DIR PLATFORM | ShaderSurvey params DATADIR NAME PLATFORM");
+    Console.Error.WriteLine("usage: ShaderSurvey summary|variants|check-metal|compare-metal|d3d11 DATADIR | ShaderSurvey d3d11-bundles WSDIR | ShaderSurvey dump DATADIR NAME|* DIR PLATFORM | ShaderSurvey params DATADIR NAME PLATFORM | ShaderSurvey shader-refs DATADIR");
     return 2;
 }
 string mode = args[0], dataDir = args[1];
@@ -52,6 +54,7 @@ switch (mode)
     case "bundles": return BundleSurvey.Run(dataDir, Console.Out);
     case "d3d11": return D3d11Survey.RunGame(dataDir, Console.Out);
     case "d3d11-bundles": return D3d11Survey.RunBundles(dataDir, Console.Out);
+    case "shader-refs": return ShaderRefs.Run(dataDir, Console.Out);
     case "compare-metal": return MetalCompare.Run(Data.Shaders(dataDir), Console.Out, args.Length > 2 ? args[2] : null);
     default: Console.Error.WriteLine("unknown mode " + mode); return 2;
 }
