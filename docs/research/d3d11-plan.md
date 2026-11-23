@@ -867,9 +867,10 @@ The cause, as far as it is measured here (not fixed in M3; it is not the D3D11 d
 - **The original.** In its recorded colony and temperature-overlay frames (j0008168,
   `report-*.txt`), every world draw goes to a render texture with FrontCounterClockwise 1 (the
   flipped convention): Klei/BatchedAnimation, Conduit, Human and TiledBlock into MRT0 (9220),
-  the light buffer (Klei/Lightbuffer) into 9FAA0. The `overlayNoDepth` camera's draws
-  (Klei/StatusItem; the KAnim post-processing passes Klei/BatchedAnimationPstTemperature, drawn
-  with Graphics.DrawMesh on the Overlay layer from KAnimActivePostProcessingEffects.OnRenderImage)
+  the light buffer (Klei/Lightbuffer) into 9FAA0. The `overlayNoDepth` camera's draws (by
+  their layers, inferred: Klei/StatusItem; the KAnim post-processing passes
+  Klei/BatchedAnimationPstTemperature, drawn with Graphics.DrawMesh on the Overlay layer from
+  KAnimActivePostProcessingEffects.OnRenderImage)
   go into render texture 18A0, 1024×768, FrontCounterClockwise 1, with the depth view the overlay
   camera's last image effect (ClusterCoverPostFX) used; only the UI and the frame's last draw go
   to the screen surfaces (31A0, 2D20, FrontCounterClockwise 0).
