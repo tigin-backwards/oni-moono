@@ -56,6 +56,10 @@ steps:
   - open: {management: database}
   - shot: {name: database}
   - open: {management: database}
+  # Its research station lets the research screen open (ManagementMenu.ResearchAvailable).
+  - open: {management: research}
+  - shot: {name: research}
+  - open: {management: research}
   - save: d3d11-scenes-base
   - file_shot: {name: preview, path: "save_files/e2e/d3d11-scenes-base.png"}
   - key: {code: "Alt+S"}

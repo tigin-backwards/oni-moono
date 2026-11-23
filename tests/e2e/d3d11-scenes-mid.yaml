@@ -2,7 +2,23 @@
 # Spaced Out colony with every DLC, paused after its load, at the camera the save keeps: the
 # world close and wide, every overlay (set through OniMcp), the UI, the starmap with its
 # rockets and points of interest, then the save's colony preview.
+#
+# The colony reaches a victory imperative as it loads: ColonyAchievementTracker.
+# BeginVictorySequence (U60 764025) pauses, hides the HUD (ToggleVictoryUI) and opens a
+# StoryMessageScreen, which takes every key (its OnKeyDown consumes them all) until PROCEED starts
+# the victory video. So the management menu's starmap key never reached the menu, and the UI shot
+# was of that message. The setup takes the message away without its PROCEED (Deactivate; its
+# restoreInterfaceOnClose is false, so nothing else runs) and shows the HUD again as the message
+# does when it restores it (StoryMessageScreen.HideInterface(false)), with the hover text that
+# ToggleVictoryUI also hid (its ResourceCategoryScreen is null in this colony).
 from: 2minnow
+setup:
+  - wait_state: {state: {"count:all:StoryMessageScreen::[*] if .isActiveAndEnabled == true": ">= 1"}, seconds: 60}
+  - driver: {setup.call: {target: "all:StoryMessageScreen::[0]", method: Deactivate}}
+  - driver: {setup.call: {type: StoryMessageScreen, method: HideInterface, args: [false]}}
+  - driver: {setup.call: {target: "HoverTextScreen.Instance", method: Show, args: [true]}}
+  - driver: {setup.call: {target: "CameraController.Instance", method: SetWorldInteractive, args: [true]}}
+  - driver: {setup.call: {target: "CameraController.Instance", method: set_DisableUserCameraControl, args: [false]}}
 steps:
   - world_shot: {name: world, ortho: 10}
   - world_shot: {name: world-wide, ortho: 40}

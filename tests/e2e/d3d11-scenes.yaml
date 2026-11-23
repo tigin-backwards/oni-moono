@@ -2,9 +2,11 @@
 # first colony: a small landing with four gases side by side, paused after its load, shot the
 # same way by ours on each renderer, so scripts/d3d11-scenes.sh can compare D3D11's shots with
 # OpenGL's. Ours only, on Windows (scripts/e2e-windows/run.py; the renderer from
-# E2E_PLAYER_ARGS). Every shot is of a paused frame: every overlay (set through OniMcp), the UI, the research
-# screen and the starmap, then the save's colony preview. d3d11-scenes-base.yaml and
-# d3d11-scenes-mid.yaml are the other two colonies.
+# E2E_PLAYER_ARGS). Every shot is of a paused frame: every overlay (set through OniMcp), the UI and
+# the starmap, then the save's colony preview. The research screen is the small base's: it opens
+# only once the colony has a research station (ManagementMenu.ResearchAvailable, U60 764025),
+# which this landing lacks. d3d11-scenes-base.yaml and d3d11-scenes-mid.yaml are the other two
+# colonies.
 from: gas-boundary
 steps:
   - world_shot: {name: world, ortho: 4, at: [113, 215]}
@@ -45,9 +47,6 @@ steps:
   - world_shot: {name: overlay-automation, ortho: 4, at: [113, 215]}
   - call: {tool: navigation_control, args: {action: switch_view, view: normal}}
   - shot: {name: ui}
-  - open: {management: research}
-  - shot: {name: research}
-  - open: {management: research}
   - open: {management: starmap}
   - shot: {name: starmap}
   - open: {management: starmap}
