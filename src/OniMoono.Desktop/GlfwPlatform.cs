@@ -476,6 +476,19 @@ namespace OniMoono.Desktop
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern IntPtr SetClassLongPtrW(IntPtr hwnd, int index, IntPtr value);
 
+        /// Test runs (`--input FRAME:minimize` and `restore`, Windows): the window minimized or
+        /// restored without activating any window, so the desktop's focus stays where it is
+        /// (ShowWindow's SW_SHOWMINNOACTIVE, "the window is not activated", and
+        /// SW_SHOWNOACTIVATE, "the window is not activated"; winuser.h: 7 and 4).
+        public void ShowMinimizedWithoutFocus(bool minimized)
+        {
+            if (OperatingSystem.IsWindows()) ShowWindow(Win32Handle, minimized ? 7 : 4);
+        }
+
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern int ShowWindow(IntPtr hwnd, int command);
+
         static float MonitorDpi(GlfwMonitor m) => ScreenDpi.Physical(m.Size.X, m.PhysicalSize.X);
 
         /// The window's monitor, or Null while there is none: GLFW lists no monitor while Windows

@@ -14,7 +14,8 @@ namespace OniMoono.Host
     /// `keydown:KEYCODE` / `keyup:KEYCODE` (held keys, e.g. modifiers for chords), `scroll:DX,DY` (wheel
     /// steps at the pointer), `text:STRING`, `burst:X,Y[,N]` (N clicks delivered before one frame,
     /// the last held a frame), `resize:W,H[,MODE]` (Screen.SetResolution, windowed unless MODE is exclusive, borderless
-    /// or maximized), `stall:MS` (the main thread held up MS milliseconds). A run
+    /// or maximized), `vsync:N` (QualitySettings.vSyncCount), `minimize` / `restore` (Windows: the
+    /// window, activating none), `stall:MS` (the main thread held up MS milliseconds). A run
     /// with a script ignores the window's own mouse and keyboard, so it is reproducible.
     sealed class ScriptedInput
     {
@@ -94,6 +95,11 @@ namespace OniMoono.Host
                     At(frame, () => Screen.SetResolution((int)size.x, (int)size.y, mode));
                     break;
                 }
+                // QualitySettings.vSyncCount set as the game's options set it (a running toggle).
+                case "vsync": At(frame, () => QualitySettings.vSyncCount = int.Parse(arg)); break;
+                // The window minimized or restored, no window activated (Windows; test runs).
+                case "minimize": At(frame, () => (PlatformServices.Current as GlfwPlatform)?.ShowMinimizedWithoutFocus(true)); break;
+                case "restore": At(frame, () => (PlatformServices.Current as GlfwPlatform)?.ShowMinimizedWithoutFocus(false)); break;
                 // The main thread held up for MS milliseconds before the frame, as an autosave or
                 // a load hitch holds it (repeats and the presenters' pacing; test runs).
                 case "stall": At(frame, () => System.Threading.Thread.Sleep(int.Parse(arg))); break;
