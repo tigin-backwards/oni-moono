@@ -854,16 +854,17 @@ namespace TMPro
         string m_LabelShown;
 
         // Inserts a typed character at the caret (replacing the selection) once it passes the
-        // validation: the content type's, a custom validator's (which inserts it itself) or the
-        // onValidateInput callback's. Each sees the text with the selection removed and the
-        // position where it began (measured on the shipped package). A character the content
-        // type or the callback rejects changes nothing: the selection stays. A custom validator
-        // is handed the text after the selection is removed, which stays removed whatever it
-        // returns (without onValueChanged when it rejects).
+        // validation: the onValidateInput callback's when there is one (whatever the character
+        // validation, CustomValidator included), else a custom validator's (which inserts it
+        // itself) or the content type's, as in the shipped package. Each sees the text with the
+        // selection removed and the position where it began (measured on the shipped package).
+        // A character the content type or the callback rejects changes nothing: the selection
+        // stays. A custom validator is handed the text after the selection is removed, which
+        // stays removed whatever it returns (without onValueChanged when it rejects).
         protected virtual void Append(char input)
         {
             if (m_ReadOnly) return;
-            if (m_CharacterValidation == CharacterValidation.CustomValidator)
+            if (m_OnValidateInput == null && m_CharacterValidation == CharacterValidation.CustomValidator)
             {
                 if (HasSelection)
                 {

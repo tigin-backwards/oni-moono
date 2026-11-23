@@ -599,6 +599,12 @@ from what is described here, the measurement wins and this section is corrected.
      selection is removed before it is called and stays removed when it rejects the
      character ("BC" selected in "ABC", "x" rejected: "A", caret 1, without
      `onValueChanged`).
+   - `onValidateInput`, when set, decides whatever the validation, `CustomValidator`
+     included: its result is inserted and `inputValidator` is not called. Only without it does
+     `CustomValidator` hand the character to `inputValidator` (measured in the original player
+     with the Storage Quotas mod, #121: a Custom field with `CustomValidator`, a digits-only
+     `onValidateInput` and no `inputValidator` takes "50"; test
+     `OnValidateInputComesBeforeACustomValidator`).
    - With validation None, `inputValidator` is not used; `characterLimit` counts the text
      with the selection removed ("1234" all selected with a limit of 4 accepts "5").
    - Ctrl+A puts the selection's anchor at the end and the caret at the start

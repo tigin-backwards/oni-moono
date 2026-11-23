@@ -248,6 +248,58 @@ namespace OniMoono.Tests
             Assert.Equal("BC", custom.text);
         }
 
+        // onValidateInput comes first whatever the character validation: with CustomValidator
+        // and no inputValidator, the callback's result is inserted (issue #121: the Storage
+        // Quotas mod's fields), and a callback overrides an inputValidator too.
+        [Fact]
+        public void OnValidateInputComesBeforeACustomValidator()
+        {
+            var field = NewField();
+            field.contentType = TMP_InputField.ContentType.Custom;
+            field.characterValidation = TMP_InputField.CharacterValidation.CustomValidator;
+            field.onValidateInput = (t, i, c) => c >= '0' && c <= '9' ? c : (char)0;
+            int changes = 0;
+            field.onValueChanged.AddListener(_ => changes++);
+            field.ActivateInputField();
+            Frame();
+            Type(Char('5'), Char('x'), Char('0'));
+            Assert.Equal("50", field.text);
+            Assert.Equal(2, field.caretPosition);
+            Assert.Equal(2, changes);
+            // A paste goes through the callback character by character.
+            GUIUtility.systemCopyBuffer = "1a2";
+            Type(Key(KeyCode.V, 'v', EventModifiers.Control));
+            Assert.Equal("5012", field.text);
+
+            var both = NewField();
+            both.inputValidator = ScriptableObject.CreateInstance<UpperCaseOnly>();
+            both.characterValidation = TMP_InputField.CharacterValidation.CustomValidator;
+            both.onValidateInput = (t, i, c) => char.ToLowerInvariant(c);
+            both.ActivateInputField();
+            Frame();
+            Type(Char('A'), Char('b'), Char('1'));
+            Assert.Equal("ab1", both.text);
+
+            // Without a callback the inputValidator still validates.
+            both.onValidateInput = null;
+            Type(Char('c'), Char('D'));
+            Assert.Equal("ab1D", both.text);
+
+            // None and the content types' validations are unchanged.
+            var none = NewField();
+            none.characterValidation = TMP_InputField.CharacterValidation.None;
+            none.ActivateInputField();
+            Frame();
+            Type(Char('a'), Char('-'), Char('1'));
+            Assert.Equal("a-1", none.text);
+            var digits = NewField();
+            digits.characterValidation = TMP_InputField.CharacterValidation.Digit;
+            digits.ActivateInputField();
+            Frame();
+            Type(Char('a'), Char('7'), Char('-'));
+            Assert.Equal("7", digits.text);
+        }
+
         [Fact]
         public void ARejectedCharacterLeavesTheSelection()
         {
