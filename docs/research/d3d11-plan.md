@@ -66,7 +66,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
-| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 4 within, 2 over (nav lines two rows thick, the northern lights mirrored against OpenGL: D3D11 equals Vulkan) and 2 unjudged. Open: those two over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4) |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4) |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
@@ -983,7 +983,7 @@ the state the game makes, as the coverage spec does:
   screen (j0008855). No comparable shot.
 
 Results (`scenes.py`, part A's tolerance and method; D3D11 with the debug layer j0008866, OpenGL
-j0008867 and j0008868, Vulkan j0008871 for information; no debug-layer message stored):
+j0008867 and j0008868, Vulkan j0008871, the sky's reference; no debug-layer message stored):
 
 | Scene | OpenGL spread > 8 | Stable | > 16 | > 40 | PSNR | Verdict |
 |---|---|---|---|---|---|---|
@@ -994,7 +994,7 @@ j0008867 and j0008868, Vulkan j0008871 for information; no debug-layer message s
 | rockets/launch-conditions | 0.13% | 99.7% | 0.006% | 0.000% | 58.7 dB | within |
 | impactor/after-reveal | 7.05% | 34.6% | 0.331% | 0.269% | 38.1 dB | unjudged |
 | impactor/impactor-world | 3.69% | 45.4% | 0.017% | 0.002% | 53.6 dB | unjudged |
-| sky | 0.00% | 99.8% | 22.86% | 5.744% | 26.7 dB | **over** |
+| sky (against Vulkan, below) | 0.00% | 99.8% | 0.007% | 0.000% | | within |
 
 - **navgrid** (over by 0.028 points). The differing pixels are the grid's horizontal lines
   (GL.Begin lines through Lines/Colored Blended): OpenGL draws them one row thick, Vulkan one
@@ -1007,15 +1007,18 @@ j0008867 and j0008868, Vulkan j0008871 for information; no debug-layer message s
   documentation does not settle which algorithm a single-sample target gets. Observed (RTX
   3090): two-row lines, as a 1.4-wide rectangle would give. **UNVERIFIED** (M4, with the other
   measurements of the original): whether the original's lines are two rows thick too.
-- **sky** (over). Klei/NorthernLights' shipped vertex program writes the clip position's x and
+- **sky** (within, judged against Vulkan). Klei/NorthernLights' shipped vertex program writes the clip position's x and
   y from the mesh unchanged (`mov o0.xy, v0.xyxx`, `fxc /dumpbin`, j0008876), a quad already in
   clip space with no projection, so its image is turned over in a target whose rows run the
   other way: D3D11 draws the world camera into render textures with the flipped convention (as
   the original, captures §2). D3D11 and Vulkan agree exactly (0.000% over 40), OpenGL differs
-  (5.75%): the aurora is mirrored top to bottom between them. Part B's light pools were the same
-  kind of question, and there the original sided with OpenGL; this brief does not run the
-  original (its run needs the user's registry and LocalLow). **UNVERIFIED** (M4): which way the
-  original draws it. Klei/LargeImpactorFragments and DemoliorBackground draw in the same shot.
+  (5.75%): the aurora is mirrored top to bottom between them. **Settled against the original**
+  (the coordinator's run, j0008881, `tests/e2e/sky-northern-lights.yaml` on master): the
+  original's own D3D11 against ours on Vulkan 0.000% of pixels over 40, its GLCore against ours
+  on OpenGL 0.001%, its two renderers 20.8% apart. The mirroring is the original's own
+  behaviour, so D3D11 is right; `scenes.py` judges this scene against the Vulkan run
+  (`VULKAN_REFERENCE`), which equals D3D11 there: 0.007% over 16, 0.000% over 40. Klei/
+  LargeImpactorFragments and DemoliorBackground draw in the same shot.
 - **impactor** (unjudged). The planet's material gets `_Random` from Random.value and
   `_UnscaledTime` every frame (ParallaxBackgroundObject.LateUpdate) and the reveal animates in
   real time, so two OpenGL runs agree on under half the image. Drawn, not judged.
@@ -1041,8 +1044,8 @@ Coverage in play (`coverage.py` over the D3D11 runs: part B's and j0008866, j000
 | Klei/PostFX/ScannerNetwork | drawn, within | debug/scanner |
 | Klei/PostFX/RocketLaunchCondition | drawn, within | rockets |
 | Lines/Colored Blended | drawn, over | debug/navgrid, above |
-| Klei/NorthernLights | drawn, over | sky, above |
-| Klei/LargeImpactorFragments | drawn, over (same shot) | sky |
+| Klei/NorthernLights | drawn, within (against Vulkan, which equals the original) | sky, above |
+| Klei/LargeImpactorFragments | drawn, within (the same shot) | sky |
 | Klei/DLC4/DemoliorBackground | drawn, unjudged; also in sky | impactor (BGPlanet, ParallaxBackgroundObject) |
 | Klei/PostFX/LargeImpactorVisualizerShader | drawn, unjudged | impactor |
 | Unlit/VirtualCursorCutoutShader | drawn once, no comparable shot | the dropped gamepad spec, above |
@@ -1067,7 +1070,7 @@ Coverage in play (`coverage.py` over the D3D11 runs: part B's and j0008866, j000
 **Driver.** `setup.set {target, member, value}` (E2eDriver, setup only, as setup.call): a field
 or property set by reflection, for state no method sets.
 
-**Left open.** The two UNVERIFIED items above (M4); Klei/Standard Unlit, AnimationInvisible,
+**Left open.** The navgrid UNVERIFIED item above (M4); Klei/Standard Unlit, AnimationInvisible,
 LargeImpactorCometShader, TextMeshPro/Sprite and Standard not drawn; the two impactor shots
 unjudged; VirtualCursorCutoutShader without a comparable shot.
 

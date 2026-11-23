@@ -41,6 +41,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pixel_diff import compare  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Scenes judged against the Vulkan run instead of OpenGL: the original's own D3D11 and GLCore
+# renderers differ there, and ours on Vulkan equals the original's D3D11 (measured). Klei/
+# NorthernLights draws a quad already in clip space, with no projection, so a renderer whose
+# render textures run top row first draws it upside down against GL, the original too (the
+# original's D3D11 against ours on Vulkan 0.000% over 40, its GLCore against ours on OpenGL
+# 0.001%, j0008881; d3d11-plan.md M3 part C).
+VULKAN_REFERENCE = {'d3d11-coverage-sky/sky'}
+
 SPECS = ('d3d11-scenes', 'd3d11-scenes-base', 'd3d11-scenes-mid', 'd3d11-coverage', 'd3d11-coverage-particles', 'd3d11-coverage-debug',
          'd3d11-coverage-rockets', 'd3d11-coverage-impactor', 'd3d11-coverage-sky')
 TOLERANCE = {'16': 0.005, '40': 0.001}
@@ -107,7 +115,21 @@ def main():
             spec_masked = compare(ra, ra, masks=masks)[0]['masked'] if masks else 0
             share = stable['pixels'] / (stable['pixels'] + stable['masked'] - spec_masked)
             f = stable['fraction_over']
-            if share < MIN_STABLE:
+            if scene in VULKAN_REFERENCE:
+                if name not in v:
+                    verdict = 'needs --vulkan (judged against Vulkan)'
+                else:
+                    rv = os.path.join(v_dir, name + '.png')
+                    vulkan, _ = compare(rv, rb, masks=masks, stable_pairs=[(ra, rc)], grow_by=GROW)
+                    row['vulkan'] = vulkan
+                    fv = vulkan['fraction_over']
+                    over = [k for k, limit in TOLERANCE.items() if fv[k] > limit]
+                    verdict = ('ok' if not over else 'over at ' + ', '.join('>' + k for k in over)) + f' against Vulkan (>40 {fv["40"]:.3%})'
+                    if not over:
+                        verdict = 'ok'
+                        f = fv
+                        print(f'{scene:40} judged against Vulkan: >16 {fv["16"]:.3%}, >40 {fv["40"]:.3%}')
+            elif share < MIN_STABLE:
                 verdict = f'unjudged ({share:.0%} stable)'
             else:
                 over = [k for k, limit in TOLERANCE.items() if f[k] > limit]
