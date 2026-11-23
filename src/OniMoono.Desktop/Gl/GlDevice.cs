@@ -323,8 +323,8 @@ namespace OniMoono.Desktop.Gl
             var gl = GlMemoryCounters();
             // Windows: the process's own video memory on the GL context's adapter (all of it: the
             // GL driver's allocations and DXGI's), as Windows counts it.
-            if (OperatingSystem.IsWindows() && presenter.DxgiAdapterLuid != 0 && Dxgi.ProcessVideoMemory(presenter.DxgiAdapterLuid) is var (local, nonLocal))
-                return (gl != null ? gl + "; " : "") + $"process {local >> 20} MiB local, {nonLocal >> 20} MiB non-local";
+            if (OperatingSystem.IsWindows() && presenter.DxgiAdapterLuid != 0 && Dxgi.ProcessVideoMemory(presenter.DxgiAdapterLuid) is var (local, nonLocal, budget))
+                return (gl != null ? gl + "; " : "") + $"process {local >> 20} MiB local (budget {budget >> 20} MiB), {nonLocal >> 20} MiB non-local";
             return gl;
         }
 

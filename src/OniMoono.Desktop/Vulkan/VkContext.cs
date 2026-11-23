@@ -308,6 +308,8 @@ namespace OniMoono.Desktop.Vulkan
             // ONI_VULKAN_FAIL=heap-limit:MB (tests): VMA treats each device-local heap as at
             // most MB, as a small iGPU heap would be (#114: 1,879 MB).
             var memory = Physical.GetMemoryProperties();
+            memoryTypeFlags = new VkMemoryPropertyFlags[memory.MemoryTypeCount];
+            for (int i = 0; i < memoryTypeFlags.Length; i++) memoryTypeFlags[i] = memory.MemoryTypes[i].PropertyFlags;
             var limits = stackalloc Brutal.ByteSize[Math.Max(1, (int)memory.MemoryHeapCount)];
             long heapLimit = (long)VkFault.Number("heap-limit") * 1_000_000;
             for (int i = 0; i < memory.MemoryHeapCount; i++)
@@ -330,6 +332,11 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         static string YesNo(bool b) => b ? "yes" : "no";
+
+        VkMemoryPropertyFlags[] memoryTypeFlags = Array.Empty<VkMemoryPropertyFlags>();
+
+        /// A memory type's property flags (none for a type the device does not have).
+        public VkMemoryPropertyFlags MemoryTypeFlags(uint type) => type < memoryTypeFlags.Length ? memoryTypeFlags[type] : 0;
 
         /// VMA's limit for a heap under ONI_VULKAN_FAIL=heap-limit (`limit` bytes, 0: none):
         /// device-local heaps at most `limit`, the others unlimited (VK_WHOLE_SIZE).

@@ -3267,7 +3267,11 @@ Only the work posted for resources differs (`IResourceWork`).
     maps (resizable BAR, where VMA puts it on NVIDIA), written across the bus. Texels written there
     took 1.8 ms a frame on a late-game colony against 0.7 in host memory (RTX 3090).
     `ONI_VULKAN_STAGING=device` stages in that stream again.
-  - **Memory** comes from VMA, and the first buffer of each use logs the memory type it got.
+  - **Memory** comes from VMA, and the first image or buffer of each use logs the memory type it
+    got. VMA moves on to the next memory type when one is full, and says nothing: a resource the
+    GPU reads that ends up outside device-local memory is logged (the first eight, then each
+    power of two) and counted in the `video memory:` line as its kind "in system memory". The
+    memory line at start says whether resizable BAR is on (#115).
   - **Barriers.** Each image tracks its layout and last access, and each use makes the barrier it
     needs (a render target's colour writes before it is sampled; transfers before and after copies).
   - **Failures.**

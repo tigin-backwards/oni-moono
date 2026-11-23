@@ -24,6 +24,7 @@ namespace OniMoono.Desktop.Vulkan
         /// Moves the allocation to another kind in the ledger (a mesh's buffer kept as a spare).
         public void Relabel(string to)
         {
+            if (kind != null && kind.EndsWith(VkMemoryPlacement.SystemMemory, StringComparison.Ordinal)) to += VkMemoryPlacement.SystemMemory;
             if (Buffer.IsNull() || to == kind) return;
             VideoMemoryLedger.Add(kind, -bytes, -1);
             kind = to;
@@ -42,21 +43,12 @@ namespace OniMoono.Desktop.Vulkan
             var result = vk.Allocator.CreateBuffer(info, alloc, out var buffer, out var allocation, out var allocationInfo);
             VkCheck.Ok(result, "vmaCreateBuffer");
             var made = new VkBufferAlloc { Buffer = buffer, Allocation = allocation, Mapped = (byte*)allocationInfo.PMappedData.Pointer, Size = size };
-            made.kind = kind;
             made.bytes = (long)allocationInfo.Size.Value;
-            VideoMemoryLedger.Add(kind, made.bytes, 1);
-            bool first;
-            lock (loggedUsages) first = loggedUsages.Add(usage);
-            if (first)
-            {
-                var memory = vk.Physical.GetMemoryProperties();
-                OniMoono.Engine.EngineLog.Engine($"vulkan: buffers for {usage} in memory type {allocationInfo.MemoryType} ({memory.MemoryTypes[(int)allocationInfo.MemoryType].PropertyFlags})");
-            }
+            made.kind = VkMemoryPlacement.Note(vk, $"buffers for {usage}", $"a buffer of {size} bytes", kind, allocationInfo.MemoryType, made.bytes,
+                expectHost: preferHost || readback);
+            VideoMemoryLedger.Add(made.kind, made.bytes, 1);
             return made;
         }
-
-        /// Buffer usages whose memory type was logged (diagnostics).
-        static readonly HashSet<VkBufferUsageFlags> loggedUsages = new();
 
         /// Host writes made visible to the device (a no-op on coherent memory).
         public void Flush(VkContext vk, long size = -1) => VkCheck.Ok(vk.Allocator.FlushAllocation(Allocation, default, new Brutal.ByteSize((nuint)(size < 0 ? Size : size))), "vmaFlushAllocation");

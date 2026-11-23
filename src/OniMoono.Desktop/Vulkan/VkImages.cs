@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Brutal.VulkanApi;
 using Brutal.VulkanApi.Vma;
 
@@ -36,6 +37,9 @@ namespace OniMoono.Desktop.Vulkan
         const VkAccessFlags2 Writes = VkAccessFlags2.ShaderWriteBit | VkAccessFlags2.ColorAttachmentWriteBit | VkAccessFlags2.DepthStencilAttachmentWriteBit
                                       | VkAccessFlags2.TransferWriteBit | VkAccessFlags2.HostWriteBit | VkAccessFlags2.MemoryWriteBit;
 
+        /// Barriers Use made, and those of them from UNDEFINED (frame counts; any thread).
+        public static long Barriers, FromUndefined;
+
         /// Makes the image ready for a use: a barrier unless it is read as it was last read.
         public void Use(CommandBuffer cb, VkImageLayout layout, VkPipelineStageFlags2 stages, VkAccessFlags2 access)
         {
@@ -60,6 +64,8 @@ namespace OniMoono.Desktop.Vulkan
             };
             var dependency = new VkDependencyInfo { ImageMemoryBarrierCount = 1, ImageMemoryBarriers = &barrier };
             cb.PipelineBarrier2(dependency);
+            System.Threading.Interlocked.Increment(ref Barriers);
+            if (Layout == VkImageLayout.Undefined) System.Threading.Interlocked.Increment(ref FromUndefined);
             Layout = layout;
             Stages = stages;
             Access = access;
@@ -114,9 +120,9 @@ namespace OniMoono.Desktop.Vulkan
             };
             var alloc = new VmaAllocationCreateInfo { Usage = VmaMemoryUsage.AutoPreferDevice };
             VkCheck.Ok(vk.Allocator.CreateImage(info, alloc, out r.Image, out r.Allocation, out var allocation), $"vmaCreateImage {width}x{height} {format}{(name != null ? " (" + name + ")" : "")}");
-            r.kind = kind;
             r.Bytes = (long)allocation.Size.Value;
-            OniMoono.Desktop.Gl.VideoMemoryLedger.Add(kind, r.Bytes, 1);
+            r.kind = VkMemoryPlacement.Note(vk, $"images for {usage}", $"{name ?? "an image"} {width}x{height} {format}", kind, allocation.MemoryType, r.Bytes, expectHost: false);
+            OniMoono.Desktop.Gl.VideoMemoryLedger.Add(r.kind, r.Bytes, 1);
             try
             {
                 // Depth-and-stencil images are sampled through their depth.
@@ -159,6 +165,38 @@ namespace OniMoono.Desktop.Vulkan
             View = AttachmentView = default;
             Image = default;
         }
+    }
+
+    /// Diagnostics (#115): where VMA put the device's resources. The memory type of the first
+    /// image or buffer of each usage is logged, and a resource the GPU reads that VMA put outside
+    /// device-local memory is counted under its kind with " in system memory" in the video
+    /// memory line (--frame-stats), the first few, and then each power of two, logged by name.
+    /// VMA takes the next memory type when one is full and says nothing (#114): that next type
+    /// is system memory, which the GPU reads across the bus.
+    internal static class VkMemoryPlacement
+    {
+        static readonly HashSet<string> logged = new();
+        static int outside;
+
+        /// The ledger kind for the allocation: `kind`, or `kind` in system memory when the GPU
+        /// will read it from there and `expectHost` is false (staging and readback memory is
+        /// host memory by choice).
+        public static string Note(VkContext vk, string usage, string name, string kind, uint type, long bytes, bool expectHost)
+        {
+            var flags = vk.MemoryTypeFlags(type);
+            bool first;
+            lock (logged) first = logged.Add(usage);
+            if (first) OniMoono.Engine.EngineLog.Engine($"vulkan: {usage} in memory type {type} ({flags})");
+            // An integrated GPU's memory is system memory: nothing to tell.
+            if (expectHost || (flags & VkMemoryPropertyFlags.DeviceLocalBit) != 0 || vk.Properties.DeviceType == VkPhysicalDeviceType.IntegratedGpu) return kind;
+            int n = System.Threading.Interlocked.Increment(ref outside);
+            if (n <= 8 || (n & (n - 1)) == 0)
+                OniMoono.Engine.EngineLog.Engine($"vulkan: {name} ({kind}, {bytes / 1_000_000.0:F1} MB) went into memory type {type} ({flags}), outside device-local memory "
+                                                 + $"({n} {(n == 1 ? "resource" : "resources")} so far)");
+            return kind + SystemMemory;
+        }
+
+        public const string SystemMemory = " in system memory";
     }
 
     /// Which images the current pass has found ready to sample (VkDevice.PrepareTextures), so a

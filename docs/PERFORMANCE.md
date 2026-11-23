@@ -88,6 +88,8 @@ start with `--frame-stats`. Player.log then gets:
   - The CPU memory uploads go through (pooled texel copies, texels read ahead of background
     uploads, all texel memory).
   - The engine's live textures.
+  - On Windows, the process's local and non-local video memory as Windows counts it, and its
+    local budget: past the budget, Windows moves allocations into system memory.
 
 The 600-frame lines, all in ms a frame over the window unless they say otherwise:
 

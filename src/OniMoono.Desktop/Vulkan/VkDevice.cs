@@ -182,11 +182,26 @@ namespace OniMoono.Desktop.Vulkan
                 heaps.Append(i == 0 ? "" : "; ").Append($"heap {i} {(long)memory.MemoryHeaps[i].Size.Value / 1_000_000} MB {memory.MemoryHeaps[i].Flags}, types ")
                      .Append(string.Join(", ", types));
             }
-            EngineLog.Engine($"vulkan: memory: {heaps}");
+            EngineLog.Engine($"vulkan: memory: {heaps}; {ResizableBar(memory)}");
             maxAnisotropy = vk.SamplerAnisotropy ? p.Limits.MaxSamplerAnisotropy : 1f;
             maxLodBias = p.Limits.MaxSamplerLodBias;
             depthFormat = (caps.Features(VkFormat.D24UNormS8UInt) & VkFormatFeatureFlags.DepthStencilAttachmentBit) != 0 ? VkFormat.D24UNormS8UInt : VkFormat.D32SFloatS8UInt;
             VkFormats.Sampled = f => (caps.Features(f) & (VkFormatFeatureFlags.SampledImageBit | VkFormatFeatureFlags.TransferDstBit)) == (VkFormatFeatureFlags.SampledImageBit | VkFormatFeatureFlags.TransferDstBit);
+        }
+
+        /// Whether the CPU can map all of the device's memory (resizable BAR) or a 256 MB window
+        /// of it (#115): the largest heap with a device-local, host-visible type.
+        static string ResizableBar(in VkPhysicalDeviceMemoryProperties memory)
+        {
+            long mappable = 0;
+            for (int t = 0; t < memory.MemoryTypeCount; t++)
+            {
+                var f = memory.MemoryTypes[t].PropertyFlags;
+                if ((f & VkMemoryPropertyFlags.DeviceLocalBit) != 0 && (f & VkMemoryPropertyFlags.HostVisibleBit) != 0)
+                    mappable = Math.Max(mappable, (long)memory.MemoryHeaps[(int)memory.MemoryTypes[t].HeapIndex].Size.Value);
+            }
+            if (mappable == 0) return "no device memory the CPU can map";
+            return $"resizable BAR {(mappable > 300_000_000 ? "on" : "off")} ({mappable / 1_000_000} MB of device memory the CPU can map)";
         }
 
         public override GraphicsCaps Caps => caps;
@@ -677,7 +692,8 @@ namespace OniMoono.Desktop.Vulkan
             string text = (profile != null ? profile + "\n" : "") + VkTimings.Take(n) + $"; draws {draws / n}, pipeline binds {pipelineBinds / n}, render passes {renderPasses / n}, passes broken by uploads {uploadBreaks / n}, "
                 + $"submits {frames.Submits / (double)n:F1}, programs built {programs.Built}, pipelines made {pipelines.Created} ({pipelines.CreateTicks * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F0} ms), "
                 + $"texture uploads {textureUploads / (double)n:F1} ({textureUploadBytes / n / 1024} KiB), unchanged {unchangedUploads / (double)n:F1}, staging waits {stagingWaits}, "
-                + $"descriptor sets made {descriptorCache.Made / (double)n:F1}, found {descriptorCache.Found / n}, kept {descriptorCache.Count}; "
+                + $"descriptor sets made {descriptorCache.Made / (double)n:F1}, found {descriptorCache.Found / n}, kept {descriptorCache.Count}, "
+                + $"image barriers {System.Threading.Interlocked.Exchange(ref VkImageResource.Barriers, 0) / n} ({System.Threading.Interlocked.Exchange(ref VkImageResource.FromUndefined, 0) / (double)n:F1} from UNDEFINED); "
                 + OniMoono.Desktop.Gl.PresenterTimings.Take() + VkDrawAlternation.EndWindow();
             draws = pipelineBinds = renderPasses = uploadBreaks = 0;
             frames.Submits = 0;
@@ -706,8 +722,8 @@ namespace OniMoono.Desktop.Vulkan
                 var text = new System.Text.StringBuilder();
                 for (int i = 0; i < budgets.Length; i++)
                     text.Append(i == 0 ? "" : ", ").Append($"heap {i} {(long)budgets[i].Usage.Value / 1_000_000} MB used of {(long)budgets[i].Budget.Value / 1_000_000} MB budget");
-                if (OperatingSystem.IsWindows() && vk.DxgiInterop && vk.Luid != 0 && OniMoono.Desktop.Gl.Dxgi.ProcessVideoMemory(vk.Luid) is var (local, nonLocal))
-                    text.Append($", process {local / 1_000_000} MB local, {nonLocal / 1_000_000} MB non-local");
+                if (OperatingSystem.IsWindows() && vk.DxgiInterop && vk.Luid != 0 && OniMoono.Desktop.Gl.Dxgi.ProcessVideoMemory(vk.Luid) is var (local, nonLocal, budget))
+                    text.Append($", process {local / 1_000_000} MB local (budget {budget / 1_000_000} MB), {nonLocal / 1_000_000} MB non-local");
                 return text.ToString();
             }
             catch (Exception e)
@@ -729,8 +745,8 @@ namespace OniMoono.Desktop.Vulkan
             }
             // Windows: the process's own video memory on the device's adapter (all of it,
             // DXGI's swap chain and shared texture too), as Windows counts it.
-            if (OperatingSystem.IsWindows() && vk.DxgiInterop && vk.Luid != 0 && OniMoono.Desktop.Gl.Dxgi.ProcessVideoMemory(vk.Luid) is var (local, nonLocal))
-                text.Append(text.Length == 0 ? "" : "; ").Append($"process {local >> 20} MiB local, {nonLocal >> 20} MiB non-local");
+            if (OperatingSystem.IsWindows() && vk.DxgiInterop && vk.Luid != 0 && OniMoono.Desktop.Gl.Dxgi.ProcessVideoMemory(vk.Luid) is var (local, nonLocal, budget))
+                text.Append(text.Length == 0 ? "" : "; ").Append($"process {local >> 20} MiB local (budget {budget >> 20} MiB), {nonLocal >> 20} MiB non-local");
             text.Append(text.Length == 0 ? "" : "; ").Append($"textures {liveTextures.Count}, meshes {liveMeshes.Count}");
             // The allocations by kind (staging and stream chunks are in host-visible memory), and
             // the CPU memory uploads go through: readable textures' copies and all texel memory.

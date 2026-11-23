@@ -324,9 +324,10 @@ namespace OniMoono.Desktop.Gl
             }
         }
 
-        /// The calling process's video memory use on the adapter `luid` (local, then non-local),
-        /// in bytes; null when DXGI can't tell. Any thread: it makes and releases its own objects.
-        public static (ulong Local, ulong NonLocal)? ProcessVideoMemory(long luid)
+        /// The calling process's video memory use on the adapter `luid` (local, then non-local)
+        /// and the local budget Windows gives it (past it, Windows moves allocations to system
+        /// memory), in bytes; null when DXGI can't tell. Any thread: it makes and releases its own objects.
+        public static (ulong Local, ulong NonLocal, ulong LocalBudget)? ProcessVideoMemory(long luid)
         {
             void* factory = null, factory4 = null, adapter3 = null;
             try
@@ -337,7 +338,7 @@ namespace OniMoono.Desktop.Gl
                 if (Failed(EnumAdapterByLuid(factory4, luid, IIDAdapter3, &adapter3))) return null;
                 VideoMemoryInfo local, nonLocal;
                 if (Failed(QueryVideoMemoryInfo(adapter3, 0, 0, &local)) || Failed(QueryVideoMemoryInfo(adapter3, 0, 1, &nonLocal))) return null;
-                return (local.CurrentUsage, nonLocal.CurrentUsage);
+                return (local.CurrentUsage, nonLocal.CurrentUsage, local.Budget);
             }
             finally
             {
