@@ -25,7 +25,7 @@ def hlsl(text):
     lines = text.splitlines()
     start = next(i for i, l in enumerate(lines) if l.strip().endswith('from this HLSL:'))
     out = []
-    for line in lines[start + 2:]:
+    for line in lines[start + 2 :]:
         m = re.match(r'^\s*//   (.*)$', line)
         if not m:
             break
@@ -60,8 +60,9 @@ def compile_all(source_hlsl):
             f.write(source_hlsl)
         out = {}
         for name, profile, entry in STAGES:
-            result = subprocess.run([FXC, *FLAGS, '/T', profile, '/E', entry, '/Fo', win + '\\' + entry + '.cso', win + '\\present.hlsl'],
-                                    capture_output=True, text=True)
+            result = subprocess.run(
+                [FXC, *FLAGS, '/T', profile, '/E', entry, '/Fo', win + '\\' + entry + '.cso', win + '\\present.hlsl'], capture_output=True, text=True
+            )
             if result.returncode != 0:
                 raise RuntimeError(f'fxc {profile} failed: {result.stdout}{result.stderr}')
             with open(os.path.join(d, entry + '.cso'), 'rb') as f:
@@ -75,7 +76,9 @@ def main():
     made = compile_all(hlsl(text))
     if '--write' in sys.argv[1:]:
         for name, data in made.items():
-            text = re.sub(name + r' =\s*"[A-Za-z0-9+/=]+";', lambda m: f'{name} =\n            "{base64.b64encode(data).decode()}";', text)
+            text = re.sub(
+                name + r' =\s*"[A-Za-z0-9+/=]+";', lambda m, name=name, data=data: f'{name} =\n            "{base64.b64encode(data).decode()}";', text
+            )
         with open(SOURCE, 'w', encoding='utf-8') as f:
             f.write(text)
         print('written')
