@@ -340,7 +340,7 @@ namespace OniMoono.Desktop.D3d11
                 EngineLog.Engine($"d3d11 coverage: {program.Coverage}");
             }
             if (d3d.InfoQueue == null) return;
-            DrainDebugMessages($"shader '{program.Name}' into {targetCount} target(s) {lastTarget.Name ?? "the back buffer"}");
+            DrainDebugMessages($"shader '{program.Name}' into {targetCount} target(s) {lastTarget.Label}");
         }
 
         static D3D11_PRIMITIVE_TOPOLOGY Topology(uint mode) => mode switch
@@ -479,8 +479,8 @@ namespace OniMoono.Desktop.D3d11
         /// samplers for a draw.
         void Bind(ProgramInputs r, D3d11Shaders program, D3d11Layout layout, D3D11_PRIMITIVE_TOPOLOGY topology)
         {
-            if (program.Targets > targetCount && fewerTargets.Add($"{program.Name} {targetCount} {lastTarget.Name}"))
-                EngineLog.Engine($"d3d11: shader '{program.Name}' writes {program.Targets} render targets into {targetCount} ({lastTarget.Name ?? "the back buffer"})");
+            if (program.Targets > targetCount && fewerTargets.Add($"{program.Name} {targetCount} {lastTarget.Label}"))
+                EngineLog.Engine($"d3d11: shader '{program.Name}' writes {program.Targets} render targets into {targetCount} ({lastTarget.Label})");
             if (boundShaders != program)
             {
                 Ctx->lpVtbl->VSSetShader(Ctx, program.Vertex, null, 0);
