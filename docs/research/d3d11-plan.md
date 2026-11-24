@@ -1607,11 +1607,33 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
   DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET. This is review item 3's stretch-path debug-layer run.
   The window was never focused (a test run), so exclusive here is GLFW's monitor-sized window
   with its mode set, unfocused.
-- **Open, holding M4 (UNVERIFIED; the user is away)**:
-  - exclusive full screen with the window focused, the original's (its DXGI full-screen chain,
-    which failed unfocused) and ours;
-  - alt-tab into and out of exclusive full screen (run 3);
-  - HDR on monitor 1 and the Auto HDR observation of #112 (run 4: HDR switched on by the user).
+- **Run 3, ours focused in exclusive, and an alt-tab without keys** (j0009167; the user's word
+  "You can take over my desktop" and their approval of runs 3 and 4; `--input N:focus` /
+  `focusother`, SetForegroundWindow from the player's own process, no key sent, the pointer not
+  moved): SetForegroundWindow returned 1 and the window was the foreground; exclusive 2560×1440
+  (GLFW's monitor-sized window with the mode set) presented, the screen textures remade, a 1.5 s
+  stall repeated 86 times every 16.7 ms. Handing the foreground to a popup of the player's own
+  returned 0 (Windows refused it), but the game window lost the focus all the same and GLFW
+  iconified it (`window iconify Iconified`, `focus LostFocus`), as an alt-tab out of exclusive
+  does; minimized, a stall still repeated 76 times; asking for the foreground back returned 0
+  (a process not in the foreground may not take it, so the alt-tab back in was not made); the
+  restore (SW_SHOWNOACTIVATE) and the change to windowed 1280×720 went through. No hang, no
+  frame-latency timeout, nothing owed; debug layer 0 messages above INFO.
+- **Run 4, HDR** (j0009165, `tools/HdrCheck/hdrtoggle` and `dupcap`; monitor 2, `\\.\DISPLAY2`):
+  `DisplayConfigSetDeviceInfo` (SET_ADVANCED_COLOR_STATE) switched its advanced colour on
+  (returned 0, enabled 1 read back) and off again after the run (enabled 0 read back), but DXGI
+  reported the output SDR throughout (colour space 0, 8 bits), every capture at most 80 nits: the
+  original and ours, borderless and windowed, all composed as SDR (brightest 0.5% 77.6-80 nits).
+  That display reports wideColorEnforced 1; that its advanced colour is wide colour on an SDR
+  panel, not HDR, is an inference. The DirectX user settings value (Auto HDR) is unset (read
+  only). So nothing about HDR or #112 was observed: the 530-nit HDR monitor is monitor 1
+  (`\\.\DISPLAY1`), the user's primary, which needs the user's word.
+- **Open, holding M4 (UNVERIFIED)**:
+  - the original's swap chain inside exclusive full screen, focused (run 3, the original: its
+    first submission j0009166 found the probe's DLL gone with a rebuild of out/win);
+  - an alt-tab back into exclusive full screen (Windows refuses a background process the
+    foreground; a person's alt-tab, or a key, would make it);
+  - HDR and Auto HDR (#112) on the HDR monitor (monitor 1).
 - **Loading Pip** (`loading-animation-pip-d3d11`, j0009135, ok): the kanim replayed, 193 redraws
   over 7.2 s, and the replay check found 0 of 118,680 pixels differing from the frame shown (the
   tile copied from the screen by CopyTargetRect, drawn unfiltered). Under the user's exception
