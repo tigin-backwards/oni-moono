@@ -449,9 +449,11 @@ namespace OniMoono.Desktop.D3d11
             if (lost != null && !quitRequested)
             {
                 quitRequested = true;
-                Debug.LogError($"Direct3D 11 stopped working: {lost}, so the game quits. If this keeps happening, start the game without --renderer d3d11 "
-                               + $"(Vulkan or OpenGL draws then). The log is {EngineLog.FilePath ?? Application.consoleLogPath}.");
-                PlayerLoop.RequestQuit(1);
+                string error = $"Direct3D 11 stopped working: {lost}, so the game quits. If this keeps happening, start the game without --renderer d3d11 "
+                               + $"(Vulkan or OpenGL draws then). The log is {EngineLog.FilePath ?? Application.consoleLogPath}.";
+                Debug.LogError(error);
+                // On screen until the player closes it, once the window has gone (Player).
+                PlayerLoop.RequestQuit(1, error);
             }
             int interval = SwapIntervalOverride >= 0 ? SwapIntervalOverride : QualitySettings.vSyncCount;
             // The window's size, which the buffers take, and the rendering size the next frame's
@@ -572,9 +574,11 @@ namespace OniMoono.Desktop.D3d11
             // takes no such path: there is no hook that runs then with a live device thread.
             Leave();
             platform.AdoptDeviceExclusive(null);
-            if (lost == null) guard?.Clear();
             StopPresenting();
             worker.Dispose();
+            // After the device thread has ended, as VkDevice.Shutdown: VkStartGuard.Clear is not
+            // safe beside GuardFrame, and a loss found while the worker drains is seen.
+            if (lost == null) guard?.Clear();
             EndPresenting();
             DrainDebugMessages();
             Ctx->lpVtbl->ClearState(Ctx);

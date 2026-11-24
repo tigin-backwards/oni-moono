@@ -960,9 +960,11 @@ namespace OniMoono.Desktop.D3d11
         int framesPresented;
         static readonly int crashAt = D3d11Fault.Number("crash-at");
 
-        /// A game frame presented (device thread): the start-up guard is cleared once the first
-        /// VkStartGuard.FramesToClear are on screen, as VkDevice.Presented; ONI_D3D11_FAIL=crash-at:N
-        /// ends the process at frame N as a crash would (no shutdown, the guard left in place).
+        /// A game frame presented (device thread). Only frames the game drew into its screen
+        /// texture count (PresentChoice.Frame), so this is stricter than VkDevice.Presented,
+        /// which counts every frame the main thread presents. The start-up guard is cleared once
+        /// the first VkStartGuard.FramesToClear are on screen; ONI_D3D11_FAIL=crash-at:N ends the
+        /// process at frame N as a crash would (no shutdown, the guard left in place).
         void GuardFrame()
         {
             framesPresented++;
