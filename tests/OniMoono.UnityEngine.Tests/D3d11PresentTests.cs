@@ -88,5 +88,29 @@ namespace OniMoono.Tests
             worker.Dispose();
             Assert.Equal(1, ran);
         }
+
+        [Fact]
+        public void IdleWorkFallingDueBetweenTheTwoQuestionsIsNotMissed()
+        {
+            // HasIdleWork says no, then the work falls due before IdleWaitMs is asked, which says
+            // 0: the worker must wait 0 ms and ask again, not wait untimed for a Wake.
+            int armed = 0, asked = 0;
+            using var done = new ManualResetEventSlim();
+            var worker = new GlWorker("test", () => { }, () => { }, _ => { });
+            worker.HasIdleWork = () => Volatile.Read(ref armed) == 1 && asked++ > 0;
+            worker.IdleWaitMs = () => Volatile.Read(ref armed) == 1 ? 0 : -1;
+            worker.IdleWork = () =>
+            {
+                Volatile.Write(ref armed, 0);
+                done.Set();
+                return true;
+            };
+            Volatile.Write(ref armed, 1);
+            worker.Wake();
+            bool ran = done.Wait(2000, TestContext.Current.CancellationToken);
+            worker.Dispose();
+            Assert.True(ran);
+            Assert.True(asked >= 2);
+        }
     }
 }
