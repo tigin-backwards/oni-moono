@@ -1,0 +1,27 @@
+# Game time per real second at each speed, in both players: a measurement, not a check. A
+# report said speed 1 ran at 2x under Moono. The game clock and Time.realtimeSinceStartup are
+# read around a run at each speed; (t1 - t0) / (r1 - r0) is the game seconds per real second
+# (a little under the speed: OniMcp's stepping pauses between its steps).
+from: early-base
+steps:
+  - run: {seconds: 2, speed: 1}
+  - expect_state:
+      "SpeedControlScreen.Instance.normalSpeed": [{save_as: s1}, "== original"]
+      "SpeedControlScreen.Instance.fastSpeed": [{save_as: s2}, "== original"]
+      "SpeedControlScreen.Instance.ultraSpeed": [{save_as: s3}, "== original"]
+      "UnityEngine.Time.fixedDeltaTime": {save_as: fdt}
+      "UnityEngine.Time.maximumDeltaTime": {save_as: mdt}
+      "GameClock.Instance.GetTime()": {save_as: t0}
+      "UnityEngine.Time.realtimeSinceStartup": {save_as: r0}
+  - run: {seconds: 20, speed: 1}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t1}
+      "UnityEngine.Time.realtimeSinceStartup": {save_as: r1}
+  - run: {seconds: 30, speed: 2}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t2}
+      "UnityEngine.Time.realtimeSinceStartup": {save_as: r2}
+  - run: {seconds: 45, speed: 3}
+  - expect_state:
+      "GameClock.Instance.GetTime()": {save_as: t3}
+      "UnityEngine.Time.realtimeSinceStartup": {save_as: r3}
