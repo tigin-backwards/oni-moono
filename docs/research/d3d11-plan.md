@@ -1882,7 +1882,17 @@ The second adversarial review of M4 (the exclusive full screen, the HDR and Auto
     entered (S_OK); not refused again. Re-entered at 1550, windowed at 1800; debug layer 0
     messages above INFO. A third run lets any process take the foreground first
     (`--input allowforeground`: AllowSetForegroundWindow(ASFW_ANY), "all processes will be
-    enabled to set the foreground window"): REFUSEDRUN.
+    enabled to set the foreground window"): **j0009274**. AllowSetForegroundWindow(ASFW_ANY)
+    returned 1, the foreign window then took the foreground (SetForegroundWindow True, the
+    foreground; ours `focus LostFocus` at frame 1003), but at 1200 ours had the focus again as its
+    window was made borderless (`focus GainFocus`) and exclusive 1920×1080 was entered (S_OK).
+    Likely why (an inference): run-windows.sh's hand-back helper (ONI_WIN_FOREGROUND_FROM, for
+    the later refocus) had allowed our process to set the foreground (AllowSetForegroundWindow
+    True until 20 s after its start, which covered frame 1200). Re-entered at 1550, windowed at
+    1800, debug layer 0 messages above INFO. Not tried a fourth time (the coordinator's word):
+    **the refused path is untested for ours**; its handling (SetFullscreenState(FALSE), release,
+    a monitor-sized fullscreen window rendering at that size) follows the original's observed
+    behaviour (j0009128, j0009178).
   - **j0009264**, start-up in exclusive (`-screen-fullscreen 1 -window-mode exclusive` 2560×1440):
     "window: started exclusive full screen 2560x1440 through GLFW; made DXGI's", SetFullscreenState
     S_OK, full screen; the game then applied its own "2560x1440 @59hz (fullscreen:
