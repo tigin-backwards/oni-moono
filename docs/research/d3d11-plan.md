@@ -1080,7 +1080,8 @@ builds j0008848, j0008862; check-shaders j0008854 (unreachable counted apart), j
 the bundle); first D3D11 runs j0008855 (particles and gamepad drawn; the others' setup
 expressions fixed), j0008858; the comparison: D3D11 j0008866, OpenGL j0008867 and j0008868,
 Vulkan j0008871; NorthernLights' DXBC dumps j0008870, j0008872, j0008874 and `fxc /dumpbin` j0008873, j0008875,
-j0008876 (the first ones' scripts were wrong).
+j0008876 (the first ones' scripts were wrong); check.sh j0008877 (failed: ruff's format of
+scenes.py), j0008896 (green, on b587caf69).
 
 ## Research so far (M0)
 
