@@ -41,5 +41,25 @@ run_home="${ONI_RUN_HOME:-$win_temp\\oni-brutal\\run-home}"
 # OniMoono.exe sets on itself before the runtime starts.
 [ -z "${ONI_AFFINITY:-}" ] || export WSLENV="${WSLENV:+$WSLENV:}ONI_AFFINITY"
 game="${ONI_WIN_GAME_DIR:-C:\\Program Files (x86)\\Steam\\steamapps\\common\\OxygenNotIncluded}"
+# ONI_WIN_FOREGROUND_FROM=SECONDS (test runs given the user's word, the D3D11 plan's M4; as
+# original-windows.sh's ORIG_FOREGROUND_AT): from that many seconds after the start, once a
+# second, a helper lets the player's process set the foreground (AllowSetForegroundWindow: "A
+# process that can set the foreground window can enable another process to set the foreground
+# window"), so its `--input N:focus` can take it back; it logs each result's change. No key is
+# sent and the pointer is not moved; the player keeps --no-focus.
+if [ -n "${ONI_WIN_FOREGROUND_FROM:-}" ]; then
+  powershell.exe -NoProfile -Command "
+Add-Type -Namespace OniTest -Name Fg -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool AllowSetForegroundWindow(uint pid);'
+Start-Sleep -Seconds ${ONI_WIN_FOREGROUND_FROM}
+\$last = \$null
+for (\$i = 0; \$i -lt 600; \$i++) {
+  \$p = Get-CimInstance Win32_Process -Filter \"Name = 'OniMoono.exe'\" | Where-Object { \$_.CommandLine -like '*$run_home*' } | Select-Object -First 1
+  if (-not \$p) { if (\$i -gt 5) { break } } else {
+    \$r = [OniTest.Fg]::AllowSetForegroundWindow([uint32]\$p.ProcessId)
+    if (\$r -ne \$last) { 'foreground helper: AllowSetForegroundWindow(' + \$p.ProcessId + ') ' + \$r + ' at ' + (Get-Date -Format HH:mm:ss.fff); \$last = \$r }
+  }
+  Start-Sleep -Seconds 1
+}" 2>&1 | tr -d '\r' &
+fi
 exec "$stage/host/OniMoono.exe" --game "$game" --run-home "$run_home" --audio-wav "$run_home" --game-tweak none --splash none --log-paths full \
   --native-override "steam_api64=$stage_win\\$stub\\steam_api64.dll" -screen-fullscreen 0 -monitor "${ONI_WIN_MONITOR:-2}" --no-focus "$@"
