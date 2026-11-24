@@ -260,8 +260,12 @@ namespace OniMoono.Desktop.D3d11
 
         // ----- The presenter's program -----
 
-        // Compiled once with the Windows SDK's fxc 10.1 (10.0.26100.0: `fxc /T vs_4_0 /E vs /O3
-        // /Qstrip_reflect /Qstrip_debug` and `/T ps_4_0 /E ps`) from this HLSL:
+        // The presenter's own program: whether the plan's rules allow it (it is not a shipped
+        // program) waits for the user's word (d3d11-plan.md, "M4 review fixes", item 6).
+        // scripts/gen-d3d11-present.py compiles it with the Windows SDK's fxc 10.1
+        // (10.0.26100.0: `fxc /O3 /Qstrip_reflect /Qstrip_debug /T vs_4_0 /E vs` and
+        // `/T ps_4_0 /E ps`) and checks, or with --write sets, the blobs below; the scripts'
+        // tests compare them (test_d3d11_present.py). Compiled from this HLSL:
         //
         //   struct VSIn { float2 pos : POSITION; float2 uv : TEXCOORD0; float4 mul : COLOR0; float4 add : COLOR1; };
         //   struct PSIn { float4 pos : SV_Position; float2 uv : TEXCOORD0; float4 mul : COLOR0; float4 add : COLOR1; };
