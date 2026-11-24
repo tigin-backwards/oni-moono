@@ -16,12 +16,13 @@ namespace FrozenImpactorTestMod
     /// - LargeImpactorVisualizerEffect.OnPostRender, the landing zone's grid
     ///   (Klei/PostFX/LargeImpactorVisualizerShader): the fold check, `_EntryStartTime` and
     ///   `_UnscaledTime`, each from Time.unscaledTime.
-    /// Those reads become constants: the time 1000 s, the entry's start 0 (so the entry effect is
-    /// long over), the random numbers 0.5. Nothing else changes. A method whose reads are not
-    /// the ones listed fails the load, so a new build cannot pass unfrozen.
+    /// Those reads become constants: the time 1000 s, the entry's start 1 s (so the entry effect
+    /// is long over; not 0, as the grid's program takes the start's sign), the random numbers
+    /// 0.5. Nothing else changes. A method whose reads are not the ones listed fails the load, so
+    /// a new build cannot pass unfrozen.
     public sealed class Mod : UserMod2
     {
-        const float Time = 1000f, EntryStart = 0f, RandomValue = 0.5f;
+        const float Time = 1000f, EntryStart = 1f, RandomValue = 0.5f;
 
         public override void OnLoad(Harmony harmony)
         {
