@@ -1,5 +1,5 @@
 @echo off
-rem Builds dupcap.exe in the current folder (which holds dupcap.c) with the Visual Studio C++
+rem Builds dupcap.exe and hdrtoggle.exe in the current folder (which holds their sources) with the Visual Studio C++
 rem build tools: %VCVARS64% when set, else the newest install vswhere finds.
 setlocal
 if not defined VCVARS64 (
@@ -11,3 +11,4 @@ if not exist "%VCVARS64%" (
 )
 call "%VCVARS64%" >nul || exit /b 1
 cl /nologo /O2 /W3 dupcap.c d3d11.lib dxgi.lib dxguid.lib user32.lib >nul || exit /b 1
+if exist hdrtoggle.c cl /nologo /O2 /W3 hdrtoggle.c user32.lib >nul || exit /b 1
