@@ -93,6 +93,18 @@ namespace OniMoono.Desktop.D3d11
             return hr;
         }
 
+        /// DXGI left full screen by itself, or the exclusive chain is occluded (Show): the chain
+        /// is left as a Leave would; the platform, seeing Active false while it is exclusive,
+        /// makes the window windowed (GlfwPlatform.PollEvents).
+        bool exclusiveLeftByDxgi;
+
+        void LeaveByDxgi()
+        {
+            exclusiveLeftByDxgi = false;
+            LeaveNow();
+            EngineLog.Engine("d3d11: exclusive full screen left because DXGI left it (or the screen was occluded)");
+        }
+
         void LeaveNow()
         {
             if (exclusive == null) return;

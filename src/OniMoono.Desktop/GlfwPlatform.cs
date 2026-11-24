@@ -760,9 +760,10 @@ namespace OniMoono.Desktop
             if (Gl.PresentTrace.Enabled) Trace($"SetResolution {width}x{height} {newMode} (was {mode}, framebuffer {framebufferSize.X}x{framebufferSize.Y}, rendering {FramebufferWidth}x{FramebufferHeight})");
             // Out of DXGI's exclusive full screen first: the window is a monitor-sized borderless
             // one again, left as a fullscreen window's is.
-            if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { Active: true } leaving)
+            if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { } leaving)
             {
-                leaving.Leave();
+                // (Already left when DXGI left it: D3d11Device.LeaveByDxgi.)
+                if (leaving.Active) leaving.Leave();
                 mode = FullScreenMode.FullScreenWindow;
                 desktopBeforeExclusive = null;
             }
@@ -982,10 +983,13 @@ namespace OniMoono.Desktop
                 inGlfw--;
             }
             ThrowCallbackFailure();
+            // DXGI's exclusive full screen lost the focus, or the device left it because DXGI did
+            // (D3d11Device.LeaveByDxgi): the window goes windowed, as the original's.
+            if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { Active: false }) exclusiveFocusLost = true;
             if (exclusiveFocusLost)
             {
                 exclusiveFocusLost = false;
-                if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { Active: true })
+                if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive != null)
                 {
                     ReadFramebufferSize();
                     if (Gl.PresentTrace.Enabled) Trace("exclusive full screen lost the focus: windowed");

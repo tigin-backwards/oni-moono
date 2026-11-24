@@ -178,6 +178,7 @@ namespace OniMoono.Desktop.D3d11
                 EngineLog.Engine($"d3d11: {lost}");
                 return;
             }
+            if (exclusiveLeftByDxgi) LeaveByDxgi();
             RestoreAfterPresenter(always: true);
             if (choice != GlPresenter.PresentChoice.Nothing) Out.WaitForFrame();
         }
@@ -214,6 +215,17 @@ namespace OniMoono.Desktop.D3d11
             }
             int hr = kind == ShowKind.Repeat ? Out.PresentRepeat() : Out.Present(interval);
             DrainDebugMessages(kind == ShowKind.Frame ? "Present" : $"Present ({kind})");
+            // DXGI may take the exclusive chain out of full screen by itself ("DXGI may change the
+            // display state of a swap chain in response to end user or system requests",
+            // SetFullscreenState: the secure desktop, another application), and an occluded
+            // full-screen chain's Present returns DXGI_STATUS_OCCLUDED without waiting for a
+            // vertical blank, so frames would run unpaced. Either way exclusive is left after this
+            // picture (PresentNow, IdleWork) and the window goes windowed (GlfwPlatform).
+            if (exclusive != null && hr >= 0 && (hr == Dxgi.StatusOccluded || !exclusive.InFullscreenState()))
+            {
+                exclusiveLeftByDxgi = true;
+                if (PresentTrace.Enabled) PresentTrace.Log($"d3d11: exclusive full screen left by DXGI ({(hr == Dxgi.StatusOccluded ? "DXGI_STATUS_OCCLUDED" : "GetFullscreenState: windowed")})");
+            }
             if (hr < 0)
             {
                 // Present reports a removed or reset device (DXGI_ERROR_DEVICE_REMOVED/RESET); the
@@ -875,6 +887,7 @@ namespace OniMoono.Desktop.D3d11
                         Repeat();
                         break;
                 }
+                if (exclusiveLeftByDxgi) LeaveByDxgi();
             }
             catch (D3d11UnavailableException e)
             {
