@@ -1166,8 +1166,7 @@ RTX 3090, the machine and driver of M2's runs) or open (with the reason).
      The layer's INFO filter is its own default.
    - **The MSVC check.** The eight new info-queue slots are under it: SetMessageCountLimit,
      GetMessageCountLimit, GetStorageFilter, PushEmptyStorageFilter, GetStorageFilterStackSize,
-     GetRetrievalFilter, PushEmptyRetrievalFilter and GetRetrievalFilterStackSize (check.sh,
-     below).
+     GetRetrievalFilter, PushEmptyRetrievalFilter and GetRetrievalFilterStackSize (check.sh j0009029).
 3. **The check's exemption** (premise verified in the code; fixed, e1701faf5). Before, any
    refusal for structured buffers or multisample textures counted as refused and unreachable.
    - Now D3d11Programs.AcceptedUnreachable names the accepted set, by shader and keyword:
@@ -1327,7 +1326,7 @@ before the fix j0009008; check-shaders, filters and freeze j0009015; the new spe
 run j0009020 (5,557 dropped, which led to the limit); the scene set on D3D11 j0009022 and
 j0009023; OpenGL j0009024; the original j0009025 (navgrid, freeze); the impactor on Vulkan and
 the original j0009026, its grid program's dump j0009027, the impactor held again (entry start 1 s)
-j0009028; check.sh below.
+j0009028; check.sh j0009029 (green, on d391fcd70).
 
 ## Research so far (M0)
 
