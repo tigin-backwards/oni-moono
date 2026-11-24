@@ -460,18 +460,41 @@ namespace OniMoono.Desktop.D3d11
             quads.Clear();
         }
 
-        /// After the presenter drew (or always): the device's tracked bindings forgotten (they
-        /// are not what is bound any more) and its target set again, with its viewport and
-        /// scissor, as before the picture.
+        /// After the presenter drew (or always): the tracked bindings the presenter's draw changed
+        /// forgotten, and the device's target set again, with its viewport and scissor, as before
+        /// the picture.
         void RestoreAfterPresenter(bool always = false)
         {
             if (!presenterDrew && !always) return;
-            if (presenterDrew) ForgetBindings();
+            if (presenterDrew) ForgetPresenterBindings();
             presenterDrew = false;
             // "After Present calls, the back buffer needs to explicitly be re-bound to the D3D11
             // immediate context" ("For best performance, use DXGI flip model"); the device binds
             // its screen texture instead, set again with the rest of the target.
             SetTarget(lastTarget);
+        }
+
+        /// What DrawQuads set, and only that, marked as not what the device last bound: the input
+        /// layout and topology, the shaders (the geometry stage set to none), the pixel stage's
+        /// view and sampler at slot 0 (the view unbound again), and the blend, depth-stencil and
+        /// rasterizer states. The vertex buffers are set by every draw, and the target, viewport
+        /// and scissor by SetTarget. Every other tracked view, sampler and constant buffer is
+        /// still bound as tracked, so SetTarget's hazard pass still finds a target's texture
+        /// bound for sampling in another slot or stage (ForgetBindings, after ClearState, would
+        /// lose them).
+        void ForgetPresenterBindings()
+        {
+            boundShaders = null;
+            boundLayout = null;
+            boundTopology = 0;
+            boundRasterizer = null;
+            boundBlend = null;
+            boundDepth = null;
+            boundStencilRef = 0;
+            const int pixel = 1;
+            boundViews[pixel][0] = 0;
+            boundViewTextures[pixel][0] = null;
+            boundSamplers[pixel][0] = 0;
         }
 
         // ----- The splash (SplashRain) -----
