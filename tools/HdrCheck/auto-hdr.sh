@@ -22,11 +22,12 @@
 #
 # Each phase (AHDR_PHASES, default "global force") runs the original (the frozen build's
 # isolated copy, original-windows.sh, ORIG_FOREGROUND_AT handover, launcher output kept) and ours
-# (run-windows.sh --renderer d3d11, --no-focus), each borderless at the display's size. Once the
-# player's window is seen on the display (DWM's frame bounds, so no invisible border), the display
-# is captured in FP16 (dupcap) and cropped to the window. Game Bar's and the shell's visible
-# windows (a notification) are listed meanwhile, never touched. No keys are sent, the pointer is
-# not moved; run homes isolate the user's game, PlayerPrefs, Documents and LocalLow.
+# (run-windows.sh --renderer d3d11, --no-focus, then given the foreground), each borderless at
+# the display's size. Once the player's window is seen on the display (DWM's frame bounds, so no
+# invisible border), the display is captured in FP16 (dupcap) and cropped to the window. Game
+# Bar's and the shell's visible windows (a notification) are listed meanwhile, never touched.
+# No keys are sent, the pointer is not moved; run homes isolate the user's game, PlayerPrefs,
+# Documents and LocalLow.
 # Reading: Windows composes SDR content at the SDR white level (240 nits on that display, j0009190);
 # a window whose maximum is well above it (AHDR_SDR_WHITE x 1.15) was taken for HDR content.
 set -uo pipefail
@@ -170,14 +171,18 @@ for phase in $phases; do
     tail -8 "$out/original-$phase.launcher.txt"
 
     # Ours: run-windows.sh (--no-focus, muted; -monitor after its own, so the HDR display); ended
-    # by its run home once captured (--frames only bounds it).
+    # by its run home once captured (--frames only bounds it). As the original, it takes the
+    # foreground (ONI_WIN_FOREGROUND_FROM and --input FRAME:focus, frame 1200 about 20 s in at
+    # 60 Hz; AHDR_OURS_FOREGROUND=0: not).
     h="$home\\ahdr-$phase-ours"; prefs "$h"
-    ONI_RUN_HOME="$h" "$root/scripts/run-windows.sh" --renderer d3d11 --frames 20000 --log "$h\\player.log" "${args[@]}" -monitor "$mon" > "$out/ours-$phase.launcher.txt" 2>&1 &
+    fg=(); fg_env=()
+    [ "${AHDR_OURS_FOREGROUND:-1}" = 0 ] || { fg=(--input 1200:focus); fg_env=(ONI_WIN_FOREGROUND_FROM=10); }
+    env ONI_RUN_HOME="$h" "${fg_env[@]}" "$root/scripts/run-windows.sh" --renderer d3d11 --frames 20000 "${fg[@]}" --log "$h\\player.log" "${args[@]}" -monitor "$mon" > "$out/ours-$phase.launcher.txt" 2>&1 &
     launcher=$!
     watch_and_capture "ours-d3d11-$phase" $launcher "ahdr-$phase-ours" 'OniMoono*' 15 20 90
     end_player "$h"
     wait $launcher
-    grep -a "renderer:\|d3d11: NVIDIA\|present" "$(wslpath "$h")/player.log" 2>/dev/null | head -4 | cut -c1-200
+    grep -a "renderer:\|d3d11: NVIDIA\|present\|input focus" "$(wslpath "$h")/player.log" 2>/dev/null | head -6 | cut -c1-200
 done
 
 echo "=== summary (SDR white $white nits)"
