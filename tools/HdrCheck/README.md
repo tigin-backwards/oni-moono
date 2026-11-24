@@ -9,6 +9,9 @@ the monitor each time in FP16 as Windows composes it:
 - `ours-vulkan-dxgi`, `ours-opengl-dxgi`: Moono presenting through Direct3D (the default);
 - `ours-vulkan-own`, `ours-opengl-own`: Moono presenting through Vulkan's swapchain or OpenGL's
   SwapBuffers (`--dxgi off`), the presentation behind the report of forced HDR.
+- `ours-d3d11-own` (only when named in `ONI_HDR_ONLY`): Moono's Direct3D 11 renderer
+  (`--renderer d3d11`), which presents through its own flip-model swap chain whatever `--dxgi`
+  says.
 
 Nothing is changed on the system: no HDR, display or driver setting. The runs use their own run
 homes and the offline Steam double, as the other test runs.

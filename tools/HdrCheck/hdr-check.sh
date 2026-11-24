@@ -10,7 +10,8 @@
 # Steam double; no setting is changed.
 #   tools/HdrCheck/hdr-check.sh [MONITOR]      MONITOR: 1-based, as -monitor (default 2)
 # ONI_HDR_GAME: the game folder Moono runs (default the installed game); ONI_HDR_ONLY: a list of
-# the players to run (original ours-vulkan-dxgi ours-vulkan-own ours-opengl-dxgi ours-opengl-own).
+# the players to run (original ours-vulkan-dxgi ours-vulkan-own ours-opengl-dxgi ours-opengl-own, and
+# ours-d3d11-own: the Direct3D 11 renderer's own swap chain).
 set -euo pipefail
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 monitor="${1:-2}"
