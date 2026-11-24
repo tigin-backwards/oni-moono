@@ -113,6 +113,7 @@ namespace OniMoono.Desktop.D3d11
         public struct Vtbl
         {
             [FieldOffset(7 * 8)] public delegate* unmanaged<IDXGIAdapter*, uint, IDXGIOutput**, int> EnumOutputs;
+            [FieldOffset(9 * 8), As(1, "REFGUID")] public delegate* unmanaged<IDXGIAdapter*, Guid*, Dxgi.LargeInteger*, int> CheckInterfaceSupport;
         }
     }
 

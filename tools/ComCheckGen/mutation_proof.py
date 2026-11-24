@@ -152,6 +152,17 @@ MUTATIONS = [
     ("M4 enum width", g, '[As("DXGI_MODE_SCALING")] public uint Scaling;', '[As("DXGI_MODE_SCALING")] public ushort Scaling;'),
     ("M4 constant", g, "public const uint SwapEffectDiscard = 0;", "public const uint SwapEffectDiscard = 1;"),
     ("M4 HRESULT", g, "ErrorNotCurrentlyAvailable = unchecked((int)0x887A0022);", "ErrorNotCurrentlyAvailable = unchecked((int)0x887A0021);"),
+    # M5 (robustness): one per new declaration.
+    ("M5 slot", d + "DxgiInterfaces.cs", '[FieldOffset(9 * 8), As(1, "REFGUID")]', '[FieldOffset(8 * 8), As(1, "REFGUID")]'),
+    (
+        "M5 pointee",
+        d + "DxgiInterfaces.cs",
+        "Guid*, Dxgi.LargeInteger*, int> CheckInterfaceSupport",
+        "Guid*, Dxgi.Rational*, int> CheckInterfaceSupport",
+    ),
+    ("M5 struct field", g, "            public long QuadPart;\n", "            public ulong QuadPart;\n"),
+    ("M5 guid", g, 'new("54ec77fa-1377-44e6-8c32-88fd5f44c84c")', 'new("54ec77fa-1377-44e6-8c32-88fd5f44c84d")'),
+    ("M5 HRESULT", g, "StatusModeChanged = 0x087A0007;", "StatusModeChanged = 0x087A0008;"),
 ]
 ONLY = sys.argv[2] if len(sys.argv) > 2 else None  # a label prefix: only those mutations ("M4")
 

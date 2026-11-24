@@ -18,6 +18,10 @@ namespace OniMoono.Desktop.Gl
         /// chain (not in its documented list; measured, DxgiWindowReport).
         [Native("E_ACCESSDENIED", Header = "winerror.h")] public const int AccessDenied = unchecked((int)0x80070005);
         [Native("DXGI_STATUS_OCCLUDED", Header = "winerror.h")] public const int StatusOccluded = 0x087A0001;
+        /// "The desktop display mode has been changed, there might be color conversion/stretching.
+        /// The application should call IDXGISwapChain::ResizeBuffers to match the new display
+        /// mode" (DXGI_STATUS). Not in Present's documented list of results (D3d11Present).
+        [Native("DXGI_STATUS_MODE_CHANGED", Header = "winerror.h")] public const int StatusModeChanged = 0x087A0007;
         [Native("DXGI_ERROR_DEVICE_REMOVED", Header = "winerror.h")] public const int ErrorDeviceRemoved = unchecked((int)0x887A0005);
         [Native("DXGI_ERROR_DEVICE_HUNG", Header = "winerror.h")] public const int ErrorDeviceHung = unchecked((int)0x887A0006);
         [Native("DXGI_ERROR_DEVICE_RESET", Header = "winerror.h")] public const int ErrorDeviceReset = unchecked((int)0x887A0007);
@@ -63,6 +67,10 @@ namespace OniMoono.Desktop.Gl
         [Native("IDXGIFactory2")] public static readonly Guid IIDFactory2 = IDXGIFactory2.IID;
         [Native("IDXGIFactory4")] public static readonly Guid IIDFactory4 = IDXGIFactory4.IID;
         [Native("ID3D10Device", Header = "d3d10.h")] public static readonly Guid IIDD3D10Device = new("9b7e4c0f-342c-4106-a19f-4f2704f689f0");
+        /// IDXGIAdapter::CheckInterfaceSupport's InterfaceName for the driver's version: "This should
+        /// usually be __uuidof(IDXGIDevice), which returns the version number of the Direct3D 9 UMD
+        /// (user mode driver) binary" (the start-up guard's key, D3d11Context.DriverVersion).
+        [Native("IDXGIDevice")] public static readonly Guid IIDDevice = new("54ec77fa-1377-44e6-8c32-88fd5f44c84c");
         [Native("IDXGIFactory5")] public static readonly Guid IIDFactory5 = IDXGIFactory5.IID;
         [Native("IDXGIAdapter1")] public static readonly Guid IIDAdapter1 = IDXGIAdapter1.IID;
         [Native("IDXGIAdapter3")] public static readonly Guid IIDAdapter3 = IDXGIAdapter3.IID;
@@ -88,6 +96,14 @@ namespace OniMoono.Desktop.Gl
             [As("DXGI_SWAP_EFFECT")] public uint SwapEffect;
             [As("DXGI_ALPHA_MODE")] public uint AlphaMode;
             public uint Flags;
+        }
+
+        /// LARGE_INTEGER (winnt.h), read as its QuadPart: CheckInterfaceSupport's pUMDVersion.
+        [Native("LARGE_INTEGER", Header = "winnt.h")]
+        [StructLayout(LayoutKind.Sequential)]
+        public struct LargeInteger
+        {
+            public long QuadPart;
         }
 
         /// DXGI_RATIONAL (dxgicommon.h).
@@ -344,6 +360,9 @@ namespace OniMoono.Desktop.Gl
             ErrorDriverInternal => "DXGI_ERROR_DRIVER_INTERNAL_ERROR",
             DdiErrorDeviceRemoved => "D3DDDIERR_DEVICEREMOVED",
             StatusOccluded => "DXGI_STATUS_OCCLUDED",
+            StatusModeChanged => "DXGI_STATUS_MODE_CHANGED",
+            ErrorNotCurrentlyAvailable => "DXGI_ERROR_NOT_CURRENTLY_AVAILABLE",
+            S_OK => "S_OK",
             _ => $"0x{hr:X8}",
         };
 
