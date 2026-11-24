@@ -545,6 +545,21 @@ namespace OniMoono.Desktop
 
         IntPtr otherWindow;
 
+        /// Test runs (`--input FRAME:allowforeground`): any process may take the foreground from
+        /// this one (AllowSetForegroundWindow with ASFW_ANY: "If this parameter is ASFW_ANY, all
+        /// processes will be enabled to set the foreground window"; "The calling process must
+        /// already be able to set the foreground window"), so another process's window can, for
+        /// a refused exclusive full screen.
+        public string AllowAnyForeground()
+        {
+            if (!OperatingSystem.IsWindows()) return "not Windows";
+            return $"AllowSetForegroundWindow(ASFW_ANY) {AllowSetForegroundWindow(unchecked((uint)-1))}";
+        }
+
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern int AllowSetForegroundWindow(uint processId);
+
         /// Answers the messages other threads sent this (the window's) thread, leaving posted
         /// ones queued for GLFW: PeekMessage dispatches "pending, nonqueued messages, that is,
         /// messages sent to windows owned by the calling thread using the SendMessage ..."

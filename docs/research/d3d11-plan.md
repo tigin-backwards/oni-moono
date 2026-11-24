@@ -1873,6 +1873,16 @@ The second adversarial review of M4 (the exclusive full screen, the HDR and Auto
     refusal needs another process's window in the foreground, which our own popup is not; its
     handling is the one the original showed (j0009128, j0009178) and the code above, untested
     by a run.
+  - **j0009271**, the refused path with another process's window (`exclusive-refused-foreign.sh`,
+    a PowerShell window on monitor 2 taking the foreground once ours had handed the foreground
+    to its own popup): the foreign window's SetForegroundWindow returned False and it was not the
+    foreground (our process still held the foreground through its popup; a process "can set the
+    foreground window ... only if" it is the foreground process, among others, SetForegroundWindow),
+    so ours regained the focus as its window was made borderless and exclusive 1920×1080 was
+    entered (S_OK); not refused again. Re-entered at 1550, windowed at 1800; debug layer 0
+    messages above INFO. A third run lets any process take the foreground first
+    (`--input allowforeground`: AllowSetForegroundWindow(ASFW_ANY), "all processes will be
+    enabled to set the foreground window"): REFUSEDRUN.
   - **j0009264**, start-up in exclusive (`-screen-fullscreen 1 -window-mode exclusive` 2560×1440):
     "window: started exclusive full screen 2560x1440 through GLFW; made DXGI's", SetFullscreenState
     S_OK, full screen; the game then applied its own "2560x1440 @59hz (fullscreen:
