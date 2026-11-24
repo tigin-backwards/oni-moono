@@ -1759,8 +1759,8 @@ makes it the same way (`D3d11Exclusive.cs`, a15ca1009). Design:
   "DXGI best practices"), `SetFullscreenState(TRUE, NULL)`, then `ResizeBuffers` to the mode's
   size ("call IDXGISwapChain::ResizeBuffers to resize the back buffer to the size that was passed
   as parameters in WM_SIZE", the same). That the window then has the mode's size is the
-  documented effect (ResizeTarget "resizes the target window"; seen only at the monitor's own
-  mode, j0009222's 2560×1440); the device follows its size at each present.
+  documented effect (ResizeTarget "resizes the target window"; observed at the monitor's mode,
+  j0009222, and at 1920×1080, j0009263); the device follows its size at each present.
 - **Refused**: `DXGI_ERROR_NOT_CURRENTLY_AVAILABLE` ("The output window does not have keyboard
   focus", among its causes; "your application can continue to run in windowed mode and try to
   switch to full-screen mode later", SetFullscreenState), or any result but S_OK, or S_OK without
@@ -1859,7 +1859,25 @@ The second adversarial review of M4 (the exclusive full screen, the HDR and Auto
   window callbacks), 10 (7fe56bb40: the original's ResizeTarget logged format 0, UNKNOWN; its
   refresh was the display's, ours the game's request), 12 (af4480aff: a DXGI_RATIONAL
   mutation), 13 (f3afa3b11: the focus test's popup destroyed, its placement checked).
-- **Runs** (scripts given to the coordinator): RUNS2.
+- **Runs** (the coordinator submitted them; build j0009254, unit tests j0009245, the COM check
+  and its M4 mutations j0009249: the control green first and last, all 8 M4 mutations failing):
+  - **j0009263**, refused then a lower mode: the foreground handed to a popup of our own at
+    frame 650 (`focus LostFocus`), then exclusive 1920×1080 asked at 700. It was **not refused**:
+    the window had the focus again as the platform made it borderless and monitor-sized (`focus
+    GainFocus` at frame 700; the popup is our own process's, so our process stayed in the
+    foreground), and SetFullscreenState returned S_OK, full screen at 1920×1080 (a mode change
+    on monitor 2). The window's framebuffer followed: 2560×1440, then 1920×1080 (observed: the
+    window takes the mode's size). Asked again at 950 (focus back first, SetForegroundWindow 1):
+    left and entered again; the 1.5 s stall at 1100 gave no repeat; windowed at 1300. Debug
+    layer 0 messages above INFO, no timeout. **The refused path stays unexercised for ours**: a
+    refusal needs another process's window in the foreground, which our own popup is not; its
+    handling is the one the original showed (j0009128, j0009178) and the code above, untested
+    by a run.
+  - **j0009264**, start-up in exclusive (`-screen-fullscreen 1 -window-mode exclusive` 2560×1440):
+    "window: started exclusive full screen 2560x1440 through GLFW; made DXGI's", SetFullscreenState
+    S_OK, full screen; the game then applied its own "2560x1440 @59hz (fullscreen:
+    ExclusiveFullScreen)" at frame 2, which left and entered again (S_OK, at 59/1); windowed at
+    700. Debug layer 0 messages above INFO.
 
 ## Research so far (M0)
 
