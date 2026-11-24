@@ -511,8 +511,12 @@ only.
 
 **M4 (presentation and frame pacing)**
 10. **The full-screen swap chain.** Its description (`FullScreenWindow` and exclusive), and
-    `ResizeBuffers` arguments on a resize. **Still open after M4**: it needs a mode change of the original on the
-    user's desktop, which no test run makes without their OK (d3d11-plan.md, "M4", run 1).
+    `ResizeBuffers` arguments on a resize. **Settled for FullScreenWindow, partly for exclusive** (j0009128,
+    d3d11-plan.md "M4 desktop runs"): borderless keeps the flip chain at the window's size
+    (`ResizeBuffers(2, W, H, R8G8B8A8_UNORM, 0x842)`, windowed); exclusive makes a blt DISCARD
+    chain of 1 buffer (flags 0x2) and calls ResizeTarget and SetFullscreenState(TRUE), which failed
+    with DXGI_ERROR_NOT_CURRENTLY_AVAILABLE unfocused. Its chain in exclusive needs the window
+    focused (the user's hand).
 
 **M6 (performance)**
 11. **Texture writes.** That the 250–300 `Map(WRITE)` textures per frame are staging uploads.
