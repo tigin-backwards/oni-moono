@@ -346,13 +346,13 @@ namespace OniMoono.Tests
         public void EveryFaultThisBuildHasIsAccepted()
         {
             foreach (var ok in new[] { "extension", "adapter", "device", "register", "swapchain", "occupied", "association", "norestart",
-                                       "import", "lock:1", "resize:3", "removed:300", "importview:2",
+                                       "import", "vsyncoff", "removed:300,vsyncoff", "lock:1", "resize:3", "removed:300", "importview:2",
                                        "removed:300,norestart", "association,norestart" })
                 Assert.Null(OniMoono.Host.DxgiFaultOption.Unknown(ok));
             Assert.Equal("bogus", OniMoono.Host.DxgiFaultOption.Unknown("removed:3,bogus"));
-            foreach (var bad in new[] { "", "lock", "lock:", "lock:0", "lock:-1", "lock:x", "removed", "norestart:1", "Removed:3", "import:1" })
+            foreach (var bad in new[] { "", "lock", "lock:", "lock:0", "lock:-1", "lock:x", "removed", "norestart:1", "Removed:3", "import:1", "vsyncoff:1" })
                 Assert.Equal(bad, OniMoono.Host.DxgiFaultOption.Unknown(bad));
-            Assert.Equal("extension, adapter, device, register, swapchain, occupied, association, import, norestart, "
+            Assert.Equal("extension, adapter, device, register, swapchain, occupied, association, import, norestart, vsyncoff, "
                 + "lock:N, resize:N, removed:N, importview:N", OniMoono.Host.DxgiFaultOption.Known);
         }
 

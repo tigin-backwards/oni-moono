@@ -40,7 +40,8 @@ namespace OniMoono.Desktop.Gl
         /// running (DXGI is then restarted): "lock:N" (the Nth interop lock, or keyed-mutex
         /// acquire), "resize:N", "removed:N" (the Nth Present failing with
         /// DXGI_ERROR_DEVICE_REMOVED). "norestart": every restart fails too. Each happens once,
-        /// so a restart succeeds.
+        /// so a restart succeeds. "vsyncoff", throughout: vsynced pictures are presented at sync
+        /// interval 0, as when a driver forces vsync off, while they still count as vsynced.
         public static string Fault;
 
         static bool faultDone;
@@ -65,6 +66,9 @@ namespace OniMoono.Desktop.Gl
 
         /// A restart after a made-up fault, with "norestart": it fails.
         public static bool RestartRefused => faultDone && HasFault("norestart");
+
+        /// "vsyncoff": every picture presented at sync interval 0 (FramePacing's test).
+        static bool VsyncForcedOff => Fault != null && HasFault("vsyncoff");
 
         public const uint BufferCount = 2;
         /// Pictures in flight with vsync: 2, Unity's default of two queued frames. Measured on U60
@@ -376,8 +380,9 @@ namespace OniMoono.Desktop.Gl
             }
             holdBack = false;
             uint sync = (uint)Math.Clamp(interval, 0, 4);
-            uint flags = sync == 0 && tearing ? Dxgi.PresentAllowTearing : 0;
-            int hr = Faulty("removed", presents) ? Dxgi.ErrorDeviceRemoved : Dxgi.Present(swapChain, sync, flags);
+            uint presentSync = VsyncForcedOff ? 0 : sync;
+            uint flags = presentSync == 0 && tearing ? Dxgi.PresentAllowTearing : 0;
+            int hr = Faulty("removed", presents) ? Dxgi.ErrorDeviceRemoved : Dxgi.Present(swapChain, presentSync, flags);
             // DXGI_STATUS_OCCLUDED does not come from a flip-model swap chain (Microsoft's
             // DXGI_STATUS list: "You will not receive DXGI_STATUS_OCCLUDED if you're using a flip
             // model swap chain"); it is handled only in case a driver or Windows does send it.

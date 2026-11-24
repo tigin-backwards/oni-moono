@@ -9,8 +9,8 @@ namespace OniMoono.Host
     /// The tests compile it in.
     internal static class DxgiFaultOption
     {
-        /// At start-up, and once DXGI runs (with N, the Nth time), and "norestart".
-        public static readonly string[] Steps = ["extension", "adapter", "device", "register", "swapchain", "occupied", "association", "import", "norestart"];
+        /// At start-up, and once DXGI runs (with N, the Nth time), "norestart" and "vsyncoff".
+        public static readonly string[] Steps = ["extension", "adapter", "device", "register", "swapchain", "occupied", "association", "import", "norestart", "vsyncoff"];
         public static readonly string[] Counted = ["lock", "resize", "removed", "importview"];
 
         public static string Known => string.Join(", ", Steps.Concat(Counted.Select(c => c + ":N")));
