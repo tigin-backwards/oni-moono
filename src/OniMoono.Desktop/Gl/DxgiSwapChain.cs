@@ -472,7 +472,11 @@ namespace OniMoono.Desktop.Gl
         }
 
         /// The GDI name of the output the swap chain is on (\\.\DISPLAY2), or null.
-        string OutputName()
+        string OutputName() => OutputNameOf(swapChain);
+
+        /// The GDI name of the output `swapChain` (an IDXGISwapChain) is on, or null (the
+        /// Direct3D 11 device's swap chain too: D3d11SwapChain).
+        internal static string OutputNameOf(void* swapChain)
         {
             void* output;
             if (Dxgi.Failed(Dxgi.GetContainingOutput(swapChain, &output))) return null;
@@ -483,7 +487,7 @@ namespace OniMoono.Desktop.Gl
         }
 
         /// The refresh period of the named display's current mode, or 0.
-        static long LookUpRefreshPeriod(string name)
+        internal static long LookUpRefreshPeriod(string name)
         {
             uint pathCount, modeCount;
             if (Dxgi.GetDisplayConfigBufferSizes(Dxgi.QdcOnlyActivePaths, &pathCount, &modeCount) != 0 || pathCount == 0) return 0;
