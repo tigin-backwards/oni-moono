@@ -493,7 +493,11 @@ class WinPlayer(e2e.Player):
     def start(self):
         env = dict(os.environ, E2E_DRIVER_PORT=str(self.lane.driver_port))
         env.update(self.workshop_env)
-        env['WSLENV'] = ':'.join(filter(None, [os.environ.get('WSLENV'), 'E2E_DRIVER_PORT', *self.workshop_env.keys()]))
+        # The spec's `env` reaches our player as on Linux (e2e.py's Player.start); WSLENV carries
+        # it to the Windows process.
+        extra = self.extra_env if self.kind == 'ours' else {}
+        env.update(extra)
+        env['WSLENV'] = ':'.join(filter(None, [os.environ.get('WSLENV'), 'E2E_DRIVER_PORT', *self.workshop_env.keys(), *extra.keys()]))
         size = ['-screen-width', str(e2e.WIDTH), '-screen-height', str(e2e.HEIGHT), '-screen-fullscreen', '0']
         stdout = open(os.path.join(self.out, 'stdout.txt'), 'w')
         if self.kind == 'original':
