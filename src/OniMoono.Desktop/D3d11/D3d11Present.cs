@@ -197,9 +197,21 @@ namespace OniMoono.Desktop.D3d11
             if (gameFrame && splash) rain.GameFrame();
             // Nothing is drawn over a game frame; one after the loading screen's ends its animation.
             if (gameFrame) loading.GameFrame(GlLoadAnimation.Wanted(picture.DrawnFrame, LoadingScreen.ArmedFrame, LoadingScreen.OverlayFrame, 0));
-            Picture(picture);
-            if (splash && kind != ShowKind.Repeat) DrawSplash();
-            else if (kind == ShowKind.Redraw && loading.Running) DrawLoading();
+            try
+            {
+                Picture(picture);
+                if (splash && kind != ShowKind.Repeat) DrawSplash();
+                else if (kind == ShowKind.Redraw && loading.Running) DrawLoading();
+            }
+            catch (D3d11UnavailableException e)
+            {
+                // A call the picture needs failed (a buffer the presenter makes or maps): the
+                // device stops, as when IdleWork's picture fails, rather than presenting half a
+                // picture and counting a failed command.
+                lost = e.Message;
+                EngineLog.Engine($"d3d11: {lost}");
+                return false;
+            }
             int hr = kind == ShowKind.Repeat ? chain.PresentRepeat() : chain.Present(interval);
             DrainDebugMessages(kind == ShowKind.Frame ? "Present" : $"Present ({kind})");
             if (hr < 0)
