@@ -520,6 +520,7 @@ namespace OniMoono.Desktop
 
         IntPtr otherWindow;
 
+        [OniMoono.Desktop.D3d11.NotNative("RECT for GetWindowRect, a window call outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         struct WinRect
         {
