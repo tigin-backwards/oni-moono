@@ -1,0 +1,37 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 review fixes,
+# finding 5; done criterion 1): three game shaders M3 part C left undrawn, on the landing. Ours
+# only, on Windows (scripts/e2e-windows/run.py; the renderer from E2E_PLAYER_ARGS).
+#
+# - Klei/Standard Unlit: long_smoke_trail is the particle material (slot 0) of TrailFX2 on the
+#   long-range missile's smoke trail, which emits by distance only (rateOverDistance 10,
+#   rateOverTime 0, the trail module off; sharedassets0): a still instance draws nothing, as part
+#   C's did. A long-range missile is launched as MissileLongRangeProjectile.StatesInstance.
+#   PrepareLaunch does (U60 764025; MissileLauncher fires with speed 30), at speed 10 to the
+#   printing pod; its launch state moves it, and the trail with it, every sim tick.
+# - TextMeshPro/Sprite: a storage locker holding one germy Mush Bar, selected:
+#   SimpleInfoScreen.RefreshStoragePanel's row gets AppendIcons' `<sprite=...>` germ icon.
+# - Standard: WaterExplode, a GameAssets prefab whose MeshRenderer uses Default-Material. No
+#   game code instantiates it (unreachable in play); placed here for the program's draw only.
+from: landing
+setup:
+  - driver: {setup.call: {type: GridVisibility, method: Reveal, args: [123, 330, 40, 40.0]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"WaterExplode\")"}, [113.5, 324, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"StorageLocker\")", method: Build, args: [200463, Neutral, null, [Steel], 293.15]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"MushBar\")"}, [123.5, 316, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "all:StorageLocker::[0].GetComponent<Storage>", method: Store, args: [{"$": "last:"}]}}
+  - driver: {setup.call: {target: "all:StorageLocker::[0].GetComponent<Storage>.items[0].GetComponent<PrimaryElement>", method: AddDisease, args: [{"$": "Db.Get().Diseases.GetIndex(\"FoodPoisoning\")"}, 100000, "spec"]}}
+  - driver: {setup.call: {target: "SelectTool.Instance", method: Select, args: [{"$": "all:StorageLocker::[0].GetComponent<KSelectable>"}]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "Assets.GetPrefab(\"MissileLongRange\")"}, [128.5, 322, -5]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {target: "last:GetComponent<StateMachineController>", method: GetSMI, args: ["MissileLongRangeProjectile+StatesInstance"]}}
+  - driver: {setup.call: {target: "last:", method: PrepareLaunch, args: [{"$": "all:Telepad::[0].gameObject"}, 10.0, [128.5, 322, 0], 0.0]}}
+steps:
+  # Its particles live 0.5 s.
+  - run: {seconds: 0.4, speed: 1}
+  - world_shot: {name: trail, ortho: 10, at: [121, 326]}
+  # The details screen's contents section, with the row, is below the panel's fold.
+  - scroll: {at: "**/DetailsScreen", notches: -40}
+  - run: {seconds: 1, speed: 1}
+  - shot: {name: storage}

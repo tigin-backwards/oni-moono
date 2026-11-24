@@ -8,14 +8,14 @@
 # telescope (a SkyVisibilityVisualizer: Klei/PostFX/SkyVisibility) placed beside the pod by the
 # setup, then:
 # - each selected, so its visualizer draws (overlayNoDepth's image effects);
-# - the power overlay with the heater selected, whose ports draw through Klei/BuildingCell
-#   (BuildingCellVisualizerResources);
+# - the power overlay with the heater selected (its ports are UI images,
+#   EntityCellVisualizer.DrawUtilityIcon; Klei/BuildingCell's materials are made by
+#   BuildingCellVisualizerResources and read by nothing: M3 part C);
 # - dig orders and the priority tool, whose numbers draw through Klei/Prioritizable
 #   (PrioritizableRenderer);
 # - the report screen (its graphs).
-# The dev tools (ImGui) open on Ctrl+` read through Input.GetKeyDown
-# (DevToolManager.UpdateShouldShowTools), which the Windows runs' synthetic input has no binding
-# for, so they are not here.
+# The dev tools (ImGui) are d3d11-coverage-debug.yaml's (set by setup: Ctrl+` is read through
+# Input.GetKeyDown, which the Windows runs' synthetic input has no binding for).
 from: early-base
 setup:
   # As debug_enable.txt in the game folder would (DebugHandler reads it at start-up).

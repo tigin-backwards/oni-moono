@@ -1,0 +1,18 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 review fixes,
+# finding 5; done criterion 1): the Demolior's crash, the Prehistoric pack's colony. Ours only,
+# on Windows (scripts/e2e-windows/run.py; the renderer from E2E_PLAYER_ARGS).
+#
+# The impactor reaching the planet (LargeImpactorStatus: ClusterDestinationReached takes it to
+# landing, which triggers LargeImpactorArrived) starts LargeImpactorEvent's impacting state:
+# InitializeLandingSequence makes the falling LargeImpactorComet (U60 764025). Its LargeComet
+# sets MaterialType.Invisible on its asteroid animation (Klei/AnimationInvisible, the only code
+# that sets it) and draws its screen effect with Shader.Find("Klei/DLC4/LargeImpactorCometShader")
+# (CameraController.RegisterCustomScreenPostProcessingEffect). The sequence moves the camera to
+# the comet. The comet falls in real time and its material gets the time every frame: drawn,
+# for coverage, not compared.
+from: prehistoric1
+setup:
+  - driver: {setup.call: {target: "all:LargeImpactorCrashStamp::[0]", method: Trigger, args: [1796608350]}}
+steps:
+  - run: {seconds: 4, speed: 1}
+  - shot: {name: comet}

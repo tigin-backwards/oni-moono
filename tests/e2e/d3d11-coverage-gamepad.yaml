@@ -1,0 +1,23 @@
+# The Direct3D 11 renderer's shader coverage (docs/research/d3d11-plan.md, M3 review fixes,
+# finding 5; done criterion 1): Unlit/VirtualCursorCutoutShader, the gamepad's virtual cursor.
+# Ours on each renderer, on Windows (scripts/e2e-windows/run.py; the renderer from
+# E2E_PLAYER_ARGS). Part C forced KInputManager.currentControllerIsGamepad alone, which threw in
+# the game's VirtualInputModule.ActivateModule (both players). The setup below, from another
+# investigation (gamepad-virtual-cursor.yaml), brings gamepad mode as a controller does:
+#
+# Gamepad mode as a Steam Input controller brings it: GameInputManager adds a gamepad controller
+# when Steam Input reports one, and the controller's input sets currentControllerIsGamepad.
+# InputModuleSwitch then enables the VirtualInputModule; its UpdateModule finds the VirtualCursor
+# (null in the scenes) before the event system activates it, and the virtual cursor draws.
+from: landing
+setup:
+  - driver: {setup.call: {target: "Global.GetInputManager()", method: AddGamepadController, args: [1]}}
+  # No focus: else GameInputManager.Update clears the flag, as no Steam Input controller exists.
+  - driver: {setup.set: {target: "type:KInputManager", member: devToolFocus, value: true}}
+  - driver: {setup.set: {target: "type:KInputManager", member: currentControllerIsGamepad, value: true}}
+steps:
+  - wait_state: {state: {"type:UnityEngine.EventSystems.EventSystem::current.currentInputModule.GetType().Name": VirtualInputModule}, seconds: 30}
+  - expect_state:
+      "type:KInputManager::currentControllerIsGamepad": true
+      "type:UnityEngine.EventSystems.EventSystem::current.currentInputModule.GetType().Name": VirtualInputModule
+  - shot: {name: gamepad, threshold: 0.05}
