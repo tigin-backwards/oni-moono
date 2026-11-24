@@ -2,7 +2,8 @@
 the branch, the unchanged copy first and last (each must pass), and between them one deliberate
 mismatch per run, each of which must fail scripts/com-check.sh. Files are restored by writing their
 text back (a new mtime, so the next build sees the change). Prints one verdict line per run.
-  python3 -I tools/ComCheckGen/mutation_proof.py COPY   (COPY: `git archive HEAD` extracted elsewhere)"""
+  python3 -I tools/ComCheckGen/mutation_proof.py COPY [PREFIX]   (COPY: `git archive HEAD` extracted
+  elsewhere; PREFIX: only the mutations whose label starts with it, e.g. M4)"""
 
 import pathlib
 import subprocess
@@ -137,7 +138,16 @@ MUTATIONS = [
         "[FieldOffset(40 * 8)] public delegate* unmanaged<ID3D11Device*, ID3D11DeviceContext**, void> GetImmediateContext;",
         '[FieldOffset(40 * 8), As(1, "ID3D11DeviceContext**", Opaque = true)] public delegate* unmanaged<ID3D11Device*, void*, void> GetImmediateContext;',
     ),
+    # M4 (exclusive full screen): one per new declaration.
+    ("M4 slot", d + "DxgiInterfaces.cs", '[FieldOffset(10 * 8), As(1, "BOOL")]', '[FieldOffset(12 * 8), As(1, "BOOL")]'),
+    ("M4 BOOL* signedness", d + "DxgiInterfaces.cs", 'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, int*,', 'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, uint*,'),
+    ("M4 pointee", d + "DxgiInterfaces.cs", "Dxgi.ModeDesc*, int> ResizeTarget", "Dxgi.SwapChainDesc1*, int> ResizeTarget"),
+    ("M4 struct field", g, "            public Rational RefreshRate;\n", "            public uint RefreshRate;\n"),
+    ("M4 enum width", g, '[As("DXGI_MODE_SCALING")] public uint Scaling;', '[As("DXGI_MODE_SCALING")] public ushort Scaling;'),
+    ("M4 constant", g, "public const uint SwapEffectDiscard = 0;", "public const uint SwapEffectDiscard = 1;"),
+    ("M4 HRESULT", g, "ErrorNotCurrentlyAvailable = unchecked((int)0x887A0022);", "ErrorNotCurrentlyAvailable = unchecked((int)0x887A0021);"),
 ]
+ONLY = sys.argv[2] if len(sys.argv) > 2 else None  # a label prefix: only those mutations ("M4")
 
 
 def check(name):
@@ -153,6 +163,8 @@ for label in ["control (unchanged)"]:
     print(f"===== {label}: exit {code}", *detail, sep="\n  ")
     failures += code != 0
 for item in MUTATIONS:
+    if ONLY and not item[0].startswith(ONLY):
+        continue
     name, edits = item[0], item[1] if len(item) == 2 else [item[1:]]
     saved = {}
     for rel, old, new in edits:

@@ -167,7 +167,10 @@ namespace OniMoono.Desktop.D3d11
         {
             [FieldOffset(8 * 8)] public delegate* unmanaged<IDXGISwapChain*, uint, uint, int> Present;
             [FieldOffset(9 * 8), As(2, "REFIID")] public delegate* unmanaged<IDXGISwapChain*, uint, Guid*, void**, int> GetBuffer;
+            [FieldOffset(10 * 8), As(1, "BOOL")] public delegate* unmanaged<IDXGISwapChain*, int, IDXGIOutput*, int> SetFullscreenState;
+            [FieldOffset(11 * 8), As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, int*, IDXGIOutput**, int> GetFullscreenState;
             [FieldOffset(13 * 8)] public delegate* unmanaged<IDXGISwapChain*, uint, uint, uint, DXGI_FORMAT, uint, int> ResizeBuffers;
+            [FieldOffset(14 * 8), Const(1)] public delegate* unmanaged<IDXGISwapChain*, Dxgi.ModeDesc*, int> ResizeTarget;
             [FieldOffset(15 * 8)] public delegate* unmanaged<IDXGISwapChain*, IDXGIOutput**, int> GetContainingOutput;
         }
     }

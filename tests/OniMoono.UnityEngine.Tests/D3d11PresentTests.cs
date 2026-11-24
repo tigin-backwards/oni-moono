@@ -112,5 +112,20 @@ namespace OniMoono.Tests
             Assert.True(ran);
             Assert.True(asked >= 2);
         }
+
+        [Fact]
+        public void AWaitForTheWorkerCallsTheWaitPumpWhileItWaits()
+        {
+            // D3d11Exclusive: while the device thread's DXGI calls may send the window messages,
+            // the main thread's waits for it answer them (GlWorker.WaitPump) instead of blocking.
+            int pumped = 0;
+            var worker = new GlWorker("test", () => { }, () => { }, _ => { });
+            worker.WaitPump = () => Interlocked.Increment(ref pumped);
+            worker.Call(() => Thread.Sleep(50));
+            worker.WaitPump = null;
+            worker.Call(() => { });
+            worker.Dispose();
+            Assert.True(pumped > 0);
+        }
     }
 }

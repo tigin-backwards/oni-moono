@@ -76,6 +76,24 @@ namespace OniMoono.Desktop.Gl
         // The last idle work could not go on although there is more (GL thread).
         bool idleBlocked;
 
+        /// Called while a waiting thread (the main thread) waits for the GL thread, every
+        /// millisecond, when set: the Direct3D 11 device's exclusive full screen, during which the
+        /// device thread's DXGI calls may send the window messages (SendMessage) the main thread
+        /// must answer (D3d11Exclusive). Null: an untimed wait, as before.
+        public Action WaitPump;
+
+        /// One wait of the waiting thread for the GL thread, under the gate.
+        void WaitForWorker()
+        {
+            if (WaitPump is not { } pump)
+            {
+                Monitor.Wait(gate);
+                return;
+            }
+            Monitor.Wait(gate, 1);
+            pump();
+        }
+
         /// Wakes the GL thread for idle work.
         public void Wake()
         {
@@ -154,10 +172,10 @@ namespace OniMoono.Desktop.Gl
                 if (submitted != null && OniMoono.Engine.PlayerLoop.FrameStats)
                 {
                     long waiting = GlTimings.Now;
-                    while (submitted != null && failure == null) Monitor.Wait(gate);
+                    while (submitted != null && failure == null) WaitForWorker();
                     if (OniMoono.Engine.Threads.IsMainThread) OniMoono.Engine.FrameStatsWindow.DeviceFrameWait += GlTimings.Now - waiting;
                 }
-                while (submitted != null && failure == null) Monitor.Wait(gate);
+                while (submitted != null && failure == null) WaitForWorker();
                 ThrowIfFailed();
                 // The previous frame has been executed: its storage records the next one.
                 next = finished ?? spare;
@@ -253,7 +271,7 @@ namespace OniMoono.Desktop.Gl
         {
             lock (gate)
             {
-                while (submitted != null && failure == null && !stopping) Monitor.Wait(gate);
+                while (submitted != null && failure == null && !stopping) WaitForWorker();
                 ThrowIfFailed();
             }
         }

@@ -14,6 +14,17 @@ namespace OniMoono.Desktop
     /// from PlayerSettings (ScreenManagerPrefs), overridable with Unity's player arguments -screen-width, -screen-height, -screen-fullscreen, -monitor and
     /// -window-mode. Unity documents -window-mode exclusive|borderless, for Windows only; ours
     /// takes them everywhere (exclusive is a fullscreen window off Windows), and windowed too.
+    /// A device that makes exclusive full screen DXGI's own, as the original's Direct3D 11 does
+    /// (D3d11Exclusive): the platform gives it a monitor-sized borderless window and asks it to
+    /// go full screen (main thread). Enter returns SetFullscreenState's result: a failure leaves
+    /// the window a fullscreen window, as the original falls back to FullScreenWindow.
+    internal interface IExclusiveFullScreen
+    {
+        int Enter(int width, int height, uint refreshNumerator, uint refreshDenominator);
+        void Leave();
+        bool Active { get; }
+    }
+
     internal sealed record WindowSettings(string Title, int Width, int Height, FullScreenMode Mode)
     {
         /// Development runs driven by scripted input ignore the window's own mouse and keyboard.
@@ -288,6 +299,12 @@ namespace OniMoono.Desktop
             // again costs little.
             window.OnRefresh += _ => ContentsDamaged?.Invoke();
             window.OnFocus += (_, _) => ContentsDamaged?.Invoke();
+            // DXGI's exclusive full screen losing the focus: the window goes windowed after this
+            // poll (PollEvents), as the original's does (j0009185), not from inside the callback.
+            window.OnFocus += (_, _) =>
+            {
+                if (!window.IsFocused && mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { Active: true }) exclusiveFocusLost = true;
+            };
             if (Gl.PresentTrace.Enabled)
             {
                 window.OnFocus += (_, e) => Trace($"focus {e}");
@@ -520,6 +537,33 @@ namespace OniMoono.Desktop
 
         IntPtr otherWindow;
 
+        /// Answers the messages other threads sent this (the window's) thread, leaving posted
+        /// ones queued for GLFW: PeekMessage dispatches "pending, nonqueued messages, that is,
+        /// messages sent to windows owned by the calling thread using the SendMessage ..."
+        /// during the call; PM_QS_SENDMESSAGE: "Process all sent messages"; PM_NOREMOVE:
+        /// "Messages are not removed from the queue" (PeekMessageW). For a wait on the device
+        /// thread whose DXGI calls may send the window messages (GlWorker.WaitPump).
+        public void PumpSentMessages()
+        {
+            if (OperatingSystem.IsWindows()) PeekMessageW(out _, IntPtr.Zero, 0, 0, 0x400000);
+        }
+
+        [OniMoono.Desktop.D3d11.NotNative("MSG for PeekMessageW, a window call outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct WinMsg
+        {
+            public IntPtr Hwnd;
+            public uint Message;
+            public UIntPtr WParam;
+            public IntPtr LParam;
+            public uint Time;
+            public int X, Y, Private;
+        }
+
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern int PeekMessageW(out WinMsg msg, IntPtr hwnd, uint min, uint max, uint remove);
+
         [OniMoono.Desktop.D3d11.NotNative("RECT for GetWindowRect, a window call outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
         struct WinRect
@@ -714,6 +758,14 @@ namespace OniMoono.Desktop
         {
             newMode = Supported(newMode);
             if (Gl.PresentTrace.Enabled) Trace($"SetResolution {width}x{height} {newMode} (was {mode}, framebuffer {framebufferSize.X}x{framebufferSize.Y}, rendering {FramebufferWidth}x{FramebufferHeight})");
+            // Out of DXGI's exclusive full screen first: the window is a monitor-sized borderless
+            // one again, left as a fullscreen window's is.
+            if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { Active: true } leaving)
+            {
+                leaving.Leave();
+                mode = FullScreenMode.FullScreenWindow;
+                desktopBeforeExclusive = null;
+            }
             var monitor = CurrentMonitor;
             if (monitor.IsNull())
             {
@@ -731,6 +783,17 @@ namespace OniMoono.Desktop
             int2? request = null;
             switch (newMode)
             {
+                case FullScreenMode.ExclusiveFullScreen when OperatingSystem.IsWindows() && DeviceExclusive != null:
+                {
+                    // The device's DXGI exclusive full screen (the original's: j0009185): a
+                    // monitor-sized borderless window first, as for a fullscreen window, which
+                    // DXGI then takes full screen at the mode asked for (below).
+                    if (window.IsMaximised) window.Restore();
+                    window.SetAttribute(GlfwWindowAttribute.Decorated, GLFW_FALSE);
+                    window.SetWindowed(monitor.Position, new int2(desktop.Width, desktop.Height));
+                    deviceExclusiveAsked = (width, height, refreshNumerator, refreshDenominator);
+                    break;
+                }
                 case FullScreenMode.ExclusiveFullScreen:
                 {
                     if (window.IsMaximised) window.Restore();
@@ -798,9 +861,29 @@ namespace OniMoono.Desktop
             if (newMode != FullScreenMode.ExclusiveFullScreen) desktopBeforeExclusive = null;
             fullScreenWindowRequest = request;
             mode = newMode;
+            if (deviceExclusiveAsked is var (w, h, rn, rd))
+            {
+                deviceExclusiveAsked = null;
+                // The refresh rate as the game asked for it (0/0 when it asked none).
+                int hr = DeviceExclusive.Enter(w, h, rn, rd);
+                if (hr < 0)
+                {
+                    // As the original on DXGI_ERROR_NOT_CURRENTLY_AVAILABLE (j0009128, j0009178): a
+                    // fullscreen window at the monitor's size (SetFullscreenState: "your
+                    // application can continue to run in windowed mode and try to switch to
+                    // full-screen mode later").
+                    mode = FullScreenMode.FullScreenWindow;
+                    OniMoono.Engine.EngineLog.Engine($"window: exclusive full screen {w}x{h} refused (0x{hr:X8}); a fullscreen window instead");
+                }
+            }
             window.Refresh();
             RefreshWindowState();
         }
+
+        /// The device that makes exclusive full screen DXGI's (the Direct3D 11 device), or null.
+        public IExclusiveFullScreen DeviceExclusive;
+        (int, int, uint, uint)? deviceExclusiveAsked;
+        bool exclusiveFocusLost;
 
         /// Inside PumpEvents: what the callbacks report waits for the next PollEvents.
         bool pumping;
@@ -893,6 +976,16 @@ namespace OniMoono.Desktop
                 inGlfw--;
             }
             ThrowCallbackFailure();
+            if (exclusiveFocusLost)
+            {
+                exclusiveFocusLost = false;
+                if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { Active: true })
+                {
+                    ReadFramebufferSize();
+                    if (Gl.PresentTrace.Enabled) Trace("exclusive full screen lost the focus: windowed");
+                    SetResolution(framebufferSize.X, framebufferSize.Y, FullScreenMode.Windowed, 0, 0);
+                }
+            }
             ReadFramebufferSize();
             if (!scripted) FollowCursorOutside();
             // Each close of the window is one quit request: Application.wantsToQuit may refuse it.
@@ -1012,7 +1105,8 @@ namespace OniMoono.Desktop
             try
             {
                 window.SetInputMode(GlfwInputMode.Cursor, (int)GlfwCursorMode.Normal);
-                if (mode == FullScreenMode.ExclusiveFullScreen && CurrentMonitor is var monitor && !monitor.IsNull()) window.SetWindowed(monitor.Position, window.Size);
+                if (DeviceExclusive is { Active: true } exclusive) exclusive.Leave();
+                else if (mode == FullScreenMode.ExclusiveFullScreen && CurrentMonitor is var monitor && !monitor.IsNull()) window.SetWindowed(monitor.Position, window.Size);
                 window.Visible = false;
             }
             catch (Exception e)

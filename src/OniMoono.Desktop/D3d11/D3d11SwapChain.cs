@@ -27,6 +27,9 @@ namespace OniMoono.Desktop.D3d11
         IntPtr waitable;
         readonly uint flags;
         readonly bool tearing;
+        /// The exclusive full-screen kind (CreateExclusive): the legacy blt model, as the
+        /// original's exclusive chain; no frame-latency waitable.
+        public bool IsExclusive { get; }
 
         public int Width { get; private set; }
         public int Height { get; private set; }
@@ -37,12 +40,85 @@ namespace OniMoono.Desktop.D3d11
         /// The back buffer (buffer 0; valid until the next Resize).
         public ID3D11Texture2D* Buffer => buffer;
 
-        D3d11SwapChain(ID3D11Device* device, ID3D11DeviceContext* context, bool tearing)
+        D3d11SwapChain(ID3D11Device* device, ID3D11DeviceContext* context, bool tearing, bool exclusive = false)
         {
             this.device = device;
             this.context = context;
-            this.tearing = tearing;
-            flags = Dxgi.SwapChainFlagAllowModeSwitch | Dxgi.SwapChainFlagFrameLatencyWaitable | (tearing ? Dxgi.SwapChainFlagAllowTearing : 0);
+            IsExclusive = exclusive;
+            this.tearing = tearing && !exclusive;
+            flags = exclusive ? Dxgi.SwapChainFlagAllowModeSwitch
+                : Dxgi.SwapChainFlagAllowModeSwitch | Dxgi.SwapChainFlagFrameLatencyWaitable | (tearing ? Dxgi.SwapChainFlagAllowTearing : 0);
+        }
+
+        /// The exclusive full-screen chain for `hwnd`, as the original's (j0009185, captures
+        /// UNVERIFIED 10): DXGI_SWAP_EFFECT_DISCARD, 1 buffer, R8G8B8A8_UNORM, usage SHADER_INPUT |
+        /// RENDER_TARGET_OUTPUT, flags ALLOW_MODE_SWITCH; then, as it does, ResizeTarget to the
+        /// mode and SetFullscreenState(TRUE) (ResizeTarget "should be called before calling
+        /// SetFullscreenState", "DXGI best practices", Full-Screen Issues), and ResizeBuffers to
+        /// the mode's size once it is full screen ("call IDXGISwapChain::ResizeBuffers to resize
+        /// the back buffer to the size that was passed as parameters in WM_SIZE", the same).
+        /// Returns SetFullscreenState's result: a failure (DXGI_ERROR_NOT_CURRENTLY_AVAILABLE
+        /// when the window lacks the focus, as the original's did) leaves nothing made (out
+        /// null). Throws D3d11UnavailableException when the chain cannot be made or sized.
+        public static int CreateExclusive(D3d11Context d3d, IntPtr hwnd, int w, int h, uint refreshNumerator, uint refreshDenominator, out D3d11SwapChain made)
+        {
+            made = null;
+            var s = new D3d11SwapChain(d3d.Device, d3d.Context, false, exclusive: true);
+            try
+            {
+                s.Start(d3d.Factory, hwnd, Math.Max(1, w), Math.Max(1, h));
+                int hr = s.SetFullscreen(true, w, h, refreshNumerator, refreshDenominator);
+                if (hr < 0)
+                {
+                    s.Dispose();
+                    return hr;
+                }
+                made = s;
+                return hr;
+            }
+            catch
+            {
+                s.Dispose();
+                throw;
+            }
+        }
+
+        /// ResizeTarget (on) and SetFullscreenState; on, the buffers then made the mode's size.
+        /// Returns SetFullscreenState's result.
+        public int SetFullscreen(bool on, int w, int h, uint refreshNumerator, uint refreshDenominator)
+        {
+            var sc = (IDXGISwapChain*)chain;
+            if (on)
+            {
+                // As the original's: the format and the scanline and scaling left unspecified.
+                var mode = new Dxgi.ModeDesc { Width = (uint)w, Height = (uint)h, RefreshRate = new Dxgi.Rational { Numerator = refreshNumerator, Denominator = refreshDenominator } };
+                int target = sc->lpVtbl->ResizeTarget(sc, &mode);
+                if (target < 0) return target;
+            }
+            int hr = sc->lpVtbl->SetFullscreenState(sc, on ? 1 : 0, null);
+            fullscreen = on && hr >= 0;
+            if (fullscreen)
+            {
+                Com.Release(ref view);
+                Com.Release(ref buffer);
+                context->lpVtbl->ClearState(context);
+                context->lpVtbl->Flush(context);
+                D3d11Context.Check(sc->lpVtbl->ResizeBuffers(sc, 0, (uint)w, (uint)h, DXGI_FORMAT.DXGI_FORMAT_UNKNOWN, flags), $"ResizeBuffers to {w}x{h} (exclusive)");
+                Width = w;
+                Height = h;
+                TakeBuffer();
+            }
+            return hr;
+        }
+
+        bool fullscreen;
+
+        /// Whether DXGI holds the chain in its full-screen state now (GetFullscreenState).
+        public bool InFullscreenState()
+        {
+            int state = 0;
+            var sc = (IDXGISwapChain*)chain;
+            return sc->lpVtbl->GetFullscreenState(sc, &state, null) >= 0 && state != 0;
         }
 
         /// The swap chain for `hwnd`, `w` x `h`; throws D3d11UnavailableException with the
@@ -67,8 +143,8 @@ namespace OniMoono.Desktop.D3d11
             var desc = new Dxgi.SwapChainDesc1
             {
                 Width = (uint)w, Height = (uint)h, Format = Dxgi.FormatR8G8B8A8Unorm, SampleCount = 1,
-                BufferUsage = Dxgi.UsageShaderInput | Dxgi.UsageRenderTargetOutput, BufferCount = BufferCount, Scaling = Dxgi.ScalingStretch,
-                SwapEffect = Dxgi.SwapEffectFlipSequential, AlphaMode = Dxgi.AlphaModeUnspecified, Flags = flags,
+                BufferUsage = Dxgi.UsageShaderInput | Dxgi.UsageRenderTargetOutput, BufferCount = IsExclusive ? 1u : BufferCount, Scaling = Dxgi.ScalingStretch,
+                SwapEffect = IsExclusive ? Dxgi.SwapEffectDiscard : Dxgi.SwapEffectFlipSequential, AlphaMode = Dxgi.AlphaModeUnspecified, Flags = flags,
             };
             IDXGISwapChain1* c;
             D3d11Context.Check(factory->lpVtbl->CreateSwapChainForHwnd(factory, (IUnknown*)device, hwnd, &desc, null, null, &c), "CreateSwapChainForHwnd");
@@ -79,6 +155,15 @@ namespace OniMoono.Desktop.D3d11
             // its own); the player handles full screen.
             D3d11Context.Check(((IDXGIFactory*)factory)->lpVtbl->MakeWindowAssociation((IDXGIFactory*)factory, hwnd,
                 Dxgi.WindowAssociationNoWindowChanges | Dxgi.WindowAssociationNoAltEnter), "MakeWindowAssociation");
+            if (IsExclusive)
+            {
+                // No frame-latency waitable: the original's exclusive chain has none
+                // (GetMaximumFrameLatency on it is DXGI_ERROR_INVALID_CALL, j0009185), and the
+                // flag "isn't supported in full-screen mode, unless the render API is Direct3D
+                // 12" (DXGI_SWAP_CHAIN_FLAG).
+                TakeBuffer();
+                return;
+            }
             IDXGISwapChain2* c2;
             D3d11Context.Check(Com.QueryInterface(chain, IDXGISwapChain2.IID, (void**)&c2), "QueryInterface IDXGISwapChain2");
             chain2 = c2;
@@ -175,7 +260,7 @@ namespace OniMoono.Desktop.D3d11
         /// (its resync) and bounds the wait after a repeat to a refresh. Here a miscount would
         /// show as WaitForFrame timeouts (one more queued than the latency) or as frames
         /// running a picture ahead (one fewer), both in ONI_PRESENT_TRACE's lines.
-        public bool LastPictureRetired() => Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0;
+        public bool LastPictureRetired() => waitable != IntPtr.Zero && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0;
 
         /// The refresh period of the display the swap chain is on (Stopwatch ticks; 0: not
         /// known), for FramePacing: its current mode's refresh rate, looked up again every
@@ -217,6 +302,8 @@ namespace OniMoono.Desktop.D3d11
         /// thread before the first frame).
         public void WaitForFrame()
         {
+            if (waitable == IntPtr.Zero) return; // the exclusive chain: Present itself blocks
+
             long t = GlTimings.Now;
             uint waited = Dxgi.WaitForSingleObjectEx(waitable, WaitMilliseconds, 0);
             if (waited != Dxgi.WaitObject0)
@@ -263,12 +350,21 @@ namespace OniMoono.Desktop.D3d11
         }
 
         public string Describe()
-            => $"swap chain {Width}x{Height} R8G8B8A8_UNORM, FLIP_SEQUENTIAL, {BufferCount} buffers, maximum frame latency {MaximumFrameLatency} (waitable), "
+            => IsExclusive ? $"exclusive swap chain {Width}x{Height} R8G8B8A8_UNORM, DISCARD, 1 buffer, ALLOW_MODE_SWITCH, full screen {InFullscreenState()}" : $"swap chain {Width}x{Height} R8G8B8A8_UNORM, FLIP_SEQUENTIAL, {BufferCount} buffers, maximum frame latency {MaximumFrameLatency} (waitable), "
                + $"tearing without vsync {(tearing ? "allowed" : "not supported")}";
 
         public void Dispose()
         {
             FramePacing.UnpacedPresent();
+            // A chain in DXGI's full-screen state is taken out of it first ("Before releasing a
+            // swap chain, first switch to windowed mode", "DXGI overview", Destroying a swap
+            // chain).
+            if (fullscreen && chain != null)
+            {
+                var sc = (IDXGISwapChain*)chain;
+                sc->lpVtbl->SetFullscreenState(sc, 0, null);
+                fullscreen = false;
+            }
             Com.Release(ref view);
             Com.Release(ref buffer);
             if (waitable != IntPtr.Zero) Dxgi.CloseHandle(waitable);

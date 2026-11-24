@@ -189,6 +189,7 @@ namespace OniMoono.Desktop.D3d11
             };
             platform.Closing += Shutdown;
             StartPresenting();
+            if (OperatingSystem.IsWindows()) platform.DeviceExclusive = this;
         }
 
         public override GraphicsCaps Caps => caps;
@@ -559,6 +560,8 @@ namespace OniMoono.Desktop.D3d11
             Ctx->lpVtbl->ClearState(Ctx);
             ReleasePresenter();
             ReleaseShared();
+            exclusive?.Dispose();
+            exclusive = null;
             chain.Dispose();
             Ctx->lpVtbl->Flush(Ctx);
             d3d.Dispose();

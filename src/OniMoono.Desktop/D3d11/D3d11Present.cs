@@ -162,11 +162,11 @@ namespace OniMoono.Desktop.D3d11
             }
             try
             {
-                if (windowWidth > 0 && windowHeight > 0 && (windowWidth != chain.Width || windowHeight != chain.Height))
+                if (windowWidth > 0 && windowHeight > 0 && (windowWidth != Out.Width || windowHeight != Out.Height))
                 {
                     // ResizeBuffers needs every reference to the buffers released, the context's
                     // too: Resize clears the context's state, so nothing is bound any more.
-                    chain.Resize(windowWidth, windowHeight);
+                    Out.Resize(windowWidth, windowHeight);
                     ForgetBindings();
                     resizedSinceShown = true;
                 }
@@ -179,7 +179,7 @@ namespace OniMoono.Desktop.D3d11
                 return;
             }
             RestoreAfterPresenter(always: true);
-            if (choice != GlPresenter.PresentChoice.Nothing) chain.WaitForFrame();
+            if (choice != GlPresenter.PresentChoice.Nothing) Out.WaitForFrame();
         }
 
         enum ShowKind { Frame, Again, Redraw, Repeat }
@@ -212,7 +212,7 @@ namespace OniMoono.Desktop.D3d11
                 EngineLog.Engine($"d3d11: {lost}");
                 return false;
             }
-            int hr = kind == ShowKind.Repeat ? chain.PresentRepeat() : chain.Present(interval);
+            int hr = kind == ShowKind.Repeat ? Out.PresentRepeat() : Out.Present(interval);
             DrainDebugMessages(kind == ShowKind.Frame ? "Present" : $"Present ({kind})");
             if (hr < 0)
             {
@@ -242,10 +242,10 @@ namespace OniMoono.Desktop.D3d11
             if (picture?.Texture == null)
             {
                 var black = stackalloc float[] { 0f, 0f, 0f, 1f };
-                Ctx->lpVtbl->ClearRenderTargetView(Ctx, chain.View, black);
+                Ctx->lpVtbl->ClearRenderTargetView(Ctx, Out.View, black);
                 return;
             }
-            if (picture.Width == chain.Width && picture.Height == chain.Height)
+            if (picture.Width == Out.Width && picture.Height == Out.Height)
             {
                 // "Must be the same type", "Must have identical dimensions", "Must have compatible
                 // DXGI formats, which means the formats must be identical or at least from the
@@ -253,17 +253,17 @@ namespace OniMoono.Desktop.D3d11
                 // R8G8B8A8_UNORM and the screen textures' R8G8B8A8_TYPELESS are of one group, and
                 // the sizes are equal here. (The original draws its texture into buffer 0
                 // with one draw instead, j0009060; a copy of the same size keeps every texel.)
-                Ctx->lpVtbl->CopyResource(Ctx, (ID3D11Resource*)chain.Buffer, (ID3D11Resource*)picture.Texture);
+                Ctx->lpVtbl->CopyResource(Ctx, (ID3D11Resource*)Out.Buffer, (ID3D11Resource*)picture.Texture);
                 return;
             }
-            if (PresentTrace.Enabled && (stretchedFrom.W != picture.Width || stretchedFrom.H != picture.Height || stretchedTo.W != chain.Width || stretchedTo.H != chain.Height))
+            if (PresentTrace.Enabled && (stretchedFrom.W != picture.Width || stretchedFrom.H != picture.Height || stretchedTo.W != Out.Width || stretchedTo.H != Out.Height))
             {
                 stretchedFrom = (picture.Width, picture.Height);
-                stretchedTo = (chain.Width, chain.Height);
-                PresentTrace.Log($"d3d11: screen texture {picture.Index} ({picture.Width}x{picture.Height}) stretched over the {chain.Width}x{chain.Height} buffer");
+                stretchedTo = (Out.Width, Out.Height);
+                PresentTrace.Log($"d3d11: screen texture {picture.Index} ({picture.Width}x{picture.Height}) stretched over the {Out.Width}x{Out.Height} buffer");
             }
             quads.Clear();
-            Quad(0, 0, chain.Width, chain.Height, 0, 0, 1, 1, Opaque, OpaqueAdd);
+            Quad(0, 0, Out.Width, Out.Height, 0, 0, 1, 1, Opaque, OpaqueAdd);
             DrawQuads(picture.Srv, presentLinear);
         }
 
@@ -396,7 +396,7 @@ namespace OniMoono.Desktop.D3d11
         /// `mul` and `add` (texel * mul + add).
         void Quad(float x0, float y0, float x1, float y1, float u0, float v0, float u1, float v1, (float, float, float, float) mul, (float, float, float, float) add)
         {
-            float w = chain.Width, h = chain.Height;
+            float w = Out.Width, h = Out.Height;
             // Window pixels to clip space: x right, y up (Direct3D 11.3 Functional Specification
             // §15.6, the viewport transform, with the viewport the whole buffer).
             float cx0 = x0 / w * 2 - 1, cx1 = x1 / w * 2 - 1, cy0 = 1 - y0 / h * 2, cy1 = 1 - y1 / h * 2;
@@ -419,9 +419,9 @@ namespace OniMoono.Desktop.D3d11
         /// the buffer.
         void BarQuad(SplashRain.BarRect r)
         {
-            int h = chain.Height;
+            int h = Out.Height;
             int x = Math.Max(0, r.X), top = Math.Max(0, h - (r.Y + r.Height));
-            int x1 = Math.Min(chain.Width, r.X + r.Width), bottom = Math.Min(h, h - r.Y);
+            int x1 = Math.Min(Out.Width, r.X + r.Width), bottom = Math.Min(h, h - r.Y);
             if (x1 <= x || bottom <= top) return;
             Quad(x, top, x1, bottom, 0, 0, 0, 0, (0, 0, 0, 0), (r.R, r.G, r.B, 1));
         }
@@ -465,7 +465,7 @@ namespace OniMoono.Desktop.D3d11
             // writing and reading at once has one of its bind points "set to NULL, in order to
             // prevent the same subresource from being read and written simultaneously"
             // (ID3D11DeviceContext::OMSetRenderTargets, Remarks).
-            var target = chain.View;
+            var target = Out.View;
             Ctx->lpVtbl->OMSetRenderTargets(Ctx, 1, &target, null);
             Ctx->lpVtbl->PSSetShaderResources(Ctx, 0, 1, &view);
             Ctx->lpVtbl->PSSetSamplers(Ctx, 0, 1, &sampler);
@@ -473,7 +473,7 @@ namespace OniMoono.Desktop.D3d11
             Ctx->lpVtbl->OMSetBlendState(Ctx, presentBlend, blendFactor, 0xffffffff);
             Ctx->lpVtbl->OMSetDepthStencilState(Ctx, presentDepth, 0);
             Ctx->lpVtbl->RSSetState(Ctx, presentRaster);
-            var vp = new D3D11_VIEWPORT { Width = chain.Width, Height = chain.Height, MaxDepth = 1f };
+            var vp = new D3D11_VIEWPORT { Width = Out.Width, Height = Out.Height, MaxDepth = 1f };
             Ctx->lpVtbl->RSSetViewports(Ctx, 1, &vp);
             Ctx->lpVtbl->Draw(Ctx, (uint)(floats / PresentStride), 0);
             // The view goes, so a later target of its texture finds nothing bound (no hazard),
@@ -580,7 +580,7 @@ namespace OniMoono.Desktop.D3d11
         void DrawSplash()
         {
             if (!SplashReady() || !rain.Active) return;
-            int w = chain.Width, h = chain.Height;
+            int w = Out.Width, h = Out.Height;
             float fade = rain.Vertices(w, h, rainVertices);
             SplashRain.Bar(w, h, fade, bar);
             quads.Clear();
@@ -603,7 +603,7 @@ namespace OniMoono.Desktop.D3d11
         /// The kanim's tile (opaque, unfiltered when not scaled) and the bar.
         void DrawLoading()
         {
-            int w = chain.Width, h = chain.Height;
+            int w = Out.Width, h = Out.Height;
             var tile = loading.Redraw(w, h, out double t);
             quads.Clear();
             ID3D11ShaderResourceView* view = splashAtlasSrv != null ? splashAtlasSrv : shownScreen != null ? shownScreen.Srv : null;
@@ -659,7 +659,7 @@ namespace OniMoono.Desktop.D3d11
         {
             var shown = shownScreen;
             var f = k.Frames;
-            if (shown?.Texture == null || shown.Width != chain.Width || shown.Height != chain.Height) return;
+            if (shown?.Texture == null || shown.Width != Out.Width || shown.Height != Out.Height) return;
             int w = f.TileWidth, h = f.TileHeight;
             bool bottomFirst = D3d11LoadAnimation.BottomFirst(f);
             try
@@ -668,7 +668,7 @@ namespace OniMoono.Desktop.D3d11
                 // The tile the screen showed when the frames were rendered (f.Start), as
                 // VkLoadAnimation.VerifyQueued compares: the first redraw's own tile is a frame
                 // or more on by the time it is drawn (j0009133: tile 3 drawn, 2 shown).
-                var start = D3d11LoadAnimation.TileOf(f, f.Start, chain.Width, chain.Height, k.Strip.Height, first: true);
+                var start = D3d11LoadAnimation.TileOf(f, f.Start, Out.Width, Out.Height, k.Strip.Height, first: true);
                 int srcRow = bottomFirst ? start.SrcBottom : start.SrcTop;
                 var b = ReadRegion(k.Strip.Resource, k.Strip.Format, start.SrcX, srcRow, w, h);
                 int differ = 0, largest = 0;
@@ -845,7 +845,7 @@ namespace OniMoono.Desktop.D3d11
         /// Repeats are on (StallRepeats: DxgiSwapChain.Repeats, Moono Tweaks' "Steady display
         /// during saves and loads"), with a frame shown, the splash gone, and the swap chain not
         /// resized since that frame.
-        bool MayRepeat => DxgiSwapChain.Repeats && shownScreen != null && !resizedSinceShown;
+        bool MayRepeat => DxgiSwapChain.Repeats && shownScreen != null && !resizedSinceShown && exclusive == null;
 
         /// One picture between frames (GlWorker.IdleWork).
         bool IdleWork()
@@ -861,7 +861,7 @@ namespace OniMoono.Desktop.D3d11
                         if (kind == IdleKind.Loading && OperatingSystem.IsWindows() && !timerRaised) timerRaised = Dxgi.timeBeginPeriod(1) == 0;
                         if (!Show(shownScreen, swapInterval < 0 ? 1 : swapInterval, ShowKind.Redraw)) return true;
                         RestoreAfterPresenter();
-                        chain.WaitForFrame();
+                        Out.WaitForFrame();
                         break;
                     case IdleKind.Refresh:
                         refreshWanted = false;
@@ -869,7 +869,7 @@ namespace OniMoono.Desktop.D3d11
                         // over the frame where they run.
                         if (!Show(shownScreen, swapInterval < 0 ? 1 : swapInterval, ShowKind.Redraw)) return true;
                         RestoreAfterPresenter();
-                        chain.WaitForFrame();
+                        Out.WaitForFrame();
                         break;
                     case IdleKind.Repeat:
                         Repeat();
@@ -890,7 +890,7 @@ namespace OniMoono.Desktop.D3d11
         void Repeat()
         {
             if (OperatingSystem.IsWindows() && !timerRaised) timerRaised = Dxgi.timeBeginPeriod(1) == 0;
-            if (!chain.LastPictureRetired())
+            if (!Out.LastPictureRetired())
             {
                 stall.Skipped(GlTimings.Now);
                 return;

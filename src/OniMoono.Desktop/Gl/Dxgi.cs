@@ -22,6 +22,9 @@ namespace OniMoono.Desktop.Gl
         [Native("DXGI_ERROR_DEVICE_HUNG", Header = "winerror.h")] public const int ErrorDeviceHung = unchecked((int)0x887A0006);
         [Native("DXGI_ERROR_DEVICE_RESET", Header = "winerror.h")] public const int ErrorDeviceReset = unchecked((int)0x887A0007);
         [Native("DXGI_ERROR_DRIVER_INTERNAL_ERROR", Header = "winerror.h")] public const int ErrorDriverInternal = unchecked((int)0x887A0020);
+        /// What SetFullscreenState returned to the original's exclusive full screen while its
+        /// window lacked the focus (j0009128, j0009178; D3d11Exclusive).
+        [Native("DXGI_ERROR_NOT_CURRENTLY_AVAILABLE", Header = "winerror.h")] public const int ErrorNotCurrentlyAvailable = unchecked((int)0x887A0022);
         /// D3DDDIERR_DEVICEREMOVED: IDXGISwapChain::Present may return it in place of
         /// DXGI_ERROR_DEVICE_REMOVED after the card is removed or its driver upgraded (Microsoft).
         [NotNative("D3DDDIERR_DEVICEREMOVED is in the WDK's d3dumddi.h, not the SDK")]
@@ -32,6 +35,7 @@ namespace OniMoono.Desktop.Gl
         [Native("DXGI_USAGE_SHADER_INPUT")] public const uint UsageShaderInput = 0x10;
         [Native("DXGI_USAGE_RENDER_TARGET_OUTPUT")] public const uint UsageRenderTargetOutput = 0x20;
         [Native("DXGI_SCALING_STRETCH")] public const uint ScalingStretch = 0;
+        [Native("DXGI_SWAP_EFFECT_DISCARD")] public const uint SwapEffectDiscard = 0;
         [Native("DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL")] public const uint SwapEffectFlipSequential = 3;
         [Native("DXGI_SWAP_EFFECT_FLIP_DISCARD")] public const uint SwapEffectFlipDiscard = 4;
         [Native("DXGI_ALPHA_MODE_UNSPECIFIED")] public const uint AlphaModeUnspecified = 0;
@@ -84,6 +88,26 @@ namespace OniMoono.Desktop.Gl
             [As("DXGI_SWAP_EFFECT")] public uint SwapEffect;
             [As("DXGI_ALPHA_MODE")] public uint AlphaMode;
             public uint Flags;
+        }
+
+        /// DXGI_RATIONAL (dxgicommon.h).
+        [Native("DXGI_RATIONAL", Header = "dxgicommon.h")]
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Rational
+        {
+            public uint Numerator, Denominator;
+        }
+
+        /// DXGI_MODE_DESC (dxgitype.h): ResizeTarget's mode.
+        [Native("DXGI_MODE_DESC", Header = "dxgitype.h")]
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ModeDesc
+        {
+            public uint Width, Height;
+            public Rational RefreshRate;
+            [As("DXGI_FORMAT")] public uint Format;
+            [As("DXGI_MODE_SCANLINE_ORDER")] public uint ScanlineOrdering;
+            [As("DXGI_MODE_SCALING")] public uint Scaling;
         }
 
         /// D3D11_TEXTURE2D_DESC (d3d11.h).
