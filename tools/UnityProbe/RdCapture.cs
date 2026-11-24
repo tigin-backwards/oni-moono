@@ -131,6 +131,13 @@ namespace SemanticsProbe
             L("renderdoc api " + renderdoc + " template '" + template + "'");
             if (renderdoc <= 0) { L("hook " + pnHook()); L("ctx hook " + pnCtxHook()); }
 
+            if (renderdoc <= 0 && Environment.GetEnvironmentVariable("PROBE_MODES") == "1")
+            {
+                yield return Modes();
+                Finish();
+                yield break;
+            }
+
             if (renderdoc <= 0 && Environment.GetEnvironmentVariable("PROBE_PACING") == "1")
             {
                 yield return Pacing();
@@ -184,6 +191,37 @@ namespace SemanticsProbe
                 pnReport();
             }
             Finish();
+        }
+
+        /// The M4 full-screen scenario (PROBE_MODES=1; the user's OK, 2026-11-24): started in a
+        /// borderless full-screen window, Screen.SetResolution through borderless at a lower
+        /// resolution, exclusive at the monitor's mode and at a lower one, then windowed; each
+        /// held for 240 frames. The helper logs every ResizeBuffers, SetFullscreenState and
+        /// ResizeTarget with the chain's descriptions after it, and a new chain's on its first
+        /// Present.
+        IEnumerator Modes()
+        {
+            yield return Frames(30);
+            int w = Screen.currentResolution.width, h = Screen.currentResolution.height;
+            void State(string what) => L("MODE " + what + ": fullScreenMode " + Screen.fullScreenMode + " " + Screen.width + "x" + Screen.height
+                                          + " current " + Screen.currentResolution.width + "x" + Screen.currentResolution.height + " f" + Time.frameCount);
+            State("start");
+            pnReport();
+            var steps = new (int W, int H, FullScreenMode M)[]
+            {
+                (1920, 1080, FullScreenMode.FullScreenWindow),
+                (w, h, FullScreenMode.ExclusiveFullScreen),
+                (1920, 1080, FullScreenMode.ExclusiveFullScreen),
+                (1280, 720, FullScreenMode.Windowed),
+            };
+            foreach (var st in steps)
+            {
+                L("MODE SetResolution(" + st.W + ", " + st.H + ", " + st.M + ") f" + Time.frameCount);
+                Screen.SetResolution(st.W, st.H, st.M);
+                yield return Frames(240);
+                State("after " + st.M + " " + st.W + "x" + st.H);
+                pnReport();
+            }
         }
 
         /// The M4 pacing scenario (PROBE_PACING=1).

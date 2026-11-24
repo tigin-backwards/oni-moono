@@ -22,6 +22,10 @@ finished unit, after every done criterion below passes and the user says so.
   Every COM slot, struct and enum we use checked against the Windows SDK headers by an MSVC
   static-assert check in the build; every return-code and behaviour assumption cited from
   Microsoft's documentation or observed (with what, where, GPU and driver recorded).
+- **The player's own presentation** (decided by the user 2026-11-24). The player may draw its
+  own presentation with programs of its own (the splash, the loading animation, the bars, the
+  stretch quad), as VkSplash and GlSplash do on the other devices; the game's draws use only the
+  shipped programs.
 - **Reviews.** An adversarial review at the end of every milestone by a fresh agent given the code,
   not conclusions: real bugs, defects, and invented API or cases. Each API use, guard, fallback and
   fault hook is classed documented (cite), observed (evidence) or invented (remove). Open
@@ -67,7 +71,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
-| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program pending the user's word |
+| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
@@ -1405,7 +1409,7 @@ scenario; logs in `out/d3d11-captures/m4-pacing*/`):
 - **The presenter's program.** The splash's comets, the loading kanim's tile and the bars are
   window-space quads drawn with a program of the presenter's own (texel × mul + add, premultiplied
   over), as VkSplash and GlSplash draw with theirs: they are the player's presentation, not the
-  game's. Whether the rules allow that is the user's to decide ("M4 review fixes", item 6). HLSL in
+  game's, which the Rules allow (the user's decision of 2026-11-24). HLSL in
   `D3d11Present.cs`, compiled once with the SDK's fxc 10.1 (`vs_4_0`/`ps_4_0`, j0009057), shader
   model 4.0 being feature level 10_0's ("Direct3D feature levels"). After one is drawn the device
   forgets its tracked bindings and sets its target, viewport and scissor again. The target is
@@ -1556,10 +1560,9 @@ The adversarial review of M4 gave 8 items. Each was fixed in its own commit (dee
 6. **The presenter's program** (9dd84e5ef). `scripts/gen-d3d11-present.py` compiles the HLSL in
    D3d11Present.cs's comment with the SDK's fxc 10.1 and compares the committed blobs (`--write`
    sets them); `tests/scripts/test_d3d11_present.py` does the same where fxc is reachable and
-   checks the blobs' shape everywhere (j0009095: equal, 3 tests ok). **Pending the user's word**:
-   whether the rules ("shipped programs, never our own translations") allow a program of the
-   player's own for its presentation, as VkSplash's SPIR-V is on Vulkan. Until then the program is
-   recorded here only as built, not as accepted.
+   checks the blobs' shape everywhere (j0009095: equal, 3 tests ok). **Accepted** by the user's
+   decision of 2026-11-24 (Rules, "The player's own presentation"): the player's own programs
+   may draw its own presentation; the game's draws stay on shipped programs.
 7. **A refresh waited for the loading watchdog** (629173377). IdleDue now asks for a refresh
    first, as VkPresenter's wait ends on it first, and draws it as a redraw (the splash or the
    loading animation over the frame where they run, as VkPresenter's refresh).

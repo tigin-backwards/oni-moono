@@ -631,8 +631,37 @@ static HRESULT STDMETHODCALLTYPE HookPresent1(IDXGISwapChain1 *sc, UINT sync, UI
 static HRESULT STDMETHODCALLTYPE HookResize(IDXGISwapChain *sc, UINT count, UINT w, UINT h, DXGI_FORMAT f, UINT flags)
 {
     HRESULT hr = resize0(sc, count, w, h, f, flags);
-    Log("RESIZE %p ResizeBuffers(count=%u, %ux%u, format=%d, flags=0x%x) hr=0x%08lx", (void *)sc, count, w, h, (int)f, flags, (unsigned long)hr);
+    Log("RESIZE %p ResizeBuffers(count=%u, %ux%u, format=%d, flags=0x%x) hr=0x%08lx thread=%lu", (void *)sc, count, w, h, (int)f, flags, (unsigned long)hr, GetCurrentThreadId());
+    // M4: the chain's descriptions after each resize (its full-screen state included).
+    Describe(sc);
     return hr;
+}
+
+// M4: DXGI's own full-screen calls, should the player make them (exclusive full screen).
+typedef HRESULT(STDMETHODCALLTYPE *SetFullscreenStateFn)(IDXGISwapChain *, BOOL, IDXGIOutput *);
+typedef HRESULT(STDMETHODCALLTYPE *ResizeTargetFn)(IDXGISwapChain *, const DXGI_MODE_DESC *);
+static SetFullscreenStateFn oSetFullscreen;
+static ResizeTargetFn oResizeTarget;
+static HRESULT STDMETHODCALLTYPE HookSetFullscreen(IDXGISwapChain *sc, BOOL fs, IDXGIOutput *out)
+{
+    HRESULT hr = oSetFullscreen(sc, fs, out);
+    Log("FULLSCREEN %p SetFullscreenState(%d, output %p) hr=0x%08lx thread=%lu", (void *)sc, fs, (void *)out, (unsigned long)hr, GetCurrentThreadId());
+    Describe(sc);
+    return hr;
+}
+static HRESULT STDMETHODCALLTYPE HookResizeTarget(IDXGISwapChain *sc, const DXGI_MODE_DESC *m)
+{
+    HRESULT hr = oResizeTarget(sc, m);
+    if (m)
+        Log("FULLSCREEN %p ResizeTarget(%ux%u refresh=%u/%u format=%d scanline=%d scaling=%d) hr=0x%08lx thread=%lu", (void *)sc, m->Width, m->Height, m->RefreshRate.Numerator,
+            m->RefreshRate.Denominator, (int)m->Format, (int)m->ScanlineOrdering, (int)m->Scaling, (unsigned long)hr, GetCurrentThreadId());
+    else Log("FULLSCREEN %p ResizeTarget(NULL) hr=0x%08lx", (void *)sc, (unsigned long)hr);
+    return hr;
+}
+void CheckFullscreenTypes(IDXGISwapChainVtbl *v)
+{
+    v->SetFullscreenState = HookSetFullscreen;
+    v->ResizeTarget = HookResizeTarget;
 }
 
 static void Patch(void **vt, size_t slot, void *hook, void **orig)
@@ -709,6 +738,8 @@ EXPORT int pn_sc_hook(void)
         Patch(vtables[i], sPresent, (void *)HookPresent, (void **)&present0);
         Patch(vtables[i], sPresent1, (void *)HookPresent1, (void **)&present1);
         Patch(vtables[i], sResize, (void *)HookResize, (void **)&resize0);
+        Patch(vtables[i], offsetof(IDXGISwapChainVtbl, SetFullscreenState) / sizeof(void *), (void *)HookSetFullscreen, (void **)&oSetFullscreen);
+        Patch(vtables[i], offsetof(IDXGISwapChainVtbl, ResizeTarget) / sizeof(void *), (void *)HookResizeTarget, (void **)&oResizeTarget);
         Patch(vtables[i], offsetof(IDXGISwapChainVtbl, GetFrameStatistics) / sizeof(void *), (void *)HookFrameStats, (void **)&oFrameStats);
         Patch(vtables[i], offsetof(IDXGISwapChainVtbl, GetLastPresentCount) / sizeof(void *), (void *)HookLastCount, (void **)&oLastCount);
     }

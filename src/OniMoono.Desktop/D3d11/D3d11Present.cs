@@ -260,8 +260,8 @@ namespace OniMoono.Desktop.D3d11
 
         // ----- The presenter's program -----
 
-        // The presenter's own program: whether the plan's rules allow it (it is not a shipped
-        // program) waits for the user's word (d3d11-plan.md, "M4 review fixes", item 6).
+        // The presenter's own program, which the plan's Rules allow for the player's own
+        // presentation (the user's decision, d3d11-plan.md "Rules").
         // scripts/gen-d3d11-present.py compiles it with the Windows SDK's fxc 10.1
         // (10.0.26100.0: `fxc /O3 /Qstrip_reflect /Qstrip_debug /T vs_4_0 /E vs` and
         // `/T ps_4_0 /E ps`) and checks, or with --write sets, the blobs below; the scripts'
