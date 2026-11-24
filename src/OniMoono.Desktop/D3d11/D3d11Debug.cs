@@ -28,12 +28,14 @@ namespace OniMoono.Desktop.D3d11
         [StructLayout(LayoutKind.Explicit)]
         public struct Vtbl
         {
+            [FieldOffset(3 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong, int> SetMessageCountLimit;
             [FieldOffset(4 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, void> ClearStoredMessages;
             [FieldOffset(5 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong, D3D11_MESSAGE*, nuint*, int> GetMessage;
             [FieldOffset(7 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumMessagesDeniedByStorageFilter;
             [FieldOffset(8 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessages;
             [FieldOffset(9 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessagesAllowedByRetrievalFilter;
             [FieldOffset(10 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumMessagesDiscardedByMessageCountLimit;
+            [FieldOffset(11 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetMessageCountLimit;
             [FieldOffset(12 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, D3D11_INFO_QUEUE_FILTER*, int> AddStorageFilterEntries;
             [FieldOffset(13 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, D3D11_INFO_QUEUE_FILTER*, nuint*, int> GetStorageFilter;
             [FieldOffset(15 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, int> PushEmptyStorageFilter;

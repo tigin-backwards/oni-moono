@@ -109,7 +109,10 @@ namespace OniMoono.Desktop.D3d11
         /// unbound Render Target View are discarded"). So GetNumMessagesDeniedByStorageFilter
         /// counts that warning alone, and every other message is stored: INFO and MESSAGE
         /// severities are counted and logged apart, the others fail a check (D3d11Device.
-        /// DrainDebugMessages). Before this the layer's own default denied about 2,600 messages
+        /// DrainDebugMessages). With INFO stored (every object made is one), the queue's limit
+        /// filled between drains while a colony loaded and dropped messages ("new messages coming
+        /// in will push old messages out"), so the limit is lifted: "-1 means no limit"
+        /// (SetMessageCountLimit); the queue is cleared at every drain. Before this the layer's own default denied about 2,600 messages
         /// in a run that draws nothing (j0008854), unread (d3d11-plan.md, M3 review fixes,
         /// finding 2).
         static void SetFilters(ID3D11InfoQueue* queue)
@@ -118,6 +121,9 @@ namespace OniMoono.Desktop.D3d11
             EngineLog.Engine($"d3d11 debug layer: retrieval filter at start ({queue->lpVtbl->GetRetrievalFilterStackSize(queue)} on the stack): {DescribeFilter(queue, storage: false)}");
             Check(queue->lpVtbl->PushEmptyStorageFilter(queue), "ID3D11InfoQueue::PushEmptyStorageFilter");
             Check(queue->lpVtbl->PushEmptyRetrievalFilter(queue), "ID3D11InfoQueue::PushEmptyRetrievalFilter");
+            ulong limit = queue->lpVtbl->GetMessageCountLimit(queue);
+            Check(queue->lpVtbl->SetMessageCountLimit(queue, ulong.MaxValue), "ID3D11InfoQueue::SetMessageCountLimit");
+            EngineLog.Engine($"d3d11 debug layer: message count limit {limit} at start, now none");
             int id = D3D11SdkLayers.D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET;
             var filter = new D3D11_INFO_QUEUE_FILTER { DenyList = new D3D11_INFO_QUEUE_FILTER_DESC { NumIDs = 1, pIDList = &id } };
             Check(queue->lpVtbl->AddStorageFilterEntries(queue, &filter), "ID3D11InfoQueue::AddStorageFilterEntries");
