@@ -116,17 +116,27 @@ namespace OniMoono.Desktop.D3d11
         }
 
         /// Main thread: frees the texels, and the staging texture if the copy was never read.
+        /// The texels are freed on the device thread, after the request left the pending list:
+        /// there the device thread's Copy (from PollReadbacks after a Present, or a Wait) cannot
+        /// be setting them at the same time, and a conversion it started is waited for first.
         internal void ReleaseReadback(D3d11Readback read)
         {
-            read.FreeConverted();
             worker.Post(() =>
             {
                 pendingReadbacks.Remove(read);
                 Com.Release(ref read.Staging);
+                read.FreeConverted();
             });
         }
 
         // ----- CopyTargetRect -----
+
+        /// The rectangle lies inside the source (sw x sh) and, placed at `to`, inside the
+        /// destination (dw x dh), with a positive size.
+        internal static bool CopyFits(RectInt from, int sw, int sh, Vector2Int to, int dw, int dh)
+            => from.width > 0 && from.height > 0 && from.x >= 0 && from.y >= 0 && to.x >= 0 && to.y >= 0
+               && (long)from.x + from.width <= sw && (long)from.y + from.height <= sh
+               && (long)to.x + from.width <= dw && (long)to.y + from.height <= dh;
 
         public override bool CopiesTargetRects => true;
 
@@ -134,7 +144,13 @@ namespace OniMoono.Desktop.D3d11
         /// compatible DXGI formats (identical or from the same type group)"
         /// (ID3D11DeviceContext::CopySubresourceRegion): this device asks for identical ones
         /// (its render-texture formats are typed, one per group), else logs a failed command. Rows from the bottom as stored: turned
-        /// over in a texture stored top row first (ScreenRows), as VkDevice.CopyTargetRect.
+        /// over in a texture stored top row first (ScreenRows), as VkDevice.CopyTargetRect. A
+        /// rectangle outside either texture is refused and logged as a failed command: "If you
+        /// try and copy outside the destination resource or specify a source box that is larger
+        /// than the source resource, the behavior of CopySubresourceRegion is undefined", which
+        /// "might result in incorrect rendering, clipping, no copy, or even the removal of the
+        /// rendering device" (CopySubresourceRegion, Remarks; CopyFits). Only
+        /// the loading animation uses it, which M4 turns on (AnimatesLoading is false here).
         public override void CopyTargetRect(RenderTextureNative source, RectInt from, RenderTextureNative target, Vector2Int to)
         {
             if (source.ScreenRows != target.ScreenRows) throw new ArgumentException("the textures are rendered the other way round from each other");
@@ -148,6 +164,11 @@ namespace OniMoono.Desktop.D3d11
                 if (s.Format != d.Format)
                 {
                     CommandFailed(new InvalidOperationException($"d3d11: CopyTargetRect from {s.Format} into {d.Format}"));
+                    return;
+                }
+                if (!CopyFits(from, s.Width, s.Height, to, d.Width, d.Height))
+                {
+                    CommandFailed(new InvalidOperationException($"d3d11: CopyTargetRect of {from} from {s.Width}x{s.Height} to {to} in {d.Width}x{d.Height}: outside a texture"));
                     return;
                 }
                 PrepareForSampling(s, autoGenerateMips: false);
