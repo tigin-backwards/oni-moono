@@ -35,6 +35,12 @@ namespace OniMoono.Desktop.D3d11
             [FieldOffset(9 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumStoredMessagesAllowedByRetrievalFilter;
             [FieldOffset(10 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, ulong> GetNumMessagesDiscardedByMessageCountLimit;
             [FieldOffset(12 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, D3D11_INFO_QUEUE_FILTER*, int> AddStorageFilterEntries;
+            [FieldOffset(13 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, D3D11_INFO_QUEUE_FILTER*, nuint*, int> GetStorageFilter;
+            [FieldOffset(15 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, int> PushEmptyStorageFilter;
+            [FieldOffset(19 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, uint> GetStorageFilterStackSize;
+            [FieldOffset(21 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, D3D11_INFO_QUEUE_FILTER*, nuint*, int> GetRetrievalFilter;
+            [FieldOffset(23 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, int> PushEmptyRetrievalFilter;
+            [FieldOffset(27 * 8)] public delegate* unmanaged<ID3D11InfoQueue*, uint> GetRetrievalFilterStackSize;
         }
     }
 

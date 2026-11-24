@@ -1,5 +1,6 @@
 using System;
 using OniMoono.Desktop.Gl;
+using OniMoono.Engine;
 
 namespace OniMoono.Desktop.D3d11
 {
@@ -81,7 +82,7 @@ namespace OniMoono.Desktop.D3d11
                 ID3D11InfoQueue* queue;
                 Check(Com.QueryInterface(Device, ID3D11InfoQueue.IID, (void**)&queue), "QueryInterface ID3D11InfoQueue");
                 InfoQueue = queue;
-                DenyUnboundTargetWarning(queue);
+                SetFilters(queue);
             }
             IDXGIFactory5* f5;
             if (Com.QueryInterface(Factory, IDXGIFactory5.IID, (void**)&f5) >= 0)
@@ -92,23 +93,60 @@ namespace OniMoono.Desktop.D3d11
             }
         }
 
-        /// The debug layer stores no DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET warning (the user's
-        /// decision, d3d11-plan.md "M3", B2 item 7): AddStorageFilterEntries ("Add storage filters
-        /// to the top of the storage-filter stack") with that ID in the filter's DenyList ("Types
-        /// of messages that you want to deny", D3D11_INFO_QUEUE_FILTER). The draws it names bind
-        /// as the original's do (a pixel stage writing more targets than are bound; the warning
-        /// itself says "writes of an unbound Render Target View are discarded"). The device still
-        /// logs each such shader and target (D3d11Device.Bind), and with its debug-layer tallies
-        /// the count of messages the storage filters denied ("Get the number of messages that were
-        /// denied passage through a storage filter", GetNumMessagesDeniedByStorageFilter). That
-        /// count is not this warning's alone: a --check-shaders run, which draws nothing, had
-        /// 2,582 denied (j0008662); it made about 2,500 shader objects and input layouts, and
-        /// which messages were denied is not read.
-        static void DenyUnboundTargetWarning(ID3D11InfoQueue* queue)
+        /// The debug layer's filters, made known: the storage and retrieval filters the layer
+        /// starts with are logged (GetStorageFilter, GetRetrievalFilter: "Get the storage filter
+        /// at the top of the storage-filter stack"; "If pFilter is NULL, the size of the storage
+        /// filter will be output to this parameter"), then an empty filter is pushed on each
+        /// stack ("An empty storage filter allows all messages to pass through",
+        /// PushEmptyStorageFilter; PushEmptyRetrievalFilter likewise), so nothing is
+        /// held back by a default this device did not choose (the DirectX Control Panel's
+        /// settings among them). On the empty storage filter only
+        /// DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET is denied (the user's decision, d3d11-plan.md
+        /// "M3", B2 item 7): AddStorageFilterEntries ("Add storage filters to the top of the
+        /// storage-filter stack") with that ID in the DenyList ("Types of messages that you want
+        /// to deny", D3D11_INFO_QUEUE_FILTER). The draws it names bind as the original's do (a
+        /// pixel stage writing more targets than are bound; the warning itself says "writes of an
+        /// unbound Render Target View are discarded"). So GetNumMessagesDeniedByStorageFilter
+        /// counts that warning alone, and every other message is stored: INFO and MESSAGE
+        /// severities are counted and logged apart, the others fail a check (D3d11Device.
+        /// DrainDebugMessages). Before this the layer's own default denied about 2,600 messages
+        /// in a run that draws nothing (j0008854), unread (d3d11-plan.md, M3 review fixes,
+        /// finding 2).
+        static void SetFilters(ID3D11InfoQueue* queue)
         {
+            EngineLog.Engine($"d3d11 debug layer: storage filter at start ({queue->lpVtbl->GetStorageFilterStackSize(queue)} on the stack): {DescribeFilter(queue, storage: true)}");
+            EngineLog.Engine($"d3d11 debug layer: retrieval filter at start ({queue->lpVtbl->GetRetrievalFilterStackSize(queue)} on the stack): {DescribeFilter(queue, storage: false)}");
+            Check(queue->lpVtbl->PushEmptyStorageFilter(queue), "ID3D11InfoQueue::PushEmptyStorageFilter");
+            Check(queue->lpVtbl->PushEmptyRetrievalFilter(queue), "ID3D11InfoQueue::PushEmptyRetrievalFilter");
             int id = D3D11SdkLayers.D3D11_MESSAGE_ID_DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET;
             var filter = new D3D11_INFO_QUEUE_FILTER { DenyList = new D3D11_INFO_QUEUE_FILTER_DESC { NumIDs = 1, pIDList = &id } };
             Check(queue->lpVtbl->AddStorageFilterEntries(queue, &filter), "ID3D11InfoQueue::AddStorageFilterEntries");
+            EngineLog.Engine($"d3d11 debug layer: storage filter now: {DescribeFilter(queue, storage: true)}");
+        }
+
+        /// The filter at the top of a stack: its allow and deny lists.
+        static string DescribeFilter(ID3D11InfoQueue* queue, bool storage)
+        {
+            nuint length = 0;
+            int hr = storage ? queue->lpVtbl->GetStorageFilter(queue, null, &length) : queue->lpVtbl->GetRetrievalFilter(queue, null, &length);
+            if (hr < 0 || length < (nuint)sizeof(D3D11_INFO_QUEUE_FILTER)) return $"not read (0x{hr:X8}, {length} bytes)";
+            var bytes = new byte[(int)length];
+            fixed (byte* b = bytes)
+            {
+                var f = (D3D11_INFO_QUEUE_FILTER*)b;
+                hr = storage ? queue->lpVtbl->GetStorageFilter(queue, f, &length) : queue->lpVtbl->GetRetrievalFilter(queue, f, &length);
+                if (hr < 0) return $"not read (0x{hr:X8})";
+                return $"allow {{{List(f->AllowList)}}}, deny {{{List(f->DenyList)}}}";
+            }
+
+            static string List(in D3D11_INFO_QUEUE_FILTER_DESC d)
+            {
+                var parts = new System.Collections.Generic.List<string>();
+                for (uint i = 0; i < d.NumCategories; i++) parts.Add($"category {d.pCategoryList[i]}");
+                for (uint i = 0; i < d.NumSeverities; i++) parts.Add($"severity {d.pSeverityList[i]}");
+                for (uint i = 0; i < d.NumIDs; i++) parts.Add($"ID {d.pIDList[i]}");
+                return parts.Count == 0 ? "none" : string.Join(", ", parts);
+            }
         }
 
         IDXGIAdapter1* ChooseAdapter(string gpu)

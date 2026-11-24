@@ -215,7 +215,12 @@ namespace OniMoono.Desktop.D3d11
         // ----- Targets, viewport, clears (main thread records) -----
 
         /// Name: the first colour texture's, for diagnostics.
-        internal sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int Level, bool ScreenRows, string Name);
+        internal sealed record BoundTarget(DeviceTexture[] Colors, DeviceTexture Depth, int Level, bool ScreenRows, string Name)
+        {
+            /// The target as the logs name it, made only when a log line needs it (a bind names
+            /// the texture only: SetRenderTarget runs for every bind).
+            public string Label => Colors == null ? "the back buffer" : $"'{Name}'";
+        }
 
         Action<BoundTarget> setTarget;
         Action<Rect> setViewportNow;
@@ -236,7 +241,7 @@ namespace OniMoono.Desktop.D3d11
             // (RenderConventions), but for one rendered as the back buffer is (ScreenRows).
             bool screenRows = colors != null && binding.Colors[0].ScreenRows;
             recorder.Conventions = new RenderConventions(Vulkan: true, Flipped: colors != null && !screenRows);
-            worker.Post(worker.Arena.Command(setTarget ??= SetTarget, new BoundTarget(colors, depth, binding.MipLevel, screenRows, colors == null ? null : $"'{binding.Colors[0].Name}'")));
+            worker.Post(worker.Arena.Command(setTarget ??= SetTarget, new BoundTarget(colors, depth, binding.MipLevel, screenRows, colors == null ? null : binding.Colors[0].Name)));
         }
 
         public override void SetViewport(Rect pixels) => worker.Post(worker.Arena.Command(setViewportNow ??= SetViewportNow, pixels));
@@ -470,6 +475,16 @@ namespace OniMoono.Desktop.D3d11
                 {
                     var m = (D3D11_MESSAGE*)b;
                     if (queue->lpVtbl->GetMessage(queue, i, m, &length) < 0 || m->pDescription == null || m->DescriptionByteLength == 0) continue;
+                    // INFO and MESSAGE are not errors or warnings (done criterion 1): counted
+                    // and logged by ID, apart (D3d11Context.SetFilters stores every message).
+                    if (m->Severity >= D3D11_MESSAGE_SEVERITY.D3D11_MESSAGE_SEVERITY_INFO)
+                    {
+                        infoMessages++;
+                        infoTally.TryGetValue((m->Severity, m->ID), out long count);
+                        infoTally[(m->Severity, m->ID)] = count + 1;
+                        if (count == 0) EngineLog.Engine($"d3d11 debug layer: {m->Severity} {m->ID} (first; counted apart): {new string(m->pDescription, 0, (int)m->DescriptionByteLength - 1)}");
+                        continue;
+                    }
                     debugMessages++;
                     var key = ($"{m->Severity} {m->ID}", context ?? "outside a draw");
                     debugTally.TryGetValue(key, out long seen);
@@ -491,6 +506,8 @@ namespace OniMoono.Desktop.D3d11
         }
 
         readonly Dictionary<(string Message, string Context), long> debugTally = new();
+        readonly Dictionary<(D3D11_MESSAGE_SEVERITY, int), long> infoTally = new();
+        long infoMessages;
         long debugTallied;
 
         /// The debug layer's counts by message and draw, when they grew (device thread).
@@ -503,7 +520,8 @@ namespace OniMoono.Desktop.D3d11
             deniedTallied = denied;
             EngineLog.Engine($"d3d11 debug layer tally: {debugMessages} messages: "
                              + string.Join("; ", System.Linq.Enumerable.Select(debugTally, kv => $"{kv.Key.Message} ({kv.Key.Context}) x{kv.Value}"))
-                             + $"; {denied} messages denied by the storage filters (GetNumMessagesDeniedByStorageFilter; not only DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET)");
+                             + $"; {denied} messages denied by the storage filter (GetNumMessagesDeniedByStorageFilter: DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET alone)"
+                             + $"; {infoMessages} INFO or MESSAGE: " + string.Join("; ", System.Linq.Enumerable.Select(infoTally, kv => $"{kv.Key.Item1} {kv.Key.Item2} x{kv.Value}")));
         }
 
         ulong deniedTallied;
