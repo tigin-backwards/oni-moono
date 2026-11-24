@@ -48,12 +48,14 @@ game="${ONI_WIN_GAME_DIR:-C:\\Program Files (x86)\\Steam\\steamapps\\common\\Oxy
 # window"), so its `--input N:focus` can take it back; it logs each result's change. No key is
 # sent and the pointer is not moved; the player keeps --no-focus.
 if [ -n "${ONI_WIN_FOREGROUND_FROM:-}" ]; then
+  # The run home inside a PowerShell single-quoted string: its quotes doubled.
+  run_home_ps="${run_home//\'/\'\'}"
   powershell.exe -NoProfile -Command "
 Add-Type -Namespace OniTest -Name Fg -MemberDefinition '[DllImport(\"user32.dll\")] public static extern bool AllowSetForegroundWindow(uint pid);'
 Start-Sleep -Seconds ${ONI_WIN_FOREGROUND_FROM}
 \$last = \$null
 for (\$i = 0; \$i -lt 600; \$i++) {
-  \$p = Get-CimInstance Win32_Process -Filter \"Name = 'OniMoono.exe'\" | Where-Object { \$_.CommandLine -like '*$run_home*' } | Select-Object -First 1
+  \$p = Get-CimInstance Win32_Process -Filter \"Name = 'OniMoono.exe'\" | Where-Object { \$_.CommandLine -like '*$run_home_ps*' } | Select-Object -First 1
   if (-not \$p) { if (\$i -gt 5) { break } } else {
     \$r = [OniTest.Fg]::AllowSetForegroundWindow([uint32]\$p.ProcessId)
     if (\$r -ne \$last) { 'foreground helper: AllowSetForegroundWindow(' + \$p.ProcessId + ') ' + \$r + ' at ' + (Get-Date -Format HH:mm:ss.fff); \$last = \$r }

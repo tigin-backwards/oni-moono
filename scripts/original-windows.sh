@@ -163,7 +163,8 @@ if ('${ORIG_FOREGROUND_AT:-}' -ne '' -and -not \$why) {
   if (-not \$p.HasExited) {
     \$p.Refresh()
     \$allowed = [OniTest.Focus]::AllowSetForegroundWindow([uint32]\$p.Id)
-    \$set = [OniTest.Focus]::SetForegroundWindow(\$p.MainWindowHandle)
+    # No window yet: nothing is made the foreground (SetForegroundWindow takes a window).
+    \$set = if (\$p.MainWindowHandle -ne [IntPtr]::Zero) { [OniTest.Focus]::SetForegroundWindow(\$p.MainWindowHandle) } else { 'no window' }
     \$owner = [uint32]0
     [void][OniTest.Focus]::GetWindowThreadProcessId([OniTest.Focus]::GetForegroundWindow(), [ref]\$owner)
     'foreground: AllowSetForegroundWindow ' + \$allowed + ', SetForegroundWindow ' + \$set + ', foreground now ' + \$(if (\$owner -eq \$p.Id) { 'the game' } else { 'another process' })
