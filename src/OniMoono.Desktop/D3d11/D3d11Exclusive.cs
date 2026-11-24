@@ -59,13 +59,17 @@ namespace OniMoono.Desktop.D3d11
         /// Main thread: out of exclusive full screen, the flip chain presenting again.
         public void Leave()
         {
-            if (!exclusiveActive) return;
-            try
+            // DXGI may have left already (LeaveByDxgi): the pump still goes, as it is only for
+            // Enter to Leave.
+            if (exclusiveActive)
             {
-                worker.Call(LeaveNow);
-            }
-            catch (GlDeviceStoppedException)
-            {
+                try
+                {
+                    worker.Call(LeaveNow);
+                }
+                catch (GlDeviceStoppedException)
+                {
+                }
             }
             worker.WaitPump = null;
         }
@@ -81,6 +85,9 @@ namespace OniMoono.Desktop.D3d11
             catch (D3d11UnavailableException e)
             {
                 EngineLog.Engine($"d3d11: exclusive full screen {width}x{height} could not be made: {e.Message}");
+                // A failed ResizeBuffers comes after SetFullscreen's ClearState.
+                ForgetBindings();
+                SetTarget(lastTarget);
                 return -1;
             }
             // ResizeBuffers cleared the context's state (D3d11SwapChain.SetFullscreen).

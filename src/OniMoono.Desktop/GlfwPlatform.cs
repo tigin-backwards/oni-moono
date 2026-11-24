@@ -790,8 +790,9 @@ namespace OniMoono.Desktop
             // one again, left as a fullscreen window's is.
             if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { } leaving && !glfwExclusive)
             {
-                // (Already left when DXGI left it: D3d11Device.LeaveByDxgi.)
-                if (leaving.Active) leaving.Leave();
+                // Also when DXGI left it already (D3d11Device.LeaveByDxgi): Leave then only stops
+                // the waiting pump.
+                leaving.Leave();
                 mode = FullScreenMode.FullScreenWindow;
                 desktopBeforeExclusive = null;
             }

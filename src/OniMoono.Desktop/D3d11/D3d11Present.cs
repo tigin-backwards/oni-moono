@@ -217,10 +217,10 @@ namespace OniMoono.Desktop.D3d11
             DrainDebugMessages(kind == ShowKind.Frame ? "Present" : $"Present ({kind})");
             // DXGI may take the exclusive chain out of full screen by itself ("DXGI may change the
             // display state of a swap chain in response to end user or system requests",
-            // SetFullscreenState: the secure desktop, another application), and an occluded
-            // full-screen chain's Present returns DXGI_STATUS_OCCLUDED without waiting for a
-            // vertical blank, so frames would run unpaced. Either way exclusive is left after this
-            // picture (PresentNow, IdleWork) and the window goes windowed (GlfwPlatform).
+            // SetFullscreenState: the secure desktop, another application), and on
+            // DXGI_STATUS_OCCLUDED "the window content is not visible ... an application can stop
+            // rendering" (DXGI_STATUS). Either way exclusive is left after this picture
+            // (PresentNow, IdleWork) and the window goes windowed (GlfwPlatform).
             if (exclusive != null && hr >= 0 && (hr == Dxgi.StatusOccluded || !exclusive.InFullscreenState()))
             {
                 exclusiveLeftByDxgi = true;
