@@ -11,6 +11,13 @@
 # Both materials get the real time and new random numbers every frame, so two runs agreed on under
 # half the image (M3 part C). FrozenImpactorTestMod holds those inputs at constants (the time
 # 1000 s, the random numbers 0.5), so the shots can be judged (M3 review fixes, finding 5).
+#
+# The grid's dots still moved: its material's inputs were equal in two runs, but the camera was
+# not (y 270.6063 and 270.6165, orthographic size 22.725 and 22.771, read through expect_state
+# in two runs). The sequence leaves CameraController easing towards its target by
+# unscaled frame time (NormalCamUpdate), and a dot is about a pixel wide at these sizes, so a
+# fraction of a pixel shows or hides it. Each shot snaps the camera first (SnapTo, through
+# camera.set) to about where the sequence leaves it.
 from: prehistoric1
 test_mods: [FrozenImpactorTestMod]
 setup:
@@ -19,5 +26,7 @@ steps:
   - ui_wait: {path: "**/LargeImpactorSequenceReticle/CalculatingImpactSection/label", cond: exists, frames: 600}
   # The sequence moves the camera to the surface, below the planet, and shows its card.
   - run: {seconds: 20, speed: 1}
+  - driver: {camera.set: {pos: [119, 270.6], ortho: 22.75}}
   - shot: {name: after-reveal}
+  - driver: {camera.set: {pos: [119, 270.2], ortho: 30}}
   - world_shot: {name: impactor-world, ortho: 30}
