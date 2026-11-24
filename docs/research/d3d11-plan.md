@@ -1568,7 +1568,7 @@ The adversarial review of M4 gave 8 items. Each was fixed in its own commit (dee
    It now sets `lost`, as a failure in IdleWork's pictures does.
 
 **Runs** (runq, burndown, owner `d3d11-m4`): blob check j0009095; Windows build j0009096; stalls
-j0009097; check.sh CHECKJOB2.
+j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009106 (green).
 
 ## Research so far (M0)
 
