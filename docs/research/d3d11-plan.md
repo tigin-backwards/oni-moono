@@ -71,7 +71,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
-| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user. Desktop runs 2026-11-24 ("M4 desktop runs"): the original's full screen observed (captures 10 settled but for its chain inside exclusive), Loading Pip passes (0 pixels differ), ours through windowed/borderless/stretch/exclusive clean (j0009137). Focused exclusive observed (j0009185: the original's is DXGI's own, a blt DISCARD chain in DXGI's full-screen state; it goes windowed on losing the focus; ours minimizes). Open, holding M4: whether to match the original's exclusive, our alt-tab back in, HDR and Auto HDR (needs runq's monitor rule relaxed) |
+| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user. Desktop runs 2026-11-24 ("M4 desktop runs"): the original's full screen observed (captures 10 settled but for its chain inside exclusive), Loading Pip passes (0 pixels differ), ours through windowed/borderless/stretch/exclusive clean (j0009137). Focused exclusive observed (j0009185: the original's is DXGI's own, a blt DISCARD chain in DXGI's full-screen state; it goes windowed on losing the focus; ours minimizes). HDR on the HDR monitor (j0009190): both players SDR at 240 nits, no Auto HDR boost (Auto HDR most likely off). Open, holding M4: whether to match the original's exclusive, our alt-tab back in, Auto HDR engaged (#112) |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
@@ -1668,10 +1668,31 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
     gone with a rebuild of out/win);
   - an alt-tab back into exclusive full screen (Windows refuses a background process the
     foreground; a person's alt-tab, or a key, would make it);
-  - HDR and Auto HDR (#112) on the HDR monitor (monitor 1), which needs runq's monitor-2 rule
-    relaxed for the job (the user's decision; the script is ready);
+  - Auto HDR (#112) engaged: not seen for either player here, with Windows' Auto HDR most likely
+    off (below); observing it engaged needs Auto HDR switched on, a settings change left to the
+    user;
   - whether this device's exclusive full screen should be DXGI's, as the original's is (a
     decision; the original goes windowed on losing the focus, ours minimizes).
+- **Run 4b, HDR on the HDR monitor** (j0009190; the user's approval, runq's monitor rule set to
+  monitor 1 for this job by the coordinator; `hdr-display1.sh`: `\\.\DISPLAY1`, the primary,
+  `hdrSupported 1`, `-monitor 1` for both players): SET_HDR_STATE switched HDR on (returned 0,
+  active mode HDR read back; dupcap: colour space 12, G2084/P2020, 10 bits, 530 nits peak) and
+  off again after (active SDR read back). At the main menu, FP16 captures of the monitor:
+
+  | Player | Mode | Median | Brightest 0.5% | Max |
+  |---|---|---|---|---|
+  | the original | borderless | 1.5 nits | 240 nits | 240 nits |
+  | the original | windowed 1280×720 | 1.5 | 240 | 240 |
+  | ours, D3D11 | borderless | 7.4 | 240 | 240 |
+  | ours, D3D11 | windowed 1280×720 | 1.5 | 240 | 240 |
+
+  Both composed as SDR content at the SDR white level (240 nits, the "SDR content brightness"
+  ARCHITECTURE §3.5 records), in both modes: Windows took neither for HDR content, as the DXGI
+  path's check found for the other devices. (The medians are the menu's background at different
+  moments of its animation.) Auto HDR boosted neither: the DirectX user settings value where
+  Windows keeps its graphics settings is unset (read only), which suggests Auto HDR is off on this
+  machine (an inference), so this run cannot say whether it would engage for the original and not
+  for ours (#112). Turning it on is a settings change, left to the user.
 - **Loading Pip** (`loading-animation-pip-d3d11`, j0009135, ok): the kanim replayed, 193 redraws
   over 7.2 s, and the replay check found 0 of 118,680 pixels differing from the frame shown (the
   tile copied from the screen by CopyTargetRect, drawn unfiltered). Under the user's exception
@@ -1689,7 +1710,7 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
 
 **Runs** (runq, burndown, owner `d3d11-m4`): probe builds j0009126, j0009127; the original
 j0009128; Windows builds j0009129, j0009132, j0009134; Loading Pip j0009130, j0009131, j0009133,
-j0009135; ours through the modes j0009137; check.sh j0009136 (green, on 8b098a27f), j0009144 (cancelled for later code); HDR state j0009149, j0009181; HDR on DISPLAY2 j0009165, the monitor-1 attempt j0009182; focused exclusive, ours j0009167, the original j0009166 (no probe DLL), j0009178, j0009185; builds j0009150, j0009162 (ComCheckGen: a RECT without [NotNative]), j0009164, j0009176; check.sh CHECKJOB4.
+j0009135; ours through the modes j0009137; check.sh j0009136 (green, on 8b098a27f), j0009144 (cancelled for later code); HDR state j0009149, j0009181; HDR on DISPLAY2 j0009165, the monitor-1 attempt j0009182; focused exclusive, ours j0009167, the original j0009166 (no probe DLL), j0009178, j0009185; HDR on DISPLAY1 j0009190; builds j0009150, j0009162 (ComCheckGen: a RECT without [NotNative]), j0009164, j0009176; check.sh CHECKJOB4.
 
 ## Research so far (M0)
 
