@@ -67,7 +67,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
-| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
+| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate), the review |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
@@ -293,7 +293,8 @@ declarations too.
   ALLOW_MODE_SWITCH | FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING, maximum frame latency 2,
   Present(1, 0) or Present(0, ALLOW_TEARING), resized with the window. It waits for the
   frame-latency object before every frame, the first included (changed by the review fixes
-  below, finding 2). Whether the original waits on it is M4's (captures UNVERIFIED 1, moved).
+  below, finding 2). Whether the original waits on it is M4's (captures UNVERIFIED 1, moved;
+  settled in "M4": its main thread waits once a frame).
   It clears and presents
   the back buffer, logs the debug layer's messages, and reports SystemInfo as the original's
   (DeviceType Direct3D11, `Direct3D 11.0 [level 11.1]`, the texture-format answers of
@@ -367,7 +368,8 @@ declarations too.
   - **Readback.** `CopySubresourceRegion` into a STAGING texture and `Map(READ)`, which waits for
     the copy (`D3D11_MAP_FLAG_DO_NOT_WAIT`); the back buffer's rows turned over.
   - **Not yet** (M3–M4): the warm-up's prebuilding, AsyncGPUReadback, `CopyTargetRect`, loading
-    animation and splash, frame repeats, multi-target draws into fewer targets.
+    animation and splash, frame repeats, multi-target draws into fewer targets. (M4 added the
+    loading animation, splash and repeats: "M4".)
   - **Pixel diff** (`scripts/d3d11-pixel-diff.sh`, `tools/PixelDiff/pixel_diff.py`): one Windows
     job runs ours twice in one run home (`--renderers A,B`, default opengl,d3d11), each capturing
     frame N of the main menu (`--capture`), with the game's clocks advancing 1/60 s a frame
@@ -424,6 +426,8 @@ declarations too.
        the OpenGL device keeps nearest-level with anisotropy (M3, pixel diff of the world).
     5. The original renders the screen into an R8G8B8A8_TYPELESS texture, not the swap chain's
        buffer (probes §2, captures §1 inference); this device draws into buffer 0 (M4).
+       **Settled in M4** (observed, j0009056, j0009060): it does, and draws that texture into
+       buffer 0 last; the device now draws into typeless screen textures of its own.
     6. Readback of a ScreenRows render texture reads its rows as stored, as VkDevice does (M3).
     7. The debug-layer warning above (BatchedAnimationUI's targets): **settled** by the user's
        decision, the ID denied in the storage filter (M3, "The RTV warning").
@@ -1327,6 +1331,185 @@ run j0009020 (5,557 dropped, which led to the limit); the scene set on D3D11 j00
 j0009023; OpenGL j0009024; the original j0009025 (navgrid, freeze); the impactor on Vulkan and
 the original j0009026, its grid program's dump j0009027, the impactor held again (entry start 1 s)
 j0009028; check.sh j0009029 (green, on d391fcd70).
+
+## M4: presentation and frame pacing (2026-11-24, branch `d3d11-m4`)
+
+M4 gives the device the presentation the Vulkan device has (done criterion 4: repeats, splash,
+loading animation, HDR, full screen and resize), settles the UNVERIFIED notes assigned to it by
+observing the original, and lists what only the user's desktop can show. Base: `d3d11-m3`
+(20cc567df). Every run: the RTX 3090, NVIDIA driver 32.0.16.1088 (as M0-M3), Windows 11, monitor 2,
+windowed, runq burndown, owner `d3d11-m4`.
+
+**The original, observed** (j0009056 and j0009060: the frozen copy
+`E:\oni-builds\BrutalNotIncluded-764025`, its Direct3D 11 at level 11_1, 1024×768 windowed; the
+recorder of `tools/D3d11Native` extended, `PROBE_PACING=1` in UnityProbe's `rdcapture`
+scenario; logs in `out/d3d11-captures/m4-pacing*/`):
+- **The screen's texture.** At every Present (300 of 300 in each window, menu and colony) the
+  bound render target is not buffer 0: it is a texture of the window's size,
+  `R8G8B8A8_TYPELESS` (27), bind flags SRV | RTV (0x28), its view `R8G8B8A8_UNORM` (28). Buffer
+  0 (format 28, bind 0x28) gets one draw a frame, the frame's last (stride 88, no depth, full
+  viewport), which samples that texture at t0; no clear, CopyResource, CopySubresourceRegion or
+  ResolveSubresource writes buffer 0. The menu frame: 1 of 41 draws into buffer 0, 40 into the
+  texture; the colony frame: 1 of 1,375.
+- **The frame-latency waitable.** Unity's main thread (not the thread that presents) waits on it
+  once a frame: `WaitForMultipleObjectsEx` with 2 handles, the waitable first, wait-any,
+  INFINITE, every call signalled; each wait starts as the presenting thread enters Present
+  (−0.02 to −0.05 ms from it). The handle was matched with `CompareObjectHandles` ("Compares two
+  object handles to determine if they refer to the same underlying kernel object", Windows 10+).
+  Only the six Wait functions UnityPlayer.dll and the exe import were hooked.
+
+  | vSyncCount | Present | Waits a Present | Waited, mean / largest | Presents |
+  |---|---|---|---|---|
+  | 1 | `Present(1, 0)` | 1 (300 of 300) | 15.9-16.2 / 17.6 ms | 60.0 a second |
+  | 0 | `Present(0, ALLOW_TEARING)` | 0, 1 or 2 (50, 200, 50 of 300) | 0.50-0.68 / 5.7-6.5 ms | 0.8-1.0 ms apart |
+  | 2 | `Present(2, 0)` | 1 (300 of 300) | 32.5-32.7 / 49 ms | 33.3-33.4 ms apart |
+
+  `IDXGISwapChain2::GetMaximumFrameLatency` 2, `IDXGIDevice1::GetMaximumFrameLatency` 3 (the
+  device's default). `GetFrameStatistics` is called on the main thread for about the first 130
+  presents after the hook (S_OK, PresentCount and PresentRefreshCount 0, windowed), then never;
+  `GetLastPresentCount` never.
+- **During a save load the original presents nothing**: one gap of 21.7 s (j0009056) and 20.9 s
+  (j0009060) before the colony's first frame, then 0.6-0.9 s gaps, then frames as usual. Its
+  window keeps the last picture. The repeats and the loading animation are Moono's, as on the
+  other devices.
+
+**Design** (`D3d11Present.cs`, `D3d11LoadAnimation.cs`; 00cfe095b, 357904a36):
+- **The screen.** The game's back buffer is one of two screen textures of the device's own, made
+  at the rendering size (`Screen.width/height`, smaller than the window in a fullscreen window
+  the game asked a lower resolution of), `R8G8B8A8_TYPELESS` with `R8G8B8A8_UNORM` views as the
+  original's. At its present the frame's texture goes into buffer 0 by CopyResource ("Must be the
+  same type", "Must have identical dimensions", "Must have compatible DXGI formats, which means
+  the formats must be identical or at least from the same type group": its Remarks), or, when the
+  sizes differ, by a bilinear stretch over the whole buffer (as the GL and Vulkan presenters
+  stretch). The original draws its texture into buffer 0 instead; a copy of the same size keeps
+  every texel. The next frame draws into the other texture, so the last frame shown stays whole
+  while the next is drawn (a frame drawn in parts, flushed in the middle, never shows). A frame
+  that drew nothing into the screen shows the last one again (`GlPresenter.Choose`). ReadPixels
+  and captures of the screen read the frame's texture.
+- **Between frames, on the device thread.** The device thread alone uses the immediate context
+  and presents (M2's rule), so the pictures shown while no frame comes are its idle work:
+  `GlWorker.IdleWaitMs` (new, null for the other devices) wakes it when one is due. In
+  VkPresenter's order: the splash while it runs (`SplashRain`, redrawn 16 ms after the last
+  picture), else the loading animation (30 a second, `GlLoadAnimation.Wanted`/`WatchdogDue`
+  arming, the bar's `Advance`, `LoadProgress`), else a refresh of the last frame when the window's
+  contents were damaged (`ContentsDamaged`), else a repeat (`StallRepeats`, `--stall-repeats`).
+  A repeat goes only when the waitable is signalled (`LastPictureRetired`, wait 0), at
+  `Present(0, 0)` without ALLOW_TEARING, so "discard this frame if a newer frame is queued"
+  applies (IDXGISwapChain::Present), never after a resize, not counted as a present nor by frame
+  pacing; the waits between repeats raise the timer resolution to 1 ms for the run of repeats
+  (and of the loading animation). Every picture keeps M2's pairing: one waitable wait for each
+  Present (a frame's and a redraw's after it, a repeat's before it).
+- **The presenter's program.** The splash's comets, the loading kanim's tile and the bars are
+  window-space quads drawn with a program of the presenter's own (texel × mul + add, premultiplied
+  over), as VkSplash and GlSplash draw with theirs: they are the player's presentation, not the
+  game's, so done criterion 1's "shipped programs" does not reach them. HLSL in
+  `D3d11Present.cs`, compiled once with the SDK's fxc 10.1 (`vs_4_0`/`ps_4_0`, j0009057), shader
+  model 4.0 being feature level 10_0's ("Direct3D feature levels"). After one is drawn the device
+  forgets its tracked bindings and sets its target, viewport and scissor again. The target is
+  bound before the view it may read (OMSetRenderTargets, Remarks: a subresource bound for reading
+  and writing has its bind points "set to NULL"), and both are unbound before Present (with buffer
+  0 bound, the debug layer reported INFO 49, "Forcing OM Render Target slot 0 to NULL", in
+  j0009072; gone in j0009082).
+  The splash atlas has mips only where R8G8B8A8_UNORM has MIP_AUTOGEN, GENERATE_MIPS needing
+  "the bind flags that specify that the resource is a render target and a shader resource"
+  (D3D11_RESOURCE_MISC_FLAG).
+- **The loading animation** (`AnimatesLoading` true, `HandOverLoadingFrames`): the kanim frames'
+  strip is handed over by a command after its rendering, on the one context, and given back
+  without waiting. Its tile is drawn unfiltered when it is not scaled, turned over when the strip
+  stores its rows bottom first (VkLoadAnimation's geometry, `D3d11LoadAnimation.TileOf`), and
+  `ONI_TWEAK_VERIFY=1` compares the first replayed tile with the frame shown, as Vulkan's does.
+  With it on, LoadingScreen renders kanim frames, and `CopyTargetRect` (M3's, bounds-checked)
+  runs for them.
+- **Frame pacing.** A picture presented with vsync tells `FramePacing` the display's refresh
+  period (the containing output's mode, `DxgiSwapChain.LookUpRefreshPeriod`, now shared), one
+  without that it is unpaced, so frame deltas are whole refreshes as on the other devices (they
+  were the wall clock's on this device). The waitable wait stays the device thread's, before each
+  frame renders (M2, "Reduce latency with DXGI 1.3 swap chains"), where the original's main
+  thread waits: here the main thread waits for the device thread at each frame's hand-over, so
+  the frames in flight are the same.
+- **HDR**: as the DXGI path: an 8-bit R8G8B8A8_UNORM flip-model swap chain whose colour space is
+  never set. Microsoft documents 8-bit swap chains as "implicit sRGB" ("Use DirectX with Advanced
+  Color on high/standard dynamic range displays"); no page names
+  `DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709` as the default by name (ARCHITECTURE §3.5 uses that
+  name for the DXGI presenter). Not run on an HDR monitor here:
+  every monitor was SDR (j0009063, `dupcap`); the HDR check (`tools/HdrCheck`, now with
+  `ours-d3d11-own`) is on the user's list below.
+- **Full screen** stays the window's (GLFW), as the DXGI presenter's: the swap chain is never put
+  in DXGI's full-screen state and DXGI leaves the window alone (`NO_WINDOW_CHANGES | NO_ALT_ENTER`),
+  so the overview's deadlock case ("When a mode change occurs, ... Present1 calls
+  ::SetWindowPos() ...", M2 review fixes finding 3) does not arise; the buffers follow the
+  window's framebuffer and the screen textures the rendering size.
+- `--input FRAME:stall:MS` (new) holds the main thread up, for repeat tests.
+
+**Results.**
+- **Unit tests** (`D3d11PresentTests`: the tile's geometry bottom and top first and scaled, the
+  bar's rectangles, GlWorker's timed idle work; 56 of the filtered tests pass, j0009069).
+- **The main menu** (j0009072, `--d3d11-debug`, `ONI_PRESENT_TRACE=1`, `--splash moo`): the menu
+  draws upright (frame 800's capture); the splash rains from start-up and fades after 8.0 s; the
+  first frames' window change from 1280×720 to 2560×1369 (the game's own, unscripted) resized the
+  buffers and remade both screen textures; under 1.5 s stalls at vsync 1 and 0 the last frame
+  was presented again 86 and 85 times, every 16.7 ms; frame-latency waits a frame: 16.1 ms at
+  vsync 1, 0.04-1.4 ms at 0, 32.1-32.7 ms at 2 (the original's: 16, 0.5-0.7, 32.6), Present
+  0.02-0.05 ms, no timeout; minimized at frame 1800 and restored at 2000 (`ShowWindow`
+  SW_SHOWMINNOACTIVE and SW_SHOWNOACTIVATE, "the window is not activated"), frames and waits as
+  before; `\\.\DISPLAY2 refreshes every 16.6802 ms`. Debug layer: 0 messages above INFO, 11 of
+  the RTV warning denied (M3's filter). Again on the final build (j0009082, typeless screen
+  textures, the back buffer unbound before Present): splash faded after 7.4 s, 86 and 86 repeats
+  under the stalls, 0 messages above INFO and no INFO 49.
+- **The loading animation** (`loading-animation-d3d11`, j0009079, ok): the colony's load was
+  animated with 200 redraws over 7.7 s, the longest gap 180 ms, the bar at 0.992 when the colony
+  came. `loading-animation-pip-d3d11` (a mod's kanim on the loading screen, the replay check and
+  `CopyTargetRect`) was skipped by the mod security gate: neither mod's current upload is
+  analysed by onimaxxing.
+- **The scene set** after the change (`d3d11-scenes`, j0009081, against part B's OpenGL pair):
+  22 of 22 within the tolerance (largest > 40: 0.016%, the world; PSNR 44.0-56.8 dB), as before.
+
+**UNVERIFIED notes settled** (each was assigned to M4):
+- captures 1 (the waitable, GetFrameStatistics): observed above. The device keeps its documented
+  wait (M2); its waits equal the original's within 0.5 ms at vsync 1 and 2.
+- captures 2 and B2 5 (the frame's last draw, buffer 0): observed above; the device draws into
+  its own typeless texture as the original does.
+- B1's note on the original's waiting: the same observation.
+- **Open**: captures 10 (the original's full-screen swap chain in `FullScreenWindow` and
+  exclusive, and its `ResizeBuffers` arguments) needs a mode change on the user's desktop (below).
+  So does the fullscreen stretch (rendering size under the window's), never shown here.
+
+**Runs that need the user's desktop** (not run: each changes the display or may take the
+focus):
+1. The original, `-screen-fullscreen 1` at the monitor's size (FullScreenWindow), then exclusive
+   (`-window-mode exclusive`), each with the recorder (`PROBE_PACING=1`) and one in-game
+   resolution change: its swap chain's descriptions and ResizeBuffers arguments (captures 10).
+   About 4 min each, on monitor 2.
+2. Ours, `--renderer d3d11 --d3d11-debug`, through `--input` resizes: windowed 1280×720 →
+   borderless at the monitor's size → borderless at 1280×720 (the stretch) → exclusive at the
+   monitor's mode → windowed, a few hundred frames each with a stall in each: no hang, repeats,
+   debug layer clean. About 5 min on monitor 2; exclusive changes that monitor's mode.
+3. Alt-tab out of and back into exclusive full screen, and minimize/restore by the user (focus
+   changes only a person can make): about 2 min.
+4. The HDR check with HDR on (`tools/HdrCheck/hdr-check.sh`, `ONI_HDR_ONLY="original
+   ours-d3d11-own"`, the frozen build): fullscreen on the HDR monitor (monitor 1), about 4 min;
+   with Windows' Auto HDR on, the same two players windowed, watching for the Game Bar's Auto HDR
+   notification and the dupcap luminance (issue #112, below).
+
+**Auto HDR (issue #112).** Documented: Auto HDR "automatically upgrades the rendering of color in
+existing DirectX 10 thru DirectX 12 games", per-app toggles "will only apply on eligible games"
+(DirectX blog, "Navigating the redesigned graphics settings page"), and Microsoft enables it by
+title ("we haven't yet enabled Auto HDR on all top DX11/DX12 titles since some are hard to identify
+as Auto HDR eligible", "Auto HDR preview for PC available today"). Signals: the Game Bar's "Adjust
+HDR Intensity" slider "only applies to games with Auto HDR", and its notification; no API reports
+it, but composed luminance above SDR white in an FP16 Desktop Duplication capture shows it.
+Not observed: no monitor was in HDR (j0009063). Inference, not measured: our swap chain is a
+flip-model D3D11 one like the original's, so if the original engages and ours does not, the
+likeliest cause is Microsoft's per-title eligibility (the executable). No behaviour changed for it.
+
+**Prep for master** (behaviour-neutral, would cut conflicts): 639de4c4b (`GlWorker.IdleWaitMs`,
+`DxgiSwapChain`'s shared refresh lookup) and 159dbbcca (`--input stall`) can be cherry-picked.
+
+**Runs** (runq, burndown, owner `d3d11-m4`): fxc j0009057; probe builds j0009052-j0009055,
+j0009059; the original j0009056, j0009060; monitor colour spaces j0009058, j0009063; builds
+j0009064 (cancelled), j0009066-j0009068 (dotnet off the job's PATH, then build errors fixed),
+j0009069 (unit tests); Windows builds j0009070, j0009074, j0009076 and runs: menu j0009072 and j0009082, loading j0009075 (no qa.env in the
+worktree), j0009077 (no E2eDriver), j0009079, scenes j0009081; check.sh CHECKJOB.
 
 ## Research so far (M0)
 

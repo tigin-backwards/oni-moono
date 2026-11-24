@@ -150,7 +150,7 @@ namespace OniMoono.Desktop.D3d11
         /// than the source resource, the behavior of CopySubresourceRegion is undefined", which
         /// "might result in incorrect rendering, clipping, no copy, or even the removal of the
         /// rendering device" (CopySubresourceRegion, Remarks; CopyFits). Only
-        /// the loading animation uses it, which M4 turns on (AnimatesLoading is false here).
+        /// the loading animation uses it, for a loading screen that plays a kanim (D3d11Present).
         public override void CopyTargetRect(RenderTextureNative source, RectInt from, RenderTextureNative target, Vector2Int to)
         {
             if (source.ScreenRows != target.ScreenRows) throw new ArgumentException("the textures are rendered the other way round from each other");

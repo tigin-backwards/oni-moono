@@ -446,6 +446,9 @@ only.
   - `probe_native.dll` (`probe_native.c`, `ctx_hook.c`): the RenderDoc in-application API, opt-in
     only; the swap-chain hook; the frame recorder; the state read-back event;
   - `frame-report.py`: names a recorded frame's shaders.
+  - M4: `pn_wait_hook` (the waits on the frame-latency waitable, by `CompareObjectHandles`),
+    the GetFrameStatistics/GetLastPresentCount tally, Present gaps, buffer 0 against the bound
+    target at each Present; `PROBE_PACING=1` in `RdCapture.cs`.
 - `tools/UnityProbe/RdCapture.cs` (`PROBE_SCENARIO=rdcapture`).
 - `ShaderSurvey states` (each pass's cull, ZTest, ZWrite and Offset) and `ShaderSurvey dxbc`
   (the shipped Direct3D 11 programs' checksums).
@@ -460,9 +463,16 @@ only.
    documents ("Reduce latency with DXGI 1.3 swap chains", step 4: before rendering every frame,
    the first included), so nothing rests on the original's choice until M4 compares pacing.
    Test: a hook of `WaitForSingleObjectEx` on the swap chain's waitable handle in the recorder.
+   **Settled in M4** (observed, j0009056, j0009060; d3d11-plan.md "M4"): Unity's main thread
+   waits on the waitable once a frame with vsync (`WaitForMultipleObjectsEx`, 2 handles,
+   INFINITE, 15.9-16.2 ms at vSyncCount 1, 32.5-32.7 ms at 2), 0-2 times a Present without;
+   `GetFrameStatistics` only over the first ~130 presents after the hook.
 2. **The frame's last draw.** Whether it targets swap-chain buffer 0. Compare the RTV resource
    with buffer 0 in the recorder. **Moved to M4**, with d3d11-plan.md's B2 UNVERIFIED 5 (the
    screen drawn into an R8G8B8A8_TYPELESS texture): the device draws into buffer 0 until then.
+   **Settled in M4** (observed, j0009056, j0009060): the frame's last draw is the only one into
+   buffer 0 and samples the R8G8B8A8_TYPELESS screen texture; nothing is copied or resolved into
+   buffer 0.
 3. **The duplicate RTX 3090** in DXGI's adapter enumeration. **Moved to M5**: it matters only
    for the GPU choice rule (done criterion 5), which M5 settles; M2 takes EnumAdapters1(0) or
    EnumAdapterByGpuPreference and never walks the list.
@@ -501,7 +511,8 @@ only.
 
 **M4 (presentation and frame pacing)**
 10. **The full-screen swap chain.** Its description (`FullScreenWindow` and exclusive), and
-    `ResizeBuffers` arguments on a resize.
+    `ResizeBuffers` arguments on a resize. **Still open after M4**: it needs a mode change of the original on the
+    user's desktop, which no test run makes without their OK (d3d11-plan.md, "M4", run 1).
 
 **M6 (performance)**
 11. **Texture writes.** That the 250–300 `Map(WRITE)` textures per frame are staging uploads.
