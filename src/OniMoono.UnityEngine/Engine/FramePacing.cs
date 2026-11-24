@@ -19,17 +19,25 @@ namespace OniMoono.Engine
     /// deltas still add up to the wall clock (within half a refresh). The wall clock is used as
     /// before without vsync, without a known period (Linux, OpenGL without DXGI, the first
     /// seconds before the period is measured), when the presenter has shown nothing for a
-    /// quarter second, for a frame over a second or under a millisecond, and while frames keep
-    /// coming in under half a refresh (the window moved to a faster monitor and the period is
-    /// not measured again yet). Variable refresh (G-Sync, FreeSync) gets the rounding too:
-    /// measured with G-Sync on, it panned at least as evenly as the wall clock
-    /// (docs/research/frame-timing.md).
+    /// quarter second, for a frame over a second or under a millisecond, and while frames come
+    /// in faster than the refresh on average (MeanBelow). Variable refresh (G-Sync, FreeSync)
+    /// gets the rounding too: measured with G-Sync on, it panned at least as evenly as the wall
+    /// clock (docs/research/frame-timing.md).
     internal static class FramePacing
     {
         static long periodTicks;
         static long lastPacedPresent;
-        static double carry;
-        static int shortFrames;
+        static double carry, meanWall;
+
+        /// Frames that come in faster than the refresh on average, by this share or more, are
+        /// not paced by it: vsync forced off in the driver (presents then return at once), or a
+        /// period that is not the display's (the window moved to a faster monitor, not looked up
+        /// again yet). Rounded, each would last at least a whole refresh, and the game would run
+        /// up to twice as fast as the wall clock (1.83× at 110 fps on 60 Hz; reported in a
+        /// Bilibili comment as speed 1 running at 2×). Vsynced frames average a refresh or more.
+        /// The mean is exponential over about 32 frames, each frame counted up to two refreshes,
+        /// so the short frames that catch up after a hitch do not reach it.
+        const double MeanBelow = 0.95, MeanWeight = 1.0 / 32;
 
         /// The refresh period in Stopwatch ticks (0: not known).
         public static long PeriodTicks => Interlocked.Read(ref periodTicks);
@@ -52,28 +60,28 @@ namespace OniMoono.Engine
             long period = Interlocked.Read(ref periodTicks);
             long last = Interlocked.Read(ref lastPacedPresent);
             bool paced = period > 0 && last != 0 && Stopwatch.GetTimestamp() - last <= Stopwatch.Frequency / 4;
-            return (float)Next(wall, paced ? (double)period / Stopwatch.Frequency : 0, ref carry, ref shortFrames);
+            return (float)Next(wall, paced ? (double)period / Stopwatch.Frequency : 0, ref carry, ref meanWall);
         }
 
         /// The delta for a frame `wall` seconds after the last one, `p` the refresh period in
-        /// seconds (0: not paced by a known refresh), with the rounding's remainder and the run of
-        /// short frames so far. The wall clock, unrounded, without a period; for a frame over a
-        /// second (a hitch, a resume after sleep: Godot's DeltaSmoother passes those through too),
-        /// which also drops the remainder; for one under a millisecond (vsync off whatever the
-        /// game asked for); and while frames keep coming in under half a refresh.
-        internal static double Next(double wall, double p, ref double carry, ref int shortFrames)
+        /// seconds (0: not paced by a known refresh), with the rounding's remainder and the mean
+        /// frame time (0: none yet). The wall clock, unrounded, without a period; for a frame
+        /// over a second (a hitch, a resume after sleep: Godot's DeltaSmoother passes those
+        /// through too), which also drops the remainder and the mean; for one under a
+        /// millisecond (vsync off whatever the game asked for); and while frames come in faster
+        /// than the refresh on average.
+        internal static double Next(double wall, double p, ref double carry, ref double mean)
         {
             if (p <= 0 || wall > 1.0)
             {
                 carry = 0;
+                mean = 0;
                 return wall;
             }
             if (wall < 0.001) return wall;
-            // Frames shorter than half a refresh, one after another: the display is faster than
-            // the period says (the window moved to another monitor, not measured again yet).
-            // One such frame alone is the pipeline catching up after a slow one.
-            shortFrames = wall < p * 0.5 ? shortFrames + 1 : 0;
-            if (shortFrames >= 8)
+            if (mean <= 0) mean = p;
+            mean += (Math.Min(wall, 2 * p) - mean) * MeanWeight;
+            if (mean < p * MeanBelow)
             {
                 carry = 0;
                 return wall;
