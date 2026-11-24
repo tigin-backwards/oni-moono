@@ -133,7 +133,7 @@ namespace SemanticsProbe
 
             if (renderdoc <= 0 && Environment.GetEnvironmentVariable("PROBE_MODES") == "1")
             {
-                yield return Modes();
+                yield return Environment.GetEnvironmentVariable("PROBE_FOCUS") == "1" ? FocusedExclusive() : Modes();
                 Finish();
                 yield break;
             }
@@ -222,6 +222,60 @@ namespace SemanticsProbe
                 State("after " + st.M + " " + st.W + "x" + st.H);
                 pnReport();
             }
+        }
+
+        [DllImport("user32.dll")] static extern int SetForegroundWindow(IntPtr hwnd);
+        [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+        static extern IntPtr CreateWindowExW(int ex, string cls, string name, int style, int x, int y, int w, int h, IntPtr parent, IntPtr menu, IntPtr inst, IntPtr param);
+
+        IntPtr otherWindow;
+
+        /// PROBE_FOCUS=1 (the user's word for M4's desktop runs): the game's window asks for the
+        /// foreground before exclusive full screen; then a small window of this process's own
+        /// takes it (an alt-tab without keys) and the game's window asks for it back. No key is
+        /// sent and the pointer is not moved.
+        string Focus(bool other)
+        {
+            IntPtr game = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+            IntPtr target = game;
+            if (other)
+            {
+                if (otherWindow == IntPtr.Zero)
+                    otherWindow = CreateWindowExW(0x80, "STATIC", "probe focus test", unchecked((int)0x90000000), 2600, 40, 160, 90, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                target = otherWindow;
+            }
+            int ok = SetForegroundWindow(target);
+            IntPtr fg = GetForegroundWindow();
+            return $"SetForegroundWindow({(other ? "own popup" : "game window")}) {ok}, foreground now {(fg == game ? "the game window" : fg == otherWindow ? "the popup" : "another process's window")}";
+        }
+
+        /// The M4 focused exclusive scenario (PROBE_MODES=1 PROBE_FOCUS=1).
+        IEnumerator FocusedExclusive()
+        {
+            yield return Frames(30);
+            int w = Screen.currentResolution.width, h = Screen.currentResolution.height;
+            void State(string what) => L("MODE " + what + ": fullScreenMode " + Screen.fullScreenMode + " " + Screen.width + "x" + Screen.height + " focused " + Application.isFocused + " f" + Time.frameCount);
+            State("start");
+            L("FOCUS " + Focus(false));
+            yield return Frames(30);
+            L("MODE SetResolution(" + w + ", " + h + ", ExclusiveFullScreen) f" + Time.frameCount);
+            Screen.SetResolution(w, h, FullScreenMode.ExclusiveFullScreen);
+            yield return Frames(240);
+            State("exclusive");
+            pnReport();
+            L("FOCUS away: " + Focus(true));
+            yield return Frames(240);
+            State("after the focus went away");
+            L("FOCUS back: " + Focus(false));
+            yield return Frames(240);
+            State("after the focus came back");
+            pnReport();
+            L("MODE SetResolution(1280, 720, Windowed) f" + Time.frameCount);
+            Screen.SetResolution(1280, 720, FullScreenMode.Windowed);
+            yield return Frames(240);
+            State("windowed");
+            pnReport();
         }
 
         /// The M4 pacing scenario (PROBE_PACING=1).
