@@ -760,7 +760,7 @@ namespace OniMoono.Desktop
             if (Gl.PresentTrace.Enabled) Trace($"SetResolution {width}x{height} {newMode} (was {mode}, framebuffer {framebufferSize.X}x{framebufferSize.Y}, rendering {FramebufferWidth}x{FramebufferHeight})");
             // Out of DXGI's exclusive full screen first: the window is a monitor-sized borderless
             // one again, left as a fullscreen window's is.
-            if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { } leaving)
+            if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { } leaving && !glfwExclusive)
             {
                 // (Already left when DXGI left it: D3d11Device.LeaveByDxgi.)
                 if (leaving.Active) leaving.Leave();
@@ -793,6 +793,7 @@ namespace OniMoono.Desktop
                     window.SetAttribute(GlfwWindowAttribute.Decorated, GLFW_FALSE);
                     window.SetWindowed(monitor.Position, new int2(desktop.Width, desktop.Height));
                     deviceExclusiveAsked = (width, height, refreshNumerator, refreshDenominator);
+                    desktopBeforeExclusive = null;
                     break;
                 }
                 case FullScreenMode.ExclusiveFullScreen:
@@ -888,7 +889,23 @@ namespace OniMoono.Desktop
         }
 
         /// The device that makes exclusive full screen DXGI's (the Direct3D 11 device), or null.
-        public IExclusiveFullScreen DeviceExclusive;
+        public IExclusiveFullScreen DeviceExclusive { get; private set; }
+
+        /// The window is exclusive full screen GLFW's way (glfwSetWindowMonitor with a mode):
+        /// made so at start-up, before a device that makes it DXGI's existed.
+        bool glfwExclusive => mode == FullScreenMode.ExclusiveFullScreen && !window.Monitor.IsNull();
+
+        /// The device that makes exclusive full screen DXGI's (main thread, once it exists). A
+        /// window that started exclusive GLFW's way (the window comes before the device) is
+        /// made exclusive again DXGI's way: out of GLFW's mode, then as SetResolution does.
+        public void AdoptDeviceExclusive(IExclusiveFullScreen device)
+        {
+            DeviceExclusive = device;
+            if (device == null || !glfwExclusive) return;
+            var size = window.Size;
+            OniMoono.Engine.EngineLog.Engine($"window: started exclusive full screen {size.X}x{size.Y} through GLFW; made DXGI's");
+            SetResolution(size.X, size.Y, FullScreenMode.ExclusiveFullScreen, 0, 0);
+        }
         (int, int, uint, uint)? deviceExclusiveAsked;
         bool exclusiveFocusLost;
 
@@ -985,7 +1002,7 @@ namespace OniMoono.Desktop
             ThrowCallbackFailure();
             // DXGI's exclusive full screen lost the focus, or the device left it because DXGI did
             // (D3d11Device.LeaveByDxgi): the window goes windowed, as the original's.
-            if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { Active: false }) exclusiveFocusLost = true;
+            if (mode == FullScreenMode.ExclusiveFullScreen && DeviceExclusive is { Active: false } && !glfwExclusive) exclusiveFocusLost = true;
             if (exclusiveFocusLost)
             {
                 exclusiveFocusLost = false;

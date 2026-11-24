@@ -189,7 +189,7 @@ namespace OniMoono.Desktop.D3d11
             };
             platform.Closing += Shutdown;
             StartPresenting();
-            if (OperatingSystem.IsWindows()) platform.DeviceExclusive = this;
+            if (OperatingSystem.IsWindows()) platform.AdoptDeviceExclusive(this);
         }
 
         public override GraphicsCaps Caps => caps;
