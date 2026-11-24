@@ -553,6 +553,11 @@ namespace OniMoono.Desktop.D3d11
 
         void Shutdown()
         {
+            // Out of DXGI's full-screen state on the device thread, before it stops (the chain
+            // may not be released full screen: "DXGI overview", Destroying a swap chain). A crash
+            // takes no such path: there is no hook that runs then with a live device thread.
+            Leave();
+            platform.AdoptDeviceExclusive(null);
             StopPresenting();
             worker.Dispose();
             EndPresenting();
