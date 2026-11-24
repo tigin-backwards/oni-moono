@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using OniMoono.Desktop.Gl;
+using OniMoono.Desktop.Vulkan;
 using OniMoono.Engine;
 using OniMoono.Engine.Rendering;
 using UnityEngine;
@@ -162,19 +163,22 @@ namespace OniMoono.Desktop.D3d11
             }
             try
             {
-                if (windowWidth > 0 && windowHeight > 0 && (windowWidth != Out.Width || windowHeight != Out.Height))
+                if (windowWidth > 0 && windowHeight > 0 && (windowWidth != Out.Width || windowHeight != Out.Height || modeChanged))
                 {
                     // ResizeBuffers needs every reference to the buffers released, the context's
                     // too: Resize clears the context's state, so nothing is bound any more.
-                    Out.Resize(windowWidth, windowHeight);
+                    Out.Resize(windowWidth, windowHeight, again: modeChanged);
                     ForgetBindings();
                     resizedSinceShown = true;
                 }
+                modeChanged = false;
                 if (renderWidth > 0 && renderHeight > 0) EnsureScreen(CurrentScreen, renderWidth, renderHeight);
             }
             catch (D3d11UnavailableException e)
             {
-                lost = e.Message;
+                // ResizeBuffers "can return the device removed error" ("Handle device removed
+                // scenarios in Direct3D 11"): the device's reason is asked then too.
+                lost = e.Message + RemovedReason();
                 EngineLog.Engine($"d3d11: {lost}");
                 return;
             }
@@ -184,6 +188,18 @@ namespace OniMoono.Desktop.D3d11
         }
 
         enum ShowKind { Frame, Again, Redraw, Repeat }
+
+        /// Present returned DXGI_STATUS_MODE_CHANGED: the next resize goes even at the same size.
+        bool modeChanged;
+
+        /// The device's own word on its removal for the log: GetDeviceRemovedReason, whose
+        /// possible results include S_OK (ID3D11Device::GetDeviceRemovedReason); a removal made up
+        /// by D3d11Fault leaves the device as it was, so it reads S_OK there.
+        string RemovedReason()
+        {
+            int reason = Dev->lpVtbl->GetDeviceRemovedReason(Dev);
+            return reason == 0 ? ", the device reports no removal (GetDeviceRemovedReason S_OK)" : $", removed reason {Dxgi.Hr(reason)}";
+        }
 
         /// The last QualitySettings.vSyncCount a frame was presented with (redraws take it).
         int swapInterval = -1;
@@ -226,13 +242,24 @@ namespace OniMoono.Desktop.D3d11
                 exclusiveLeftByDxgi = true;
                 if (PresentTrace.Enabled) PresentTrace.Log($"d3d11: exclusive full screen left by DXGI ({(hr == Dxgi.StatusOccluded ? "DXGI_STATUS_OCCLUDED" : "GetFullscreenState: windowed")})");
             }
+            // "The desktop display mode has been changed ... The application should call
+            // IDXGISwapChain::ResizeBuffers to match the new display mode" (DXGI_STATUS; not in
+            // Present's documented results, so not seen on purpose): the buffers are made again
+            // at the window's size after this picture (PresentNow).
+            if (hr == Dxgi.StatusModeChanged)
+            {
+                modeChanged = true;
+                EngineLog.Engine("d3d11: Present returned DXGI_STATUS_MODE_CHANGED: the buffers are made again");
+            }
             if (hr < 0)
             {
                 // Present reports a removed or reset device (DXGI_ERROR_DEVICE_REMOVED/RESET); the
-                // reason is asked of the device ("Handle device removed scenarios in Direct3D 11").
-                lost = Dxgi.DeviceLost(hr)
-                    ? $"the graphics device was lost ({Dxgi.Hr(hr)}, reason {Dxgi.Hr(Dev->lpVtbl->GetDeviceRemovedReason(Dev))})"
-                    : $"Present failed ({Dxgi.Hr(hr)})";
+                // reason is asked of the device ("call ID3D11Device::GetDeviceRemovedReason before
+                // releasing the Direct3D device", "Handle device removed scenarios in Direct3D
+                // 11"). The device is not made again in place (every texture would need making
+                // again, and non-readable ones have no copy, as on Vulkan): the game quits with the
+                // error (Present on the main thread).
+                lost = Dxgi.DeviceLost(hr) ? $"the graphics device was lost ({Dxgi.Hr(hr)}{RemovedReason()})" : $"Present failed ({Dxgi.Hr(hr)}{RemovedReason()})";
                 EngineLog.Engine($"d3d11: {lost}");
                 return false;
             }
@@ -918,6 +945,7 @@ namespace OniMoono.Desktop.D3d11
         /// repeats or the loading animation goes back (VkPresenter.FramePresented).
         void FramePresented()
         {
+            GuardFrame();
             long now = GlTimings.Now;
             if (stall.Run > 0 && PresentTrace.Enabled)
                 PresentTrace.Log($"d3d11: frame {shownScreen?.DrawnFrame ?? -1} presented again {stall.Run} times over {(now - stall.RunStarted) * 1000.0 / Stopwatch.Frequency:F0} ms while no frame came (every {stall.Cadence * 1000.0 / Stopwatch.Frequency:F1} ms)");
@@ -926,6 +954,28 @@ namespace OniMoono.Desktop.D3d11
             {
                 timerRaised = false;
                 _ = Dxgi.timeEndPeriod(1);
+            }
+        }
+
+        int framesPresented;
+        static readonly int crashAt = D3d11Fault.Number("crash-at");
+
+        /// A game frame presented (device thread): the start-up guard is cleared once the first
+        /// VkStartGuard.FramesToClear are on screen, as VkDevice.Presented; ONI_D3D11_FAIL=crash-at:N
+        /// ends the process at frame N as a crash would (no shutdown, the guard left in place).
+        void GuardFrame()
+        {
+            framesPresented++;
+            if (framesPresented == crashAt)
+            {
+                EngineLog.Engine($"d3d11: {D3d11Fault.Variable}=crash-at:{crashAt}: the process ends as a crash would");
+                EngineLog.Close();
+                Environment.Exit(70);
+            }
+            if (framesPresented == VkStartGuard.FramesToClear && guard != null)
+            {
+                guard.Clear();
+                EngineLog.Engine($"d3d11: the first {VkStartGuard.FramesToClear} frames are on screen; start-up guard cleared");
             }
         }
 

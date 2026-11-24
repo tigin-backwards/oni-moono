@@ -105,7 +105,15 @@ namespace OniMoono.Desktop.D3d11
                 int target = sc->lpVtbl->ResizeTarget(sc, &mode);
                 if (target < 0) return target;
             }
-            int hr = sc->lpVtbl->SetFullscreenState(sc, on ? 1 : 0, null);
+            int hr;
+            if (on && D3d11Fault.Has("exclusive-refused"))
+            {
+                // What the original's SetFullscreenState(TRUE) returned while its window lacked
+                // the focus (j0009128, j0009178), without the call.
+                EngineLog.Engine($"d3d11: {D3d11Fault.Variable}=exclusive-refused: SetFullscreenState(TRUE) not called; DXGI_ERROR_NOT_CURRENTLY_AVAILABLE returned (a test)");
+                hr = Dxgi.ErrorNotCurrentlyAvailable;
+            }
+            else hr = sc->lpVtbl->SetFullscreenState(sc, on ? 1 : 0, null);
             fullscreen = on && hr == 0;
             if (fullscreen)
             {
@@ -118,9 +126,17 @@ namespace OniMoono.Desktop.D3d11
                 Height = h;
                 TakeBuffer();
             }
+            if (on && enterHold > 0)
+            {
+                // ONI_D3D11_FAIL=enter-hold:MS: Enter takes MS longer here, the main thread
+                // answering sent messages meanwhile (a focus change during Enter, d3d11-plan.md "M5").
+                EngineLog.Engine($"d3d11: {D3d11Fault.Variable}=enter-hold:{enterHold}: SetFullscreenState {Dxgi.Hr(hr)}; held {enterHold} ms inside Enter (a test)");
+                System.Threading.Thread.Sleep(enterHold);
+            }
             return hr;
         }
 
+        static readonly int enterHold = D3d11Fault.Number("enter-hold");
         bool fullscreen;
 
         /// CreateExclusive's result for a success code that did not leave the chain full screen
@@ -203,11 +219,13 @@ namespace OniMoono.Desktop.D3d11
         /// the buffers released first, the context's included, and the flags the swap chain was
         /// made with (IDXGISwapChain::ResizeBuffers remarks; ALLOW_TEARING "must be specified" on
         /// it when made so, DXGI_SWAP_CHAIN_FLAG).
-        public void Resize(int w, int h)
+        /// `again`: resized even at the same size (DXGI_STATUS_MODE_CHANGED's "should call
+        /// IDXGISwapChain::ResizeBuffers to match the new display mode", D3d11Present).
+        public void Resize(int w, int h, bool again = false)
         {
             w = Math.Max(1, w);
             h = Math.Max(1, h);
-            if (w == Width && h == Height) return;
+            if (w == Width && h == Height && !again) return;
             Com.Release(ref view);
             Com.Release(ref buffer);
             context->lpVtbl->ClearState(context);
@@ -229,8 +247,21 @@ namespace OniMoono.Desktop.D3d11
         {
             interval = Math.Clamp(interval, 0, 4);
             uint presentFlags = interval == 0 && tearing ? Dxgi.PresentAllowTearing : 0;
+            int n = ++presentCalls;
+            if (n == removedAt)
+            {
+                // ONI_D3D11_FAIL=removed-after:N: what a removed device's Present returns
+                // (IDXGISwapChain::Present, Return value), without presenting.
+                EngineLog.Engine($"d3d11: {D3d11Fault.Variable}=removed-after:{n}: Present {n} returns DXGI_ERROR_DEVICE_REMOVED without presenting (a test; the device itself is not removed)");
+                return Dxgi.ErrorDeviceRemoved;
+            }
             long t = GlTimings.Now;
             int hr = ((IDXGISwapChain*)chain)->lpVtbl->Present((IDXGISwapChain*)chain, (uint)interval, presentFlags);
+            if (n == modeChangedAt && hr == 0)
+            {
+                EngineLog.Engine($"d3d11: {D3d11Fault.Variable}=mode-changed-after:{n}: Present {n} presented; DXGI_STATUS_MODE_CHANGED returned in place of S_OK (a test)");
+                hr = Dxgi.StatusModeChanged;
+            }
             Trace(interval, presentTicks: GlTimings.Now - t);
             presents++;
             if (hr >= 0)
@@ -244,6 +275,11 @@ namespace OniMoono.Desktop.D3d11
             }
             return hr;
         }
+
+        /// Game pictures and redraws presented on any chain (Present; device thread), for the
+        /// fault hooks that count them (D3d11Fault: removed-after, mode-changed-after).
+        static int presentCalls;
+        static readonly int removedAt = D3d11Fault.Number("removed-after"), modeChangedAt = D3d11Fault.Number("mode-changed-after");
 
         /// Presents the back buffer again while no frame comes (StallRepeats), after
         /// LastPictureRetired: at sync interval 0 without ALLOW_TEARING, so in the flip model it

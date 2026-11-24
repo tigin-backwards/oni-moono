@@ -20,22 +20,25 @@ namespace OniMoono.Desktop.Vulkan
     /// auto every start with that key uses OpenGL. Another GPU, driver or build tries Vulkan
     /// again; `--renderer vulkan` always tries, and its clean start clears the key. A run whose
     /// device ran out of video memory (RanOutOfMemory, at any time) leaves `out of memory KEY`,
-    /// which auto honours the same way (#114).
+    /// which auto honours the same way (#114). The Direct3D 11 device keeps its own file with the
+    /// same rules (`d3d11-start-guard.txt`, GuardNames.D3d11; Renderers.TryD3d11).
     internal sealed class VkStartGuard
     {
         public const int FramesToClear = 60;
         const string Starting = "starting\t", Crashed = "crashed\t", OutOfMemory = "out of memory\t";
 
         readonly string path;
+        readonly GuardNames names;
         public readonly string Key;
 
-        public VkStartGuard(string path, string key)
+        public VkStartGuard(string path, string key, GuardNames names = null)
         {
             this.path = path;
             Key = key;
+            this.names = names ?? GuardNames.Vulkan;
         }
 
-        public static string FileIn(string cacheDirectory) => Path.Combine(cacheDirectory, "vulkan-start-guard.txt");
+        public static string FileIn(string cacheDirectory, GuardNames names = null) => Path.Combine(cacheDirectory, (names ?? GuardNames.Vulkan).File);
 
         public static string KeyOf(VkGpuIdentity id, string build)
             => $"gpu {id.VendorId:x4}:{id.DeviceId:x4} driver {id.DriverVersion:x8} ({id.DriverName}) build {build}";
@@ -43,8 +46,9 @@ namespace OniMoono.Desktop.Vulkan
         /// The guard's verdict on a start with `key`, from the file's lines: OpenGL's reason (when
         /// `honour`, under auto, and that key crashed before), and the lines to write: every
         /// unfinished start becomes a crash, and this start, unless refused, is `starting`.
-        public static (string Refusal, List<string> Lines) Enter(IReadOnlyList<string> lines, string key, bool honour)
+        public static (string Refusal, List<string> Lines) Enter(IReadOnlyList<string> lines, string key, bool honour, GuardNames names = null)
         {
+            names ??= GuardNames.Vulkan;
             var crashed = new List<string>();
             var outOfMemory = new List<string>();
             foreach (var line in lines)
@@ -57,9 +61,9 @@ namespace OniMoono.Desktop.Vulkan
             }
             var kept = crashed.Select(k => Crashed + k).Concat(outOfMemory.Select(k => OutOfMemory + k)).ToList();
             if (honour && crashed.Contains(key))
-                return ($"Vulkan did not finish starting in an earlier run with this GPU, driver and Moono build ({key}); OpenGL is used until one of them changes (--renderer vulkan tries Vulkan again)", kept);
+                return ($"{names.Api} did not finish starting in an earlier run with this GPU, driver and Moono build ({key}); {names.Instead} is used until one of them changes (--renderer {names.Option} tries {names.Api} again)", kept);
             if (honour && outOfMemory.Contains(key))
-                return ($"Vulkan ran out of video memory in an earlier run with this GPU, driver and Moono build ({key}); OpenGL is used until one of them changes (--renderer vulkan tries Vulkan again)", kept);
+                return ($"{names.Api} ran out of video memory in an earlier run with this GPU, driver and Moono build ({key}); {names.Instead} is used until one of them changes (--renderer {names.Option} tries {names.Api} again)", kept);
             kept.Add(Starting + key);
             return (null, kept);
         }
@@ -80,7 +84,7 @@ namespace OniMoono.Desktop.Vulkan
         /// Enter, on the file: the refusal, or null with this start recorded.
         public string Enter(bool honour)
         {
-            var (refusal, lines) = Enter(Read(), Key, honour);
+            var (refusal, lines) = Enter(Read(), Key, honour, names);
             Write(lines);
             return refusal;
         }
@@ -116,7 +120,7 @@ namespace OniMoono.Desktop.Vulkan
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
-                EngineLog.Engine($"vulkan: start guard {path}: {e.Message}");
+                EngineLog.Engine($"{names.LogPrefix}: start guard {path}: {e.Message}");
                 return new List<string>();
             }
         }
@@ -135,9 +139,17 @@ namespace OniMoono.Desktop.Vulkan
             }
             catch (Exception e) when (e is IOException or UnauthorizedAccessException)
             {
-                EngineLog.Engine($"vulkan: start guard {path}: {e.Message}");
+                EngineLog.Engine($"{names.LogPrefix}: start guard {path}: {e.Message}");
             }
         }
+    }
+
+    /// The renderer a start-up guard is for: its file and how its messages name it.
+    internal sealed record GuardNames(string Api, string Option, string Instead, string File, string LogPrefix)
+    {
+        public static readonly GuardNames Vulkan = new("Vulkan", "vulkan", "OpenGL", "vulkan-start-guard.txt", "vulkan");
+        /// Under auto a refused Direct3D 11 start goes on to the next renderer (Renderers.Open).
+        public static readonly GuardNames D3d11 = new("Direct3D 11", "d3d11", "the next renderer", "d3d11-start-guard.txt", "d3d11");
     }
 
     /// Drivers auto does not start Vulkan on (`--renderer vulkan` still does).

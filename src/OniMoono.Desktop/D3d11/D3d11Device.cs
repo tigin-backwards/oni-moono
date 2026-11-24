@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OniMoono.Desktop.Gl;
+using OniMoono.Desktop.Vulkan;
 using OniMoono.Engine;
 using OniMoono.Engine.Rendering;
 using UnityEngine;
@@ -148,25 +149,35 @@ namespace OniMoono.Desktop.D3d11
         volatile string lost;
         long failedCommands;
         readonly HashSet<string> failuresLogged = new();
+        readonly VkStartGuard guard;
 
-        public D3d11Device(GlfwPlatform platform, D3d11Context d3d)
+        /// Makes the device for a window created without a GL context (WindowSettings.Api
+        /// Direct3D11); throws (D3d11UnavailableException with the reason) having released what it
+        /// made, so the caller can go on to another renderer. `guard` (the start-up guard) is
+        /// cleared once the first frames are on screen. Fault hooks (D3d11Fault): `swapchain`,
+        /// `presenter`, `screen` fail after their step.
+        public D3d11Device(GlfwPlatform platform, D3d11Context d3d, VkStartGuard guard = null)
         {
             this.platform = platform;
             this.d3d = d3d;
+            this.guard = guard;
             caps = new D3d11Caps(d3d);
             states = new D3d11States(d3d.Device);
             chain = D3d11SwapChain.Create(d3d, platform.Win32Handle, platform.WindowFramebufferWidth, platform.WindowFramebufferHeight);
             try
             {
+                D3d11Fault.FailAt("swapchain");
                 // The first frame waits too (D3d11SwapChain.WaitForFrame); the rest wait after
                 // each Present (PresentNow), before the next frame renders.
                 chain.WaitForFrame();
                 CreateShared();
                 CreatePresenter();
+                D3d11Fault.FailAt("presenter");
                 // The first frame's screen texture, at the rendering size (D3d11Present).
                 EnsureScreen(CurrentScreen, platform.FramebufferWidth, platform.FramebufferHeight);
                 // The back buffer is the target until the game sets another.
                 SetTarget(lastTarget);
+                D3d11Fault.FailAt("screen");
             }
             catch
             {
@@ -438,7 +449,8 @@ namespace OniMoono.Desktop.D3d11
             if (lost != null && !quitRequested)
             {
                 quitRequested = true;
-                Debug.LogError($"Direct3D 11 stopped working: {lost}, so the game quits. The log is {EngineLog.FilePath ?? Application.consoleLogPath}.");
+                Debug.LogError($"Direct3D 11 stopped working: {lost}, so the game quits. If this keeps happening, start the game without --renderer d3d11 "
+                               + $"(Vulkan or OpenGL draws then). The log is {EngineLog.FilePath ?? Application.consoleLogPath}.");
                 PlayerLoop.RequestQuit(1);
             }
             int interval = SwapIntervalOverride >= 0 ? SwapIntervalOverride : QualitySettings.vSyncCount;
@@ -549,6 +561,8 @@ namespace OniMoono.Desktop.D3d11
             DrainDebugMessages();
             DebugTally(always: true);
             EngineLog.Engine($"d3d11: {debugMessages} debug-layer messages in this run ({discardedMessages} of them dropped past the message count limit)");
+            // A clean quit before the first frames were on screen is no crash (VkDevice's rule).
+            if (lost == null) guard?.Clear();
         }
 
         void Shutdown()
@@ -558,6 +572,7 @@ namespace OniMoono.Desktop.D3d11
             // takes no such path: there is no hook that runs then with a live device thread.
             Leave();
             platform.AdoptDeviceExclusive(null);
+            if (lost == null) guard?.Clear();
             StopPresenting();
             worker.Dispose();
             EndPresenting();

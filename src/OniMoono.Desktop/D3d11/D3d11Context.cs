@@ -7,11 +7,20 @@ namespace OniMoono.Desktop.D3d11
     /// Why the Direct3D 11 renderer cannot start here (the reason goes to the log).
     internal sealed class D3d11UnavailableException(string message) : Exception(message);
 
+    /// The adapter a Direct3D 11 start would use, read before the device is made (the start-up
+    /// guard's key, the deny list). `Driver` is the user-mode driver's version as
+    /// IDXGIAdapter::CheckInterfaceSupport gives it (D3d11Context.DriverVersion).
+    internal readonly record struct D3d11GpuIdentity(uint VendorId, uint DeviceId, string Driver, string Name, bool Software);
+
     /// The DXGI factory, the chosen adapter and the Direct3D 11 device with its immediate context.
     /// - The adapter: `--gpu default` takes the factory's first (EnumAdapters1 index 0, the adapter
     ///   of the desktop's primary output); `discrete` and `integrated` ask DXGI for the high
-    ///   performance or minimum power GPU (IDXGIFactory6::EnumAdapterByGpuPreference). Software
-    ///   adapters are refused. The plan's GPU choice rule (done criterion 5) may change this.
+    ///   performance or minimum power GPU (IDXGIFactory6::EnumAdapterByGpuPreference). A software
+    ///   adapter only when `allowSoftware` (an explicit `--renderer d3d11`, as Vulkan's lavapipe).
+    ///   Every adapter is logged with the one chosen (d3d11-plan.md, "M5", the GPU choice rule).
+    /// - `admit`, given the chosen adapter before the device is made, returns why not to go on
+    ///   (the deny list, the start-up guard) or null.
+    /// - Fault hooks (D3d11Fault): `factory`, `adapter`, `device`, `debug` fail after their step.
     /// - The device: feature level 11_1 or 11_0 (the shipped programs need 11_0:
     ///   docs/research/d3d11-plan.md "Programs"), flags BGRA_SUPPORT as the original's
     ///   (d3d11-unity-probes.md, "Device FL 11_1, flags BGRA only"), plus DEBUG with Validation.
@@ -28,17 +37,18 @@ namespace OniMoono.Desktop.D3d11
         public D3D_FEATURE_LEVEL FeatureLevel { get; private set; }
         public Dxgi.AdapterDesc1 Adapter { get; private set; }
         public bool Tearing { get; private set; }
+        public D3d11GpuIdentity Identity { get; private set; }
 
         public static void Check(int hr, string what)
         {
             if (hr < 0) throw new D3d11UnavailableException($"{what} failed ({Dxgi.Hr(hr)})");
         }
 
-        public D3d11Context(string gpu)
+        public D3d11Context(string gpu, bool allowSoftware = true, Func<D3d11GpuIdentity, string> admit = null)
         {
             try
             {
-                Open(gpu);
+                Open(gpu, allowSoftware, admit);
             }
             catch
             {
@@ -47,20 +57,28 @@ namespace OniMoono.Desktop.D3d11
             }
         }
 
-        void Open(string gpu)
+        void Open(string gpu, bool allowSoftware, Func<D3d11GpuIdentity, string> admit)
         {
             if (!OperatingSystem.IsWindows()) throw new D3d11UnavailableException("Direct3D 11 is Windows only");
             IDXGIFactory2* factory;
             var iid = IDXGIFactory2.IID;
             Check(DXGI.CreateDXGIFactory2(0, &iid, (void**)&factory), "CreateDXGIFactory2");
             Factory = factory;
+            D3d11Fault.FailAt("factory");
+            LogAdapters();
             IDXGIAdapter1* adapter = ChooseAdapter(gpu);
             try
             {
                 Dxgi.AdapterDesc1 desc;
                 Check(adapter->lpVtbl->GetDesc1(adapter, &desc), "IDXGIAdapter1::GetDesc1");
                 Adapter = desc;
-                if ((desc.Flags & Dxgi.AdapterFlagSoftware) != 0) throw new D3d11UnavailableException($"{desc.Name} is a software adapter");
+                bool software = (desc.Flags & Dxgi.AdapterFlagSoftware) != 0;
+                Identity = new D3d11GpuIdentity(desc.VendorId, desc.DeviceId, DriverVersion(adapter), desc.Name, software);
+                EngineLog.Engine($"d3d11: gpu option {gpu ?? "default"}: {desc.Name} (vendor 0x{desc.VendorId:x4}, device 0x{desc.DeviceId:x4}, "
+                                 + $"luid {desc.Luid:x}, driver {Identity.Driver}{(software ? ", software" : "")})");
+                D3d11Fault.FailAt("adapter");
+                if (software && !allowSoftware) throw new D3d11UnavailableException($"{desc.Name} is a software adapter (only used with --renderer d3d11)");
+                if (admit?.Invoke(Identity) is { } refused) throw new D3d11UnavailableException(refused);
                 var levels = stackalloc D3D_FEATURE_LEVEL[] { D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_0 };
                 var flags = D3D11_CREATE_DEVICE_FLAG.D3D11_CREATE_DEVICE_BGRA_SUPPORT | (Validation ? D3D11_CREATE_DEVICE_FLAG.D3D11_CREATE_DEVICE_DEBUG : 0);
                 ID3D11Device* d;
@@ -72,6 +90,7 @@ namespace OniMoono.Desktop.D3d11
                 Device = d;
                 Context = c;
                 FeatureLevel = level;
+                D3d11Fault.FailAt("device");
             }
             finally
             {
@@ -83,6 +102,7 @@ namespace OniMoono.Desktop.D3d11
                 Check(Com.QueryInterface(Device, ID3D11InfoQueue.IID, (void**)&queue), "QueryInterface ID3D11InfoQueue");
                 InfoQueue = queue;
                 SetFilters(queue);
+                D3d11Fault.FailAt("debug");
             }
             IDXGIFactory5* f5;
             if (Com.QueryInterface(Factory, IDXGIFactory5.IID, (void**)&f5) >= 0)
@@ -153,6 +173,65 @@ namespace OniMoono.Desktop.D3d11
                 for (uint i = 0; i < d.NumIDs; i++) parts.Add($"ID {d.pIDList[i]}");
                 return parts.Count == 0 ? "none" : string.Join(", ", parts);
             }
+        }
+
+        /// The user-mode driver's version: IDXGIAdapter::CheckInterfaceSupport with IDXGIDevice's
+        /// IID, "which returns the version number of the Direct3D 9 UMD (user mode driver)
+        /// binary"; "S_OK indicates that the interface is supported, otherwise
+        /// DXGI_ERROR_UNSUPPORTED is returned" (CheckInterfaceSupport). Its four 16-bit fields,
+        /// high first, are the version Windows shows for the driver (observed: 32.0.16.1088 on
+        /// the RTX 3090, driver 610.88, and 32.0.21042.62 on the AMD iGPU, d3d11-captures.md §4).
+        static string DriverVersion(IDXGIAdapter1* adapter)
+        {
+            var iid = Dxgi.IIDDevice;
+            Dxgi.LargeInteger version;
+            int hr = ((IDXGIAdapter*)adapter)->lpVtbl->CheckInterfaceSupport((IDXGIAdapter*)adapter, &iid, &version);
+            if (hr < 0) return $"unknown ({Dxgi.Hr(hr)})";
+            long v = version.QuadPart;
+            return $"{(v >> 48) & 0xFFFF}.{(v >> 32) & 0xFFFF}.{(v >> 16) & 0xFFFF}.{v & 0xFFFF}";
+        }
+
+        /// Every adapter in EnumAdapters1's order ("first ... the adapter with the output on which
+        /// the desktop primary is displayed", then "other adapters with outputs", then "adapters
+        /// without outputs"), with its outputs, and the first of each GPU preference, for the log.
+        void LogAdapters()
+        {
+            var lines = new System.Collections.Generic.List<string>();
+            var f1 = (IDXGIFactory1*)Factory;
+            for (uint i = 0; i < 16; i++)
+            {
+                IDXGIAdapter1* a = null;
+                if (f1->lpVtbl->EnumAdapters1(f1, i, &a) < 0 || a == null) break;
+                Dxgi.AdapterDesc1 desc;
+                int outputs = 0;
+                if (a->lpVtbl->GetDesc1(a, &desc) >= 0)
+                {
+                    for (uint o = 0; o < 16; o++)
+                    {
+                        IDXGIOutput* output = null;
+                        if (((IDXGIAdapter*)a)->lpVtbl->EnumOutputs((IDXGIAdapter*)a, o, &output) < 0 || output == null) break;
+                        outputs++;
+                        Com.Release(ref output);
+                    }
+                    lines.Add($"{i} {desc.Name} (luid {desc.Luid:x}, {outputs} outputs{((desc.Flags & Dxgi.AdapterFlagSoftware) != 0 ? ", software" : "")})");
+                }
+                Com.Release(ref a);
+            }
+            IDXGIFactory6* f6;
+            if (Com.QueryInterface(Factory, IDXGIFactory6.IID, (void**)&f6) >= 0)
+            {
+                foreach (var p in new[] { DXGI_GPU_PREFERENCE.DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, DXGI_GPU_PREFERENCE.DXGI_GPU_PREFERENCE_MINIMUM_POWER })
+                {
+                    IDXGIAdapter1* a = null;
+                    var iid = IDXGIAdapter1.IID;
+                    Dxgi.AdapterDesc1 desc;
+                    if (f6->lpVtbl->EnumAdapterByGpuPreference(f6, 0, p, &iid, (void**)&a) >= 0 && a != null && a->lpVtbl->GetDesc1(a, &desc) >= 0)
+                        lines.Add($"{(p == DXGI_GPU_PREFERENCE.DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE ? "high performance" : "minimum power")} first: {desc.Name} (luid {desc.Luid:x})");
+                    Com.Release(ref a);
+                }
+                Com.Release(ref f6);
+            }
+            EngineLog.Engine($"d3d11: adapters: {string.Join("; ", lines)}");
         }
 
         IDXGIAdapter1* ChooseAdapter(string gpu)

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using OniMoono.Desktop.Gl;
+using D3d = OniMoono.Desktop.D3d11;
 using OniMoono.Desktop.Vulkan;
 using OniMoono.Engine;
 using OniMoono.Engine.Rendering;
@@ -35,7 +36,7 @@ namespace OniMoono.Desktop
             string reason = null;
             if (choice == D3d11)
             {
-                var (d3dPlatform, d3dDevice, d3dFailure) = TryD3d11(settings, gpu);
+                var (d3dPlatform, d3dDevice, d3dFailure) = TryD3d11(settings, gpu, auto: false, cacheDirectory);
                 if (d3dDevice != null)
                 {
                     EngineLog.Engine($"renderer: Direct3D 11 ({choice}, {source})");
@@ -115,36 +116,62 @@ namespace OniMoono.Desktop
             }
         }
 
-        static (GlfwPlatform, RenderDevice, string) TryD3d11(WindowSettings settings, string gpu)
+        /// Direct3D 11 as TryVulkan: the adapter chosen, then (before its device is made) the
+        /// start-up guard (`d3d11-start-guard.txt`, honoured under `auto` only; `--renderer d3d11`
+        /// always tries and its clean start clears the key); a software adapter only when not
+        /// `auto`. Any failure releases what was made, the guard's line going with it. No driver
+        /// is on a deny list: Vulkan's two entries are Vulkan drivers' (VkDenyList), and no
+        /// Direct3D 11 driver is known to need one (d3d11-plan.md, "M5"). Auto does not try
+        /// Direct3D 11 yet (M6 decides where it goes in auto's order).
+        static (GlfwPlatform, RenderDevice, string) TryD3d11(WindowSettings settings, string gpu, bool auto, string cacheDirectory)
         {
-            global::OniMoono.Desktop.D3d11.D3d11Context context;
+            foreach (var unknown in D3d.D3d11Fault.Unknown())
+                EngineLog.Engine($"d3d11: {D3d.D3d11Fault.Variable}: no fault '{unknown}' in this build");
+            D3d.D3d11Context context;
+            VkStartGuard guard = null;
+            string build = BuildId(D3d.D3d11Fault.Text("guard-build"));
+            string Admit(D3d.D3d11GpuIdentity id)
+            {
+                if (cacheDirectory == null) return null;
+                guard = new VkStartGuard(VkStartGuard.FileIn(cacheDirectory, GuardNames.D3d11), D3d11GuardKey(id, build), GuardNames.D3d11);
+                var refused = guard.Enter(honour: auto);
+                if (refused != null) guard = null;
+                return refused;
+            }
             try
             {
-                context = new global::OniMoono.Desktop.D3d11.D3d11Context(gpu);
+                context = new D3d.D3d11Context(gpu, allowSoftware: !auto, Admit);
             }
-            catch (Exception e) when (e is global::OniMoono.Desktop.D3d11.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException)
+            catch (Exception e) when (e is D3d.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException)
             {
+                guard?.Abandon();
                 return (null, null, e.Message);
             }
             GlfwPlatform platform = null;
             try
             {
                 platform = new GlfwPlatform(settings with { Api = RenderApi.Direct3D11 });
-                return (platform, new global::OniMoono.Desktop.D3d11.D3d11Device(platform, context), null);
+                return (platform, new D3d.D3d11Device(platform, context, guard), null);
             }
             catch (Exception e)
             {
                 platform?.Dispose();
                 context.Dispose();
-                return (null, null, e is global::OniMoono.Desktop.D3d11.D3d11UnavailableException ? e.Message : $"{e.GetType().Name}: {e.Message}");
+                guard?.Abandon();
+                return (null, null, e is D3d.D3d11UnavailableException ? e.Message : $"{e.GetType().Name}: {e.Message}");
             }
         }
 
+        /// The Direct3D 11 start-up guard's key: the adapter's vendor and device ids, its driver's
+        /// version and Moono's build, as VkStartGuard.KeyOf for Vulkan.
+        internal static string D3d11GuardKey(D3d.D3d11GpuIdentity id, string build)
+            => $"gpu {id.VendorId:x4}:{id.DeviceId:x4} driver {id.Driver} build {build}";
+
         /// Moono's build, as the start-up guard keys it: the host's informational version (its
-        /// commit), or ONI_VULKAN_FAIL=guard-build:X (tests).
-        static string BuildId()
+        /// commit), or a `guard-build:X` fault (tests): ONI_VULKAN_FAIL's, or `fault` (ONI_D3D11_FAIL's).
+        static string BuildId(string fault = null)
         {
-            var fault = VkFault.Text("guard-build");
+            fault ??= VkFault.Text("guard-build");
             if (!string.IsNullOrEmpty(fault)) return fault;
             var assembly = System.Reflection.Assembly.GetEntryAssembly();
             return assembly == null ? "unknown"
