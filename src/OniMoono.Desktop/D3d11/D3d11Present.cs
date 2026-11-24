@@ -229,6 +229,9 @@ namespace OniMoono.Desktop.D3d11
             return true;
         }
 
+        /// The last stretch traced (ONI_PRESENT_TRACE), so each size pair is logged once in a row.
+        (int W, int H) stretchedFrom, stretchedTo;
+
         /// When the last picture was presented (Stopwatch ticks).
         long lastPicture;
 
@@ -252,6 +255,12 @@ namespace OniMoono.Desktop.D3d11
                 // with one draw instead, j0009060; a copy of the same size keeps every texel.)
                 Ctx->lpVtbl->CopyResource(Ctx, (ID3D11Resource*)chain.Buffer, (ID3D11Resource*)picture.Texture);
                 return;
+            }
+            if (PresentTrace.Enabled && (stretchedFrom.W != picture.Width || stretchedFrom.H != picture.Height || stretchedTo.W != chain.Width || stretchedTo.H != chain.Height))
+            {
+                stretchedFrom = (picture.Width, picture.Height);
+                stretchedTo = (chain.Width, chain.Height);
+                PresentTrace.Log($"d3d11: screen texture {picture.Index} ({picture.Width}x{picture.Height}) stretched over the {chain.Width}x{chain.Height} buffer");
             }
             quads.Clear();
             Quad(0, 0, chain.Width, chain.Height, 0, 0, 1, 1, Opaque, OpaqueAdd);
