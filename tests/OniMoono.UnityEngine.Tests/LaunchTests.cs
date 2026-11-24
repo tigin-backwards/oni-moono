@@ -287,6 +287,27 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void AQuitErrorStaysOnScreenOutsideTestRuns()
+        {
+            var shown = new List<string>();
+            var ran = new List<string>();
+            Func<string, string?> lookup = name => env.TryGetValue(name, out var v) ? v : null;
+            Assert.Equal("message box", StandaloneLaunch.TellBeforeQuit("Vulkan stopped working", true, lookup, shown.Add, Dialog(new(), ran)));
+            Assert.Equal(["Vulkan stopped working"], shown);
+            Assert.Equal("zenity", StandaloneLaunch.TellBeforeQuit("x", false, lookup, shown.Add, Dialog(new() { ["zenity"] = (0, "") }, ran)));
+            Assert.StartsWith("zenity --error ", ran[0]);
+            Assert.StartsWith("none: stderr", StandaloneLaunch.TellBeforeQuit("x", false, lookup, shown.Add, Dialog(new(), ran, errorTerminal: true)));
+            // Test runs: never a box nor a dialog.
+            env[DesktopDialog.NoDialogVariable] = "1";
+            ran.Clear();
+            Assert.Equal("none: ONI_HOST_NO_DIALOG=1", StandaloneLaunch.TellBeforeQuit("x", true, lookup, shown.Add, Dialog(new(), ran)));
+            Assert.Equal("none: ONI_HOST_NO_DIALOG=1", StandaloneLaunch.TellBeforeQuit("x", false, lookup, shown.Add, Dialog(new() { ["zenity"] = (0, "") }, ran)));
+            env.Remove(DesktopDialog.NoDialogVariable);
+            Assert.Single(shown);
+            Assert.Empty(ran);
+        }
+
+        [Fact]
         public void ChooserAsksThroughADialogWithoutATerminal()
         {
             var installs = new List<SteamLibrary.GameInstall>

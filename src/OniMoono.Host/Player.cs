@@ -133,6 +133,13 @@ namespace OniMoono.Host
                 // wait by the process's end has been followed by a kernel soft lockup on WSL.
                 OniMoono.Engine.Rendering.GraphicsDevice.Current.StopForQuit();
                 OniMoono.Engine.Rendering.GraphicsDevice.Install(new OniMoono.Engine.Rendering.NullRenderDevice());
+                // A quit for an error (the graphics device stopped working): the error stays on
+                // screen until the player closes it, then the quit goes on.
+                if (PlayerLoop.QuitError is { } error)
+                {
+                    EngineLog.Engine($"Quit: the error for the player: {Launch.StandaloneLaunch.TellBeforeQuit(error)}");
+                    QuitStats.Mark("the error");
+                }
             }
             SceneLoader.UnloadAll();
             Lifecycle.ProcessDestroyQueue(drain: true);

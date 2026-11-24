@@ -171,6 +171,26 @@ namespace OniMoono.Host.Launch
             else (dialog ?? new DesktopDialog()).Tell(message, error, test);
         }
 
+        /// An error that ends the game (the graphics device stopped working mid-game), told as
+        /// Tell tells one once the window has left the screen: the game quits when the player
+        /// closes it. On Windows the box comes to the front, as the game's window has just gone.
+        /// What happened, for the log: "message box", the Linux dialog's tool, or "none: " and why.
+        public static string TellBeforeQuit(string message) =>
+            TellBeforeQuit(message, OperatingSystem.IsWindows(), Environment.GetEnvironmentVariable,
+                m => MessageBoxW(IntPtr.Zero, m, "Moono", 0x10u | 0x10000u | 0x40000u), new DesktopDialog());
+
+        internal static string TellBeforeQuit(string message, bool windows, Func<string, string?> env, Action<string> box, DesktopDialog dialog)
+        {
+            Console.Error.WriteLine("Moono: " + message);
+            if (DesktopDialog.Quiet(env, test: false)) return "none: " + DesktopDialog.NoDialogVariable + "=1";
+            if (windows)
+            {
+                box(message);
+                return "message box";
+            }
+            return dialog.Tell(message, error: true, test: false) ?? "none: stderr is a terminal, or no display or dialog tool";
+        }
+
         [DllImport("user32.dll", CharSet = CharSet.Unicode)]
         static extern int MessageBoxW(IntPtr owner, string text, string caption, uint type);
     }

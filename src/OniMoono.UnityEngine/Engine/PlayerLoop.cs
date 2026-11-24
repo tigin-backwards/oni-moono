@@ -33,6 +33,10 @@ namespace OniMoono.Engine
         public static int TargetFrameRate { get; set; } = -1;
         public static bool QuitRequested { get; private set; }
         public static int ExitCode { get; private set; }
+        /// The error the quit was asked with (a graphics device that stopped working), shown
+        /// to the player once the window has left the screen (Player.ShowQuitError); null for an
+        /// ordinary quit. A quit wantsToQuit refused keeps it for the next one.
+        public static string QuitError { get; private set; }
 
         static bool started;
 
@@ -40,13 +44,24 @@ namespace OniMoono.Engine
         static bool quitAgreed;
 
         /// Forgets a quit that went ahead (tests, which go on running frames after one).
-        internal static void ForgetQuit() => QuitRequested = quitAgreed = false;
-
-        public static void RequestQuit(int exitCode)
+        internal static void ForgetQuit()
         {
-            if (QuitRequested) return;
+            QuitRequested = quitAgreed = false;
+            QuitError = null;
+        }
+
+        public static void RequestQuit(int exitCode) => RequestQuit(exitCode, null);
+
+        public static void RequestQuit(int exitCode, string error)
+        {
+            if (QuitRequested)
+            {
+                if (error != null) QuitError ??= error;
+                return;
+            }
             QuitRequested = true;
             ExitCode = exitCode;
+            if (error != null) QuitError = error;
         }
 
         public static void Initialize()

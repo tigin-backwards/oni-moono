@@ -663,9 +663,11 @@ namespace OniMoono.Desktop.Vulkan
             if (deviceLost && !quitRequested)
             {
                 quitRequested = true;
-                Debug.LogError($"Vulkan stopped working: the graphics device {lostWhat}, so the game quits. If this keeps happening, choose OpenGL "
-                               + $"under Renderer in Moono Tweaks, or start the game with --renderer opengl. The log is {EngineLog.FilePath ?? Application.consoleLogPath}.");
-                PlayerLoop.RequestQuit(1);
+                string error = $"Vulkan stopped working: the graphics device {lostWhat}, so the game quits. If this keeps happening, choose OpenGL "
+                               + $"under Renderer in Moono Tweaks, or start the game with --renderer opengl. The log is {EngineLog.FilePath ?? Application.consoleLogPath}.";
+                Debug.LogError(error);
+                // On screen until the player closes it, once the window has gone (Player).
+                PlayerLoop.RequestQuit(1, error);
             }
             int interval = SwapIntervalOverride >= 0 ? SwapIntervalOverride : QualitySettings.vSyncCount;
             // The window's size: the frame, drawn at the rendering size (smaller in a fullscreen

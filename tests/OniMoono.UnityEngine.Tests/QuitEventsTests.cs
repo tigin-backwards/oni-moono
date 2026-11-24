@@ -91,5 +91,23 @@ namespace OniMoono.Tests
                 PlayerLoop.ForgetQuit();
             }
         }
+
+        [Fact]
+        public void AQuitKeepsTheFirstError()
+        {
+            try
+            {
+                PlayerLoop.RequestQuit(1, "lost");
+                PlayerLoop.RequestQuit(0);
+                PlayerLoop.RequestQuit(1, "again");
+                Assert.Equal("lost", PlayerLoop.QuitError);
+                Assert.Equal(1, PlayerLoop.ExitCode);
+                PlayerLoop.ForgetQuit();
+                Assert.Null(PlayerLoop.QuitError);
+                PlayerLoop.RequestQuit(0);
+                Assert.Null(PlayerLoop.QuitError);
+            }
+            finally { PlayerLoop.ForgetQuit(); }
+        }
     }
 }

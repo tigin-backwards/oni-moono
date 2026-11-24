@@ -3346,7 +3346,11 @@ Only the work posted for resources differs (`IResourceWork`).
     need the same. So the device thread stops recording, the log names the loss, and the game quits
     with an error. The error says that Vulkan stopped working, that OpenGL can be chosen under
     Renderer in Moono Tweaks or with `--renderer opengl` if it keeps happening, and where the log
-    is.
+    is. Once the window has left the screen, the error stays up until the player closes it, then
+    the quit goes on: a message box on Windows, on Linux a desktop dialog when stderr is not a
+    terminal (zenity, kdialog or notify-send), as for start-up failures. Test runs
+    (`ONI_HOST_NO_DIALOG=1`) show none; the log's `Quit: the error for the player:` line says
+    which was shown.
   - **Presenting that fails for good** (a lost surface, a swapchain still not made after its
     retries, a swapchain format that takes no copies) quits the same way rather than running on with
     a black window.
