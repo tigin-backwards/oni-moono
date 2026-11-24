@@ -1,0 +1,17 @@
+# The Direct3D 11 renderer's scene set (docs/research/d3d11-plan.md, M3 review fixes, finding 1):
+# a draw to the screen made while the cameras render. The Timelapser freezes the screen for the
+# frame it moves the camera to take a timelapse or a save's colony preview: Timelapser.Render
+# (U60 764025) gives the timelapseFreezeCamera's FillRenderTargetEffect the frame it read back and
+# enables that camera, a copy of the UI camera three above it in depth
+# (CameraController.OnPrefabInit), whose OnRenderImage is `Graphics.Blit(fillTexture, null)`: the
+# fill texture over the whole screen, ignoring the effect's destination. That frame lasts one
+# frame in play; setup holds it, with a white fill, as Timelapser.Render sets it (the freeze
+# camera stays on while no screenshot is pending). The shot shows the white fill under the UI's
+# overlay canvases, the world hidden. Ours on each renderer, and the original (on Direct3D 11),
+# on Windows (scripts/e2e-windows/run.py; ours' renderer from E2E_PLAYER_ARGS).
+from: gas-boundary
+setup:
+  - driver: {setup.call: {target: "CameraController.Instance.timelapseFreezeCamera.GetComponent<FillRenderTargetEffect>", method: SetFillTexture, args: [{"$": "Texture2D.whiteTexture"}]}}
+  - driver: {setup.set: {target: "CameraController.Instance.timelapseFreezeCamera", member: enabled, value: true}}
+steps:
+  - shot: {name: freeze}

@@ -407,8 +407,16 @@ namespace OniMoono.Engine.Rendering
                 order.Add((offscreen ? 0 : 1, n.Depth, i, cameras[i]));
             }
             order.Sort((a, b) => a.Key != b.Key ? a.Key.CompareTo(b.Key) : a.Depth != b.Depth ? a.Depth.CompareTo(b.Depth) : a.Index.CompareTo(b.Index));
-            foreach (var entry in order)
-                if (entry.Camera && (lightCamera is null || !ReferenceEquals(entry.Camera.EngineState, lightCamera))) RenderCamera(entry.Camera);
+            camerasRendering++;
+            try
+            {
+                foreach (var entry in order)
+                    if (entry.Camera && (lightCamera is null || !ReferenceEquals(entry.Camera.EngineState, lightCamera))) RenderCamera(entry.Camera);
+            }
+            finally
+            {
+                camerasRendering--;
+            }
             order.Clear();
             screenOrder = order;
             HandOverCameraScreen();
@@ -433,8 +441,27 @@ namespace OniMoono.Engine.Rendering
         /// Pixels of a tiled capture's light buffer at most.
         const long LightPixels = 4096L * 2304;
 
-        /// Where screen rendering goes: the back buffer, or a capture's off-screen target.
-        public static RenderTargetBinding ScreenBinding => screenOverride == null ? RenderTargetBinding.BackBuffer : RenderTargetBinding.Of(screenOverride);
+        /// Where screen rendering goes: the back buffer, or a capture's off-screen target; while
+        /// the frame's cameras render, on a device that draws them into the cameras' screen
+        /// texture (CameraScreen), that texture. So a draw a script makes to the screen from a
+        /// camera's callbacks (RenderTexture.active null, Graphics.Blit to null, a command
+        /// buffer's SetRenderTarget to null) lands under the hand-over's copy, in order, not
+        /// under it in the back buffer. The game's case: the timelapseFreezeCamera's
+        /// FillRenderTargetEffect, whose OnRenderImage is `Graphics.Blit(fillTexture, null)`
+        /// (U60 764025), the screen held while the Timelapser moves the camera; drawn into the
+        /// back buffer, the hand-over painted the moved world over it (d3d11-plan.md, M3 review
+        /// fixes, finding 1).
+        public static RenderTargetBinding ScreenBinding
+            => screenOverride != null ? RenderTargetBinding.Of(screenOverride)
+                : ScreenTexture is { } screen ? RenderTargetBinding.Of(screen) : RenderTargetBinding.BackBuffer;
+
+        /// The render texture the screen is while the cameras render (CameraScreen), else null
+        /// (the back buffer, or a capture's target: ScreenBinding).
+        internal static RenderTextureNative ScreenTexture
+            => screenOverride == null && camerasRendering > 0 && CameraScreen() is { } screen ? (RenderTextureNative)screen.NativeOrThrow : null;
+
+        /// RenderScreen's camera loops running (nested when a camera's callbacks start a pass).
+        static int camerasRendering;
 
         /// The size in pixels of the screen target: the back buffer, or a capture's window.
         public static Vector2 ScreenPixelSize

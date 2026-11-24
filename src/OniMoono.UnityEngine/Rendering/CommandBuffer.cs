@@ -285,7 +285,8 @@ namespace OniMoono.Engine.Rendering
             var depthNative = depth.Resolve()?.Native as RenderTextureNative;
             if (natives.Length == 1 && natives[0] == null) natives = null;
             var device = GraphicsDevice.Current;
-            FrameRenderer.Bind(device, new RenderTargetBinding(natives, depthNative, 0));
+            // No texture: the screen, as RenderTexture.active null binds it (ScreenBinding).
+            FrameRenderer.Bind(device, natives == null && depthNative == null ? FrameRenderer.ScreenBinding : new RenderTargetBinding(natives, depthNative, 0));
             var first = natives?[0];
             var size = first != null ? new Vector2(first.Width, first.Height) : GLState.TargetSize;
             device.SetViewport(new Rect(0f, 0f, size.x, size.y));

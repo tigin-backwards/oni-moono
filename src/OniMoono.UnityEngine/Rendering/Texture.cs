@@ -532,7 +532,7 @@ namespace UnityEngine
             Threads.AssertMainThread("ReadPixels");
             var rect = new RectInt((int)source.x, (int)source.y, (int)source.width, (int)source.height);
             var active = RenderTexture.active;
-            GraphicsDevice.Current.ReadPixels(active == null ? null : (RenderTextureNative)active.NativeOrThrow, rect, t, destX, destY);
+            GraphicsDevice.Current.ReadPixels(active == null ? FrameRenderer.ScreenTexture : (RenderTextureNative)active.NativeOrThrow, rect, t, destX, destY);
             if (recalculateMipMaps) TexelAddressing.BuildMips(t);
         }
     }
