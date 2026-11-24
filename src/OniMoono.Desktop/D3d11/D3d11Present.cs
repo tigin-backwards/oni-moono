@@ -665,9 +665,16 @@ namespace OniMoono.Desktop.D3d11
             try
             {
                 var a = ReadRegion((ID3D11Resource*)shown.Texture, ScreenFormat, k.X0, k.Top, w, h);
-                int srcRow = bottomFirst ? k.SrcBottom : k.SrcTop;
-                var b = ReadRegion(k.Strip.Resource, k.Strip.Format, k.SrcX, srcRow, w, h);
+                // The tile the screen showed when the frames were rendered (f.Start), as
+                // VkLoadAnimation.VerifyQueued compares: the first redraw's own tile is a frame
+                // or more on by the time it is drawn (j0009133: tile 3 drawn, 2 shown).
+                var start = D3d11LoadAnimation.TileOf(f, f.Start, chain.Width, chain.Height, k.Strip.Height, first: true);
+                int srcRow = bottomFirst ? start.SrcBottom : start.SrcTop;
+                var b = ReadRegion(k.Strip.Resource, k.Strip.Format, start.SrcX, srcRow, w, h);
                 int differ = 0, largest = 0;
+                // Where they differ, by row and column parity, and the first few (diagnostics).
+                var parity = new int[4];
+                System.Text.StringBuilder samples = null;
                 for (int row = 0; row < h; row++)
                 {
                     int tileRow = bottomFirst ? h - 1 - row : row;
@@ -675,10 +682,22 @@ namespace OniMoono.Desktop.D3d11
                     {
                         int d = 0;
                         for (int c = 0; c < 3; c++) d = Math.Max(d, Math.Abs(a[(row * w + col) * 4 + c] - b[(tileRow * w + col) * 4 + c]));
-                        if (d > 2) differ++;
+                        if (d > 2)
+                        {
+                            parity[(row & 1) * 2 + (col & 1)]++;
+                            if (differ < 6)
+                            {
+                                int o = (row * w + col) * 4, q = (tileRow * w + col) * 4;
+                                (samples ??= new System.Text.StringBuilder()).Append($" ({col}, {row}) {a[o]},{a[o + 1]},{a[o + 2]} against {b[q]},{b[q + 1]},{b[q + 2]}");
+                            }
+                            differ++;
+                        }
                         largest = Math.Max(largest, d);
                     }
                 }
+                if (differ > 0)
+                    EngineLog.Engine($"loading animation: replay check: differing pixels by (row, column) parity even-even {parity[0]}, even-odd {parity[1]}, odd-even {parity[2]}, odd-odd {parity[3]}; "
+                                     + $"shown against replayed, RGB, rows top first:{samples}; strip {k.Strip.Width}x{k.Strip.Height} {k.Strip.Format}, start tile {f.Start} ({start.SrcX}, rows {start.SrcTop}-{start.SrcBottom}), area ({k.X0}, {k.Top})-({k.X1}, {k.Bottom}), {(bottomFirst ? "bottom" : "top")} first");
                 LoadingScreen.LastReplayDiffer = differ;
                 var all = ReadRegion(k.Strip.Resource, k.Strip.Format, 0, 0, k.Strip.Width, k.Strip.Height);
                 int best = -1, bestDiffer = int.MaxValue;
