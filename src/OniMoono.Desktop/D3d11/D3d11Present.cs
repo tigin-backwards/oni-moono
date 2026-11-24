@@ -754,6 +754,13 @@ namespace OniMoono.Desktop.D3d11
         {
             idleKind = IdleKind.None;
             if (lost != null || presentStopped) return -1;
+            // A refresh first, as VkPresenter.Run's wait ends on it before the others (and the
+            // loading watchdog's wait would otherwise hold it back).
+            if (refreshWanted && shownScreen != null)
+            {
+                idleKind = IdleKind.Refresh;
+                return 0;
+            }
             if (rain != null && rain.Active)
             {
                 idleKind = IdleKind.Splash;
@@ -767,11 +774,6 @@ namespace OniMoono.Desktop.D3d11
                 return loading.DueMs;
             }
             if (loadingWait > 0) return loadingWait;
-            if (refreshWanted && shownScreen != null)
-            {
-                idleKind = IdleKind.Refresh;
-                return 0;
-            }
             if (MayRepeat)
             {
                 idleKind = IdleKind.Repeat;
@@ -819,7 +821,9 @@ namespace OniMoono.Desktop.D3d11
                         break;
                     case IdleKind.Refresh:
                         refreshWanted = false;
-                        if (!Show(shownScreen, swapInterval < 0 ? 1 : swapInterval, ShowKind.Again)) return true;
+                        // A redraw, as VkPresenter's refresh: the splash or the loading animation
+                        // over the frame where they run.
+                        if (!Show(shownScreen, swapInterval < 0 ? 1 : swapInterval, ShowKind.Redraw)) return true;
                         RestoreAfterPresenter();
                         chain.WaitForFrame();
                         break;
