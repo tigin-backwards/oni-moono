@@ -866,13 +866,19 @@ namespace OniMoono.Desktop
                 deviceExclusiveAsked = null;
                 // The refresh rate as the game asked for it (0/0 when it asked none).
                 int hr = DeviceExclusive.Enter(w, h, rn, rd);
-                if (hr < 0)
+                if (hr != 0)
                 {
                     // As the original on DXGI_ERROR_NOT_CURRENTLY_AVAILABLE (j0009128, j0009178): a
-                    // fullscreen window at the monitor's size (SetFullscreenState: "your
-                    // application can continue to run in windowed mode and try to switch to
-                    // full-screen mode later").
+                    // fullscreen window, the window and the rendering at the monitor's size (the
+                    // original read "FullScreenWindow 2560x1440" after a refused 1920x1080,
+                    // j0009128; SetFullscreenState: "your application can continue to run in
+                    // windowed mode and try to switch to full-screen mode later"). The window is
+                    // put back at the monitor's size: ResizeTarget, before the refusal, "resizes
+                    // the target window when the swap chain is in windowed mode".
                     mode = FullScreenMode.FullScreenWindow;
+                    fullScreenWindowRequest = null;
+                    var desktopNow = monitor.VideoMode;
+                    window.SetWindowed(monitor.Position, new int2(desktopNow.Width, desktopNow.Height));
                     OniMoono.Engine.EngineLog.Engine($"window: exclusive full screen {w}x{h} refused (0x{hr:X8}); a fullscreen window instead");
                 }
             }

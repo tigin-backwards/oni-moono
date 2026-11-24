@@ -68,10 +68,17 @@ namespace OniMoono.Desktop.D3d11
             {
                 s.Start(d3d.Factory, hwnd, Math.Max(1, w), Math.Max(1, h));
                 int hr = s.SetFullscreen(true, w, h, refreshNumerator, refreshDenominator);
-                if (hr < 0)
+                // Entered only on S_OK with DXGI holding the chain full screen (GetFullscreenState):
+                // a success code such as DXGI_STATUS_MODE_CHANGE_IN_PROGRESS is not entered. Refused,
+                // the chain is taken out of the full-screen state first, as the original did after
+                // its refusal (SetFullscreenState(0) next, j0009178), then released.
+                if (hr != 0 || !s.InFullscreenState())
                 {
+                    var sc = (IDXGISwapChain*)s.chain;
+                    sc->lpVtbl->SetFullscreenState(sc, 0, null);
+                    s.fullscreen = false;
                     s.Dispose();
-                    return hr;
+                    return hr < 0 ? hr : NotEntered;
                 }
                 made = s;
                 return hr;
@@ -96,7 +103,7 @@ namespace OniMoono.Desktop.D3d11
                 if (target < 0) return target;
             }
             int hr = sc->lpVtbl->SetFullscreenState(sc, on ? 1 : 0, null);
-            fullscreen = on && hr >= 0;
+            fullscreen = on && hr == 0;
             if (fullscreen)
             {
                 Com.Release(ref view);
@@ -112,6 +119,10 @@ namespace OniMoono.Desktop.D3d11
         }
 
         bool fullscreen;
+
+        /// CreateExclusive's result for a success code that did not leave the chain full screen
+        /// (E_FAIL's value; the code itself is logged by the caller).
+        public const int NotEntered = unchecked((int)0x80004005);
 
         /// Whether DXGI holds the chain in its full-screen state now (GetFullscreenState).
         public bool InFullscreenState()

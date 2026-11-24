@@ -52,7 +52,7 @@ namespace OniMoono.Desktop.D3d11
             {
                 hr = -1;
             }
-            if (hr < 0) worker.WaitPump = null;
+            if (hr != 0) worker.WaitPump = null;
             return hr;
         }
 
