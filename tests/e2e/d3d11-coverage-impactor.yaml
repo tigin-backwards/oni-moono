@@ -7,7 +7,12 @@
 # planet behind the world with BGPlanet (Klei/DLC4/DemoliorBackground), and whose
 # LargeImpactorVisualizer, once active, the overlay camera's LargeImpactorVisualizerEffect draws
 # (Klei/PostFX/LargeImpactorVisualizerShader) (U60 764025).
+#
+# Both materials get the real time and new random numbers every frame, so two runs agreed on under
+# half the image (M3 part C). FrozenImpactorTestMod holds those inputs at constants (the time
+# 1000 s, the random numbers 0.5), so the shots can be judged (M3 review fixes, finding 5).
 from: prehistoric1
+test_mods: [FrozenImpactorTestMod]
 setup:
   - driver: {setup.call: {target: "Game.Instance", method: Trigger, args: [1633134300, {"$": "all:POITechItemUnlockWorkable::[0].gameObject"}]}}
 steps:
