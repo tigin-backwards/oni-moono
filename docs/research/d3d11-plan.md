@@ -66,7 +66,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
-| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4) |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
@@ -909,7 +909,7 @@ OpenGL's, until part B fixed them. The cause and the fix:
   (j0008733, the other OpenGL run j0008734 masking what moves): materials 2.009% before
   (D3D11 j0008694's same shot) to 0.001% after (j0008732), conveyor 1.107% to 0.003%, power
   0.872% to 0.003%; the liquid and gas pipe overlays 0.003% after; the normal view 0.014%.
-- **UNVERIFIED** (M4, with B2's UNVERIFIED 5, the screen's intermediate texture): how the
+- **Closed in the M3 review fixes** (finding 1; was UNVERIFIED, M4): how the
   original's 18A0 reaches the screen surface (the recorder lists distinct draws, not copies;
   its draw 1283 into 31A0 reads a screen-sized texture, presumably that blit), and the rule by
   which Unity ends a frame's camera texture (the UI camera's draws went to 31A0). The device's
@@ -1005,8 +1005,9 @@ j0008867 and j0008868, Vulkan j0008871, the sky's reference; no debug-layer mess
   quadrilateral lines for MultisampleEnable TRUE; its Remarks also say both settings "apply only
   to multisample antialiasing (MSAA) render targets", and this target has one sample, so the
   documentation does not settle which algorithm a single-sample target gets. Observed (RTX
-  3090): two-row lines, as a 1.4-wide rectangle would give. **UNVERIFIED** (M4, with the other
-  measurements of the original): whether the original's lines are two rows thick too.
+  3090): two-row lines, as a 1.4-wide rectangle would give. Whether the original's lines are two
+  rows thick too was UNVERIFIED here; **settled in the M3 review fixes** (finding 5: they are,
+  and the scene is judged against the original).
 - **sky** (within, judged against Vulkan). Klei/NorthernLights' shipped vertex program writes the clip position's x and
   y from the mesh unchanged (`mov o0.xy, v0.xyxx`, `fxc /dumpbin`, j0008876), a quad already in
   clip space with no projection, so its image is turned over in a target whose rows run the
@@ -1070,9 +1071,10 @@ Coverage in play (`coverage.py` over the D3D11 runs: part B's and j0008866, j000
 **Driver.** `setup.set {target, member, value}` (E2eDriver, setup only, as setup.call): a field
 or property set by reflection, for state no method sets.
 
-**Left open.** The navgrid UNVERIFIED item above (M4); Klei/Standard Unlit, AnimationInvisible,
-LargeImpactorCometShader, TextMeshPro/Sprite and Standard not drawn; the two impactor shots
-unjudged; VirtualCursorCutoutShader without a comparable shot.
+**Left open** (each taken up in "M3 review fixes", below). The navgrid UNVERIFIED item above;
+Klei/Standard Unlit, AnimationInvisible, LargeImpactorCometShader, TextMeshPro/Sprite and
+Standard not drawn; the two impactor shots unjudged; VirtualCursorCutoutShader without a
+comparable shot.
 
 **Runs** (runq, burndown, owner `d3d11-m3`): ShaderSurvey j0008823 (a script without its
 interpreter line), j0008824 and j0008826 (refs), j0008841 (script-uses), j0008843 (materials);
@@ -1082,6 +1084,250 @@ expressions fixed), j0008858; the comparison: D3D11 j0008866, OpenGL j0008867 an
 Vulkan j0008871; NorthernLights' DXBC dumps j0008870, j0008872, j0008874 and `fxc /dumpbin` j0008873, j0008875,
 j0008876 (the first ones' scripts were wrong); check.sh j0008877 (failed: ruff's format of
 scenes.py), j0008896 (green, on b587caf69).
+
+## M3 review fixes (2026-11-24, branch `d3d11-m3`)
+
+The adversarial review of M3 (parts A to C) gave 9 findings and a caveat. d3d11-m3 merged
+origin/master first (329aefa77; master's d92cd6220 is 31c4fe0f3's cherry-pick). Each finding's
+premise was checked before any change. Each outcome is classed documented (cited), observed (job;
+RTX 3090, the machine and driver of M2's runs) or open (with the reason).
+
+1. **Draws to the screen while cameras render** (premise observed; fixed, b3c2012ef). While the
+   cameras render on this device, RenderTexture.active null, Graphics.Blit to null and a command
+   buffer's SetRenderTarget to null all bound the back buffer. The hand-over then copied the
+   camera screen over it. The game's case is the Timelapser's freeze. Timelapser.Render
+   (U60 764025) enables the timelapseFreezeCamera, a copy of the UI camera three above it in
+   depth, for the frame in which it moves the camera for a timelapse or a save's colony preview.
+   That camera's FillRenderTargetEffect.OnRenderImage is `Graphics.Blit(fillTexture, null)`.
+   `d3d11-timelapse-freeze.yaml` holds that frame with a white fill:
+   - before the fix, D3D11 showed the moved world and OpenGL the fill (j0009008);
+   - after it, D3D11 shows the fill (j0009015, j0009023).
+
+   **The fix:** while RenderScreen's cameras render, a null target means the camera screen
+   (FrameRenderer.ScreenBinding and ScreenTexture). ReadPixels from null reads it too.
+
+   **Measured against the original** (j0009025, the same spec on its Direct3D 11), pixels over
+   40 with the OpenGL pair's unstable pixels left out:
+
+   | Run | Over 40 against the original |
+   |---|---|
+   | D3D11 after the fix | 1.184% |
+   | OpenGL | 1.180% |
+   | D3D11 before the fix | 91.4% |
+
+   The 1.18% the fixed D3D11 and OpenGL share is the players' own UI differences. The scene is
+   in the scene set, within the tolerance against OpenGL (0.085% over 40).
+
+   **The hand-over** (part B's UNVERIFIED, which the Rules require M3 to close). Closed as
+   observed. In the original's colony frame (j0008168, `report-colony.txt`) the screen
+   camera's texture reaches the screen surface 31A0 in draw 1283:
+   - draw 1283 is the first draw into 31A0 after the last into 18A0 (1238);
+   - its program pair is the one draw 1163 uses (made before the hook: Unity's built-in blit);
+   - it uses the full-screen quad's vertex buffer (stride 20) and reads one 1024x768 R8G8B8A8
+     texture;
+   - the UI's draws follow it into 31A0.
+
+   The recorder logs views, not resources, so that texture is not proven to be 18A0's.
+
+   Ours copies after every camera, the UI camera's draws included, not before them. No pixel
+   can tell these apart: a draw blended over the copy or over the texture before the copy
+   meets the same colours, and the back buffer's alpha is not shown. Measured on the screens
+   where routing matters, against the original:
+   - the light pools (part B);
+   - the freeze frame (above);
+   - the navigation grid (finding 5: 0.000% over 40).
+
+   Routing only the cameras the original routes was not taken: nothing measured separates the
+   two.
+2. **What the debug layer denied** (premise observed; fixed, 066157a9b and a40e78367).
+   - **The default filter.** The layer starts with a storage filter of its own:
+     `allow {none}, deny {severity INFO}`, one filter on the stack, an empty retrieval filter
+     (logged at start, j0009015). The device now pushes an empty storage filter and an empty
+     retrieval filter ("An empty storage filter allows all messages to pass through",
+     PushEmptyStorageFilter; PushEmptyRetrievalFilter likewise). It then denies only
+     DEVICE_DRAW_RENDERTARGETVIEW_NOT_SET. So GetNumMessagesDeniedByStorageFilter counts that
+     warning alone.
+   - **What had been denied.** In the draw-free check (j0009015) that is 9 messages, from the
+     menu's frames. The 2,623 others are all INFO: object creation and destruction (Create and
+     Destroy of textures, views, buffers, shaders, layouts, samplers and states, IDs 2097228 to
+     2097276 and 3146250). The play runs (j0009022, j0009023) add INFO 107 (CreateTexture2D:
+     "would use more than 128 MB of application usable memory. This is fine") and INFO 49
+     (OMSetRenderTargets forcing slot 0 to NULL at a FLIP_SEQUENTIAL Present). Nothing above
+     INFO was hidden. INFO and MESSAGE are now stored, counted and logged by ID apart, and only
+     the other severities count.
+   - **The message count limit.** With INFO stored, the queue's limit (1,024 at start) filled
+     between drains while a colony loaded: 5,557 messages dropped (j0009020). The limit is now
+     lifted ("-1 means no limit", SetMessageCountLimit), and the queue is cleared at each drain.
+   - **Result.** The scene-set runs (j0009022, j0009023): no message above INFO, none dropped.
+     Denied 528, 1,162 and 1,269 in the three colonies, the RTV warning alone (part A: 537,
+     710, 1,309).
+   - **The DirectX Control Panel.** It plays no part. `reg query HKCU\Software\Microsoft\Direct3D
+     /s` (read only, j0009015) found no key: the control panel has set nothing for this user.
+     The layer's INFO filter is its own default.
+   - **The MSVC check.** The eight new info-queue slots are under it: SetMessageCountLimit,
+     GetMessageCountLimit, GetStorageFilter, PushEmptyStorageFilter, GetStorageFilterStackSize,
+     GetRetrievalFilter, PushEmptyRetrievalFilter and GetRetrievalFilterStackSize (check.sh,
+     below).
+3. **The check's exemption** (premise verified in the code; fixed, e1701faf5). Before, any
+   refusal for structured buffers or multisample textures counted as refused and unreachable.
+   - Now D3d11Programs.AcceptedUnreachable names the accepted set, by shader and keyword:
+     - the PROCEDURAL_INSTANCING_ON variants of Particles/Standard Surface, Particles/Standard
+       Unlit and Klei/Standard Unlit;
+     - the five Hidden/Physics2D/SDF_* shaders;
+     - Hidden/FrameDebuggerRenderTargetDisplay's `_MSAA_*` variants;
+     - Hidden/BlitToDepth_MSAA.
+   - Any other refusal fails the check.
+   - A stage entry no program made is a failure unless it belongs to an accepted program.
+   - j0009015: the same 68 programs exempted; all 104 entries not created belong to them
+     ("0 entries not created otherwise"); 0 failed; exit 0.
+4. **scenes.py** (premises verified in the code; fixed, b0aa4b8d5).
+   - **(a) Missing shots.** The shots are those the spec names (`shot`, `world_shot`,
+     `file_shot`). A spec folder or shot missing from any run is a failure.
+   - **(b) Scenes judged against another renderer** (now `REFERENCE`: Vulkan or the original):
+     - the other run's size note is a verdict;
+     - the share compared must meet MIN_STABLE.
+   - **(c) The share is of the whole image.** The spec's masks count against it. One scene
+     masks more than half: the research screen, 71%, whose tree moves in real time (part B).
+     Its claim is lowered to the side bar (`SMALLER_SHARE`, at least 20%; it compares 29%).
+   - **(d) The sky.** Judging the sky against Vulkan is the user's decision (2026-11-23, "Yeah
+     can check Vulkan", on the northern lights' mirroring). The evidence is the original's own
+     (j0008881, part C).
+   - **What 0.1% over 40 allows.** At 1280x720 that is 922 pixels of a whole image; with 92%
+     compared (the landing's least), 848.
+5. **Parity, and the shaders not drawn** (premises verified; settled as below).
+   - **The navigation grid's two-row lines are the original's** (observed, j0009025, the same
+     spec on the original's Direct3D 11). Down one column of the grid's horizontal line:
+
+     | Player | Rows drawn |
+     |---|---|
+     | The original | 449 and 450 |
+     | Ours on D3D11 | 449 and 450 |
+     | Ours on OpenGL | 450 |
+     | Ours on Vulkan | 449 |
+
+     Over the image, with the OpenGL pair's unstable pixels left out:
+
+     | Against the original | Over 16 | Over 40 |
+     |---|---|---|
+     | D3D11 | 0.001% | 0.000% |
+     | OpenGL | 0.136% | 0.127% |
+     | Vulkan | 0.340% | 0.134% |
+
+     The rasterizer state stays. `scenes.py` judges the shot against the original (`--original`,
+     `REFERENCE`), which closes part C's UNVERIFIED. OpenGL's and Vulkan's one-row lines are
+     theirs, not this device's (reported, not changed here).
+   - **The five undrawn shaders** are drawn (j0009020, j0009023; their first-draw coverage
+     lines, debug layer clean). Each, with how the spec reaches it:
+     - **Klei/Standard Unlit.** `long_smoke_trail` is TrailFX2's particle material (slot 0), not
+       a trail. That system emits by distance only: rateOverDistance 10, rateOverTime 0, the
+       trail module off (sharedassets0). So part C's still instance drew nothing.
+       `d3d11-coverage-play` launches a long-range missile as
+       MissileLongRangeProjectile.StatesInstance.PrepareLaunch does.
+     - **TextMeshPro/Sprite.** The same spec selects a storage locker holding one germy Mush
+       Bar. Its contents row gets AppendIcons' `<sprite>` germ icon
+       (SimpleInfoScreen.RefreshStoragePanel); the details panel is scrolled to it.
+     - **Standard.** WaterExplode is a GameAssets prefab whose MeshRenderer uses
+       Default-Material. No game code or data instantiates it, so it is unreachable in play. The
+       spec places it so the program draws.
+     - **Klei/AnimationInvisible and Klei/DLC4/LargeImpactorCometShader.** `d3d11-coverage-comet`
+       triggers ClusterDestinationReached on the impactor. LargeImpactorStatus then lands it,
+       and the event makes the falling LargeImpactorComet. Its LargeComet is the only code that
+       sets MaterialType.Invisible; no assignment of `materialType` elsewhere can give it
+       (KAnimLayering's table, BuildingFacadeAnimateIn's copy). A prefab's serialized
+       `materialType` was not read (ShaderSurvey cannot read script fields); no other draw of
+       the shader appeared in any run.
+     - **Unlit/VirtualCursorCutoutShader.** `d3d11-coverage-gamepad` adds a gamepad controller
+       first (`Global.GetInputManager().AddGamepadController(1)`, KInputManager.devToolFocus),
+       as another investigation found. In the scene set, within: 0.001% over 40.
+
+     Coverage in the committed specs (`coverage.py` over j0009022 and j0009023): 67 of 121
+     shaders, 69 of 176 passes, 158 stage entries, 79 programs. Of part C's 38, 17 draw in
+     play, Standard draws only where the spec places it, and 20 are unreachable as part C
+     found. Every game shader part C found reachable now draws through its shipped program.
+   - **The impactor's two shots: drawn, still unjudged** (open). FrozenImpactorTestMod holds the
+     materials' time and random inputs at constants in both players (4554b64b4, b0aa4b8d5): the time
+     1000 s, the entry's start 1 s, random 0.5. The first try held the entry's start at 0,
+     which the grid's program takes the sign of, a value at a discontinuity, and was dropped.
+     With the inputs held (j0009028):
+     - **impactor-world.** D3D11 against OpenGL: 0.008% over 40, D3D11 against the original
+       0.092%, OpenGL against the original 0.085%, of the pixels compared.
+     - **after-reveal.** D3D11 against OpenGL: 0.050%.
+
+     Only 48% and 45% of each image is stable between two OpenGL runs. What still moves:
+     - the surface's edge and the sky's particles after 20 s of play;
+     - the landing-zone grid's dots: they changed between the two OpenGL runs despite the held
+       inputs (not traced);
+     - the reveal card in after-reveal.
+
+     So both stay under MIN_STABLE and unjudged. They are coverage scenes (criterion 1), not
+     criterion 3's listed scene set. Whether to judge them on less than half the image, or to
+     keep tracing what moves, is left to the user.
+   - **d3d11-coverage.yaml**: its header no longer says the power overlay's ports draw through
+     Klei/BuildingCell (part C: they are UI images).
+6. **CopyTargetRect** (premise verified: AnimatesLoading is not overridden, and nothing else
+   calls it; fixed, 08e1fa3b9). A rectangle outside either texture is refused and logged as a
+   failed command: "If you try and copy outside the destination resource or specify a source
+   box that is larger than the source resource, the behavior of CopySubresourceRegion is
+   undefined" (CopySubresourceRegion, Remarks). The bounds test, CopyFits, is unit-tested
+   (D3d11CopyTests). It does not count toward done criterion 4 until M4 turns the loading
+   animation on and exercises it.
+7. **The readback release race** (premise verified in the code; fixed, 08e1fa3b9). The race:
+   ReleaseReadback freed the texels on the main thread while the device thread could be in
+   Copy, setting `owned`, `Data` and the non-volatile `conversion` (PollReadbacks after a
+   Present). The texels are now freed inside the posted release, on the device thread, after
+   the request leaves the pending list; a conversion it started is waited for first. Completion
+   is polled only after a Present (and on Wait), as part A's design says.
+8. **The target's name on every bind** (premise verified; fixed, 066157a9b). BoundTarget keeps
+   the texture's name. Its label is made only when a log line needs it.
+9. **setup.set** (premises verified: FieldInfo.SetValue on a static readonly field and
+   GetProperty on overloaded indexers; fixed, 9936a71e7). A constant, a static readonly field
+   or an indexer is refused with an error that names which. Properties are found by name
+   without index parameters. The same Set is on master (d92cd6220): this fix can be
+   cherry-picked there as behaviour-neutral prep (not done here).
+
+**The caveat** (the 68 include Particles/Standard Surface and Unlit's PROCEDURAL_INSTANCING_ON
+variants; measured in the data). Unity's manual gives particle GPU instancing for Mesh render
+mode only ("Set your Particle System's renderer mode to Mesh", Particle System GPU instancing,
+2020.3). Every ParticleSystemRenderer in the game's data was read (UnityPy, the frozen build's
+sharedassets, level, resources and globalgamemanagers files): 11 Billboard with GPU instancing
+on, 1 Stretched, none in Mesh mode. So no game particle system can select those variants in the
+original. Whether a mod's could is M7's.
+
+**Scene-set results** (`scenes.py`, part A's tolerance, the changes above). The runs:
+- D3D11 with the debug layer: j0009022 (the three colonies and coverage) and j0009023 (the
+  rest);
+- OpenGL: part B's and C's pairs, j0009024 for the specs new or changed here, j0009028 for the
+  impactor (with its D3D11 run);
+- Vulkan: j0008871;
+- the original: j0009025.
+
+| Spec | Shots | OpenGL spread > 8 (max) | Compared (min) | > 16 | > 40 | PSNR (min) | Within |
+|---|---|---|---|---|---|---|---|
+| Landing (gases) | 22 | 1.74% | 92% | 0.031% | 0.017% | 43.2 dB | 22 of 22 |
+| Small base | 26 | 2.10% | 29% (research, side bar) | 0.108% | 0.040% | 43.5 dB | 26 of 26 |
+| Mid-game Spaced Out | 22 | 2.05% | 86% | 0.399% | 0.022% | 41.4 dB | 22 of 22 |
+| Coverage specs (A-C) | 11 | 2.37% | 93% | 0.122% | 0.092% | 33.7 dB | 11 of 11 (sky against Vulkan, navgrid against the original) |
+| Freeze frame | 1 | 0.00% | 100% | 0.235% | 0.085% | 42.2 dB | 1 of 1 |
+| Gamepad | 1 | 1.71% | 94% | 0.010% | 0.001% | 48.9 dB | 1 of 1 |
+| Impactor | 2 | | 45-48% | | | | unjudged |
+
+83 of 85 scenes are within the tolerance; the 2 impactor shots are unjudged. Every scene of done
+criterion 3's set is within.
+
+**State of M3 under the Rules.** No UNVERIFIED note of M3 is open: the hand-over (finding 1)
+and the navigation grid (finding 5) are closed. What remains for the user's word before M3 is
+marked done:
+- the impactor's two coverage shots, drawn and debug-layer clean, but unjudged (under half the
+  image stable);
+- the loading screens of criterion 3's set, which stay M4's (animated; M4 owns the loading
+  animation), as part A recorded.
+
+**Runs** (runq, burndown, owner `d3d11-m3`): builds j0009013, j0009019, j0009021; the freeze
+before the fix j0009008; check-shaders, filters and freeze j0009015; the new specs' first D3D11
+run j0009020 (5,557 dropped, which led to the limit); the scene set on D3D11 j0009022 and
+j0009023; OpenGL j0009024; the original j0009025 (navgrid, freeze); the impactor on Vulkan and
+the original j0009026, its grid program's dump j0009027, the impactor held again (entry start 1 s)
+j0009028; check.sh below.
 
 ## Research so far (M0)
 
