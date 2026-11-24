@@ -418,7 +418,8 @@ the field or property `member` (public or not, base types included) of the value
 `state.get` expression, or of its type when `target` is `type:NAME`. `value` is converted as a
 setup.call argument is. A struct value's member cannot be set (the target would be a copy). For
 state no method sets, such as `DevToolManager.Instance.showImGui`, the dev tools' visibility,
-which only Ctrl+` (read through `Input.GetKeyDown`) toggles.
+which only Ctrl+` (read through `Input.GetKeyDown`) toggles. A constant, a static readonly
+field or an indexer cannot be set; the error names which.
 
 - **Result:** `{value, type}` of the value assigned.
 

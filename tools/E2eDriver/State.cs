@@ -376,11 +376,25 @@ namespace E2eDriver
                 var field = at.GetField(member, flags);
                 if (field != null)
                 {
+                    // A constant has no storage; a static readonly field's SetValue throws
+                    // FieldAccessException on .NET (its value may be inlined by the JIT).
+                    if (field.IsLiteral) throw new DriverError($"setup.set: {Values.TypeName(at)}.{member} is a constant");
+                    if (field.IsInitOnly && field.IsStatic) throw new DriverError($"setup.set: {Values.TypeName(at)}.{member} is static readonly");
                     if (!Values.Convert(args["value"], field.FieldType, out var value)) throw new DriverError($"setup.set: the value is not a {Values.TypeName(field.FieldType)}");
                     field.SetValue(field.IsStatic ? null : instance, value);
                     return value;
                 }
-                var property = at.GetProperty(member, flags);
+                // By name and no index parameters: GetProperty(name) throws
+                // AmbiguousMatchException for overloaded indexers, which a member name cannot set.
+                PropertyInfo property = null;
+                bool indexer = false;
+                foreach (var p in at.GetProperties(flags))
+                    if (p.Name == member)
+                    {
+                        if (p.GetIndexParameters().Length > 0) indexer = true;
+                        else property = p;
+                    }
+                if (property == null && indexer) throw new DriverError($"setup.set: {Values.TypeName(at)}.{member} is an indexer; set what it returns instead");
                 if (property != null && property.CanWrite)
                 {
                     if (!Values.Convert(args["value"], property.PropertyType, out var value)) throw new DriverError($"setup.set: the value is not a {Values.TypeName(property.PropertyType)}");
