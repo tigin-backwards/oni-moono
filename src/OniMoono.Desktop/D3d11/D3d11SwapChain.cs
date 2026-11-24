@@ -12,8 +12,8 @@ namespace OniMoono.Desktop.D3d11
     /// and RTV), AlphaMode UNSPECIFIED, scaling STRETCH, flags ALLOW_MODE_SWITCH |
     /// FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING (the last where the factory reports
     /// PRESENT_ALLOW_TEARING), maximum frame latency 2; Present(1, 0) with vsync,
-    /// Present(0, ALLOW_TEARING) without. Windowed only: full screen is the window's (D3d11Device's
-    /// presentation, ARCHITECTURE §3.5).
+    /// Present(0, ALLOW_TEARING) without; never in DXGI's full-screen state. Exclusive full screen
+    /// is a second chain of this class's exclusive kind (CreateExclusive, D3d11Exclusive).
     internal sealed unsafe class D3d11SwapChain : IDisposable
     {
         const uint BufferCount = 2, MaximumFrameLatency = 2, WaitMilliseconds = 1000;
@@ -257,6 +257,7 @@ namespace OniMoono.Desktop.D3d11
             {
                 Repeats++;
                 repeatsUnwaited++;
+                resync = repeatSent = true;
             }
             return hr;
         }
@@ -265,15 +266,9 @@ namespace OniMoono.Desktop.D3d11
         public long Repeats { get; private set; }
 
         /// Whether the frame-latency waitable is signalled, without waiting: a repeat goes only
-        /// then. Takes the signal, which stands for the repeat's own wait, so every Present, the
-        /// repeat's included, is paired with one wait (WaitForFrame's rule). That pairing assumes
-        /// each Present, a repeat discarded for a newer picture included, signals the waitable
-        /// once as it leaves the queue: no Microsoft page says so (UNVERIFIED, d3d11-plan.md "M4
-        /// review fixes", item 2). DxgiSwapChain.LastPictureRetired does not assume it: it takes
-        /// the signal the same way, but the next game picture drains and re-counts the waitable
-        /// (its resync) and bounds the wait after a repeat to a refresh. Here a miscount would
-        /// show as WaitForFrame timeouts (one more queued than the latency) or as frames
-        /// running a picture ahead (one fewer), both in ONI_PRESENT_TRACE's lines.
+        /// then, so it does not queue behind a picture (as DxgiSwapChain.LastPictureRetired).
+        /// Takes the signal; the next wait recounts (WaitForFrame's resync), so nothing rests on
+        /// how a repeat discarded for a newer picture signals.
         public bool LastPictureRetired() => waitable != IntPtr.Zero && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0;
 
         /// The refresh period of the display the swap chain is on (Stopwatch ticks; 0: not
@@ -310,36 +305,67 @@ namespace OniMoono.Desktop.D3d11
         /// to signal via the waitable object before it begins rendering every frame. This
         /// includes the first frame rendered with the swap chain" (Microsoft, "Reduce latency
         /// with DXGI 1.3 swap chains", step 4, whose sample waits at most 1 second). So at most
-        /// MaximumFrameLatency frames are queued. A wait that times out is logged (the first
-        /// three) and the frame goes on; the signal it missed is taken when it comes (`owed`),
-        /// so the frames in flight stay at the latency set. Device thread (the constructor's
+        /// MaximumFrameLatency frames are queued.
+        ///
+        /// The count is not trusted across repeats or a timed-out wait (`resync`), as
+        /// DxgiSwapChain does not trust it (its resync): whether a repeat discarded for a newer
+        /// picture signals the waitable is not documented. The next wait then first takes every
+        /// signal there is (up to 16, without waiting): one or more means the queue has room, and
+        /// the count starts anew from there; none after a repeat means the repeat may still be
+        /// queued, and the wait is bounded to a refresh and 2 ms (34 ms when the refresh is not
+        /// known), as DxgiSwapChain's after a repeat. A wait that times out is logged (the first
+        /// three) and the frame goes on, resyncing next time. Device thread (the constructor's
         /// thread before the first frame).
         public void WaitForFrame()
         {
             if (waitable == IntPtr.Zero) return; // the exclusive chain: Present itself blocks
 
             long t = GlTimings.Now;
-            uint waited = Dxgi.WaitForSingleObjectEx(waitable, WaitMilliseconds, 0);
-            if (waited != Dxgi.WaitObject0)
+            uint waited = Dxgi.WaitObject0;
+            bool waitedAtAll = true;
+            if (resync)
             {
-                owed++;
-                if (timeouts++ < 3)
-                    EngineLog.Engine($"d3d11: present {presents}: the frame-latency wait ended with 0x{waited:X} ({(waited == Dxgi.WaitTimeout ? $"timed out after {WaitMilliseconds} ms" : "not signalled")}); going on");
+                int drained = 0;
+                while (drained < 16 && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0) drained++;
+                resync = false;
+                resyncs++;
+                bool afterRepeat = repeatSent;
+                repeatSent = false;
+                if (drained > 0) waitedAtAll = false;
+                else if (afterRepeat)
+                {
+                    long period = System.Threading.Interlocked.Read(ref refreshPeriod);
+                    uint bound = (uint)(period > 0 ? period * 1000 / System.Diagnostics.Stopwatch.Frequency : 34) + 2;
+                    waited = Dxgi.WaitForSingleObjectEx(waitable, bound, 0);
+                    waitedAtAll = false;
+                    // Not signalled within a refresh: the repeat was discarded without a signal,
+                    // or is still to retire; either way the next wait counts anew.
+                    if (waited != Dxgi.WaitObject0) resync = true;
+                }
             }
-            else
-                while (owed > 0 && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0)
-                    owed--;
+            if (waitedAtAll)
+            {
+                waited = Dxgi.WaitForSingleObjectEx(waitable, WaitMilliseconds, 0);
+                if (waited != Dxgi.WaitObject0)
+                {
+                    resync = true;
+                    if (timeouts++ < 3)
+                        EngineLog.Engine($"d3d11: present {presents}: the frame-latency wait ended with 0x{waited:X} ({(waited == Dxgi.WaitTimeout ? $"timed out after {WaitMilliseconds} ms" : "not signalled")}); going on");
+                }
+            }
             long ticks = GlTimings.Now - t;
             if (repeatsUnwaited > 0 && PresentTrace.Enabled)
                 PresentTrace.Log($"d3d11: the first frame-latency wait after {repeatsUnwaited} repeats: {ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F2} ms, "
-                                 + $"{(waited == Dxgi.WaitObject0 ? "signalled" : $"0x{waited:X}")}; timeouts {timeouts}, owed {owed}");
+                                 + $"{(waited == Dxgi.WaitObject0 ? "signalled" : $"0x{waited:X}")}; timeouts {timeouts}, resyncs {resyncs}");
             repeatsUnwaited = 0;
             waitTicks += ticks;
             waitMax = Math.Max(waitMax, ticks);
         }
 
+        bool resync, repeatSent;
+
         long presents;
-        int timeouts, owed, repeatsUnwaited;
+        int timeouts, resyncs, repeatsUnwaited;
 
         // ONI_PRESENT_TRACE: every 120 presents (and at each change of interval) the frame-latency
         // waits and the Present calls, mean and largest, in ms.
@@ -353,7 +379,7 @@ namespace OniMoono.Desktop.D3d11
             {
                 double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                 PresentTrace.Log($"d3d11: the {traced} presents to {presents} at interval {tracedInterval}, {Width}x{Height}: frame-latency wait mean {waitTicks * ms / traced:F2} ms, "
-                                 + $"largest {waitMax * ms:F2}; Present mean {this.presentTicks * ms / traced:F2} ms, largest {presentMax * ms:F2}; timeouts {timeouts}, owed {owed}, repeats {Repeats}");
+                                 + $"largest {waitMax * ms:F2}; Present mean {this.presentTicks * ms / traced:F2} ms, largest {presentMax * ms:F2}; timeouts {timeouts}, resyncs {resyncs}, repeats {Repeats}");
                 traced = 0;
                 waitTicks = waitMax = this.presentTicks = presentMax = 0;
             }
