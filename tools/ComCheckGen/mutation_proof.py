@@ -140,7 +140,12 @@ MUTATIONS = [
     ),
     # M4 (exclusive full screen): one per new declaration.
     ("M4 slot", d + "DxgiInterfaces.cs", '[FieldOffset(10 * 8), As(1, "BOOL")]', '[FieldOffset(12 * 8), As(1, "BOOL")]'),
-    ("M4 BOOL* signedness", d + "DxgiInterfaces.cs", 'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, int*,', 'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, uint*,'),
+    (
+        "M4 BOOL* signedness",
+        d + "DxgiInterfaces.cs",
+        'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, int*,',
+        'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, uint*,',
+    ),
     ("M4 pointee", d + "DxgiInterfaces.cs", "Dxgi.ModeDesc*, int> ResizeTarget", "Dxgi.SwapChainDesc1*, int> ResizeTarget"),
     ("M4 struct field", g, "            public Rational RefreshRate;\n", "            public uint RefreshRate;\n"),
     ("M4 rational field", g, "            public uint Numerator, Denominator;\n", "            public uint Denominator, Numerator;\n"),
