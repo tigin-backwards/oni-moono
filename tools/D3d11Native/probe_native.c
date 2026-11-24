@@ -35,6 +35,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <string.h>
 #include "renderdoc_app.h"
 
 #pragma comment(lib, "d3d11.lib")
@@ -703,7 +704,37 @@ EXPORT int pn_sc_hook(void)
     }
     DXGI_ADAPTER_DESC ad;
     IDXGIAdapter_GetDesc(adapter, &ad);
-    Log("HOOK adapter %ls vendor=0x%04x device=0x%04x", ad.Description, ad.VendorId, ad.DeviceId);
+    Log("HOOK adapter %ls vendor=0x%04x device=0x%04x luid=%lx:%08lx", ad.Description, ad.VendorId, ad.DeviceId,
+        (long)ad.AdapterLuid.HighPart, (unsigned long)ad.AdapterLuid.LowPart);
+    // Where the device's adapter is in EnumAdapters1's order and in each GPU preference's (the
+    // D3D11 plan's M5, the GPU choice rule).
+    IDXGIFactory6 *f6 = NULL;
+    for (UINT i = 0; i < 16; i++)
+    {
+        IDXGIAdapter1 *e = NULL;
+        if (FAILED(IDXGIFactory2_EnumAdapters1(factory, i, &e))) break;
+        DXGI_ADAPTER_DESC1 ed;
+        IDXGIAdapter1_GetDesc1(e, &ed);
+        Log("HOOK EnumAdapters1 %u: %ls luid=%lx:%08lx flags=0x%x%s", i, ed.Description, (long)ed.AdapterLuid.HighPart, (unsigned long)ed.AdapterLuid.LowPart,
+            ed.Flags, memcmp(&ed.AdapterLuid, &ad.AdapterLuid, sizeof(LUID)) == 0 ? " (the device's)" : "");
+        IDXGIAdapter1_Release(e);
+    }
+    if (SUCCEEDED(IDXGIFactory2_QueryInterface(factory, &IID_IDXGIFactory6, (void **)&f6)))
+    {
+        for (int p = DXGI_GPU_PREFERENCE_MINIMUM_POWER; p <= DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE; p++)
+        {
+            IDXGIAdapter1 *e = NULL;
+            if (SUCCEEDED(IDXGIFactory6_EnumAdapterByGpuPreference(f6, 0, (DXGI_GPU_PREFERENCE)p, &IID_IDXGIAdapter1, (void **)&e)))
+            {
+                DXGI_ADAPTER_DESC1 ed;
+                IDXGIAdapter1_GetDesc1(e, &ed);
+                Log("HOOK GPU preference %d first: %ls luid=%lx:%08lx%s", p, ed.Description, (long)ed.AdapterLuid.HighPart, (unsigned long)ed.AdapterLuid.LowPart,
+                    memcmp(&ed.AdapterLuid, &ad.AdapterLuid, sizeof(LUID)) == 0 ? " (the device's)" : "");
+                IDXGIAdapter1_Release(e);
+            }
+        }
+        IDXGIFactory6_Release(f6);
+    }
     // Never shown: no ShowWindow, so the window never appears and never takes the focus.
     HWND w = CreateWindowExW(0, L"STATIC", L"probe", WS_POPUP, 0, 0, 64, 64, NULL, NULL, GetModuleHandleW(NULL), NULL);
     if (!w) { Log("HOOK CreateWindowEx failed %lu", GetLastError()); return 0; }
