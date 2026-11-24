@@ -1509,7 +1509,7 @@ likeliest cause is Microsoft's per-title eligibility (the executable). No behavi
 j0009059; the original j0009056, j0009060; monitor colour spaces j0009058, j0009063; builds
 j0009064 (cancelled), j0009066-j0009068 (dotnet off the job's PATH, then build errors fixed),
 j0009069 (unit tests); Windows builds j0009070, j0009074, j0009076 and runs: menu j0009072 and j0009082, loading j0009075 (no qa.env in the
-worktree), j0009077 (no E2eDriver), j0009079, scenes j0009081; check.sh j0009083 (queued behind a 3 h study job when this was written; its result goes here).
+worktree), j0009077 (no E2eDriver), j0009079, scenes j0009081; check.sh j0009083 (green, on dc2703ded; com-check matches the SDK headers).
 
 ## Research so far (M0)
 
