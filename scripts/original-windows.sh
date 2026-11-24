@@ -119,7 +119,7 @@ cat > "$ps1" <<EOF
 \$env:ONI_RUN_HOME = \$runHome
 \$env:TEMP = "\$runHome\\Temp"; \$env:TMP = \$env:TEMP
 [void](New-Item -ItemType Directory -Force -Path \$env:TEMP)
-Add-Type -Namespace OniTest -Name Focus -MemberDefinition '[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr w); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr w, out uint pid);'
+Add-Type -Namespace OniTest -Name Focus -MemberDefinition '[DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow(); [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr w); [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr w, out uint pid); [DllImport("user32.dll")] public static extern bool AllowSetForegroundWindow(uint pid);'
 \$confirm = "\$runHome\\original-isolation.txt"
 \$log = "\$runHome\\Player.log"
 \$start = Get-Date
@@ -144,12 +144,30 @@ while (-not \$p.HasExited) {
     }
     if (\$why) { Stop-Process -Id \$p.Id -Force -ErrorAction SilentlyContinue; 'ISOLATION FAILED: ' + \$why + ': player ended'; break }
   }
-  if ((\$now - \$start).TotalSeconds -lt 60 -and \$before -ne [IntPtr]::Zero) {
+  if ('${ORIG_FOREGROUND_AT:-}' -ne '') { if (\$isolated) { break } }
+  elseif ((\$now - \$start).TotalSeconds -lt 60 -and \$before -ne [IntPtr]::Zero) {
     \$owner = [uint32]0
     [void][OniTest.Focus]::GetWindowThreadProcessId([OniTest.Focus]::GetForegroundWindow(), [ref]\$owner)
     if (\$owner -eq \$p.Id) { [void][OniTest.Focus]::SetForegroundWindow(\$before) }
   } elseif (\$isolated) { break }
   Start-Sleep -Milliseconds 100
+}
+# ORIG_FOREGROUND_AT=SECONDS (test runs given the user's word, the D3D11 plan's M4): no focus is
+# given back, and at SECONDS after the start this launcher, which can set the foreground (its
+# give-back does), lets the game's process set it (AllowSetForegroundWindow: "A process that can
+# set the foreground window can enable another process to set the foreground window") and makes
+# the game's window the foreground; no key is sent, the pointer is not moved.
+if ('${ORIG_FOREGROUND_AT:-}' -ne '' -and -not \$why) {
+  \$at = \$start.AddSeconds([int]'${ORIG_FOREGROUND_AT:-0}')
+  while (-not \$p.HasExited -and (Get-Date) -lt \$at) { Start-Sleep -Milliseconds 200 }
+  if (-not \$p.HasExited) {
+    \$p.Refresh()
+    \$allowed = [OniTest.Focus]::AllowSetForegroundWindow([uint32]\$p.Id)
+    \$set = [OniTest.Focus]::SetForegroundWindow(\$p.MainWindowHandle)
+    \$owner = [uint32]0
+    [void][OniTest.Focus]::GetWindowThreadProcessId([OniTest.Focus]::GetForegroundWindow(), [ref]\$owner)
+    'foreground: AllowSetForegroundWindow ' + \$allowed + ', SetForegroundWindow ' + \$set + ', foreground now ' + \$(if (\$owner -eq \$p.Id) { 'the game' } else { 'another process' })
+  }
 }
 \$left = [Math]::Max(0, [int](\$end - (Get-Date)).TotalMilliseconds)
 if (\$why) { \$result = 'exited isolation-failed' }
