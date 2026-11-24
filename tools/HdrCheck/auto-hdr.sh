@@ -31,7 +31,9 @@
 # Reading: Windows composes SDR content at the SDR white level (240 nits on that display, j0009190);
 # a window whose maximum is well above it (AHDR_SDR_WHITE x 1.15) was taken for HDR content.
 set -uo pipefail
-root=/home/nigit/projects/oni-brutal/out/d3d11-m4-wt
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# runq runs a --script from a copy in the job's folder: then the checkout is the working folder.
+[ -f "$root/tools/HdrCheck/auto-hdr-reg.ps1" ] || root="$(pwd)"
 : "${ONI_RUN_HOME:?}" "${RUNQ_OUT:?}" "${RUNQ_JOB:?}"
 out="$RUNQ_OUT"
 name="${AHDR_DISPLAY:-\\\\.\\DISPLAY1}"
@@ -67,15 +69,27 @@ echo "HDR before: $before"
 [[ "$before" == *"hdrSupported 1"* ]] || { echo "$name reports no HDR support: aborted, nothing changed"; exit 1; }
 was_on=0; [[ "$before" == *"active HDR"* ]] && was_on=1
 
-saved=0; restored=0
+saved=0; restored=0; restore_failed=0
 restore() {
+    local code=$?
+    # A second signal must not cut the restore short.
+    trap '' INT TERM HUP
     [ $restored -eq 1 ] && return; restored=1
     echo "--- restore"
-    if [ $saved -eq 1 ]; then reg restore -State "$state" | tee "$out/registry-after.txt"; fi
-    if [ $was_on -eq 0 ]; then echo "HDR: $(toggle set "$name" off)"; fi
+    if [ $saved -eq 1 ]; then
+        reg restore -State "$state" | tee "$out/registry-after.txt"
+        [ "${PIPESTATUS[0]}" -eq 0 ] || { echo "RESTORE FAILED: the registry (RESTORE.txt has the commands)"; restore_failed=1; }
+    fi
+    if [ $was_on -eq 0 ]; then
+        echo "HDR: $(toggle set "$name" off)"
+        [[ "$(toggle list | grep -F "$name supported")" == *"active HDR"* ]] && { echo "RESTORE FAILED: HDR is still on for $name"; restore_failed=1; }
+    fi
     echo "HDR after: $(toggle list | grep -F "$name supported")"
     [ $saved -eq 1 ] && reg show -State "$state" | tee -a "$out/registry-after.txt"
     cp "$work/state.json" "$out/" 2>/dev/null
+    # A failed restore fails the job, whatever the run's own result.
+    [ $restore_failed -eq 0 ] || exit 3
+    return $code
 }
 trap restore EXIT
 trap 'exit 130' INT; trap 'exit 143' TERM; trap 'exit 129' HUP
