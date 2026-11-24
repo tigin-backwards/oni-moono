@@ -68,8 +68,9 @@ namespace OniMoono.Desktop.Gl
         /// (false: there was none), and whether there is any (GlBackgroundUploads).
         public Func<bool> IdleWork;
         public Func<bool> HasIdleWork;
-        /// Milliseconds until idle work is due while HasIdleWork says there is none yet (-1 or
-        /// null: none is coming, the thread waits for a frame or a Wake): the Direct3D 11
+        /// Milliseconds until idle work is due while HasIdleWork says there is none yet: 0 when it
+        /// has fallen due since (the wait returns at once and HasIdleWork is asked again); -1, or
+        /// no hook, when none is coming (the thread waits for a frame or a Wake). The Direct3D 11
         /// device's repeats, splash and loading animation (D3d11Device's presentation).
         public Func<int> IdleWaitMs;
         // The last idle work could not go on although there is more (GL thread).
@@ -276,7 +277,10 @@ namespace OniMoono.Desktop.Gl
                         {
                             // Idle work that could not go on (waiting for the GPU) is tried again soon.
                             if (idleBlocked) { Monitor.Wait(gate, 2); idleBlocked = false; }
-                            else if (IdleWaitMs?.Invoke() is int due && due > 0) Monitor.Wait(gate, due);
+                            // 0: the work fell due between HasIdleWork and here; Wait(gate, 0)
+                            // gives the gate up and takes it back at once, and the loop's test
+                            // then finds it due. Only a negative wait (none coming) is untimed.
+                            else if (IdleWaitMs?.Invoke() is int due && due >= 0) Monitor.Wait(gate, due);
                             else Monitor.Wait(gate);
                         }
                         if (submitted == null && stopping) break;
