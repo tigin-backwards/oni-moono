@@ -69,6 +69,11 @@ echo "HDR before: $before"
 [[ "$before" == *"hdrSupported 1"* ]] || { echo "$name reports no HDR support: aborted, nothing changed"; exit 1; }
 was_on=0; [[ "$before" == *"active HDR"* ]] && was_on=1
 
+# A state file another run left (a job killed before its restore) means the user's settings may
+# still be that run's: refuse to start, and say where it is (its RESTORE.txt has the commands).
+leftover="$(find "$(dirname "$work")" -maxdepth 2 -path '*/ahdr-*/state.json' ! -path "$work/*" 2>/dev/null | head -1)"
+[ -z "$leftover" ] || { echo "a state file from an earlier run is still there ($leftover), so its restore may not have run: aborted, nothing changed"; exit 1; }
+
 saved=0; restored=0; restore_failed=0
 restore() {
     local code=$?
@@ -84,9 +89,14 @@ restore() {
         echo "HDR: $(toggle set "$name" off)"
         [[ "$(toggle list | grep -F "$name supported")" == *"active HDR"* ]] && { echo "RESTORE FAILED: HDR is still on for $name"; restore_failed=1; }
     fi
-    echo "HDR after: $(toggle list | grep -F "$name supported")"
+    after="$(toggle list | grep -F "$name supported")"
+    echo "HDR after: $after"
+    # The display's whole state as before (HDR and wide colour, on or off, the active mode).
+    [ "$after" = "$before" ] || { echo "RESTORE FAILED: the display's state differs from before ($before)"; restore_failed=1; }
     [ $saved -eq 1 ] && reg show -State "$state" | tee -a "$out/registry-after.txt"
     cp "$work/state.json" "$out/" 2>/dev/null
+    # Restored: the state file is kept under another name, so a later run finds no leftover.
+    [ $restore_failed -eq 1 ] || mv "$work/state.json" "$work/state.restored.json" 2>/dev/null
     # A failed restore fails the job, whatever the run's own result.
     [ $restore_failed -eq 0 ] || exit 3
     return $code

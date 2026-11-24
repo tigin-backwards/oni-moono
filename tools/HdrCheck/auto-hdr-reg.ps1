@@ -26,8 +26,9 @@ function Targets($exes) {
     }
     $t
 }
-# Keys, parents first.
-function KeyList($exes) { @($gpu, $d3d) + @($exes | ForEach-Object { Sub $_ }) }
+# Keys, parents first: DirectX too, which New-Item -Force creates with UserGpuPreferences when
+# neither exists, so a restore removes it again.
+function KeyList($exes) { @("$Root\DirectX", $gpu, $d3d) + @($exes | ForEach-Object { Sub $_ }) }
 function Read1($key, $name) {
     if (-not (Test-Path -LiteralPath $key)) { return $null }
     $k = Get-Item -LiteralPath $key
