@@ -184,6 +184,7 @@ namespace OniMoono.Desktop.Vulkan
             }
             EngineLog.Engine($"vulkan: memory: {heaps}; {ResizableBar(memory)}");
             maxAnisotropy = vk.SamplerAnisotropy ? p.Limits.MaxSamplerAnisotropy : 1f;
+            anisotropyAsTrilinear = vk.Identity.DriverId == NvidiaProprietary;
             maxLodBias = p.Limits.MaxSamplerLodBias;
             depthFormat = (caps.Features(VkFormat.D24UNormS8UInt) & VkFormatFeatureFlags.DepthStencilAttachmentBit) != 0 ? VkFormat.D24UNormS8UInt : VkFormat.D32SFloatS8UInt;
             VkFormats.Sampled = f => (caps.Features(f) & (VkFormatFeatureFlags.SampledImageBit | VkFormatFeatureFlags.TransferDstBit)) == (VkFormatFeatureFlags.SampledImageBit | VkFormatFeatureFlags.TransferDstBit);

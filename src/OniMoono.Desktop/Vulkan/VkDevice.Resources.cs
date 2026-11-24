@@ -52,6 +52,7 @@ namespace OniMoono.Desktop.Vulkan
     {
         VkFormat depthFormat = VkFormat.D24UNormS8UInt;
         float maxAnisotropy = 1f, maxLodBias;
+        bool anisotropyAsTrilinear;
         readonly HashSet<VkTexture> liveTextures = new();
         readonly HashSet<VkMesh> liveMeshes = new();
         readonly HashSet<VkProgram> livePrograms = new();
@@ -448,7 +449,7 @@ namespace OniMoono.Desktop.Vulkan
         }
 
         /// Point: nearest; Bilinear: linear within a level, nearest level; Trilinear: linear
-        /// across levels (as GlTextures.ApplySampler).
+        /// across levels (as GlTextures.ApplySampler); anisotropy as Filtering says.
         public void ApplySampler(DeviceTexture g, GlTextures.SamplerSettings s)
         {
             var vt = g.Vk;
@@ -457,12 +458,10 @@ namespace OniMoono.Desktop.Vulkan
             var key = (s, mips, volume);
             if (!samplers.TryGetValue(key, out var sampler))
             {
-                var filter = s.FilterMode == FilterMode.Point ? VkFilter.Nearest : VkFilter.Linear;
-                float anisotropy = maxAnisotropy > 1f && s.FilterMode != FilterMode.Point ? Math.Clamp(s.Aniso, 1, maxAnisotropy) : 1f;
+                var (filter, mipmapMode, anisotropy) = Filtering(s.FilterMode, s.Aniso, mips, maxAnisotropy, anisotropyAsTrilinear);
                 sampler = vk.Device.CreateSampler(new VkSamplerCreateInfo
                 {
-                    MagFilter = filter, MinFilter = filter,
-                    MipmapMode = s.FilterMode == FilterMode.Trilinear && mips ? VkSamplerMipmapMode.Linear : VkSamplerMipmapMode.Nearest,
+                    MagFilter = filter, MinFilter = filter, MipmapMode = mipmapMode,
                     AddressModeU = Wrap(s.WrapU), AddressModeV = Wrap(s.WrapV), AddressModeW = volume ? Wrap(s.WrapW) : VkSamplerAddressMode.Repeat,
                     MipLodBias = Math.Clamp(s.MipBias, -maxLodBias, maxLodBias),
                     AnisotropyEnable = anisotropy > 1f, MaxAnisotropy = anisotropy,
@@ -473,6 +472,36 @@ namespace OniMoono.Desktop.Vulkan
                 samplers[key] = sampler;
             }
             vt.Sampler = sampler;
+        }
+
+        /// VK_DRIVER_ID_NVIDIA_PROPRIETARY (vk.xml).
+        internal const int NvidiaProprietary = 4;
+
+        /// A sampler's filters and anisotropy (1: off) for a texture's filter mode and
+        /// anisotropic level (after TextureQuality.Aniso), on a device whose limit is
+        /// `maxAnisotropy` (1 without the samplerAnisotropy feature).
+        ///
+        /// The original's D3D11 samplers (d3d11-captures.md §2) are MIN_MAG_MIP_POINT,
+        /// MIN_MAG_LINEAR_MIP_POINT and, for a level above 1, ANISOTROPIC with MaxAnisotropy 4:
+        /// "Use anisotropic interpolation for minification, magnification, and mip-level
+        /// sampling" (D3D11_FILTER). Vulkan's anisotropyEnable is that filter, but "the
+        /// particular scheme for anisotropic texture filtering is implementation-dependent"
+        /// (Vulkan specification, Texel Anisotropic Filtering), and the schemes differ:
+        /// - **NVIDIA's driver** (`asTrilinear`: VkDriverId NVIDIA_PROPRIETARY). On an RTX 3090
+        ///   (driver 610.88) its Vulkan anisotropy picked coarser levels than its own D3D11
+        ///   ANISOTROPIC and OpenGL anisotropy on the same draws, and the world was blurrier
+        ///   than the original's: 17% of a mid-game colony's world shot over 8 from it, against
+        ///   3.1% for our D3D11, mean horizontal gradient 11.0 against 12.15. Linear across
+        ///   levels without anisotropy there is 5.2% over 8, gradient 12.2.
+        /// - **llvmpipe** with anisotropy is closer to the original on llvmpipe's OpenGL than
+        ///   without it: 6.0% of the same shot over 8 against 7.1%, the wide shot 2.2% against
+        ///   5.9%. So it, and the drivers not measured, keep the anisotropy.
+        internal static (VkFilter Filter, VkSamplerMipmapMode MipmapMode, float Anisotropy) Filtering(FilterMode mode, int aniso, bool mips, float maxAnisotropy, bool asTrilinear)
+        {
+            if (mode == FilterMode.Point) return (VkFilter.Nearest, VkSamplerMipmapMode.Nearest, 1f);
+            float anisotropy = maxAnisotropy > 1f ? Math.Clamp(aniso, 1, maxAnisotropy) : 1f;
+            bool trilinear = mode == FilterMode.Trilinear || (asTrilinear && anisotropy > 1f);
+            return (VkFilter.Linear, trilinear && mips ? VkSamplerMipmapMode.Linear : VkSamplerMipmapMode.Nearest, asTrilinear ? 1f : anisotropy);
         }
 
         VkSamplerAddressMode Wrap(TextureWrapMode m) => m switch
