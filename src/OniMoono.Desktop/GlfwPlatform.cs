@@ -514,7 +514,14 @@ namespace OniMoono.Desktop
         {
             if (!OperatingSystem.IsWindows()) return "not Windows";
             int ok = SetForegroundWindow(Win32Handle);
-            return $"SetForegroundWindow {ok}, foreground now {(GetForegroundWindow() == Win32Handle ? "this window" : "another window")}";
+            string result = $"SetForegroundWindow {ok}, foreground now {(GetForegroundWindow() == Win32Handle ? "this window" : "another window")}";
+            // The popup a focusother made has served: destroyed (on this thread, which made it).
+            if (otherWindow != IntPtr.Zero)
+            {
+                DestroyWindow(otherWindow);
+                otherWindow = IntPtr.Zero;
+            }
+            return result;
         }
 
         /// Test runs (`--input FRAME:focusother`): a small window of this process's own on the
@@ -525,9 +532,10 @@ namespace OniMoono.Desktop
             if (!OperatingSystem.IsWindows()) return "not Windows";
             if (otherWindow == IntPtr.Zero)
             {
-                GetWindowRect(Win32Handle, out var r);
+                // Over the player's window when its rect is known, else at the monitor's corner.
+                int2 at = GetWindowRect(Win32Handle, out var r) != 0 ? new int2(r.Left + 40, r.Top + 40) : CurrentMonitor is var m && !m.IsNull() ? m.Position : new int2(0, 0);
                 // WS_POPUP | WS_VISIBLE, WS_EX_TOOLWINDOW (winuser.h).
-                otherWindow = CreateWindowExW(0x80, "STATIC", "Moono focus test", unchecked((int)0x90000000), r.Left + 40, r.Top + 40, 160, 90, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+                otherWindow = CreateWindowExW(0x80, "STATIC", "Moono focus test", unchecked((int)0x90000000), at.X, at.Y, 160, 90, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
             }
             if (otherWindow == IntPtr.Zero) return "CreateWindowEx failed";
             int ok = SetForegroundWindow(otherWindow);
@@ -578,6 +586,10 @@ namespace OniMoono.Desktop
         [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern IntPtr GetForegroundWindow();
+
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern int DestroyWindow(IntPtr hwnd);
 
         [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
         [System.Runtime.InteropServices.DllImport("user32.dll")]
