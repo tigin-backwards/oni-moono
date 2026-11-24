@@ -1541,10 +1541,10 @@ The adversarial review of M4 gave 8 items. Each was fixed in its own commit (dee
    the first wait after each run of repeats returned at once, signalled (the repeat before it had
    long retired), and the frames after it waited 16.0-16.1 ms a frame on average, as before the
    stalls (a count one short would show as timeouts or 33 ms waits, one over as frames that keep
-   not waiting). So the count stayed balanced. **UNVERIFIED, narrowed:** whether any repeat was in
-   fact discarded for a newer picture in that run is not known (nothing counts discards), so the
-   discarded case's signal is still unshown; adopting DxgiSwapChain's resync is the fallback if a
-   run shows a miscount.
+   not waiting). So the count stayed balanced. Whether any repeat was in fact discarded for a
+   newer picture in that run is not known (nothing counts discards); **closed by design** in the
+   second review's fixes (b728e6e7c): the flip chain now recounts the waitable after repeats and
+   timeouts as DxgiSwapChain does, so nothing rests on how a discarded repeat signals.
 3. **The presenter forgot bindings still in place** (c12bc9a3f). After a presenter draw,
    ForgetBindings cleared every tracked view, sampler and constant buffer, though only the pixel
    stage's slot 0 had changed, so SetTarget's hazard pass no longer knew of views still bound in
@@ -1758,13 +1758,17 @@ makes it the same way (`D3d11Exclusive.cs`, a15ca1009). Design:
   made, `ResizeTarget` with the mode (it "should be called before calling SetFullscreenState",
   "DXGI best practices"), `SetFullscreenState(TRUE, NULL)`, then `ResizeBuffers` to the mode's
   size ("call IDXGISwapChain::ResizeBuffers to resize the back buffer to the size that was passed
-  as parameters in WM_SIZE", the same). The window then has the mode's size, which the device
-  follows at each present.
+  as parameters in WM_SIZE", the same). That the window then has the mode's size is the
+  documented effect (ResizeTarget "resizes the target window"; seen only at the monitor's own
+  mode, j0009222's 2560×1440); the device follows its size at each present.
 - **Refused**: `DXGI_ERROR_NOT_CURRENTLY_AVAILABLE` ("The output window does not have keyboard
   focus", among its causes; "your application can continue to run in windowed mode and try to
-  switch to full-screen mode later", SetFullscreenState) releases the chain and leaves a
-  fullscreen window at the monitor's size, as the original fell back to FullScreenWindow
-  (j0009128, j0009178).
+  switch to full-screen mode later", SetFullscreenState), or any result but S_OK, or S_OK without
+  GetFullscreenState reporting full screen, is a refusal: the chain is taken out of the
+  full-screen state (SetFullscreenState(FALSE), as the original after its refusal, j0009178) and
+  released, and the window is put back at the monitor's size (ResizeTarget, called first, may
+  have resized it) as a fullscreen window rendering at that size, as the original fell back to
+  "FullScreenWindow 2560x1440" after a refused 1920×1080 (j0009128).
 - **Leaving**: any other `SetResolution` first calls `Leave`: `SetFullscreenState(FALSE)` then
   release ("Before releasing a swap chain, first switch to windowed mode", "DXGI overview"), the
   context cleared and the target set again, the flip chain presenting.
@@ -1789,7 +1793,9 @@ makes it the same way (`D3d11Exclusive.cs`, a15ca1009). Design:
 - **Pacing and repeats without the waitable.** The waitable flag "isn't supported in full-screen
   mode, unless the render API is Direct3D 12" (DXGI_SWAP_CHAIN_FLAG) and the original's exclusive
   chain has none (`GetMaximumFrameLatency` DXGI_ERROR_INVALID_CALL, j0009185), so in exclusive
-  Present paces frames by itself, as the original's does (`WaitForFrame` does nothing there);
+  Present paces frames by itself (observed for ours, j0009222: 15.6-16.2 ms a Present; that
+  the original's does the same is an inference from its chain having no waitable;
+  `WaitForFrame` does nothing there);
   frame deltas still follow the refresh (`FramePacing.PacedPresent` with the output's mode). No
   repeat goes in exclusive (`MayRepeat`: they need the waitable to know the last picture has
   retired); the splash and the loading animation present as frames do.
@@ -1828,6 +1834,32 @@ makes it the same way (`D3d11Exclusive.cs`, a15ca1009). Design:
   DISCARD chain in its full-screen state, no waitable), and windowed on losing the focus. The
   alt-tab back into exclusive is a new SetResolution, as in the original, which does not go back
   by itself (j0009185).
+
+## M4 second review fixes (2026-11-24, branch `d3d11-m4`)
+
+The second adversarial review of M4 (the exclusive full screen, the HDR and Auto HDR tools):
+- **1, 4, nit 9** (d21ab61a0): a refused exclusive leaves a monitor-sized fullscreen window
+  (ResizeTarget "resizes the target window when the swap chain is in windowed mode", so the
+  window is put back), takes the chain out of the full-screen state first as the original did,
+  and only S_OK with GetFullscreenState full screen counts as entered (a success code such as
+  DXGI_STATUS_MODE_CHANGE_IN_PROGRESS does not).
+- **2** (2aab122aa): exclusive at start-up was GLFW's (the window comes before the device); the
+  device, registering with the platform, makes it DXGI's.
+- **3** (89cd77f49): DXGI leaving full screen by itself, or DXGI_STATUS_OCCLUDED from the
+  exclusive chain's Present (no pacing then), leaves exclusive; the platform makes the window
+  windowed.
+- **5, 6, 14, 15** (5cd1824c1, d62e2cada, 64e022897): the Auto HDR check's restore ignores
+  signals, fails the job when the registry or HDR is not as before (the display's whole state
+  compared), removes a DirectX key it made, refuses to start over a leftover state file; no
+  hard-coded checkout; the helpers quote the run home and check the window handle.
+- **The narrowed UNVERIFIED note** (b728e6e7c): closed by design, the flip chain resyncing the
+  waitable after repeats and timeouts as DxgiSwapChain does.
+- **Nits** 7 (8eeec48fb: Shutdown leaves exclusive on the device thread before it stops; no crash
+  hook runs with a live device thread, so none was added), 8 (286c6df5b: the pumping wait runs
+  window callbacks), 10 (7fe56bb40: the original's ResizeTarget logged format 0, UNKNOWN; its
+  refresh was the display's, ours the game's request), 12 (af4480aff: a DXGI_RATIONAL
+  mutation), 13 (f3afa3b11: the focus test's popup destroyed, its placement checked).
+- **Runs** (scripts given to the coordinator): RUNS2.
 
 ## Research so far (M0)
 
