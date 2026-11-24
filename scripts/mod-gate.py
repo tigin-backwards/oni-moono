@@ -43,6 +43,22 @@ FLAGS = ('malware', 'credentials', 'chatWebhook', 'obfuscated')
 # Local builds, not on the Workshop, that do not run on this game update: {id: why}. Specs that
 # install them are skipped with that reason. Fast Track's GitHub builds pass on master (U59).
 NOT_ON_THIS_UPDATE = {'9000000001': 'Fast Track does not run on U60 (its GitHub builds pass on U59 only)'}
+# The user's exceptions for mods a spec needs before onimaxxing has analysed their upload: {id:
+# (upload handle, {relative path: SHA-256} of every binary, why)}. Such a mod passes only when
+# SteamCMD's handle is that upload and the unpacked binaries are exactly these files (none more,
+# none differing), and onimaxxing flags nothing. Each was read before it was pinned.
+USER_EXCEPTIONS = {
+    '3408518726': (
+        '15844966683619590494',
+        {'LoadingPip.dll': '62ab2d565dac5e8425d7e166acde5d3885ede76f1e67414e5cd3e1ea41c3a471'},
+        "the user's exception for loading-animation-pip-d3d11, 2026-11-24 (Loading Pip 1.4.0)",
+    ),
+    '3802090892': (
+        '13679339843057888814',
+        {'PipLicksButt.dll': '5097a9efba2a237a72a5e8bc39a814e94acd4001266d4a3bc8fc67f37859e493'},
+        "the user's exception for loading-animation-pip-d3d11, 2026-11-24 (Pip Licks Butt 1.0.0.0)",
+    ),
+}
 BINARY_EXT = ('.dll', '.exe', '.so', '.dylib')
 BINARY_MAGIC = (b'\x7fELF', b'\xfe\xed\xfa\xce', b'\xfe\xed\xfa\xcf', b'\xce\xfa\xed\xfe', b'\xcf\xfa\xed\xfe')
 
@@ -182,6 +198,13 @@ def check(mid, oni, handles, ws=WS):
     handle = handles.get(mid)
     if not handle:
         return verdict(False, 'SteamCMD records no upload handle for it')
+    if mid in USER_EXCEPTIONS:
+        pinned_handle, pinned, why = USER_EXCEPTIONS[mid]
+        if handle != pinned_handle:
+            return verdict(False, f'{why}: pinned to upload {pinned_handle}, SteamCMD has {handle}')
+        if have != pinned:
+            return verdict(False, f'{why}: the unpacked binaries are not the pinned ones')
+        return verdict(True, f'{why}: upload {handle}, binaries as pinned')
     index = oni.get(f'mod/{mid}/index.json')
     versions = [v for v in (index or {}).get('versions') or [] if isinstance(v, dict)]
     version = next((v for v in versions if str(v.get('file')) == handle), None)

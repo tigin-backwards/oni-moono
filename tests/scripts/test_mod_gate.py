@@ -104,6 +104,21 @@ class Gate(unittest.TestCase):
         self.assertEqual(result['verdict'], 'skip')
         self.assertIn('DirectOrders.dll differ', result['reason'])
 
+    def test_a_users_exception_passes_only_its_pinned_upload_and_files(self):
+        # Not analysed by onimaxxing at all; the exception pins the handle and every binary.
+        files = onimaxxing(versions=[])
+        pinned = {MID: (str(HANDLE), {'DirectOrders.dll': SHA}, 'an exception')}
+        with mock.patch.object(gate, 'USER_EXCEPTIONS', pinned):
+            self.assertEqual(self.run_gate(files)[MID]['verdict'], 'pass')
+            self.mod(MID, {'Extra.dll': b'MZ more'})
+            result = self.run_gate(files)[MID]
+            self.assertEqual(result['verdict'], 'skip')
+            self.assertIn('not the pinned ones', result['reason'])
+        with mock.patch.object(gate, 'USER_EXCEPTIONS', {MID: ('1', {'DirectOrders.dll': SHA}, 'an exception')}):
+            self.assertIn('pinned to upload 1', self.run_gate(files)[MID]['reason'])
+        with mock.patch.object(gate, 'USER_EXCEPTIONS', pinned):
+            self.assertEqual(self.run_gate(onimaxxing(analysis={'malware': True}, versions=[]))[MID]['verdict'], 'skip')
+
     def test_dlls_match_by_hash_not_by_path(self):
         # A non-ASCII name the zip gave in another encoding, and a library onimaxxing lists without a hash.
         os.remove(os.path.join(self.ws, MID, 'DirectOrders.dll'))
