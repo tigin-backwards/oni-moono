@@ -79,7 +79,10 @@ namespace OniMoono.Desktop.Gl
         /// Called while a waiting thread (the main thread) waits for the GL thread, every
         /// millisecond, when set: the Direct3D 11 device's exclusive full screen, during which the
         /// device thread's DXGI calls may send the window messages (SendMessage) the main thread
-        /// must answer (D3d11Exclusive). Null: an untimed wait, as before.
+        /// must answer (D3d11Exclusive). Null: an untimed wait, as before. The pump dispatches
+        /// those messages to the window procedure, so GLFW's callbacks (and the platform's
+        /// handlers behind them) can run inside Submit, WaitIdle or Call, under this gate, on the
+        /// waiting thread: they must not wait for this worker.
         public Action WaitPump;
 
         /// One wait of the waiting thread for the GL thread, under the gate.

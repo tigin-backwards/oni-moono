@@ -550,7 +550,8 @@ namespace OniMoono.Desktop
         /// messages sent to windows owned by the calling thread using the SendMessage ..."
         /// during the call; PM_QS_SENDMESSAGE: "Process all sent messages"; PM_NOREMOVE:
         /// "Messages are not removed from the queue" (PeekMessageW). For a wait on the device
-        /// thread whose DXGI calls may send the window messages (GlWorker.WaitPump).
+        /// thread whose DXGI calls may send the window messages (GlWorker.WaitPump). GLFW's
+        /// window procedure, and so its callbacks, run inside this call when a message was sent.
         public void PumpSentMessages()
         {
             if (OperatingSystem.IsWindows()) PeekMessageW(out _, IntPtr.Zero, 0, 0, 0x400000);
