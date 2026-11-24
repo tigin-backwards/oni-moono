@@ -489,6 +489,60 @@ namespace OniMoono.Desktop
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern int ShowWindow(IntPtr hwnd, int command);
 
+        /// Test runs (`--input FRAME:focus`, Windows, the user's word for the D3D11 plan's M4
+        /// desktop runs): the window asks to be the foreground window (SetForegroundWindow, which
+        /// Windows may refuse to a process not in the foreground), and says what it got. No key is
+        /// sent and the pointer is not moved.
+        public string TakeForeground()
+        {
+            if (!OperatingSystem.IsWindows()) return "not Windows";
+            int ok = SetForegroundWindow(Win32Handle);
+            return $"SetForegroundWindow {ok}, foreground now {(GetForegroundWindow() == Win32Handle ? "this window" : "another window")}";
+        }
+
+        /// Test runs (`--input FRAME:focusother`): a small window of this process's own on the
+        /// same monitor takes the foreground, as an alt-tab to another window would (made once,
+        /// a popup tool window; destroyed with the process).
+        public string GiveForegroundToOwnWindow()
+        {
+            if (!OperatingSystem.IsWindows()) return "not Windows";
+            if (otherWindow == IntPtr.Zero)
+            {
+                GetWindowRect(Win32Handle, out var r);
+                // WS_POPUP | WS_VISIBLE, WS_EX_TOOLWINDOW (winuser.h).
+                otherWindow = CreateWindowExW(0x80, "STATIC", "Moono focus test", unchecked((int)0x90000000), r.Left + 40, r.Top + 40, 160, 90, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            }
+            if (otherWindow == IntPtr.Zero) return "CreateWindowEx failed";
+            int ok = SetForegroundWindow(otherWindow);
+            IntPtr fg = GetForegroundWindow();
+            return $"SetForegroundWindow (another window of this process) {ok}, foreground now {(fg == otherWindow ? "that window" : fg == Win32Handle ? "this window" : "another process's window")}";
+        }
+
+        IntPtr otherWindow;
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        struct WinRect
+        {
+            public int Left, Top, Right, Bottom;
+        }
+
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern int SetForegroundWindow(IntPtr hwnd);
+
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern IntPtr GetForegroundWindow();
+
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.DllImport("user32.dll")]
+        static extern int GetWindowRect(IntPtr hwnd, out WinRect rect);
+
+        [OniMoono.Desktop.D3d11.NotNative("a window, input or IME call (user32, imm32, kernel32, shcore), outside the renderer's binding: not declared to the check")]
+        [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+        static extern IntPtr CreateWindowExW(int exStyle, string className, string windowName, int style, int x, int y, int width, int height, IntPtr parent, IntPtr menu,
+            IntPtr instance, IntPtr param);
+
         static float MonitorDpi(GlfwMonitor m) => ScreenDpi.Physical(m.Size.X, m.PhysicalSize.X);
 
         /// The window's monitor, or Null while there is none: GLFW lists no monitor while Windows
