@@ -143,6 +143,7 @@ MUTATIONS = [
     ("M4 BOOL* signedness", d + "DxgiInterfaces.cs", 'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, int*,', 'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, uint*,'),
     ("M4 pointee", d + "DxgiInterfaces.cs", "Dxgi.ModeDesc*, int> ResizeTarget", "Dxgi.SwapChainDesc1*, int> ResizeTarget"),
     ("M4 struct field", g, "            public Rational RefreshRate;\n", "            public uint RefreshRate;\n"),
+    ("M4 rational field", g, "            public uint Numerator, Denominator;\n", "            public uint Denominator, Numerator;\n"),
     ("M4 enum width", g, '[As("DXGI_MODE_SCALING")] public uint Scaling;', '[As("DXGI_MODE_SCALING")] public ushort Scaling;'),
     ("M4 constant", g, "public const uint SwapEffectDiscard = 0;", "public const uint SwapEffectDiscard = 1;"),
     ("M4 HRESULT", g, "ErrorNotCurrentlyAvailable = unchecked((int)0x887A0022);", "ErrorNotCurrentlyAvailable = unchecked((int)0x887A0021);"),
