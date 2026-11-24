@@ -1668,8 +1668,7 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
     gone with a rebuild of out/win);
   - an alt-tab back into exclusive full screen (Windows refuses a background process the
     foreground; a person's alt-tab, or a key, would make it);
-  - Auto HDR (#112) engaged: seen for neither player, with Windows' Auto HDR most likely off
-    (above); observing it engaged needs Auto HDR switched on, a settings change left to the user;
+  - (closed below, j0009213) Auto HDR (#112) engaged;
   - whether this device's exclusive full screen should be DXGI's, as the original's is (a
     decision; the original goes windowed on losing the focus, ours minimizes).
 - **Run 4b, HDR on the HDR monitor** (j0009190; the user's approval, runq's monitor rule set to
@@ -1704,6 +1703,24 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
   settings is unset (read only); that Auto HDR is off on this machine is an inference. For #112:
   with Auto HDR off, HDR mode alone does not change our D3D11 output relative to the original;
   whether Auto HDR, switched on, engages for the original and not for ours is still unobserved.
+- **Auto HDR** (j0009213; `tools/HdrCheck/auto-hdr.sh`, 66065a2c8 and 81fa062c2, another agent's,
+  run under the user's approval: HDR on DISPLAY1, the registry values saved, set and restored,
+  every one read back as saved; HDR restored to SDR):
+  - **Windows' global Auto HDR switched on** (DirectXUserGlobalSettings): neither player
+    engaged; both composed as SDR (the original's crop brightest 0.5% 185.7 nits, ours 240, both
+    at most 240 nits, none above 276). That neither renamed executable is a title Windows treats
+    as eligible is an inference.
+  - **Forced per application** (AutoHDREnable plus D3DBehaviors BufferUpgradeOverride for each
+    executable): both engaged, each window's crop peaking at 540 nits, above the SDR white level
+    (the original 68,764 pixels above 276 nits, ours 197,102). The two captures show different
+    screens (looked at: the original's at 45 s its start screen, the planet and nebula; ours at
+    35 s the main menu with its white title and buttons), so their brightness cannot be compared;
+    no claim that ours is brighter is made.
+  - So, observed: Auto HDR engages for our D3D11 swap chain when forced, as for the original's;
+    the UNVERIFIED Auto HDR item is closed. For #112: on this machine neither the original's
+    renamed copy nor ours engaged with the global switch alone; the report's vanilla executable,
+    under its Steam name, may be a title Windows enables Auto HDR for and OniMoono.exe not (an
+    inference, the likeliest difference; not observed here).
 - **Loading Pip** (`loading-animation-pip-d3d11`, j0009135, ok): the kanim replayed, 193 redraws
   over 7.2 s, and the replay check found 0 of 118,680 pixels differing from the frame shown (the
   tile copied from the screen by CopyTargetRect, drawn unfiltered). Under the user's exception
@@ -1721,7 +1738,72 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
 
 **Runs** (runq, burndown, owner `d3d11-m4`): probe builds j0009126, j0009127; the original
 j0009128; Windows builds j0009129, j0009132, j0009134; Loading Pip j0009130, j0009131, j0009133,
-j0009135; ours through the modes j0009137; check.sh j0009136 (green, on 8b098a27f), j0009144 (cancelled for later code); HDR state j0009149, j0009181; HDR on DISPLAY2 j0009165, the monitor-1 attempt j0009182; focused exclusive, ours j0009167, the original j0009166 (no probe DLL), j0009178, j0009185; HDR on DISPLAY1 j0009190, the original again j0009200; builds j0009150, j0009162 (ComCheckGen: a RECT without [NotNative]), j0009164, j0009176; check.sh CHECKJOB4.
+j0009135; ours through the modes j0009137; check.sh j0009136 (green, on 8b098a27f), j0009144 (cancelled for later code); HDR state j0009149, j0009181; HDR on DISPLAY2 j0009165, the monitor-1 attempt j0009182; focused exclusive, ours j0009167, the original j0009166 (no probe DLL), j0009178, j0009185; HDR on DISPLAY1 j0009190, the original again j0009200; Auto HDR j0009213; builds j0009150, j0009162 (ComCheckGen: a RECT without [NotNative]), j0009164, j0009176; check.sh CHECKJOB4.
+
+## M4 exclusive full screen as the original's (2026-11-24, the user's decision "Match original")
+
+The original's exclusive full screen is DXGI's own (j0009185, "M4 desktop runs"); the device now
+makes it the same way (`D3d11Exclusive.cs`, a15ca1009). Design:
+
+- **A second swap chain, not a swap-effect change.** As the original: the flip chain stays for
+  windowed and borderless; exclusive makes a second chain on the same window,
+  `DXGI_SWAP_EFFECT_DISCARD` (the legacy blt model), 1 buffer, `R8G8B8A8_UNORM`, usage
+  SHADER_INPUT | RENDER_TARGET_OUTPUT, flags ALLOW_MODE_SWITCH (`D3d11SwapChain.CreateExclusive`).
+  The original had both chains on one window (observed, j0009128, j0009185; no page says
+  whether a blt chain may join a window's flip chain). Frames go to whichever is
+  active (`Out`); the screen textures are unchanged.
+- **Entering** (main thread `Screen.SetResolution(..., ExclusiveFullScreen)` →
+  `GlfwPlatform.SetResolution`, which, with `DeviceExclusive` set, gives a monitor-sized borderless
+  window instead of GLFW's mode change, then `D3d11Device.Enter`): on the device thread, the chain
+  made, `ResizeTarget` with the mode (it "should be called before calling SetFullscreenState",
+  "DXGI best practices"), `SetFullscreenState(TRUE, NULL)`, then `ResizeBuffers` to the mode's
+  size ("call IDXGISwapChain::ResizeBuffers to resize the back buffer to the size that was passed
+  as parameters in WM_SIZE", the same). The window then has the mode's size, which the device
+  follows at each present.
+- **Refused**: `DXGI_ERROR_NOT_CURRENTLY_AVAILABLE` ("The output window does not have keyboard
+  focus", among its causes; "your application can continue to run in windowed mode and try to
+  switch to full-screen mode later", SetFullscreenState) releases the chain and leaves a
+  fullscreen window at the monitor's size, as the original fell back to FullScreenWindow
+  (j0009128, j0009178).
+- **Leaving**: any other `SetResolution` first calls `Leave`: `SetFullscreenState(FALSE)` then
+  release ("Before releasing a swap chain, first switch to windowed mode", "DXGI overview"), the
+  context cleared and the target set again, the flip chain presenting.
+- **Losing the focus**: the original goes windowed (j0009185). DXGI is told to leave the window
+  alone (`DXGI_MWA_NO_WINDOW_CHANGES`: "Prevent DXGI from monitoring an applications message
+  queue; this makes DXGI unable to respond to mode changes", MakeWindowAssociation), so the
+  platform does it: its focus callback marks it, and after the poll it calls
+  `SetResolution(window size, Windowed)` (never from inside a GLFW callback). Focus back: the
+  original stays windowed (j0009185), and so does this.
+- **Threads.** The device thread alone uses the context and the chains (M2's rule), so the
+  full-screen calls and every Present run there. In DXGI's full-screen state they may send the
+  window messages ("Present1 calls ::SetWindowPos() or ::SetWindowStyle() and either of these
+  methods call ::SendMessage()"; "never have the message-pump thread wait on the render thread
+  when you use full-screen swap chains", "DXGI overview"; "never block the message pump",
+  "DXGI best practices"). So from `Enter` until `Leave` the main thread's waits for the device
+  thread (`GlWorker.Submit`, `WaitIdle`, `Call`) wait a millisecond at a time and answer sent
+  messages between (`GlWorker.WaitPump`, `GlfwPlatform.PumpSentMessages`: PeekMessage with
+  PM_QS_SENDMESSAGE, "Process all sent messages", and PM_NOREMOVE, "Messages are not removed from
+  the queue"; during the call "the system dispatches ... messages sent to windows owned by the
+  calling thread using the SendMessage" function, PeekMessageW). Posted messages stay for GLFW's
+  poll. M2 review fixes' finding 3 asked for exactly this before any DXGI full-screen state.
+- **Pacing and repeats without the waitable.** The waitable flag "isn't supported in full-screen
+  mode, unless the render API is Direct3D 12" (DXGI_SWAP_CHAIN_FLAG) and the original's exclusive
+  chain has none (`GetMaximumFrameLatency` DXGI_ERROR_INVALID_CALL, j0009185), so in exclusive
+  Present paces frames by itself, as the original's does (`WaitForFrame` does nothing there);
+  frame deltas still follow the refresh (`FramePacing.PacedPresent` with the output's mode). No
+  repeat goes in exclusive (`MayRepeat`: they need the waitable to know the last picture has
+  retired); the splash and the loading animation present as frames do.
+- **Unit tests**: GlWorker's pumping wait (`D3d11PresentTests`, the pump called while waiting).
+  Full-screen behaviour has no unit-testable part apart from that; it is the run below.
+- **New declarations** (`[Native]`, checked by the MSVC check): `IDXGISwapChain::SetFullscreenState`
+  (slot 10), `GetFullscreenState` (11), `ResizeTarget` (14), `DXGI_MODE_DESC`, `DXGI_RATIONAL`,
+  `DXGI_SWAP_EFFECT_DISCARD`, `DXGI_ERROR_NOT_CURRENTLY_AVAILABLE`; the mutation proof has one M4
+  mutation per declaration (`tools/ComCheckGen/mutation_proof.py COPY M4`): MPROOF.
+- **The run** (`scratchpad/m4run/exclusive-ours.sh`, the coordinator submits): windowed →
+  focus → exclusive 2560×1440 with a stall → the focus to a window of our own (expected:
+  windowed) → the focus back (`ONI_WIN_FOREGROUND_FROM`, run-windows.sh's new helper, a280d8432:
+  AllowSetForegroundWindow for our process once a second) → exclusive again with a stall →
+  windowed; debug layer and present trace on: RUN.
 
 ## Research so far (M0)
 
