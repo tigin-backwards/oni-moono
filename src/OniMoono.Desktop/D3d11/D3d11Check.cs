@@ -14,8 +14,10 @@ namespace OniMoono.Desktop.D3d11
     /// which CreateInputLayout validates against the vertex stage's input signature. Nothing is
     /// drawn. Counted: subprograms selected and created, programs built, layouts made, and every
     /// refusal or failure. Programs refused for structured buffers or multisample textures are
-    /// listed one by one and counted apart, as refused and unreachable, not as failures
-    /// (d3d11-plan.md M3 part C, the user's decision).
+    /// listed one by one and counted apart, as refused and unreachable, not as failures, when
+    /// they are among the programs the user accepted (d3d11-plan.md M3 part C:
+    /// D3d11Programs.AcceptedUnreachable); a stage entry no program made is a failure unless
+    /// it belongs to such a program.
     internal sealed unsafe partial class D3d11Device
     {
         /// --check-shaders: WarmupShaders builds every subprogram (else programs are built at
@@ -25,9 +27,11 @@ namespace OniMoono.Desktop.D3d11
         /// Programs that failed, were refused (but for the unreachable ones), subprograms no
         /// keyword set selects, input layouts that could not be made, and debug-layer messages
         /// (--check-shaders).
-        public static int CheckFailures => D3d11Programs.Failures + D3d11Programs.Refused - D3d11Programs.RefusedUnreachable + checkUnselected + checkLayoutFailures + checkDebugMessages;
+        public static int CheckFailures => D3d11Programs.Failures + D3d11Programs.Refused - D3d11Programs.RefusedUnreachable + checkUnselected + checkLayoutFailures + checkDebugMessages + checkNotCreated;
 
-        static int checkUnselected, checkLayoutFailures, checkDebugMessages;
+        /// checkNotCreated: stage entries no built program holds and no accepted, unreachable
+        /// program explains (each a failure).
+        static int checkUnselected, checkLayoutFailures, checkDebugMessages, checkNotCreated;
 
         /// Every vertex channel present: positions and normals as 3 floats, tangents 4, colours
         /// as bytes, UVs as 2 floats. With no channel (every input a constant) and the immediate
@@ -93,6 +97,7 @@ namespace OniMoono.Desktop.D3d11
             }
             int programs = 0, layouts = 0;
             var created = new HashSet<(ShaderNative, int)>();
+            var unreachableEntries = new HashSet<(ShaderNative, int)>();
             var geometry = new HashSet<string>();
             worker.Call(() =>
             {
@@ -104,7 +109,12 @@ namespace OniMoono.Desktop.D3d11
                     var p = D3d11Programs.Get(Dev, shader, key);
                     DrainDebugMessages($"building '{shader.ShaderName}' program {key}");
                     if (D3d11Programs.LastRefusal is { } why)
-                        EngineLog.Engine($"d3d11 check: refused{(why is "structured buffers" or "multisample textures" ? ", unreachable" : "")}: {D3d11Programs.CoverageOfKey(shader, key)}, program {key} ({why})");
+                    {
+                        bool accepted = D3d11Programs.LastRefusalAccepted;
+                        EngineLog.Engine($"d3d11 check: refused{(accepted ? ", unreachable" : "")}: {D3d11Programs.CoverageOfKey(shader, key)}, program {key} ({why})");
+                        if (accepted)
+                            foreach (int blob in D3d11Programs.EntriesOfKey(shader, key)) unreachableEntries.Add((shader, blob));
+                    }
                     if (p.D3d is not D3d11Shaders d3d) continue;
                     programs++;
                     foreach (var part in d3d.Coverage.Split(' '))
@@ -122,22 +132,26 @@ namespace OniMoono.Desktop.D3d11
                 DebugTally(always: true);
                 checkDebugMessages = (int)debugMessages;
             });
-            // The entries no built program holds, by shader (each refusal is logged above).
-            var missing = new SortedDictionary<string, int>(StringComparer.Ordinal);
+            // The entries no built program holds, by shader (each refusal is logged above): those
+            // of accepted, unreachable programs apart; any other is a failure.
+            var missing = new SortedDictionary<string, (int Accepted, int Other)>(StringComparer.Ordinal);
             foreach (var entry in entries)
                 if (!created.Contains(entry))
                 {
-                    missing.TryGetValue(entry.Item1.ShaderName, out int n);
-                    missing[entry.Item1.ShaderName] = n + 1;
+                    missing.TryGetValue(entry.Item1.ShaderName, out var n);
+                    bool accepted = unreachableEntries.Contains(entry);
+                    missing[entry.Item1.ShaderName] = accepted ? (n.Accepted + 1, n.Other) : (n.Accepted, n.Other + 1);
+                    if (!accepted) checkNotCreated++;
                 }
-            foreach (var (name, n) in missing) EngineLog.Engine($"d3d11 check: '{name}': {n} entries not created");
+            foreach (var (name, n) in missing)
+                EngineLog.Engine($"d3d11 check: '{name}': {n.Accepted + n.Other} entries not created ({n.Accepted} only in refused, unreachable programs{(n.Other > 0 ? $"; {n.Other} otherwise: failures" : "")})");
             foreach (var g in geometry) EngineLog.Engine($"d3d11 check: geometry stage created: {g}");
             EngineLog.Engine($"d3d11 check: {shaders} shaders, {passes} passes, {subprograms} subprograms ({entries.Count} distinct entries); "
                              + $"{work.Count} programs to build, {programs} built, {created.Count} distinct stage entries created; "
                              + $"{layouts} input layouts made, {checkLayoutFailures} not; {D3d11Programs.Failures} failed, {D3d11Programs.Refused - D3d11Programs.RefusedUnreachable} refused, "
-                             + $"{D3d11Programs.RefusedUnreachable} refused, unreachable; {checkUnselected} subprograms not selected by their own keywords; {debugMessages} debug-layer messages");
+                             + $"{D3d11Programs.RefusedUnreachable} refused, unreachable; {checkUnselected} subprograms not selected by their own keywords; {checkNotCreated} entries not created otherwise; {debugMessages} debug-layer messages ({infoMessages} INFO or MESSAGE apart)");
             Console.WriteLine($"d3d11 check: {subprograms} subprograms, {created.Count} distinct stage entries created in {programs} programs, {layouts} input layouts; "
-                              + $"{D3d11Programs.Failures} failed, {D3d11Programs.Refused - D3d11Programs.RefusedUnreachable} refused, {D3d11Programs.RefusedUnreachable} refused, unreachable, {checkUnselected} unselected, {checkLayoutFailures} layouts not made, {debugMessages} debug-layer messages");
+                              + $"{D3d11Programs.Failures} failed, {D3d11Programs.Refused - D3d11Programs.RefusedUnreachable} refused, {D3d11Programs.RefusedUnreachable} refused, unreachable, {checkUnselected} unselected, {checkLayoutFailures} layouts not made, {checkNotCreated} entries not created otherwise, {debugMessages} debug-layer messages");
         }
     }
 }

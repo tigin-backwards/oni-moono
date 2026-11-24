@@ -90,15 +90,49 @@ namespace OniMoono.Desktop.D3d11
         /// samplers, structured buffers, multisample textures, bindings unlike their DXBC).
         public static int Refused;
 
-        /// Of Refused, the variants with structured buffers or multisample textures: accepted as
-        /// unreachable (the user's decision, d3d11-plan.md M3 part C): no engine code sets their
-        /// keywords (PROCEDURAL_INSTANCING_ON, _MSAA_*) or uses their shaders, and no device of
-        /// Moono's binds either kind. --check-shaders counts them apart, not as failures.
+        /// Of Refused, the variants the user accepted as unreachable (d3d11-plan.md M3 part C; the
+        /// 68 programs of U60 764025's data): no engine code sets their keywords
+        /// (PROCEDURAL_INSTANCING_ON, _MSAA_*) or uses their shaders, and no device of Moono's
+        /// binds structured buffers or multisample textures. --check-shaders counts them apart,
+        /// not as failures. Only those programs, by shader and keyword (AcceptedUnreachable),
+        /// with the reason they were accepted for; any other refusal for those reasons fails.
         public static int RefusedUnreachable;
+
+        /// A refused variant among the ones accepted as unreachable: the procedural-instancing
+        /// variants of the three particle shaders and the five Physics2D debug shaders (structured
+        /// buffers), the frame debugger display's _MSAA_ variants and BlitToDepth_MSAA
+        /// (multisample textures).
+        public static bool AcceptedUnreachable(string shader, string[] keywords, string why) => why switch
+        {
+            "structured buffers" => shader is "Particles/Standard Surface" or "Particles/Standard Unlit" or "Klei/Standard Unlit"
+                                        ? Array.IndexOf(keywords, "PROCEDURAL_INSTANCING_ON") >= 0
+                                        : shader is "Hidden/Physics2D/SDF_CapsuleGeometry" or "Hidden/Physics2D/SDF_CircleGeometry" or "Hidden/Physics2D/SDF_Line"
+                                            or "Hidden/Physics2D/SDF_Point" or "Hidden/Physics2D/SDF_PolygonGeometry",
+            "multisample textures" => shader == "Hidden/BlitToDepth_MSAA"
+                                      || shader == "Hidden/FrameDebuggerRenderTargetDisplay" && Array.Exists(keywords, k => k.StartsWith("_MSAA_", StringComparison.Ordinal)),
+            _ => false,
+        };
+
+        /// The stage entries (blob indexes) of a key Select gave.
+        public static int[] EntriesOfKey(ShaderNative shader, int key)
+        {
+            var c = choices.GetOrCreateValue(shader);
+            lock (c)
+            {
+                if (key < 0 || key >= c.List.Count) return [];
+                var list = new List<int>();
+                foreach (var st in c.List[key].Stages)
+                    if (st is { } sub) list.Add(sub.BlobIndex);
+                return list.ToArray();
+            }
+        }
 
         /// The reason the latest Build on this thread refused its program (null: none), for the
         /// check's per-program list.
         [ThreadStatic] public static string LastRefusal;
+
+        /// Whether that refusal was of an accepted, unreachable program (AcceptedUnreachable).
+        [ThreadStatic] public static bool LastRefusalAccepted;
 
         /// Platform 4 when the shader carries Direct3D 11 programs, else 0 (not drawn, logged once).
         public static uint PlatformOf(ShaderNative shader)
@@ -134,10 +168,11 @@ namespace OniMoono.Desktop.D3d11
             }
         }
 
-        static void NotDrawn(ShaderNative shader, string[] keywords, string why, bool unreachable = false)
+        static void NotDrawn(ShaderNative shader, string[] keywords, string why)
         {
             System.Threading.Interlocked.Increment(ref Refused);
-            if (unreachable) System.Threading.Interlocked.Increment(ref RefusedUnreachable);
+            LastRefusalAccepted = AcceptedUnreachable(shader.ShaderName, keywords, why);
+            if (LastRefusalAccepted) System.Threading.Interlocked.Increment(ref RefusedUnreachable);
             LastRefusal = why;
             lock (reported)
                 if (reported.Add($"{shader.ShaderName}\n{why}"))
@@ -218,7 +253,7 @@ namespace OniMoono.Desktop.D3d11
                 }
                 if (bindings.StructuredBuffers.Length > 0)
                 {
-                    NotDrawn(shader, sub.Keywords, "structured buffers", unreachable: true);
+                    NotDrawn(shader, sub.Keywords, "structured buffers");
                     return program;
                 }
                 var stage = new D3d11Stage();
@@ -238,7 +273,7 @@ namespace OniMoono.Desktop.D3d11
                 {
                     if (t.MultiSampled)
                     {
-                        NotDrawn(shader, sub.Keywords, "multisample textures", unreachable: true);
+                        NotDrawn(shader, sub.Keywords, "multisample textures");
                         return program;
                     }
                     uint target = t.Dimension switch { 3 => TexTarget3D, 4 => TexTargetCubeMap, 5 => TexTarget2DArray, _ => TexTarget2D };
