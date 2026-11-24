@@ -1624,13 +1624,25 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
   (returned 0, enabled 1 read back) and off again after the run (enabled 0 read back), but DXGI
   reported the output SDR throughout (colour space 0, 8 bits), every capture at most 80 nits: the
   original and ours, borderless and windowed, all composed as SDR (brightest 0.5% 77.6-80 nits).
-  That display reports wideColorEnforced 1; that its advanced colour is wide colour on an SDR
-  panel, not HDR, is an inference. The DirectX user settings value (Auto HDR) is unset (read
-  only). So nothing about HDR or #112 was observed: the 530-nit HDR monitor is monitor 1
-  (`\\.\DISPLAY1`), the user's primary, which needs the user's word.
+  Why: that display does not support HDR. Windows 11 24H2's advanced colour info
+  (`DISPLAYCONFIG_DEVICE_INFO_GET_ADVANCED_COLOR_INFO_2`, j0009181) says DISPLAY2
+  `hdrSupported 0`, `wideColorSupported 1`; DISPLAY1 and DISPLAY10 `hdrSupported 1`. So the
+  older SET_ADVANCED_COLOR_STATE switched on wide colour on an SDR panel, and dupcap read the
+  output rightly. hdrtoggle now switches HDR itself (`DISPLAYCONFIG_DEVICE_INFO_SET_HDR_STATE`),
+  refuses a display without HDR, and reads the active colour mode back until it is HDR (10 s at
+  most) before anything runs. The DirectX user settings value (Auto HDR) is unset (read only).
+  The rerun on monitor 1 (j0009182) picked DISPLAY2 again (its script indexed the second screen)
+  and skipped, changing nothing. **A valid run on the HDR monitor cannot go through runq as it
+  stands**: a Windows job's games must be on monitor 2 (runq's `windows-rules`), and HDR and Auto
+  HDR act on the display the game is on; it needs that rule relaxed for the job (the user's
+  call). So nothing about HDR or #112 was observed.
 - **Open, holding M4 (UNVERIFIED)**:
-  - the original's swap chain inside exclusive full screen, focused (run 3, the original: its
-    first submission j0009166 found the probe's DLL gone with a rebuild of out/win);
+  - the original's swap chain inside exclusive full screen, focused. Run 3 for the original
+    (j0009178; j0009166 had found the probe's DLL gone with a rebuild of out/win): the probe's
+    SetForegroundWindow on the game window returned 0 (the process was not allowed the
+    foreground; that original-windows.sh hands the focus back in the first minute is the likely
+    reason, an inference), and exclusive failed as unfocused before (blt DISCARD chain, 1 buffer,
+    flags 0x2, ResizeTarget, `SetFullscreenState(TRUE)` 0x887A0022, back to FullScreenWindow);
   - an alt-tab back into exclusive full screen (Windows refuses a background process the
     foreground; a person's alt-tab, or a key, would make it);
   - HDR and Auto HDR (#112) on the HDR monitor (monitor 1).
@@ -1651,7 +1663,7 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
 
 **Runs** (runq, burndown, owner `d3d11-m4`): probe builds j0009126, j0009127; the original
 j0009128; Windows builds j0009129, j0009132, j0009134; Loading Pip j0009130, j0009131, j0009133,
-j0009135; ours through the modes j0009137; check.sh j0009136 (green, on 8b098a27f), CHECKJOB4.
+j0009135; ours through the modes j0009137; check.sh j0009136 (green, on 8b098a27f), j0009144 (cancelled for later code); HDR state j0009149, j0009181; HDR on DISPLAY2 j0009165, the monitor-1 attempt j0009182; focused exclusive, ours j0009167, the original j0009166 (no probe DLL), j0009178; builds j0009150, j0009162 (ComCheckGen: a RECT without [NotNative]), j0009164, j0009176; check.sh CHECKJOB4.
 
 ## Research so far (M0)
 
