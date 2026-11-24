@@ -154,17 +154,27 @@ namespace OniMoono.Desktop.D3d11
         public int PresentRepeat()
         {
             int hr = ((IDXGISwapChain*)chain)->lpVtbl->Present((IDXGISwapChain*)chain, 0, 0);
-            if (hr >= 0) Repeats++;
+            if (hr >= 0)
+            {
+                Repeats++;
+                repeatsUnwaited++;
+            }
             return hr;
         }
 
         /// Repeats presented (StallRepeats).
         public long Repeats { get; private set; }
 
-        /// Whether the display has taken the last picture (the frame-latency waitable is
-        /// signalled), without waiting: a repeat goes only then, so it never queues behind a
-        /// picture nor blocks in Present (as DxgiSwapChain.LastPictureRetired). Takes the signal,
-        /// which stands for the repeat's own wait: one wait per present, as WaitForFrame keeps.
+        /// Whether the frame-latency waitable is signalled, without waiting: a repeat goes only
+        /// then. Takes the signal, which stands for the repeat's own wait, so every Present, the
+        /// repeat's included, is paired with one wait (WaitForFrame's rule). That pairing assumes
+        /// each Present, a repeat discarded for a newer picture included, signals the waitable
+        /// once as it leaves the queue: no Microsoft page says so (UNVERIFIED, d3d11-plan.md "M4
+        /// review fixes", item 2). DxgiSwapChain.LastPictureRetired does not assume it: it takes
+        /// the signal the same way, but the next game picture drains and re-counts the waitable
+        /// (its resync) and bounds the wait after a repeat to a refresh. Here a miscount would
+        /// show as WaitForFrame timeouts (one more queued than the latency) or as frames
+        /// running a picture ahead (one fewer), both in ONI_PRESENT_TRACE's lines.
         public bool LastPictureRetired() => Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0;
 
         /// The refresh period of the display the swap chain is on (Stopwatch ticks; 0: not
@@ -219,12 +229,16 @@ namespace OniMoono.Desktop.D3d11
                 while (owed > 0 && Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0)
                     owed--;
             long ticks = GlTimings.Now - t;
+            if (repeatsUnwaited > 0 && PresentTrace.Enabled)
+                PresentTrace.Log($"d3d11: the first frame-latency wait after {repeatsUnwaited} repeats: {ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F2} ms, "
+                                 + $"{(waited == Dxgi.WaitObject0 ? "signalled" : $"0x{waited:X}")}; timeouts {timeouts}, owed {owed}");
+            repeatsUnwaited = 0;
             waitTicks += ticks;
             waitMax = Math.Max(waitMax, ticks);
         }
 
         long presents;
-        int timeouts, owed;
+        int timeouts, owed, repeatsUnwaited;
 
         // ONI_PRESENT_TRACE: every 120 presents (and at each change of interval) the frame-latency
         // waits and the Present calls, mean and largest, in ms.
@@ -238,7 +252,7 @@ namespace OniMoono.Desktop.D3d11
             {
                 double ms = 1000.0 / System.Diagnostics.Stopwatch.Frequency;
                 PresentTrace.Log($"d3d11: the {traced} presents to {presents} at interval {tracedInterval}, {Width}x{Height}: frame-latency wait mean {waitTicks * ms / traced:F2} ms, "
-                                 + $"largest {waitMax * ms:F2}; Present mean {this.presentTicks * ms / traced:F2} ms, largest {presentMax * ms:F2}; timeouts {timeouts}, owed {owed}");
+                                 + $"largest {waitMax * ms:F2}; Present mean {this.presentTicks * ms / traced:F2} ms, largest {presentMax * ms:F2}; timeouts {timeouts}, owed {owed}, repeats {Repeats}");
                 traced = 0;
                 waitTicks = waitMax = this.presentTicks = presentMax = 0;
             }
