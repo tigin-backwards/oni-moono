@@ -32,6 +32,9 @@ namespace OniMoono.Desktop.D3d11
     ///   middle of it) goes on as it was.
     internal sealed unsafe partial class D3d11Device
     {
+        /// The screen textures' views (and reads); the textures themselves are R8G8B8A8_TYPELESS,
+        /// as the original's screen texture is, with R8G8B8A8_UNORM render target views
+        /// (j0009056, j0009060: "format=27 ... bind=0x28", its view "format=28").
         const DXGI_FORMAT ScreenFormat = DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM;
 
         /// One screen texture: what the game draws into for the back buffer (SetTarget).
@@ -73,17 +76,21 @@ namespace OniMoono.Desktop.D3d11
             if (PresentTrace.Enabled) PresentTrace.Log($"d3d11: screen texture {s.Index} made {w}x{h} (was {s.Width}x{s.Height})");
             var desc = new D3D11_TEXTURE2D_DESC
             {
-                Width = (uint)w, Height = (uint)h, MipLevels = 1, ArraySize = 1, Format = ScreenFormat, SampleDesc = new DXGI_SAMPLE_DESC { Count = 1 },
-                Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT, BindFlags = D3D11_BIND_FLAG.D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG.D3D11_BIND_SHADER_RESOURCE,
+                Width = (uint)w, Height = (uint)h, MipLevels = 1, ArraySize = 1, Format = DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_TYPELESS,
+                SampleDesc = new DXGI_SAMPLE_DESC { Count = 1 }, Usage = D3D11_USAGE.D3D11_USAGE_DEFAULT,
+                BindFlags = D3D11_BIND_FLAG.D3D11_BIND_RENDER_TARGET | D3D11_BIND_FLAG.D3D11_BIND_SHADER_RESOURCE,
             };
+            var rtvDesc = new D3D11_RENDER_TARGET_VIEW_DESC { Format = ScreenFormat, ViewDimension = D3D11_RTV_DIMENSION.D3D11_RTV_DIMENSION_TEXTURE2D };
+            var srvDesc = new D3D11_SHADER_RESOURCE_VIEW_DESC { Format = ScreenFormat, ViewDimension = D3D11_SRV_DIMENSION.D3D11_SRV_DIMENSION_TEXTURE2D };
+            srvDesc.Texture2D.MipLevels = 1;
             ID3D11Texture2D* t;
             D3d11Context.Check(Dev->lpVtbl->CreateTexture2D(Dev, &desc, null, &t), $"CreateTexture2D (screen {w}x{h})");
             ID3D11RenderTargetView* rtv = null;
             ID3D11ShaderResourceView* srv = null;
             try
             {
-                D3d11Context.Check(Dev->lpVtbl->CreateRenderTargetView(Dev, (ID3D11Resource*)t, null, &rtv), "CreateRenderTargetView (screen)");
-                D3d11Context.Check(Dev->lpVtbl->CreateShaderResourceView(Dev, (ID3D11Resource*)t, null, &srv), "CreateShaderResourceView (screen)");
+                D3d11Context.Check(Dev->lpVtbl->CreateRenderTargetView(Dev, (ID3D11Resource*)t, &rtvDesc, &rtv), "CreateRenderTargetView (screen)");
+                D3d11Context.Check(Dev->lpVtbl->CreateShaderResourceView(Dev, (ID3D11Resource*)t, &srvDesc, &srv), "CreateShaderResourceView (screen)");
             }
             catch
             {
@@ -226,9 +233,11 @@ namespace OniMoono.Desktop.D3d11
             if (picture.Width == chain.Width && picture.Height == chain.Height)
             {
                 // "Must be the same type", "Must have identical dimensions", "Must have compatible
-                // DXGI formats" (ID3D11DeviceContext::CopyResource, Remarks): the swap chain's
-                // buffers are R8G8B8A8_UNORM, as the screen textures (ScreenFormat), and the
-                // sizes are equal here.
+                // DXGI formats, which means the formats must be identical or at least from the
+                // same type group" (ID3D11DeviceContext::CopyResource, Remarks): the swap chain's
+                // R8G8B8A8_UNORM and the screen textures' R8G8B8A8_TYPELESS are of one group, and
+                // the sizes are equal here. (The original draws its texture into buffer 0
+                // with one draw instead, j0009060; a copy of the same size keeps every texel.)
                 Ctx->lpVtbl->CopyResource(Ctx, (ID3D11Resource*)chain.Buffer, (ID3D11Resource*)picture.Texture);
                 return;
             }
