@@ -50,6 +50,8 @@ static LONG maps[3][6], updates[3];
 static LONGLONG cbMapBytes, cbUpdateBytes;
 static LONG cbSizes[8]; // constant buffers mapped by size: <=64, <=128, <=256, <=512, <=1024, <=4096, <=16384, more
 static LONG drawsLogged, combos;
+// M4: draws and clears into swap-chain buffer 0 (bb0ptr, set at each Present), copies into it.
+static LONG bbDraws, otherDraws, bbClears, bbCopies, lastDrawBB = -1, lastDrawIndex, presentRTDraws;
 #define COMBOS 2048
 static struct { void *vs, *ps, *gs, *il, *rs, *bs, *ds; int topo; } comboSeen[COMBOS];
 #define OBJS 4096
@@ -196,6 +198,28 @@ typedef HRESULT(STDMETHODCALLTYPE *FinishFn)(CTX *, BOOL, ID3D11CommandList **);
 
 
 static void LogDraw(CTX *c, const char *what);
+
+/// Whether render target view v is a view of swap-chain buffer 0.
+static int ViewIsBB(ID3D11RenderTargetView *v)
+{
+    if (!v || !bb0ptr) return 0;
+    ID3D11Resource *r = NULL;
+    ID3D11RenderTargetView_GetResource(v, &r);
+    int is = r && (void *)r == bb0ptr;
+    if (r) ID3D11Resource_Release(r);
+    return is;
+}
+
+/// A copy or resolve into buffer 0 in the recorded frame: logged with its source.
+static void CopyIntoBB(const char *what, ID3D11Resource *d, ID3D11Resource *s)
+{
+    if (!d || (void *)d != bb0ptr) return;
+    LONG n = InterlockedIncrement(&bbCopies);
+    LONG draws = 0;
+    for (int f = F_Draw; f <= F_DrawInstancedIndirect; f++) draws += calls[f];
+    Log("BBCOPY %ld %s into buffer 0 after draw %ld", n, what, draws);
+    TexDesc("copy source", s, NULL);
+}
 
 #define REC (recording)
 // ID3D11DeviceContext1's vtable starts with ID3D11DeviceContext's (asserted below).
@@ -349,14 +373,14 @@ static void STDMETHODCALLTYPE HUpdate1(CTX1 *c, ID3D11Resource *r, UINT s, const
     FWD(Update1Fn, c, UpdateSubresource1)(c, r, s, b, d, rp, dp, fl);
     if (REC) Repatch(c);
 }
-static void STDMETHODCALLTYPE HCopyRes(CTX *c, ID3D11Resource *d, ID3D11Resource *s) { if (REC) CtxCount(c, F_CopyResource, 0); FWD(CopyResFn, c, CopyResource)(c, d, s); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HCopyRes(CTX *c, ID3D11Resource *d, ID3D11Resource *s) { if (REC) { CtxCount(c, F_CopyResource, 0); CopyIntoBB("CopyResource", d, s); } FWD(CopyResFn, c, CopyResource)(c, d, s); if (REC) Repatch(c); }
 static void STDMETHODCALLTYPE HCopyRegion(CTX *c, ID3D11Resource *d, UINT ds, UINT x, UINT y, UINT z, ID3D11Resource *s, UINT ss, const D3D11_BOX *b)
 {
-    if (REC) CtxCount(c, F_CopySubresourceRegion, 0);
+    if (REC) { CtxCount(c, F_CopySubresourceRegion, 0); CopyIntoBB("CopySubresourceRegion", d, s); }
     FWD(CopyRegionFn, c, CopySubresourceRegion)(c, d, ds, x, y, z, s, ss, b);
     if (REC) Repatch(c);
 }
-static void STDMETHODCALLTYPE HClearRTV(CTX *c, ID3D11RenderTargetView *v, const FLOAT col[4]) { if (REC) CtxCount(c, F_ClearRenderTargetView, 0); FWD(ClearRTVFn, c, ClearRenderTargetView)(c, v, col); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HClearRTV(CTX *c, ID3D11RenderTargetView *v, const FLOAT col[4]) { if (REC) { CtxCount(c, F_ClearRenderTargetView, 0); if (ViewIsBB(v)) InterlockedIncrement(&bbClears); } FWD(ClearRTVFn, c, ClearRenderTargetView)(c, v, col); if (REC) Repatch(c); }
 static void STDMETHODCALLTYPE HClearDSV(CTX *c, ID3D11DepthStencilView *v, UINT f, FLOAT d, UINT8 s)
 {
     if (REC) { CtxCount(c, F_ClearDepthStencilView, 0); Log("CLEARDSV flags=0x%x depth=%.9g stencil=%u", f, d, s); }
@@ -364,7 +388,7 @@ static void STDMETHODCALLTYPE HClearDSV(CTX *c, ID3D11DepthStencilView *v, UINT 
     if (REC) Repatch(c);
 }
 static void STDMETHODCALLTYPE HGenMips(CTX *c, ID3D11ShaderResourceView *v) { if (REC) CtxCount(c, F_GenerateMips, 0); FWD(GenMipsFn, c, GenerateMips)(c, v); if (REC) Repatch(c); }
-static void STDMETHODCALLTYPE HResolve(CTX *c, ID3D11Resource *d, UINT ds, ID3D11Resource *s, UINT ss, DXGI_FORMAT f) { if (REC) CtxCount(c, F_ResolveSubresource, 0); FWD(ResolveFn, c, ResolveSubresource)(c, d, ds, s, ss, f); if (REC) Repatch(c); }
+static void STDMETHODCALLTYPE HResolve(CTX *c, ID3D11Resource *d, UINT ds, ID3D11Resource *s, UINT ss, DXGI_FORMAT f) { if (REC) { CtxCount(c, F_ResolveSubresource, 0); CopyIntoBB("ResolveSubresource", d, s); } FWD(ResolveFn, c, ResolveSubresource)(c, d, ds, s, ss, f); if (REC) Repatch(c); }
 static void STDMETHODCALLTYPE HExec(CTX *c, ID3D11CommandList *l, BOOL r) { if (REC) CtxCount(c, F_ExecuteCommandList, 0); FWD(ExecFn, c, ExecuteCommandList)(c, l, r); if (REC) Repatch(c); }
 static HRESULT STDMETHODCALLTYPE HFinish(CTX *c, BOOL r, ID3D11CommandList **l) { if (REC) CtxCount(c, F_FinishCommandList, 0); HRESULT hr = FWD(FinishFn, c, FinishCommandList)(c, r, l); if (REC) Repatch(c); return hr; }
 
@@ -598,7 +622,32 @@ static void LogDraw(CTX *c, const char *what)
     ID3D11DeviceContext_OMGetBlendState(c, &bs, factor, &mask);
     ID3D11DeviceContext_OMGetDepthStencilState(c, &ds, &sref);
     ID3D11DeviceContext_IAGetPrimitiveTopology(c, &topo);
+    ID3D11RenderTargetView *bbv = NULL;
+    ID3D11DeviceContext_OMGetRenderTargets(c, 1, &bbv, NULL);
+    int intoBB = ViewIsBB(bbv), intoPresentRT = 0;
+    if (bbv && presentRT)
+    {
+        ID3D11Resource *pr = NULL;
+        ID3D11RenderTargetView_GetResource(bbv, &pr);
+        intoPresentRT = pr && (void *)pr == presentRT;
+        if (pr) ID3D11Resource_Release(pr);
+    }
+    if (bbv) ID3D11RenderTargetView_Release(bbv);
+    if (intoPresentRT) InterlockedIncrement(&presentRTDraws);
+    if (intoBB)
+    {
+        // What the draw into buffer 0 samples at t0: the texture bound at Present or not.
+        ID3D11ShaderResourceView *t0 = NULL;
+        ID3D11DeviceContext_PSGetShaderResources(c, 0, 1, &t0);
+        ID3D11Resource *tr = NULL;
+        if (t0) ID3D11ShaderResourceView_GetResource(t0, &tr);
+        Log("BBDRAW ps t0 resource %p (%s the texture bound as rtv0 at Present, %p)", (void *)tr, tr && (void *)tr == presentRT ? "IS" : "is NOT", presentRT);
+        if (tr) ID3D11Resource_Release(tr);
+        if (t0) ID3D11ShaderResourceView_Release(t0);
+    }
     EnterCriticalSection(&lock);
+    if (intoBB) bbDraws++;
+    else otherDraws++;
     int n = drawsLogged, isNew = 1;
     for (int i = 0; i < combos; i++)
         if (comboSeen[i].vs == vs && comboSeen[i].ps == ps && comboSeen[i].gs == gs && comboSeen[i].il == il && comboSeen[i].rs == rs && comboSeen[i].bs == bs &&
@@ -614,8 +663,10 @@ static void LogDraw(CTX *c, const char *what)
     LeaveCriticalSection(&lock);
     LONG draws = 0;
     for (int f = F_Draw; f <= F_DrawInstancedIndirect; f++) draws += calls[f];
-    Log("DRAW %ld %s ctx=%p vs=%p ps=%p gs=%p il=%p topo=%d rs=%p bs=%p factor=%g,%g,%g,%g mask=0x%x ds=%p stencilRef=%u%s", draws, what, (void *)c, (void *)vs, (void *)ps,
-        (void *)gs, (void *)il, (int)topo, (void *)rs, (void *)bs, factor[0], factor[1], factor[2], factor[3], mask, (void *)ds, sref, isNew ? " new" : "");
+    lastDrawIndex = draws;
+    lastDrawBB = intoBB;
+    Log("DRAW %ld %s ctx=%p vs=%p ps=%p gs=%p il=%p topo=%d rs=%p bs=%p factor=%g,%g,%g,%g mask=0x%x ds=%p stencilRef=%u%s%s", draws, what, (void *)c, (void *)vs, (void *)ps,
+        (void *)gs, (void *)il, (int)topo, (void *)rs, (void *)bs, factor[0], factor[1], factor[2], factor[3], mask, (void *)ds, sref, isNew ? " new" : "", intoBB ? " bb0" : "");
     if (detail)
     {
         if (rs && FirstSight(rs))
@@ -712,6 +763,8 @@ static void Report(void)
     Log("FRAME constant buffer bytes: mapped %lld, updated %lld; mapped by size <=64:%ld <=128:%ld <=256:%ld <=512:%ld <=1K:%ld <=4K:%ld <=16K:%ld more:%ld", cbMapBytes,
         cbUpdateBytes, cbSizes[0], cbSizes[1], cbSizes[2], cbSizes[3], cbSizes[4], cbSizes[5], cbSizes[6], cbSizes[7]);
     Log("FRAME distinct state combinations=%ld draws=%ld", combos, drawsLogged);
+    Log("FRAME buffer 0 %p: draws into it %ld, into other targets %ld, clears of it %ld, copies or resolves into it %ld; draws into the texture bound at Present (%p) %ld; the last draw (%ld) %s", bb0ptr, bbDraws, otherDraws,
+        bbClears, bbCopies, presentRT, presentRTDraws, lastDrawIndex, lastDrawBB < 0 ? "none" : lastDrawBB ? "into buffer 0" : "into another target");
     for (int i = 0; i < nhooks; i++)
         if (hooks[i].rewrites || hooks[i].armRewrites)
             Log("FRAME slot %s rewritten by the runtime %ld times during the frame (found rewritten %ld times when the recording started)", hooks[i].name,
@@ -733,6 +786,7 @@ static void FrameBoundary(void)
         memset(calls, 0, sizeof calls); memset(changes, 0, sizeof changes); memset(ctxSeen, 0, sizeof ctxSeen); memset(ctxDraws, 0, sizeof ctxDraws);
         memset(ctxCalls, 0, sizeof ctxCalls); memset(maps, 0, sizeof maps); memset(updates, 0, sizeof updates); memset(cbSizes, 0, sizeof cbSizes);
         cbMapBytes = cbUpdateBytes = 0; drawsLogged = combos = 0; nobj = 0;
+        bbDraws = otherDraws = bbClears = bbCopies = presentRTDraws = 0; lastDrawBB = -1; lastDrawIndex = 0;
         lastVS = lastPS = lastGS = lastIL = lastRS = lastBS = lastDS = NULL; lastTopo = -1;
         for (int i = 0; i < nhooks; i++) hooks[i].rewrites = hooks[i].armRewrites = 0;
         for (int v = 0; v < nvts; v++) RepatchTable(v, 1);

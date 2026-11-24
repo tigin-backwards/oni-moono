@@ -12,6 +12,12 @@
 //   3. the colony (PROBE_SAVE, resumed from the menu as its Resume button does), unpaused, then
 //      the temperature overlay, a frame recorded at each; last the Present arguments with vsync
 //      off.
+// PROBE_PACING=1 (D3D11 plan M4) runs a pacing scenario instead: the helper also hooks the wait
+// functions on the swap chain's frame-latency waitable (pn_wait_hook) and records whether the
+// frame's render target at Present is swap-chain buffer 0; the menu frame is recorded, then 300
+// frames each at vSyncCount 1 (as set), 0 and 2 are tallied (pn_pace_report), then the colony
+// (PROBE_SAVE) is resumed and the load's Present gaps reported, and a colony frame recorded. No
+// depth-bias frame, no overlay.
 // RenderDoc: launching the original under `renderdoccmd capture` is NOT supported. Its injection
 // bypassed the run's Doorstop isolation (job j0008144, docs/research/d3d11-captures.md), and the
 // launch mode was removed. The in-application API (renderdoc_app.h) is kept for a future launch
@@ -50,7 +56,8 @@ namespace SemanticsProbe
         VoidFn pnCtxArm;
         PtrFn pnEvent;
         DeviceFn pnDevice;
-        TitleFn pnTitle;
+        TitleFn pnTitle, pnPace;
+        IntFn pnWaitHook;
         IntPtr logBuf;
         const int LogBufSize = 4 << 20;
         int renderdoc;
@@ -102,6 +109,8 @@ namespace SemanticsProbe
                 pnEvent = Fn<PtrFn>(m, "pn_render_event_func");
                 pnDevice = Fn<DeviceFn>(m, "pn_device");
                 pnTitle = Fn<TitleFn>(m, "pn_rd_title");
+                pnPace = Fn<TitleFn>(m, "pn_pace_report");
+                pnWaitHook = Fn<IntFn>(m, "pn_wait_hook");
             }
             catch (Exception e) { L("EXCEPTION " + e.Message); yield break; }
             logBuf = Marshal.AllocHGlobal(LogBufSize);
@@ -121,6 +130,13 @@ namespace SemanticsProbe
             renderdoc = optIn ? pnInit(template) : 0;
             L("renderdoc api " + renderdoc + " template '" + template + "'");
             if (renderdoc <= 0) { L("hook " + pnHook()); L("ctx hook " + pnCtxHook()); }
+
+            if (renderdoc <= 0 && Environment.GetEnvironmentVariable("PROBE_PACING") == "1")
+            {
+                yield return Pacing();
+                Finish();
+                yield break;
+            }
 
             // 1. The main menu.
             yield return Frames(30);
@@ -168,6 +184,48 @@ namespace SemanticsProbe
                 pnReport();
             }
             Finish();
+        }
+
+        /// The M4 pacing scenario (PROBE_PACING=1).
+        IEnumerator Pacing()
+        {
+            yield return Frames(30);
+            L("wait hook " + pnWaitHook());
+            L("vSyncCount " + QualitySettings.vSyncCount + " targetFrameRate " + Application.targetFrameRate + " maxQueuedFrames " + QualitySettings.maxQueuedFrames
+              + " fullScreenMode " + Screen.fullScreenMode + " " + Screen.width + "x" + Screen.height);
+            yield return Frames(30);
+            pnPace("menu start");
+            yield return Record("menu");
+            yield return Frames(10);
+            pnPace("menu record");
+            int asSet = QualitySettings.vSyncCount;
+            foreach (int v in new[] { asSet, 0, 2 })
+            {
+                QualitySettings.vSyncCount = v;
+                yield return Frames(30);
+                pnPace("settle vsync " + v);
+                yield return Timed("vsync " + v);
+                pnPace("menu vsync " + v);
+                pnReport();
+            }
+            QualitySettings.vSyncCount = asSet;
+            yield return Frames(30);
+            pnPace("settle back to vsync " + asSet);
+            string save = Environment.GetEnvironmentVariable("PROBE_SAVE");
+            if (string.IsNullOrEmpty(save)) { L("no PROBE_SAVE: done"); yield break; }
+            KPlayerPrefs.SetString("AutoResumeSaveFile", save);
+            L("resume " + save + " f" + Time.frameCount + " t " + Time.realtimeSinceStartup.ToString("F3"));
+            try { typeof(MainMenu).GetMethod("ResumeGame", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(MainMenu.Instance, null); }
+            catch (Exception e) { L("ResumeGame EXCEPTION " + e); yield break; }
+            while (Game.Instance == null || SpeedControlScreen.Instance == null || OverlayScreen.Instance == null) yield return null;
+            L("colony up f" + Time.frameCount + " t " + Time.realtimeSinceStartup.ToString("F3"));
+            pnPace("load");
+            yield return Frames(300);
+            pnPace("colony first 300 frames");
+            yield return Record("colony");
+            yield return Frames(10);
+            pnPace("colony record");
+            pnReport();
         }
 
         /// Whether PATH is an absolute path inside the run home HOME (both Windows paths).
