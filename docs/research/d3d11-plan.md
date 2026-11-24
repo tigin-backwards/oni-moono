@@ -67,7 +67,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
-| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate), the review |
+| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program pending the user's word |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
@@ -1393,16 +1393,19 @@ scenario; logs in `out/d3d11-captures/m4-pacing*/`):
   picture), else the loading animation (30 a second, `GlLoadAnimation.Wanted`/`WatchdogDue`
   arming, the bar's `Advance`, `LoadProgress`), else a refresh of the last frame when the window's
   contents were damaged (`ContentsDamaged`), else a repeat (`StallRepeats`, `--stall-repeats`).
-  A repeat goes only when the waitable is signalled (`LastPictureRetired`, wait 0), at
-  `Present(0, 0)` without ALLOW_TEARING, so "discard this frame if a newer frame is queued"
-  applies (IDXGISwapChain::Present), never after a resize, not counted as a present nor by frame
-  pacing; the waits between repeats raise the timer resolution to 1 ms for the run of repeats
-  (and of the loading animation). Every picture keeps M2's pairing: one waitable wait for each
-  Present (a frame's and a redraw's after it, a repeat's before it).
+  A repeat goes only when the waitable is signalled (`LastPictureRetired`, wait 0), so it does
+  not queue behind a picture. It is presented with `Present(0, 0)`: sync interval 0 without
+  ALLOW_TEARING in the flip model is what lets a newer picture replace it ("discard this frame
+  if a newer frame is queued", IDXGISwapChain::Present, SyncInterval); the waitable plays no part
+  in that. Never after a resize, not counted as a present nor by frame pacing; the waits
+  between repeats raise the timer resolution to 1 ms for the run of repeats (and of the loading
+  animation). Every picture is meant to keep M2's pairing, one waitable wait for each Present (a
+  frame's and a redraw's after it, a repeat's before it); for repeats that rests on an
+  assumption no page documents (UNVERIFIED, "M4 review fixes" item 2).
 - **The presenter's program.** The splash's comets, the loading kanim's tile and the bars are
   window-space quads drawn with a program of the presenter's own (texel × mul + add, premultiplied
   over), as VkSplash and GlSplash draw with theirs: they are the player's presentation, not the
-  game's, so done criterion 1's "shipped programs" does not reach them. HLSL in
+  game's. Whether the rules allow that is the user's to decide ("M4 review fixes", item 6). HLSL in
   `D3d11Present.cs`, compiled once with the SDK's fxc 10.1 (`vs_4_0`/`ps_4_0`, j0009057), shader
   model 4.0 being feature level 10_0's ("Direct3D feature levels"). After one is drawn the device
   forgets its tracked bindings and sets its target, viewport and scissor again. The target is
@@ -1425,8 +1428,9 @@ scenario; logs in `out/d3d11-captures/m4-pacing*/`):
   without that it is unpaced, so frame deltas are whole refreshes as on the other devices (they
   were the wall clock's on this device). The waitable wait stays the device thread's, before each
   frame renders (M2, "Reduce latency with DXGI 1.3 swap chains"), where the original's main
-  thread waits: here the main thread waits for the device thread at each frame's hand-over, so
-  the frames in flight are the same.
+  thread waits: here the main thread waits for the device thread at each frame's hand-over.
+  Inference, not measured: the frames in flight are then the same as the original's (neither
+  side's pipeline depth was counted).
 - **HDR**: as the DXGI path: an 8-bit R8G8B8A8_UNORM flip-model swap chain whose colour space is
   never set. Microsoft documents 8-bit swap chains as "implicit sRGB" ("Use DirectX with Advanced
   Color on high/standard dynamic range displays"); no page names
@@ -1510,6 +1514,61 @@ j0009059; the original j0009056, j0009060; monitor colour spaces j0009058, j0009
 j0009064 (cancelled), j0009066-j0009068 (dotnet off the job's PATH, then build errors fixed),
 j0009069 (unit tests); Windows builds j0009070, j0009074, j0009076 and runs: menu j0009072 and j0009082, loading j0009075 (no qa.env in the
 worktree), j0009077 (no E2eDriver), j0009079, scenes j0009081; check.sh j0009083 (green, on dc2703ded; com-check matches the SDK headers).
+
+## M4 review fixes (2026-11-24, branch `d3d11-m4`)
+
+The adversarial review of M4 gave 8 items. Each was fixed in its own commit (dee52ad2f to
+9dd84e5ef; the plan's text here). RTX 3090, NVIDIA driver 32.0.16.1088, monitor 2, as M4.
+
+1. **A zero idle wait went untimed** (dee52ad2f). `GlWorker.IdleWaitMs` returning 0 (the work
+   fell due after HasIdleWork said none) fell to the untimed `Monitor.Wait`. A wait of 0 or more
+   is now timed (0 gives the gate up and takes it back at once); only a negative one is untimed.
+   `D3d11PresentTests.IdleWorkFallingDueBetweenTheTwoQuestionsIsNotMissed` makes the work fall
+   due between the two calls.
+2. **The repeat's waitable pairing** (de3c7e76b). The repeat takes the waitable's signal before
+   its Present and counts it as the repeat's own wait, so the pairing (one wait per Present)
+   assumes each Present, a repeat discarded for a newer picture included, signals the waitable
+   once. No Microsoft page says so; DxgiSwapChain does not assume it (it drains and re-counts the
+   waitable after repeats and bounds the wait after one). The comment that said the repeat works
+   "as DxgiSwapChain.LastPictureRetired" now says what it assumes, and ONI_PRESENT_TRACE logs the
+   first wait after a run of repeats and the repeats so far.
+   **Observed** (j0009097, the menu at vsync 1, ten 1.5 s stalls: three on consecutive frames,
+   three 3 frames apart, four consecutive): 1,001 repeats, no WaitForFrame timeout, nothing owed;
+   the first wait after each run of repeats returned at once, signalled (the repeat before it had
+   long retired), and the frames after it waited 16.0-16.1 ms a frame on average, as before the
+   stalls (a count one short would show as timeouts or 33 ms waits, one over as frames that keep
+   not waiting). So the count stayed balanced. **UNVERIFIED, narrowed:** whether any repeat was in
+   fact discarded for a newer picture in that run is not known (nothing counts discards), so the
+   discarded case's signal is still unshown; adopting DxgiSwapChain's resync is the fallback if a
+   run shows a miscount.
+3. **The presenter forgot bindings still in place** (c12bc9a3f). After a presenter draw,
+   ForgetBindings cleared every tracked view, sampler and constant buffer, though only the pixel
+   stage's slot 0 had changed, so SetTarget's hazard pass no longer knew of views still bound in
+   other slots and stages. Now only what DrawQuads sets is marked unbound
+   (`ForgetPresenterBindings`). The stretch path (rendering size unlike the window's) has no cheap
+   run: it needs a fullscreen window at a lower resolution (the user's desktop, "M4" run 2) or a
+   resize; its debug-layer run waits for that.
+4. **"The frames in flight are the same"** is now labelled an inference (neither pipeline's depth
+   was counted).
+5. **What discards a repeat**: sync interval 0 in the flip model ("discard this frame if a newer
+   frame is queued"), not the waitable; the waitable only keeps a repeat from queueing behind a
+   picture. The "M4" text says so.
+6. **The presenter's program** (9dd84e5ef). `scripts/gen-d3d11-present.py` compiles the HLSL in
+   D3d11Present.cs's comment with the SDK's fxc 10.1 and compares the committed blobs (`--write`
+   sets them); `tests/scripts/test_d3d11_present.py` does the same where fxc is reachable and
+   checks the blobs' shape everywhere (j0009095: equal, 3 tests ok). **Pending the user's word**:
+   whether the rules ("shipped programs, never our own translations") allow a program of the
+   player's own for its presentation, as VkSplash's SPIR-V is on Vulkan. Until then the program is
+   recorded here only as built, not as accepted.
+7. **A refresh waited for the loading watchdog** (629173377). IdleDue now asks for a refresh
+   first, as VkPresenter's wait ends on it first, and draws it as a redraw (the splash or the
+   loading animation over the frame where they run, as VkPresenter's refresh).
+8. **A picture's failed call did not stop the device** (44e07768d). Show's presenter draws can
+   throw D3d11UnavailableException; from a frame's present it was counted as a failed command.
+   It now sets `lost`, as a failure in IdleWork's pictures does.
+
+**Runs** (runq, burndown, owner `d3d11-m4`): blob check j0009095; Windows build j0009096; stalls
+j0009097; check.sh CHECKJOB2.
 
 ## Research so far (M0)
 
