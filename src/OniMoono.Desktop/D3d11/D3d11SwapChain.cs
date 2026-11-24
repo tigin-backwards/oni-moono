@@ -97,7 +97,10 @@ namespace OniMoono.Desktop.D3d11
             var sc = (IDXGISwapChain*)chain;
             if (on)
             {
-                // As the original's: the format and the scanline and scaling left unspecified.
+                // As the original's: the format, scanline order and scaling left unspecified (its
+                // ResizeTarget logged "format=0 scanline=0 scaling=0", j0009128, j0009185: 0 is
+                // DXGI_FORMAT_UNKNOWN and the two orders' UNSPECIFIED). Its refresh was the
+                // display's (59951/1000); here it is what the game asked (0/0 when none).
                 var mode = new Dxgi.ModeDesc { Width = (uint)w, Height = (uint)h, RefreshRate = new Dxgi.Rational { Numerator = refreshNumerator, Denominator = refreshDenominator } };
                 int target = sc->lpVtbl->ResizeTarget(sc, &mode);
                 if (target < 0) return target;
