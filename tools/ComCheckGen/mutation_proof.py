@@ -154,13 +154,21 @@ MUTATIONS = [
     ("M4 HRESULT", g, "ErrorNotCurrentlyAvailable = unchecked((int)0x887A0022);", "ErrorNotCurrentlyAvailable = unchecked((int)0x887A0021);"),
     # M5 (robustness): one per new declaration.
     ("M5 slot", d + "DxgiInterfaces.cs", '[FieldOffset(9 * 8), As(1, "REFGUID")]', '[FieldOffset(8 * 8), As(1, "REFGUID")]'),
+    # Each keeps the C# build going (the call site follows), so the check itself must fail.
     (
         "M5 pointee",
-        d + "DxgiInterfaces.cs",
-        "Guid*, Dxgi.LargeInteger*, int> CheckInterfaceSupport",
-        "Guid*, Dxgi.Rational*, int> CheckInterfaceSupport",
+        [
+            (d + "DxgiInterfaces.cs", "Guid*, Dxgi.LargeInteger*, int> CheckInterfaceSupport", "Guid*, long*, int> CheckInterfaceSupport"),
+            (d + "D3d11Context.cs", "(IDXGIAdapter*)adapter, &iid, &version);", "(IDXGIAdapter*)adapter, &iid, (long*)&version);"),
+        ],
     ),
-    ("M5 struct field", g, "            public long QuadPart;\n", "            public ulong QuadPart;\n"),
+    (
+        "M5 struct field",
+        [
+            (g, "            public long QuadPart;\n", "            public ulong QuadPart;\n"),
+            (d + "D3d11Context.cs", "long v = version.QuadPart;", "long v = (long)version.QuadPart;"),
+        ],
+    ),
     ("M5 guid", g, 'new("54ec77fa-1377-44e6-8c32-88fd5f44c84c")', 'new("54ec77fa-1377-44e6-8c32-88fd5f44c84d")'),
     ("M5 HRESULT", g, "StatusModeChanged = 0x087A0007;", "StatusModeChanged = 0x087A0008;"),
 ]
