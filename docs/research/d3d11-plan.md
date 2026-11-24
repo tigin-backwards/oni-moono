@@ -71,7 +71,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
-| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user. Desktop runs 2026-11-24 ("M4 desktop runs"): the original's full screen observed (captures 10 settled but for its chain inside exclusive), Loading Pip passes (0 pixels differ), ours through windowed/borderless/stretch/exclusive clean (j0009137). Focused exclusive observed (j0009185: the original's is DXGI's own, a blt DISCARD chain in DXGI's full-screen state; it goes windowed on losing the focus; ours minimizes). HDR on the HDR monitor (j0009190): ours composed as SDR at 240 nits, no Auto HDR boost (Auto HDR most likely off); the original's captures missed its window. Open, holding M4: whether to match the original's exclusive, our alt-tab back in, Auto HDR engaged (#112) |
+| M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user. Desktop runs 2026-11-24 ("M4 desktop runs"): the original's full screen observed (captures 10 settled but for its chain inside exclusive), Loading Pip passes (0 pixels differ), ours through windowed/borderless/stretch/exclusive clean (j0009137). Focused exclusive observed (j0009185: the original's is DXGI's own, a blt DISCARD chain in DXGI's full-screen state; it goes windowed on losing the focus; ours minimizes). HDR on the HDR monitor (j0009190, j0009200): the original and ours composed as SDR at the 240-nit SDR white level, no Auto HDR boost (Auto HDR most likely off). Open, holding M4: whether to match the original's exclusive, our alt-tab back in, Auto HDR engaged (#112) |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
@@ -1668,9 +1668,8 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
     gone with a rebuild of out/win);
   - an alt-tab back into exclusive full screen (Windows refuses a background process the
     foreground; a person's alt-tab, or a key, would make it);
-  - the original under HDR in this run (its captures missed its window) and Auto HDR (#112)
-    engaged: not seen for ours, with Windows' Auto HDR most likely off (above); observing it
-    engaged needs Auto HDR switched on, a settings change left to the user;
+  - Auto HDR (#112) engaged: seen for neither player, with Windows' Auto HDR most likely off
+    (above); observing it engaged needs Auto HDR switched on, a settings change left to the user;
   - whether this device's exclusive full screen should be DXGI's, as the original's is (a
     decision; the original goes windowed on losing the focus, ours minimizes).
 - **Run 4b, HDR on the HDR monitor** (j0009190; the user's approval, runq's monitor rule set to
@@ -1690,14 +1689,21 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
     menu, may have ended, or may have opened behind another window). Its 240-nit figures in the
     job's summary are the desktop's, not the game's.
 
-  So, observed: under Windows HDR our D3D11 player is composed as SDR content at the SDR white
-  level, borderless and windowed; Windows did not take it for HDR content and Auto HDR did not
-  boost it. The DirectX user settings value where Windows keeps its graphics settings is unset
-  (read only); that Auto HDR is off on this machine is an inference. The original under HDR
-  (the DXGI presenter's earlier check, ARCHITECTURE §3.5: SDR at the SDR white level, no Auto HDR
-  boost) was not repeated here. For #112: with Auto HDR off, HDR mode alone does not boost our
-  output; whether Auto HDR, switched on, engages for the original and not for ours is still
-  unobserved.
+  **The original, rerun** (j0009200, `hdr-orig-display1.sh`: the launcher's output kept, the
+  game made the foreground 30 s in, `ORIG_FOREGROUND_AT`: Allow True, Set True; its window found
+  by its process and the capture cropped to it; HDR on and restored as above): borderless, its
+  window 2560×1440 at 0,0, the capture shows the game's own picture (its start screen, the planet
+  and rockets, with its white close mark; not the menu), brightest 0.5% 81.9 nits, maximum 240
+  nits, median 2.4. Windowed was not captured: its window rect was −7, 0, 1296×759 (the invisible
+  resize border 7 px left of the display), which the script's test that the rect lies entirely
+  on the display refused for its 170 s; not rerun, borderless answering the question.
+
+  So, observed: under Windows HDR the original and our D3D11 player are both composed as SDR
+  content, their white at the SDR white level (240 nits); Windows took neither for HDR content and
+  Auto HDR boosted neither. The DirectX user settings value where Windows keeps its graphics
+  settings is unset (read only); that Auto HDR is off on this machine is an inference. For #112:
+  with Auto HDR off, HDR mode alone does not change our D3D11 output relative to the original;
+  whether Auto HDR, switched on, engages for the original and not for ours is still unobserved.
 - **Loading Pip** (`loading-animation-pip-d3d11`, j0009135, ok): the kanim replayed, 193 redraws
   over 7.2 s, and the replay check found 0 of 118,680 pixels differing from the frame shown (the
   tile copied from the screen by CopyTargetRect, drawn unfiltered). Under the user's exception
@@ -1715,7 +1721,7 @@ j0009097; check.sh j0009100 (failed: ruff on gen-d3d11-present.py, fixed), j0009
 
 **Runs** (runq, burndown, owner `d3d11-m4`): probe builds j0009126, j0009127; the original
 j0009128; Windows builds j0009129, j0009132, j0009134; Loading Pip j0009130, j0009131, j0009133,
-j0009135; ours through the modes j0009137; check.sh j0009136 (green, on 8b098a27f), j0009144 (cancelled for later code); HDR state j0009149, j0009181; HDR on DISPLAY2 j0009165, the monitor-1 attempt j0009182; focused exclusive, ours j0009167, the original j0009166 (no probe DLL), j0009178, j0009185; HDR on DISPLAY1 j0009190; builds j0009150, j0009162 (ComCheckGen: a RECT without [NotNative]), j0009164, j0009176; check.sh CHECKJOB4.
+j0009135; ours through the modes j0009137; check.sh j0009136 (green, on 8b098a27f), j0009144 (cancelled for later code); HDR state j0009149, j0009181; HDR on DISPLAY2 j0009165, the monitor-1 attempt j0009182; focused exclusive, ours j0009167, the original j0009166 (no probe DLL), j0009178, j0009185; HDR on DISPLAY1 j0009190, the original again j0009200; builds j0009150, j0009162 (ComCheckGen: a RECT without [NotNative]), j0009164, j0009176; check.sh CHECKJOB4.
 
 ## Research so far (M0)
 
