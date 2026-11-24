@@ -93,13 +93,15 @@ namespace OniMoono.Desktop.D3d11
             int width = int.MaxValue, height = int.MaxValue;
             if (t.Colors == null)
             {
+                // The back buffer is this frame's screen texture (D3d11Present).
+                var screen = CurrentScreen;
                 topFirst = true;
-                targetViews[0] = chain.View;
+                targetViews[0] = screen.Rtv;
                 targetCount = 1;
-                BackDepth(chain.Width, chain.Height);
+                BackDepth(screen.Width, screen.Height);
                 targetDepth = backDepthView;
                 hasDepth = hasStencil = true;
-                (width, height) = (chain.Width, chain.Height);
+                (width, height) = (screen.Width, screen.Height);
             }
             else
             {
@@ -231,6 +233,7 @@ namespace OniMoono.Desktop.D3d11
         void MarkDrawn()
         {
             foreach (var t in targetTextures) t.Dirty = true;
+            if (lastTarget.Colors == null) CurrentScreen.Drew();
         }
 
         // ----- Draws -----
@@ -676,8 +679,10 @@ namespace OniMoono.Desktop.D3d11
             }
             else
             {
-                source = (ID3D11Resource*)chain.Buffer;
-                (format, width, height, turned) = (DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM, chain.Width, chain.Height, true);
+                // The back buffer: this frame's screen texture, at the rendering size.
+                var screen = CurrentScreen;
+                source = (ID3D11Resource*)screen.Texture;
+                (format, width, height, turned) = (ScreenFormat, screen.Width, screen.Height, true);
             }
             int x0 = Math.Max(0, x), y0 = Math.Max(0, y), x1 = Math.Min(width, x + w), y1 = Math.Min(height, y + h);
             if (x1 <= x0 || y1 <= y0) return read;
@@ -719,55 +724,6 @@ namespace OniMoono.Desktop.D3d11
                 Com.Release(ref staging);
             }
             return read;
-        }
-
-        /// Presents the frame, resizes the buffers to the window's framebuffer when it changed,
-        /// sets the target again, then waits until the swap chain takes another frame before the
-        /// next one renders (D3d11SwapChain.WaitForFrame).
-        ///
-        /// A minimized window: the platform keeps the framebuffer size it had (Unity's player
-        /// does, GlfwPlatform.KeptFramebufferSize), so the buffers keep theirs and nothing is
-        /// resized; a window that has never had a size (0x0, minimized from the start) keeps the
-        /// swap chain's 1x1 or last size and is not resized every frame either. Frames go on, and
-        /// Present and the wait as when shown (a flip-model swap chain does not report
-        /// DXGI_STATUS_OCCLUDED: Microsoft's DXGI_STATUS list).
-        void PresentNow(int interval, int width, int height)
-        {
-            if (lost != null) return;
-            int hr = chain.Present(interval);
-            DrainDebugMessages("Present");
-            if (++presents % 600 == 0) DebugTally();
-            PollReadbacks();
-            if (hr < 0)
-            {
-                // Present reports a removed or reset device (DXGI_ERROR_DEVICE_REMOVED/RESET); the
-                // reason is asked of the device ("Handle device removed scenarios in Direct3D 11").
-                lost = Dxgi.DeviceLost(hr)
-                    ? $"the graphics device was lost ({Dxgi.Hr(hr)}, reason {Dxgi.Hr(Dev->lpVtbl->GetDeviceRemovedReason(Dev))})"
-                    : $"Present failed ({Dxgi.Hr(hr)})";
-                EngineLog.Engine($"d3d11: {lost}");
-                return;
-            }
-            try
-            {
-                if (width > 0 && height > 0 && (width != chain.Width || height != chain.Height))
-                {
-                    // ResizeBuffers needs every reference to the buffers released, the context's
-                    // too: Resize clears the context's state, so nothing is bound any more.
-                    chain.Resize(width, height);
-                    ForgetBindings();
-                }
-            }
-            catch (D3d11UnavailableException e)
-            {
-                lost = e.Message;
-                EngineLog.Engine($"d3d11: {lost}");
-                return;
-            }
-            // The flip model unbinds the back buffer at Present ("For best performance, use DXGI
-            // flip model"): the target is set again, as the next frame finds it on OpenGL.
-            SetTarget(lastTarget);
-            chain.WaitForFrame();
         }
 
         /// After ClearState: every binding at its default, the target the back buffer.

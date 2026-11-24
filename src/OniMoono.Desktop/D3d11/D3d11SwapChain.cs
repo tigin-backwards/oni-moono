@@ -12,7 +12,8 @@ namespace OniMoono.Desktop.D3d11
     /// and RTV), AlphaMode UNSPECIFIED, scaling STRETCH, flags ALLOW_MODE_SWITCH |
     /// FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING (the last where the factory reports
     /// PRESENT_ALLOW_TEARING), maximum frame latency 2; Present(1, 0) with vsync,
-    /// Present(0, ALLOW_TEARING) without. Windowed only (full screen is M4).
+    /// Present(0, ALLOW_TEARING) without. Windowed only: full screen is the window's (D3d11Device's
+    /// presentation, ARCHITECTURE §3.5).
     internal sealed unsafe class D3d11SwapChain : IDisposable
     {
         const uint BufferCount = 2, MaximumFrameLatency = 2, WaitMilliseconds = 1000;
@@ -123,7 +124,8 @@ namespace OniMoono.Desktop.D3d11
         /// once, tearing where allowed. A flip-model back buffer must be bound again after Present
         /// ("For best performance, use DXGI flip model"): the device sets its targets each frame.
         /// Nothing waits here: the device waits before it renders a frame (WaitForFrame). Returns
-        /// Present's result.
+        /// Present's result. A game picture or a redraw with vsync tells FramePacing the display's
+        /// refresh period (as DxgiSwapChain.PresentCopied); one without vsync, that it is unpaced.
         public int Present(int interval)
         {
             interval = Math.Clamp(interval, 0, 4);
@@ -132,7 +134,66 @@ namespace OniMoono.Desktop.D3d11
             int hr = ((IDXGISwapChain*)chain)->lpVtbl->Present((IDXGISwapChain*)chain, (uint)interval, presentFlags);
             Trace(interval, presentTicks: GlTimings.Now - t);
             presents++;
+            if (hr >= 0)
+            {
+                if (interval == 0) FramePacing.UnpacedPresent();
+                else
+                {
+                    MeasureRefresh();
+                    FramePacing.PacedPresent(System.Threading.Interlocked.Read(ref refreshPeriod));
+                }
+            }
             return hr;
+        }
+
+        /// Presents the back buffer again while no frame comes (StallRepeats), after
+        /// LastPictureRetired: at sync interval 0 without ALLOW_TEARING, so in the flip model it
+        /// is discarded when a newer picture is queued before it is shown ("discard this frame if
+        /// a newer frame is queued", IDXGISwapChain::Present's SyncInterval). Not counted as a
+        /// present, nor by frame pacing (as DxgiSwapChain.PresentRepeatCopied).
+        public int PresentRepeat()
+        {
+            int hr = ((IDXGISwapChain*)chain)->lpVtbl->Present((IDXGISwapChain*)chain, 0, 0);
+            if (hr >= 0) Repeats++;
+            return hr;
+        }
+
+        /// Repeats presented (StallRepeats).
+        public long Repeats { get; private set; }
+
+        /// Whether the display has taken the last picture (the frame-latency waitable is
+        /// signalled), without waiting: a repeat goes only then, so it never queues behind a
+        /// picture nor blocks in Present (as DxgiSwapChain.LastPictureRetired). Takes the signal,
+        /// which stands for the repeat's own wait: one wait per present, as WaitForFrame keeps.
+        public bool LastPictureRetired() => Dxgi.WaitForSingleObjectEx(waitable, 0, 0) == Dxgi.WaitObject0;
+
+        /// The refresh period of the display the swap chain is on (Stopwatch ticks; 0: not
+        /// known), for FramePacing: its current mode's refresh rate, looked up again every
+        /// RefreshLookupPresents pictures on the thread pool (DxgiSwapChain.MeasureRefresh, whose
+        /// reasons apply: frame statistics are updated only now and then for a windowed swap
+        /// chain).
+        long refreshPeriod;
+        int refreshLookupIn;
+        const int RefreshLookupPresents = 300;
+
+        void MeasureRefresh()
+        {
+            if (--refreshLookupIn > 0) return;
+            refreshLookupIn = RefreshLookupPresents;
+            string name = DxgiSwapChain.OutputNameOf(chain);
+            if (name == null)
+            {
+                System.Threading.Interlocked.Exchange(ref refreshPeriod, 0);
+                return;
+            }
+            System.Threading.Tasks.Task.Run(() =>
+            {
+                long period = DxgiSwapChain.LookUpRefreshPeriod(name);
+                long before = System.Threading.Interlocked.Exchange(ref refreshPeriod, period);
+                if (period != before)
+                    EngineLog.Engine(period > 0 ? $"d3d11: {name} refreshes every {period * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F4} ms; vsynced frames last whole refreshes"
+                        : $"d3d11: {name}'s refresh rate not known; frames timed by the wall clock");
+            });
         }
 
         /// Waits until the swap chain takes a new frame, before the device renders one, the first
@@ -193,6 +254,7 @@ namespace OniMoono.Desktop.D3d11
 
         public void Dispose()
         {
+            FramePacing.UnpacedPresent();
             Com.Release(ref view);
             Com.Release(ref buffer);
             if (waitable != IntPtr.Zero) Dxgi.CloseHandle(waitable);

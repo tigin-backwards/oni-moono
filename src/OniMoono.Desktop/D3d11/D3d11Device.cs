@@ -113,7 +113,8 @@ namespace OniMoono.Desktop.D3d11
     /// is this device's (IResourceWork). The device thread alone uses the immediate context, and
     /// presents (the original makes every call on one thread, its immediate context only, and no
     /// deferred contexts: d3d11-captures.md §1 and §5); the swap chain is the device's own
-    /// (D3d11SwapChain).
+    /// (D3d11SwapChain), and its presentation, repeats, splash and loading animation are the
+    /// device thread's too (D3d11Present).
     ///
     /// The conventions are Vulkan's, as measured on the original (d3d11-unity-probes.md §2, §3):
     /// reversed Z (`GetGPUProjectionMatrix`'s z row is the Vulkan device's GpuProjection, a clear
@@ -161,11 +162,15 @@ namespace OniMoono.Desktop.D3d11
                 // each Present (PresentNow), before the next frame renders.
                 chain.WaitForFrame();
                 CreateShared();
+                CreatePresenter();
+                // The first frame's screen texture, at the rendering size (D3d11Present).
+                EnsureScreen(CurrentScreen, platform.FramebufferWidth, platform.FramebufferHeight);
                 // The back buffer is the target until the game sets another.
                 SetTarget(lastTarget);
             }
             catch
             {
+                ReleasePresenter();
                 ReleaseShared();
                 chain.Dispose();
                 throw;
@@ -183,6 +188,7 @@ namespace OniMoono.Desktop.D3d11
                 Conventions = new RenderConventions(Vulkan: true, Flipped: false),
             };
             platform.Closing += Shutdown;
+            StartPresenting();
         }
 
         public override GraphicsCaps Caps => caps;
@@ -435,8 +441,13 @@ namespace OniMoono.Desktop.D3d11
                 PlayerLoop.RequestQuit(1);
             }
             int interval = SwapIntervalOverride >= 0 ? SwapIntervalOverride : QualitySettings.vSyncCount;
+            // The window's size, which the buffers take, and the rendering size the next frame's
+            // screen texture takes (smaller in a fullscreen window the game asked a smaller
+            // resolution of: the frame is stretched over the window, D3d11Present).
             int width = platform.WindowFramebufferWidth, height = platform.WindowFramebufferHeight;
-            worker.Post(() => PresentNow(interval, width, height));
+            int renderWidth = platform.FramebufferWidth, renderHeight = platform.FramebufferHeight;
+            int frame = Time.frameCount;
+            worker.Post(() => PresentNow(frame, interval, width, height, renderWidth, renderHeight));
             worker.Submit();
         }
 
@@ -531,7 +542,9 @@ namespace OniMoono.Desktop.D3d11
 
         public override void StopForQuit()
         {
+            StopPresenting();
             worker.Dispose();
+            EndPresenting();
             DrainDebugMessages();
             DebugTally(always: true);
             EngineLog.Engine($"d3d11: {debugMessages} debug-layer messages in this run ({discardedMessages} of them dropped past the message count limit)");
@@ -539,9 +552,12 @@ namespace OniMoono.Desktop.D3d11
 
         void Shutdown()
         {
+            StopPresenting();
             worker.Dispose();
+            EndPresenting();
             DrainDebugMessages();
             Ctx->lpVtbl->ClearState(Ctx);
+            ReleasePresenter();
             ReleaseShared();
             chain.Dispose();
             Ctx->lpVtbl->Flush(Ctx);
