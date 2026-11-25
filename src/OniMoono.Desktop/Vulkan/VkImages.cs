@@ -89,6 +89,23 @@ namespace OniMoono.Desktop.Vulkan
                     VkAccessFlags2.ColorAttachmentReadBit | VkAccessFlags2.ColorAttachmentWriteBit);
         }
 
+        /// Device memory for an image. One rendered into gets memory of its own at the highest
+        /// priority (VkContext.OwnTargetMemory): render targets are what the GPU reads and
+        /// writes most, many times a frame; in VMA's shared blocks they lie among textures, and
+        /// a block the system moves out of video memory takes them along (#115). Vendors advise
+        /// dedicated allocations and the highest residency priority for render and depth
+        /// targets. The priority counts only with VK_EXT_memory_priority on.
+        public static VmaAllocationCreateInfo MemoryFor(VkImageUsageFlags usage, bool ownTargetMemory)
+        {
+            var alloc = new VmaAllocationCreateInfo { Usage = VmaMemoryUsage.AutoPreferDevice };
+            if (ownTargetMemory && (usage & (VkImageUsageFlags.ColorAttachmentBit | VkImageUsageFlags.DepthStencilAttachmentBit)) != 0)
+            {
+                alloc.Flags = VmaAllocationCreateFlags.DedicatedMemoryBit;
+                alloc.Priority = 1f;
+            }
+            return alloc;
+        }
+
         public static bool IsDepth(VkFormat f) => f is VkFormat.D16UNorm or VkFormat.D24UNormS8UInt or VkFormat.D32SFloat or VkFormat.D32SFloatS8UInt;
 
         public static bool HasStencil(VkFormat f) => f is VkFormat.D24UNormS8UInt or VkFormat.D32SFloatS8UInt;
@@ -118,7 +135,7 @@ namespace OniMoono.Desktop.Vulkan
                 InitialLayout = VkImageLayout.Undefined,
                 Flags = viewType == VkImageViewType.Cube ? VkImageCreateFlags.CubeCompatibleBit : 0,
             };
-            var alloc = new VmaAllocationCreateInfo { Usage = VmaMemoryUsage.AutoPreferDevice };
+            var alloc = MemoryFor(usage, vk.OwnTargetMemory);
             VkCheck.Ok(vk.Allocator.CreateImage(info, alloc, out r.Image, out r.Allocation, out var allocation), $"vmaCreateImage {width}x{height} {format}{(name != null ? " (" + name + ")" : "")}");
             r.Bytes = (long)allocation.Size.Value;
             r.kind = VkMemoryPlacement.Note(vk, $"images for {usage}", $"{name ?? "an image"} {width}x{height} {format}", kind, allocation.MemoryType, r.Bytes, expectHost: false);

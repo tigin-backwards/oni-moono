@@ -3307,6 +3307,12 @@ Only the work posted for resources differs (`IResourceWork`).
     by a copy from the staging stream ahead of the batch's rendering (0.16 ms of mesh uploads a
     frame on a late-game colony against 0.74 written across the bus). An integrated GPU's are
     written directly. `ONI_VULKAN_MESHES=staged|mapped` decides.
+  - **Render target memory.** Colour and depth targets get memory of their own (a dedicated
+    allocation) at the highest priority when the driver has `VK_EXT_memory_priority`. Textures
+    share VMA's blocks. A shared block the system moves out of video memory would take the
+    targets in it along, and every pass would then read and write them across the bus (#115).
+    With `VK_EXT_memory_budget` the heap budgets in the video memory line are the driver's.
+    `ONI_VULKAN_TARGETS=pooled` puts the targets back in the shared blocks.
   - **Partial re-uploads.** Re-uploads into unchanged storage send only the changed rows, as on
     OpenGL.
   - **Replaced storage.** A burst of uploads waits for the queue once its staging passes 64 MB.

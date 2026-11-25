@@ -745,6 +745,9 @@ namespace OniMoono.Desktop.Vulkan
             {
                 if ((memory.MemoryHeaps[i].Flags & VkMemoryHeapFlags.DeviceLocalBit) == 0) continue;
                 text.Append(text.Length == 0 ? "" : "; ").Append($"heap {i}: {(long)budgets[i].Usage.Value >> 20} MiB used of {(long)budgets[i].Budget.Value >> 20} MiB budget");
+                // VK_EXT_memory_budget: the driver's figures, the whole process's use. Over
+                // the budget, Windows may move memory out of video memory (#115).
+                if (vk.MemoryBudget) text.Append(budgets[i].Usage.Value > budgets[i].Budget.Value ? " (the driver's; over it)" : " (the driver's)");
             }
             // Windows: the process's own video memory on the device's adapter (all of it,
             // DXGI's swap chain and shared texture too), as Windows counts it.

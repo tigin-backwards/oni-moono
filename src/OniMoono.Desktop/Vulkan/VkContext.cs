@@ -39,6 +39,14 @@ namespace OniMoono.Desktop.Vulkan
         public VkPhysicalDeviceLimits Limits => Properties.Limits;
         public string DeviceName = "", DriverName = "", DriverInfo = "";
         public bool TextureCompressionBC, SamplerAnisotropy, MirrorClampToEdge, PushDescriptors;
+        /// VK_EXT_memory_budget (VMA's heap budgets are then the driver's, not its estimate)
+        /// and VK_EXT_memory_priority (render targets ask to stay in video memory), when the
+        /// driver has them (#115).
+        public bool MemoryBudget, MemoryPriority;
+        /// Render targets get memory of their own at the highest priority rather than a place
+        /// in VMA's shared blocks (#115); ONI_VULKAN_TARGETS=pooled shares the blocks, as
+        /// before.
+        public readonly bool OwnTargetMemory = Environment.GetEnvironmentVariable("ONI_VULKAN_TARGETS") != "pooled";
         /// Windows: the device's LUID (0 when the driver gives none), and whether the DXGI
         /// interop extensions are on (VK_KHR_external_memory_win32, VK_KHR_win32_keyed_mutex),
         /// with which of them (and VK_KHR_external_semaphore_win32, not used) the driver has.
@@ -260,13 +268,18 @@ namespace OniMoono.Desktop.Vulkan
             var features = new VkPhysicalDeviceFeatures2();
             var f12 = new VkPhysicalDeviceVulkan12Features();
             var f13 = new VkPhysicalDeviceVulkan13Features();
+            var fPriority = new VkPhysicalDeviceMemoryPriorityFeaturesEXT();
+            bool priorityExtension = Physical.SupportsExtension("VK_EXT_memory_priority"u8);
             features.Next = &f12;
             f12.Next = &f13;
+            if (priorityExtension) f13.Next = &fPriority;
             Physical.GetFeatures2(ref features);
             TextureCompressionBC = features.Features.TextureCompressionBC;
             SamplerAnisotropy = features.Features.SamplerAnisotropy;
             MirrorClampToEdge = f12.SamplerMirrorClampToEdge;
             PushDescriptors = Physical.SupportsExtension("VK_KHR_push_descriptor"u8);
+            MemoryBudget = Physical.SupportsExtension("VK_EXT_memory_budget"u8);
+            MemoryPriority = priorityExtension && fPriority.MemoryPriority;
             // Windows, presenting through DXGI (VkDxgiTarget): a D3D11 texture imported as an
             // image, its keyed mutex taken and given back by the presenter's submissions.
             if (OperatingSystem.IsWindows())
@@ -286,13 +299,17 @@ namespace OniMoono.Desktop.Vulkan
             enable.Features.SamplerAnisotropy = SamplerAnisotropy;
             var e12 = new VkPhysicalDeviceVulkan12Features { SamplerMirrorClampToEdge = MirrorClampToEdge };
             var e13 = new VkPhysicalDeviceVulkan13Features { DynamicRendering = true, Synchronization2 = true };
+            var ePriority = new VkPhysicalDeviceMemoryPriorityFeaturesEXT { MemoryPriority = true };
             enable.Next = &e12;
             e12.Next = &e13;
+            if (MemoryPriority) e13.Next = &ePriority;
             QueueFamily = Physical.GetFirstQueueFamilyWithFlag(VkQueueFlags.GraphicsBit);
             float priority = 1f;
             var queueInfo = new VkDeviceQueueCreateInfo { QueueFamilyIndex = QueueFamily, QueueCount = 1, QueuePriorities = &priority };
             var deviceExtensions = new HashSet<string> { VK.KHR_SWAPCHAIN_EXTENSION_NAME };
             if (PushDescriptors) deviceExtensions.Add("VK_KHR_push_descriptor");
+            if (MemoryBudget) deviceExtensions.Add("VK_EXT_memory_budget");
+            if (MemoryPriority) deviceExtensions.Add("VK_EXT_memory_priority");
             if (DxgiInterop)
             {
                 deviceExtensions.Add("VK_KHR_external_memory_win32");
@@ -319,12 +336,14 @@ namespace OniMoono.Desktop.Vulkan
                 PhysicalDevice = Physical,
                 Device = Device,
                 VulkanApiVersion = (uint)RequiredApi,
+                Flags = (MemoryBudget ? VmaAllocatorCreateFlags.ExtMemoryBudgetBit : 0) | (MemoryPriority ? VmaAllocatorCreateFlags.ExtMemoryPriorityBit : 0),
                 PHeapSizeLimit = heapLimit > 0 ? limits : null,
             });
             PipelineCache = CreatePipelineCache();
             FailAt("context");
             EngineLog.Engine($"vulkan: using {why}; {DriverInfo}; BC textures {(TextureCompressionBC ? "sampled" : "decoded on upload")}, "
-                             + $"descriptors {(PushDescriptors ? "pushed" : "from per-frame pools")}");
+                             + $"descriptors {(PushDescriptors ? "pushed" : "from per-frame pools")}; memory budgets {(MemoryBudget ? "from the driver" : "estimated")}, "
+                             + $"render targets {(OwnTargetMemory ? "in memory of their own" : "in shared blocks (ONI_VULKAN_TARGETS)")}{(OwnTargetMemory && MemoryPriority ? " at high priority" : "")}");
             // What tells drivers apart when the DXGI handover fails (#107); once per session.
             if (OperatingSystem.IsWindows())
                 EngineLog.Engine($"vulkan: {DriverIdentity}; VK_KHR_external_memory_win32 {YesNo(ExternalMemoryWin32)}, VK_KHR_win32_keyed_mutex {YesNo(Win32KeyedMutex)}, "
