@@ -29,6 +29,7 @@ namespace OniMoono.Host
             OniMoono.Desktop.Vulkan.VkContext.Validation = options.VulkanValidation;
             OniMoono.Desktop.Vulkan.VkDevice.CheckPipelines = true;
             OniMoono.Desktop.D3d11.D3d11Context.Validation = options.D3d11Debug;
+            OniMoono.Desktop.D3d11.D3d11Context.FeatureLevel110Only = options.D3d11FeatureLevel110;
             OniMoono.Desktop.D3d11.D3d11Device.CheckPrograms = true;
             var (platform, device) = Player.OpenDevice(options, new OniMoono.Desktop.WindowSettings("shader check", 64, 64, FullScreenMode.Windowed));
             GraphicsDevice.Install(device);
@@ -67,29 +68,43 @@ namespace OniMoono.Host
             // it (AssetBundle.LoadFromFile) and its shaders made objects, so the device checks
             // them as the game's. Their data is only read; no mod code runs.
             foreach (var dir in (Environment.GetEnvironmentVariable("ONI_CHECK_BUNDLES") ?? "").Split(System.IO.Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-                foreach (var path in System.Linq.Enumerable.Order(System.IO.Directory.EnumerateFiles(dir, "*", System.IO.SearchOption.AllDirectories), StringComparer.Ordinal))
+            {
+                string[] paths;
+                try
                 {
-                    if (!IsUnityFs(path)) continue;
-                    AssetBundle loaded;
+                    paths = System.Linq.Enumerable.ToArray(System.Linq.Enumerable.Order(System.IO.Directory.EnumerateFiles(dir, "*", System.IO.SearchOption.AllDirectories), StringComparer.Ordinal));
+                }
+                catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+                {
+                    Console.WriteLine($"shader check: bundle folder {dir} not read: {e.Message}");
+                    errors++;
+                    continue;
+                }
+                foreach (var path in paths)
                     try
                     {
-                        loaded = AssetBundle.LoadFromFile(path);
+                        if (!IsUnityFs(path)) continue;
+                        // Null when a bundle of the same files is loaded already (logged by the
+                        // engine): counted, as its shaders are not checked from this copy.
+                        if (AssetBundle.LoadFromFile(path) is not { } loaded)
+                        {
+                            Console.WriteLine($"shader check: bundle {path} not loaded");
+                            continue;
+                        }
+                        var modFile = ((AssetBundleNative)loaded.NativeOrThrow).File;
+                        foreach (var info in modFile.Objects)
+                            if (modFile.TypeOf(info).ClassId == 48 && ObjectLoader.Load(modFile, info.PathId) is Shader s)
+                            {
+                                shaders++;
+                                EngineLog.Engine($"shader check: bundle {path} shader '{s.name}'");
+                            }
                     }
-                    catch (Exception e) when (e is System.IO.InvalidDataException or System.IO.IOException or NotSupportedException)
+                    catch (Exception e) when (e is System.IO.InvalidDataException or System.IO.IOException or NotSupportedException or UnauthorizedAccessException)
                     {
                         Console.WriteLine($"shader check: bundle {path} not read: {e.Message}");
                         errors++;
-                        continue;
                     }
-                    if (loaded == null) continue;
-                    var modFile = ((AssetBundleNative)loaded.NativeOrThrow).File;
-                    foreach (var info in modFile.Objects)
-                        if (modFile.TypeOf(info).ClassId == 48 && ObjectLoader.Load(modFile, info.PathId) is Shader s)
-                        {
-                            shaders++;
-                            EngineLog.Engine($"shader check: bundle {path} shader '{s.name}'");
-                        }
-                }
+            }
             // Every program built before the count is read (the game's warm-up does not wait on
             // OpenGL).
             if (device is OniMoono.Desktop.Gl.GlDevice gl) gl.WarmupShaders(wait: true);

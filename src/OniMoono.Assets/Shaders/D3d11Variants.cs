@@ -41,21 +41,14 @@ namespace OniMoono.Assets.Shaders
             return new D3d11Variants { Stages = stages };
         }
 
-        /// A pass of a shader serialized before Unity 2021.2 (PlayerSubprograms.Legacy). Only
-        /// 2020.3's subprograms are taken: those of 2018 (keywords in one list, no
-        /// m_Parameters) sit in a program table of another format (ShaderProgramTable cannot
-        /// load it), and the original cannot use the only 2018 bundles the mods have
-        /// (d3d11-plan.md M7, the Japanese Font Patch).
+        /// A pass of a shader serialized by Unity 2020.3 (PlayerSubprograms.Legacy, which leaves
+        /// out Unity 2018's subprograms: their program table is not read, and the original's
+        /// TextMeshPro cannot use the fonts of the only 2018 bundles the mods have, d3d11-plan.md
+        /// M7). Throws InvalidDataException for damaged data.
         public static D3d11Variants OfLegacy(Fields pass)
         {
             var stages = new PlayerSubprogram[PlayerSubprograms.Stages.Length][];
-            for (int s = 0; s < stages.Length; s++)
-            {
-                var list = new List<PlayerSubprogram>();
-                foreach (var sub in PlayerSubprograms.Legacy(pass, PlayerSubprograms.Stages[s]))
-                    if (sub.Platform == ShaderCompilerPlatform.D3D11 && sub.LegacyParameters != null) list.Add(sub);
-                stages[s] = list.ToArray();
-            }
+            for (int s = 0; s < stages.Length; s++) stages[s] = System.Linq.Enumerable.ToArray(PlayerSubprograms.Legacy(pass, PlayerSubprograms.Stages[s]));
             return new D3d11Variants { Stages = stages };
         }
 

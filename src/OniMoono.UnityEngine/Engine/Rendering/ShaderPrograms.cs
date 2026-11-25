@@ -193,14 +193,18 @@ namespace OniMoono.Engine.Rendering
         {
             if (sub.LegacyParameters is not { } own) return Parameters(pass, sub.Stage, sub.ParameterBlobIndex);
             if (Platform != ShaderNative.D3D11Platform) throw new InvalidOperationException($"Shader platform {Platform}: 2020.3 subprogram parameters are read for D3D11 only.");
-            foreach (var item in own.Items)
-                if (item.Value is object[] { Length: > 0 }) throw new InvalidDataException($"A 2020.3 subprogram with its own parameters ({item.Key}) is not read.");
+            if (sub.BlobIndex < 0) throw new InvalidDataException($"A 2020.3 subprogram's blob index {sub.BlobIndex}.");
             lock (parameters)
             {
                 // Keyed apart from the blob indexes (-1 or more) by the entry's.
                 var key = (pass, sub.Stage, -2 - sub.BlobIndex);
                 if (parameters.TryGetValue(key, out var p)) return p;
-                p = ShaderParameters.Merge(PlayerSubprograms.Common(pass, sub.Stage, PlayerSubprograms.Names(pass)), ShaderParameters.ReadInline(D3d11(sub.BlobIndex).LegacyTail));
+                // SerializedProgramParameters' fields are all lists: any item in one is refused.
+                foreach (var item in own.Items)
+                    if (item.Value is not object[] { Length: 0 } and not null) throw new InvalidDataException($"A 2020.3 subprogram with its own parameters ({item.Key}) is not read.");
+                var entry = D3d11(sub.BlobIndex);
+                if (!entry.Legacy) throw new InvalidDataException("A 2020.3 subprogram whose program entry is of U60's layout.");
+                p = ShaderParameters.Merge(PlayerSubprograms.Common(pass, sub.Stage, PlayerSubprograms.Names(pass)), ShaderParameters.ReadInline(entry.LegacyTail));
                 parameters[key] = p;
                 return p;
             }

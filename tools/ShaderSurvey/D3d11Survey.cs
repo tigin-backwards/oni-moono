@@ -39,6 +39,8 @@ static class D3d11Survey
         public readonly SortedDictionary<string, int> PrefixRest = new(StringComparer.Ordinal);
         public readonly SortedDictionary<string, int> CbSecondInt = new(StringComparer.Ordinal);
         public readonly SortedDictionary<string, int> SharedSamplers = new(StringComparer.Ordinal);
+        /// 2020.3 Direct3D 11 subprograms by hardware tier.
+        public readonly SortedDictionary<string, int> LegacyTiers = new(StringComparer.Ordinal);
     }
 
     public static int RunGame(string dataDir, TextWriter o) => Report(Game(dataDir, o), o);
@@ -101,6 +103,7 @@ static class D3d11Survey
                             t.LegacyShaders++;
                             continue;
                         }
+                        if (Is2020(shader)) Legacy2020($"{mod}/{bundle}", shader, t, o);
                         Shader($"{mod}/{bundle}", shader, t, o);
                     }
                 }
@@ -118,6 +121,7 @@ static class D3d11Survey
         o.WriteLine("constant buffer bindings' second int: " + string.Join(", ", t.CbSecondInt.Select(kv => $"{kv.Key} {kv.Value}")));
         o.WriteLine($"bindings checked: {t.Textures} textures ({t.TexturesWithoutSampler} without a sampler), {t.InlineSamplers} inline samplers, {t.ConstantBuffers} constant buffers");
         o.WriteLine($"sampler slots two or more textures of one subprogram name: {t.SharedSamplerSlots}" + string.Concat(t.SharedSamplers.Select(kv => $"\n  {kv.Key} ({kv.Value} subprograms)")));
+        if (t.LegacyTiers.Count > 0) o.WriteLine("2020.3 Direct3D 11 subprograms by hardware tier: " + string.Join(", ", t.LegacyTiers.Select(kv => $"{kv.Key} {kv.Value}")));
         o.WriteLine($"{t.Shaders} shaders, {t.Passes} passes, {t.Subprograms} subprograms, {t.Entries} distinct entries ({t.DxbcBytes} DXBC bytes), " +
             $"{t.VulkanKeys} Vulkan variant keys mapped, {t.Failures} failures");
         return t.Failures == 0 ? 0 : 1;
@@ -223,6 +227,25 @@ static class D3d11Survey
         if (!pairs.SequenceEqual(read)) errors.Add($"pairs for channels {string.Join(",", pairs)}, input signature reads {string.Join(",", read)}");
         foreach (var (c, k) in program.Inputs) Tally(t.Components, $"{c}->{k}");
         return errors;
+    }
+
+    /// A 2020.3 shader's Direct3D 11 subprograms: their hardware tiers tallied (D3d11Variants
+    /// keeps the highest per keyword set), and their own m_Parameters, which the device refuses
+    /// when not empty, checked empty.
+    static void Legacy2020(string where, Fields shader, Totals t, TextWriter o)
+    {
+        foreach (var sub in shader.Struct("m_ParsedForm").Array("m_SubShaders").Cast<Fields>())
+            foreach (var pass in sub.Array("m_Passes").Cast<Fields>())
+                foreach (var stage in PlayerSubprograms.Stages)
+                    if (pass.Contains(stage) && pass.Struct(stage).Contains("m_SubPrograms"))
+                        foreach (var sp in pass.Struct(stage).Array("m_SubPrograms").Cast<Fields>())
+                        {
+                            if (!GpuProgramTypes.IsD3D11(Convert.ToInt32(sp["m_GpuProgramType"]))) continue;
+                            Tally(t.LegacyTiers, $"tier {sp["m_ShaderHardwareTier"]}");
+                            foreach (var item in sp.Struct("m_Parameters").Items)
+                                if (item.Value is object[] { Length: > 0 })
+                                    Fail(t, o, $"{where} {Data.NameOf(shader)} {stage}: a 2020.3 subprogram with its own {item.Key}");
+                        }
     }
 
     /// A shader serialized by Unity 2020.3: no shader-wide keyword names, and its subprograms list

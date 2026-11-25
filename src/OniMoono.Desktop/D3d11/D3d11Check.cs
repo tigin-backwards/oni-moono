@@ -61,6 +61,12 @@ namespace OniMoono.Desktop.D3d11
                     EngineLog.Engine($"d3d11 check: '{shader.ShaderName}' has no Direct3D 11 programs");
                     continue;
                 }
+                // Unity 2018's layout (mods' bundles): not read, and not drawn (logged by PlatformOf).
+                if (D3d11Programs.PlatformOf(shader) == 0)
+                {
+                    EngineLog.Engine($"d3d11 check: '{shader.ShaderName}' has Direct3D 11 programs this device does not read");
+                    continue;
+                }
                 shaders++;
                 foreach (var sub in shader.SubShaders)
                     foreach (var pass in sub.Passes)

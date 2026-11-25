@@ -45,7 +45,8 @@ namespace UnityEngine
         public static bool SupportsRenderTextureFormat(RenderTextureFormat format) => Gfx.SupportsRenderTexture(format);
 
         /// The platform's default formats, as the original's GLCore player gives them in gamma
-        /// colour space (UnityProbe's apigaps "rtctor").
+        /// colour space (UnityProbe's apigaps "rtctor"); DepthStencil is the device's
+        /// (GraphicsCaps.DefaultDepthStencilFormat: Direct3D 11's differs).
         public static UnityEngine.Experimental.Rendering.GraphicsFormat GetGraphicsFormat(UnityEngine.Experimental.Rendering.DefaultFormat format) => format switch
         {
             UnityEngine.Experimental.Rendering.DefaultFormat.LDR => UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm,

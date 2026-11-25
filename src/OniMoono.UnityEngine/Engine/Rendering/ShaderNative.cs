@@ -80,8 +80,22 @@ namespace OniMoono.Engine.Rendering
         /// the Direct3D 11 device asks).
         /// A shader serialized before Unity 2021.2 (a mod's bundle) has them in its parsed form
         /// (D3d11Variants.OfLegacy).
-        public D3d11Variants D3d11 => d3d11Variants ??= Legacy ? D3d11Variants.OfLegacy(Data)
+        /// A pass whose 2020.3 subprograms are damaged has none (logged once).
+        public D3d11Variants D3d11 => d3d11Variants ??= Legacy ? LegacyD3d11()
             : KeywordNames == null ? D3d11Variants.Empty : D3d11Variants.Of(Data, KeywordNames);
+
+        D3d11Variants LegacyD3d11()
+        {
+            try
+            {
+                return D3d11Variants.OfLegacy(Data);
+            }
+            catch (System.IO.InvalidDataException e)
+            {
+                EngineLog.Engine($"d3d11: a pass of a 2020.3 shader has unreadable Direct3D 11 subprograms, which are not drawn: {e.Message}");
+                return D3d11Variants.Empty;
+            }
+        }
         D3d11Variants d3d11Variants;
         /// The shader's keyword names, and whether it is a legacy (pre-parsed-form) shader.
         public string[] KeywordNames;
@@ -160,6 +174,10 @@ namespace OniMoono.Engine.Rendering
         }
 
         /// Whether the shader carries programs for a ShaderCompilerPlatform.
+        /// The Direct3D 11 device's answer for this shader (D3d11Programs.PlatformOf), kept
+        /// until the shader is bound again; -1: not asked yet.
+        public int D3d11Readable = -1;
+
         public bool HasProgramsFor(uint platform) => platform == OpenGLCorePlatform ? HasOpenGLCorePrograms : Array.IndexOf(Platforms, platform) >= 0;
 
         /// The programs for a ShaderCompilerPlatform (OpenGLCore, Metal, Vulkan or D3D11; null
@@ -286,6 +304,7 @@ namespace OniMoono.Engine.Rendering
                 vulkanProgramsLoaded = false;
                 d3d11Programs = null;
                 d3d11ProgramsLoaded = false;
+                D3d11Readable = -1;
             }
             HasOpenGLCorePrograms = Platforms.Contains(OpenGLCorePlatform);
             ShaderRegistry.Register(this);

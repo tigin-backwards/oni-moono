@@ -201,6 +201,56 @@ namespace OniMoono.Assets.Tests
             Assert.Throws<InvalidDataException>(() => ShaderParameters.ReadInline(InlineParameters().Concat(new byte[4]).ToArray()));
         }
 
+        static Fields F(params (string Name, object? Value)[] items)
+        {
+            var f = new Fields();
+            foreach (var (n, v) in items) f.Add(n, v);
+            return f;
+        }
+
+        /// A 2020.3 subprogram as its parsed form has it.
+        static Fields Sub2020(int type, uint blob, ushort[] global, ushort[] local, sbyte tier, bool parameters = true)
+        {
+            var items = new List<(string, object?)> { ("m_BlobIndex", blob), ("m_GlobalKeywordIndices", global), ("m_LocalKeywordIndices", local),
+                ("m_ShaderHardwareTier", tier), ("m_GpuProgramType", (sbyte)type) };
+            if (parameters) items.Add(("m_Parameters", F(("m_VectorParams", Array.Empty<object>()))));
+            return F(items.ToArray());
+        }
+
+        static Fields Pass2020(params Fields[] subs) => F(
+            ("m_NameIndices", new object[] { F(("first", "FOG"), ("second", 3)), F(("first", "_LOCAL"), ("second", 7)) }),
+            ("progVertex", F(("m_SubPrograms", subs.Cast<object>().ToArray()))));
+
+        [Fact]
+        public void A2020PassListsItsDirect3D11SubprogramsOfTheHighestTier()
+        {
+            var pass = Pass2020(
+                Sub2020(GpuProgramTypes.GLCore32, 0, [3], [], 3),
+                Sub2020(GpuProgramTypes.D3D11VertexSM40, 1, [3], [7], 1),
+                Sub2020(GpuProgramTypes.D3D11VertexSM40, 2, [3], [7], 3),
+                Sub2020(GpuProgramTypes.D3D11VertexSM40, 4, [], [], 3),
+                Sub2020(GpuProgramTypes.D3D11VertexSM40, 5, [], [], 3, parameters: false));
+            var subs = PlayerSubprograms.Legacy(pass, "progVertex").ToArray();
+            // Global keywords first, then local; tier 1's copy and the 2018-shaped one left out.
+            Assert.Equal([2, 4], subs.Select(x => x.BlobIndex));
+            Assert.Equal(["FOG", "_LOCAL"], subs[0].Keywords);
+            Assert.All(subs, x => Assert.NotNull(x.LegacyParameters));
+            Assert.True(PlayerSubprograms.Has2018D3d11(pass, "progVertex"));
+            Assert.False(PlayerSubprograms.Has2018D3d11(Pass2020(Sub2020(GpuProgramTypes.D3D11VertexSM40, 1, [], [], 3)), "progVertex"));
+            Assert.Equal(2, D3d11Variants.OfLegacy(pass).Vertex.Length);
+        }
+
+        [Fact]
+        public void ADamaged2020PassIsRefused()
+        {
+            // A keyword index the name table lacks; a missing field; a non-D3D11 subprogram's
+            // damage is not read.
+            Assert.Throws<InvalidDataException>(() => PlayerSubprograms.Legacy(Pass2020(Sub2020(GpuProgramTypes.D3D11VertexSM40, 1, [9], [], 3)), "progVertex").ToArray());
+            Assert.Throws<InvalidDataException>(() => PlayerSubprograms.Legacy(Pass2020(F(("m_GpuProgramType", (sbyte)GpuProgramTypes.D3D11VertexSM40), ("m_Parameters", F()),
+                ("m_GlobalKeywordIndices", Array.Empty<ushort>()), ("m_LocalKeywordIndices", Array.Empty<ushort>()))), "progVertex").ToArray());
+            Assert.Single(PlayerSubprograms.Legacy(Pass2020(Sub2020(GpuProgramTypes.GLCore32, 0, [9], [], 3), Sub2020(GpuProgramTypes.D3D11VertexSM40, 1, [], [], 3)), "progVertex"));
+        }
+
         [Fact]
         public void DamagedEntriesAreRefused()
         {
@@ -214,6 +264,12 @@ namespace OniMoono.Assets.Tests
             int dxbc = DxbcOffset(good);
             void Refused(byte[] e, string message) => Assert.Contains(message, Assert.Throws<InvalidDataException>(() => D3d11Program.Read(e)).Message);
             Refused(With(e => Put(e, 0, 0x0C07513D)), "Not a shader program entry");
+            // A U60 entry under 2020.3's magic, and a 2020.3 entry with a damaged local keyword
+            // count or an empty tail read as parameters.
+            Assert.Throws<InvalidDataException>(() => D3d11Program.Read(With(e => Put(e, 0, D3d11Program.LegacyEntryMagic))));
+            var legacy = As2020(good, InlineParameters());
+            Assert.Throws<InvalidDataException>(() => D3d11Program.Read(legacy.Select((b, i) => i is >= 28 and < 32 ? (byte)0x7F : b).ToArray()));
+            Assert.Throws<InvalidDataException>(() => ShaderParameters.ReadInline([]));
             Refused(With(e => Put(e, 4, (uint)GpuProgramTypes.SpirV)), "is not a D3D11 program");
             Refused(With(e => Put(e, 4, (uint)GpuProgramTypes.D3D11PixelSM40)), "GPU program type 17, but the DXBC is program type 1");
             Refused(With(e => Put(e, 24, 0x7FFFFFFF)), "bad keyword count");

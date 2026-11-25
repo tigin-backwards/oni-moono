@@ -12,6 +12,17 @@ namespace OniMoono.Tests
     {
         static readonly string Exe = Path.GetFullPath("/games/oni/OxygenNotIncluded");
 
+        /// Unity's -force-feature-level-11-0 (the D3D11 plan's M7): the device's option, and kept
+        /// among the game's arguments as Unity's others are.
+        [Fact]
+        public void TheFeatureLevelArgumentIsReadAndPassedOn()
+        {
+            var o = Options.Parse(["-force-feature-level-11-0", "--renderer", "d3d11", "--", Exe])!;
+            Assert.True(o.D3d11FeatureLevel110);
+            Assert.Equal(["-force-feature-level-11-0"], o.GameArguments);
+            Assert.False(Options.Parse(["--", Exe])!.D3d11FeatureLevel110);
+        }
+
         /// The crash records' options (NativeCrashes) are the player's, never the game's.
         [Fact]
         public void NativeCrashOptionsAreThePlayers()

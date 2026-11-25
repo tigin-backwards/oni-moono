@@ -168,7 +168,8 @@ namespace UnityEngine
         }
 
         /// DefaultFormat.LDR and HDR are colour formats with the depth asked for; DepthStencil
-        /// (24 bits) and Shadow (16) are depth-only formats of their own depth; Video's YUV2
+        /// (the device's: 24 bits, 32 on Direct3D 11) and Shadow (16) are depth-only formats of
+        /// their own depth; Video's YUV2
         /// cannot be rendered to.
         public RenderTexture(int width, int height, int depth, DefaultFormat format)
         {

@@ -135,20 +135,38 @@ namespace OniMoono.Desktop.D3d11
         [ThreadStatic] public static bool LastRefusalAccepted;
 
         /// Platform 4 when the shader carries Direct3D 11 programs the device reads, else 0 (not
-        /// drawn, logged once). A shader serialized by Unity 2018 (a mod's bundle) carries them in
-        /// a program table of another format, which is not read (D3d11Variants.OfLegacy).
+        /// drawn, logged once); kept on the shader until it is bound again. A shader serialized by
+        /// Unity 2018 (a mod's bundle) carries them in a program table of another format, which is
+        /// not read: a shader with normal passes all of whose Direct3D 11 subprograms are of that
+        /// layout (PlayerSubprograms.Has2018D3d11) is not drawn. A shader with no normal pass
+        /// (UsePass and GrabPass alone) keeps 4: the recorder resolves its used passes.
         public static uint PlatformOf(ShaderNative shader)
         {
-            string why;
+            int known = shader.D3d11Readable;
+            if (known >= 0) return (uint)known;
+            string why = null;
             if (!shader.HasProgramsFor(ShaderNative.D3D11Platform)) why = "has no Direct3D 11 programs";
-            else if (Array.Exists(shader.SubShaders, s => Array.Exists(s.Passes, p => p.Legacy))
-                     && Array.TrueForAll(shader.SubShaders, s => Array.TrueForAll(s.Passes, p => p.Type != 0 || p.D3d11.IsEmpty)))
-                why = "has Direct3D 11 programs of a layout older than Unity 2020.3, which are not read";
-            else return ShaderNative.D3D11Platform;
-            lock (reported)
-                if (reported.Add($"{shader.ShaderName}\nno programs"))
-                    EngineLog.Engine($"d3d11: shader '{shader.ShaderName}' {why}; it is not drawn");
-            return 0;
+            else if (shader.SubShaders.Length > 0 && Array.TrueForAll(shader.SubShaders, s => Array.TrueForAll(s.Passes, p => p.Legacy)))
+            {
+                bool normal = false, readable = false, of2018 = false;
+                foreach (var sub in shader.SubShaders)
+                    foreach (var pass in sub.Passes)
+                    {
+                        if (pass.Type != 0) continue;
+                        normal = true;
+                        if (!pass.D3d11.IsEmpty) readable = true;
+                        foreach (var stage in PlayerSubprograms.Stages) of2018 |= PlayerSubprograms.Has2018D3d11(pass.Data, stage);
+                    }
+                if (normal && !readable)
+                    why = of2018 ? "has Direct3D 11 programs of Unity 2018's layout, which are not read" : "has no Direct3D 11 programs this device reads";
+            }
+            if (why != null)
+                lock (reported)
+                    if (reported.Add($"{shader.ShaderName}\nno programs"))
+                        EngineLog.Engine($"d3d11: shader '{shader.ShaderName}' {why}; it is not drawn");
+            uint platform = why == null ? ShaderNative.D3D11Platform : 0;
+            shader.D3d11Readable = (int)platform;
+            return platform;
         }
 
         /// The key of the pass's program for the enabled keywords (main thread, any recorder
@@ -244,6 +262,9 @@ namespace OniMoono.Desktop.D3d11
             {
                 if (stages[s] is not { } sub) continue;
                 var entry = programs.D3d11(sub.BlobIndex);
+                // A 2020.3 shader's subprograms name 2020.3 entries, U60's U60's.
+                if (entry.Legacy != (sub.LegacyParameters != null))
+                    throw new System.IO.InvalidDataException($"a {(entry.Legacy ? "2020.3" : "U60")} program entry for a {(sub.LegacyParameters != null ? "2020.3" : "U60")} subprogram");
                 var bindings = D3d11Bindings.From(programs.Parameters(choice.Pass.Data, sub));
                 var errors = bindings.Check(entry);
                 if (errors.Count > 0)
