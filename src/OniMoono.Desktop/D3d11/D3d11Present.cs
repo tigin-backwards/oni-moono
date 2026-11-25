@@ -557,8 +557,9 @@ namespace OniMoono.Desktop.D3d11
         /// What DrawQuads set, and only that, marked as not what the device last bound: the input
         /// layout and topology, the shaders (the geometry stage set to none), the pixel stage's
         /// view and sampler at slot 0 (the view unbound again), and the blend, depth-stencil and
-        /// rasterizer states. The vertex buffers are set by every draw, and the target, viewport
-        /// and scissor by SetTarget. Every other tracked view, sampler and constant buffer is
+        /// rasterizer states (the last draw's state forgotten with them), and the vertex buffer
+        /// at slot 0 (every vertex binding forgotten); the target, viewport and scissor are set
+        /// by SetTarget. Every other tracked view, sampler and constant buffer is
         /// still bound as tracked, so SetTarget's hazard pass still finds a target's texture
         /// bound for sampling in another slot or stage (ForgetBindings, after ClearState, would
         /// lose them).
@@ -571,6 +572,8 @@ namespace OniMoono.Desktop.D3d11
             boundBlend = null;
             boundDepth = null;
             boundStencilRef = 0;
+            stateKnown = false;
+            ForgetInputs();
             const int pixel = 1;
             boundViews[pixel][0] = 0;
             boundViewTextures[pixel][0] = null;

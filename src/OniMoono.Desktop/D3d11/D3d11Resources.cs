@@ -593,6 +593,7 @@ namespace OniMoono.Desktop.D3d11
                 Com.Release(ref buffer);
                 buffer = made;
                 capacity = size;
+                ForgetInputs();
             }
             D3D11_MAPPED_SUBRESOURCE mapped;
             D3d11Context.Check(Ctx->lpVtbl->Map(Ctx, (ID3D11Resource*)buffer, 0, D3D11_MAP.D3D11_MAP_WRITE_DISCARD, 0, &mapped), "Map (WRITE_DISCARD)");
@@ -628,6 +629,7 @@ namespace OniMoono.Desktop.D3d11
             d.D3d = null;
             liveMeshes.Remove(m);
             m.Release();
+            ForgetInputs();
         }
 
         void ReleasePrograms(DeviceProgramSet set)

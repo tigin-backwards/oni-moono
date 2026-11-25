@@ -50,6 +50,15 @@ namespace OniMoono.Desktop.D3d11
         ID3D11BlendState* boundBlend;
         ID3D11DepthStencilState* boundDepth;
         uint boundStencilRef;
+        // The last draw's state and what its state objects were looked up with (Bind).
+        ResolvedState lastState;
+        bool stateKnown, lastFlipped, lastScissored, lastHasDepth, lastHasStencil;
+        // The input assembler's vertex buffers, strides and offsets and index buffer as last set
+        // (BindInputs); -1 slots: not known.
+        readonly nint[] boundVertexBuffers = new nint[D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+        readonly uint[] boundStrides = new uint[D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT], boundOffsets = new uint[D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+        int boundVertexSlots = -1;
+        nint boundIndexBuffer = -1;
         readonly nint[][] boundViews = [new nint[TrackedSlots], new nint[TrackedSlots], new nint[TrackedSlots]];
         readonly D3d11Texture[][] boundViewTextures = [new D3d11Texture[TrackedSlots], new D3d11Texture[TrackedSlots], new D3d11Texture[TrackedSlots]];
         readonly nint[][] boundSamplers = [new nint[TrackedSlots], new nint[TrackedSlots], new nint[TrackedSlots]];
@@ -287,8 +296,8 @@ namespace OniMoono.Desktop.D3d11
                 strides[(int)Channel.Count + i] = 16;
                 offsets[(int)Channel.Count + i] = (uint)layout.Constants[i];
             }
-            Ctx->lpVtbl->IASetVertexBuffers(Ctx, 0, (uint)n, buffers, strides, offsets);
-            Ctx->lpVtbl->IASetIndexBuffer(Ctx, mesh.Indices, DXGI_FORMAT.DXGI_FORMAT_R32_UINT, 0);
+            BindVertexBuffers(n, buffers, strides, offsets);
+            BindIndexBuffer(mesh.Indices);
             Ctx->lpVtbl->DrawIndexed(Ctx, (uint)r.SubMesh.Count, (uint)r.SubMesh.Offset, r.SubMesh.BaseVertex);
             draws++;
             DrainAfterDraw(program);
@@ -335,20 +344,57 @@ namespace OniMoono.Desktop.D3d11
                 strides[1 + i] = 16;
                 offsets[1 + i] = (uint)layout.Constants[i];
             }
-            Ctx->lpVtbl->IASetVertexBuffers(Ctx, 0, (uint)n, buffers, strides, offsets);
+            BindVertexBuffers(n, buffers, strides, offsets);
             if (indices != null)
             {
                 var ib = MemoryMarshal.AsBytes(indices.AsSpan());
                 var at = Write(ref immediateIndices, ref immediateIndexCapacity, ib.Length, D3D11_BIND_FLAG.D3D11_BIND_INDEX_BUFFER);
                 ib.CopyTo(new Span<byte>(at, ib.Length));
                 Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)immediateIndices, 0);
-                Ctx->lpVtbl->IASetIndexBuffer(Ctx, immediateIndices, DXGI_FORMAT.DXGI_FORMAT_R32_UINT, 0);
+                BindIndexBuffer(immediateIndices);
                 Ctx->lpVtbl->DrawIndexed(Ctx, (uint)indices.Length, 0, 0);
             }
             else Ctx->lpVtbl->Draw(Ctx, (uint)count, 0);
             draws++;
             DrainAfterDraw(program);
             MarkDrawn();
+        }
+
+        /// Slots 0 to n - 1 as given, set only when one of them differs from what was last set
+        /// there: consecutive draws of one mesh with one layout set the same buffers. Slots past
+        /// n keep what an earlier draw bound, which no input layout element of this draw reads
+        /// (Layout makes an element only for the slots it gives). A buffer made or released
+        /// forgets what is known (ForgetInputs), so a new buffer at a released one's address is
+        /// never taken for it.
+        void BindVertexBuffers(int n, ID3D11Buffer** buffers, uint* strides, uint* offsets)
+        {
+            bool same = n <= boundVertexSlots;
+            for (int i = 0; same && i < n; i++)
+                same = boundVertexBuffers[i] == (nint)buffers[i] && boundStrides[i] == strides[i] && boundOffsets[i] == offsets[i];
+            if (same) return;
+            Ctx->lpVtbl->IASetVertexBuffers(Ctx, 0, (uint)n, buffers, strides, offsets);
+            for (int i = 0; i < n; i++)
+            {
+                boundVertexBuffers[i] = (nint)buffers[i];
+                boundStrides[i] = strides[i];
+                boundOffsets[i] = offsets[i];
+            }
+            boundVertexSlots = Math.Max(boundVertexSlots, n);
+        }
+
+        void BindIndexBuffer(ID3D11Buffer* indices)
+        {
+            if (boundIndexBuffer == (nint)indices) return;
+            Ctx->lpVtbl->IASetIndexBuffer(Ctx, indices, DXGI_FORMAT.DXGI_FORMAT_R32_UINT, 0);
+            boundIndexBuffer = (nint)indices;
+        }
+
+        /// The input assembler's bindings are no longer known (a vertex or index buffer made or
+        /// released, ClearState).
+        void ForgetInputs()
+        {
+            boundVertexSlots = -1;
+            boundIndexBuffer = -1;
         }
 
         /// With the debug layer, its messages right after a draw are that draw's (or of a call
@@ -523,25 +569,35 @@ namespace OniMoono.Desktop.D3d11
                 Ctx->lpVtbl->IASetPrimitiveTopology(Ctx, topology);
                 boundTopology = topology;
             }
-            var rasterizer = states.Rasterizer(r.State, flipped, scissor != null);
-            if (boundRasterizer != rasterizer)
+            // The state objects: looked up again only when the draw's state, or what they also
+            // depend on (the target's orientation, depth and stencil, the scissor), differs from
+            // the last draw's; consecutive draws mostly share them.
+            bool scissored = scissor != null;
+            if (!stateKnown || !r.State.Equals(lastState) || lastFlipped != flipped || lastScissored != scissored || lastHasDepth != hasDepth || lastHasStencil != hasStencil)
             {
-                Ctx->lpVtbl->RSSetState(Ctx, rasterizer);
-                boundRasterizer = rasterizer;
-            }
-            var blend = states.Blend(r.State);
-            if (boundBlend != blend)
-            {
-                // No blend factor is used (no BLEND_FACTOR blend), and every sample is written.
-                Ctx->lpVtbl->OMSetBlendState(Ctx, blend, null, D3D11.D3D11_DEFAULT_SAMPLE_MASK);
-                boundBlend = blend;
-            }
-            var depth = states.DepthStencil(r.State, hasDepth, hasStencil);
-            if (boundDepth != depth || boundStencilRef != (uint)r.State.StencilRef)
-            {
-                Ctx->lpVtbl->OMSetDepthStencilState(Ctx, depth, (uint)r.State.StencilRef);
-                boundDepth = depth;
-                boundStencilRef = (uint)r.State.StencilRef;
+                var rasterizer = states.Rasterizer(r.State, flipped, scissored);
+                if (boundRasterizer != rasterizer)
+                {
+                    Ctx->lpVtbl->RSSetState(Ctx, rasterizer);
+                    boundRasterizer = rasterizer;
+                }
+                var blend = states.Blend(r.State);
+                if (boundBlend != blend)
+                {
+                    // No blend factor is used (no BLEND_FACTOR blend), and every sample is written.
+                    Ctx->lpVtbl->OMSetBlendState(Ctx, blend, null, D3D11.D3D11_DEFAULT_SAMPLE_MASK);
+                    boundBlend = blend;
+                }
+                var depth = states.DepthStencil(r.State, hasDepth, hasStencil);
+                if (boundDepth != depth || boundStencilRef != (uint)r.State.StencilRef)
+                {
+                    Ctx->lpVtbl->OMSetDepthStencilState(Ctx, depth, (uint)r.State.StencilRef);
+                    boundDepth = depth;
+                    boundStencilRef = (uint)r.State.StencilRef;
+                }
+                lastState = r.State;
+                (lastFlipped, lastScissored, lastHasDepth, lastHasStencil) = (flipped, scissored, hasDepth, hasStencil);
+                stateKnown = true;
             }
             var starts = stackalloc int[Math.Max(1, r.Program.BlockSizes.Length)];
             for (int b = 0, at = r.BlocksOffset; b < r.Program.BlockSizes.Length; b++)
@@ -552,7 +608,13 @@ namespace OniMoono.Desktop.D3d11
             for (int s = 0; s < Stages; s++)
             {
                 if (program.Stages[s] is not { } stage) continue;
-                foreach (var (slot, block, size) in stage.ConstantBuffers) BindConstants(s, slot, size, r.Blocks.AsSpan(starts[block], size));
+                var cbs = stage.ConstantBuffers;
+                var buffers = stage.Buffers ??= new ConstantBuffer[cbs.Length];
+                for (int i = 0; i < cbs.Length; i++)
+                {
+                    var (slot, block, size) = cbs[i];
+                    BindConstants(s, slot, buffers[i] ??= ConstantBufferFor(s, slot, size), r.Blocks.AsSpan(starts[block], size));
+                }
                 foreach (var (slot, index) in stage.Textures)
                 {
                     var tex = SampledTexture(r, index);
@@ -621,7 +683,7 @@ namespace OniMoono.Desktop.D3d11
         /// and written with Map(WRITE_DISCARD) when the draw's bytes differ from what it holds
         /// (the original's way: d3d11-captures.md §3 and §5, one buffer of the cbuffer's exact size
         /// per slot, WRITE_DISCARD before the draws that use it).
-        sealed class ConstantBuffer
+        internal sealed class ConstantBuffer
         {
             public ID3D11Buffer* Buffer;
             public byte[] Held;
@@ -629,7 +691,9 @@ namespace OniMoono.Desktop.D3d11
 
         readonly Dictionary<(int Stage, int Slot, int Size), ConstantBuffer> constantBuffers = new();
 
-        void BindConstants(int stage, int slot, int size, ReadOnlySpan<byte> bytes)
+        /// The buffer of a stage, slot and size, made on first use (kept by each program's stage
+        /// after that: D3d11Stage.Buffers).
+        ConstantBuffer ConstantBufferFor(int stage, int slot, int size)
         {
             if (!constantBuffers.TryGetValue((stage, slot, size), out var cb))
             {
@@ -643,6 +707,12 @@ namespace OniMoono.Desktop.D3d11
                 cb = new ConstantBuffer { Buffer = b };
                 constantBuffers[(stage, slot, size)] = cb;
             }
+            return cb;
+        }
+
+        void BindConstants(int stage, int slot, ConstantBuffer cb, ReadOnlySpan<byte> bytes)
+        {
+            int size = bytes.Length;
             if (cb.Held == null || !bytes.SequenceEqual(cb.Held))
             {
                 long started = D3d11Timings.Start();
@@ -759,6 +829,8 @@ namespace OniMoono.Desktop.D3d11
             boundBlend = null;
             boundDepth = null;
             boundStencilRef = 0;
+            stateKnown = false;
+            ForgetInputs();
             for (int s = 0; s < Stages; s++)
             {
                 Array.Clear(boundViews[s]);

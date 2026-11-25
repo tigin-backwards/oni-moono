@@ -16,6 +16,8 @@ namespace OniMoono.Desktop.D3d11
     internal sealed class D3d11Stage
     {
         public (int Slot, int Block, int Size)[] ConstantBuffers = [];
+        /// The device's buffer for each of ConstantBuffers (device thread; made on first use).
+        public D3d11Device.ConstantBuffer[] Buffers;
         public (int Slot, int Texture)[] Textures = [];
         public (int Slot, int Texture)[] Samplers = [];
     }
