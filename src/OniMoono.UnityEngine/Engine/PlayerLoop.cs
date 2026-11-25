@@ -34,8 +34,9 @@ namespace OniMoono.Engine
         public static bool QuitRequested { get; private set; }
         public static int ExitCode { get; private set; }
         /// The error the quit was asked with (a graphics device that stopped working), shown
-        /// to the player once the window has left the screen (Player.ShowQuitError); null for an
-        /// ordinary quit. A quit wantsToQuit refused keeps it for the next one.
+        /// to the player once the window has left the screen (Player, through
+        /// StandaloneLaunch.TellBeforeQuit); null for an ordinary quit. A quit wantsToQuit
+        /// refused keeps it for the next one.
         public static string QuitError { get; private set; }
 
         static bool started;
