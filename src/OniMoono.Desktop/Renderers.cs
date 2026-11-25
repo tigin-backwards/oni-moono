@@ -63,55 +63,49 @@ namespace OniMoono.Desktop
         /// its first frames on screen (VkStartGuard); Direct3D 11 refuses a software adapter and
         /// honours its own start-up guard. `source` says where the choice came from.
         ///
-        /// Auto on Windows first makes the Direct3D 11 device on the adapter the GPU choice rule
-        /// picks (D3d11Context: EnumAdapters1(0), or the `--gpu` preference) and asks it whether
-        /// it has a unified memory architecture (D3d11Context.UnifiedMemory), which is what
-        /// "integrated" means here. Yes: that device goes on to start. No, or not known: it is
-        /// released (its guard line with it) and Vulkan goes first. A Direct3D 11 device that
-        /// cannot be made then is not tried again.
+        /// Integrated: auto on Windows starts with Vulkan, whose GPU choice (VkContext.Choose: a
+        /// discrete GPU first, or the `--gpu` preference) is the GPU the game would draw on.
+        /// When that is VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU ("the device is typically one
+        /// embedded in or tightly coupled with the host", the Vulkan specification's
+        /// VkPhysicalDeviceType) Vulkan stops before its deny list, guard and device
+        /// (VkGpuIdentity.Integrated), and the order becomes Direct3D 11, Vulkan, OpenGL. A hybrid
+        /// laptop or a desktop with a discrete card is not integrated: Vulkan picks the discrete
+        /// GPU. Nothing more is made to tell (the instance is Vulkan's own first step).
         public static (GlfwPlatform Platform, RenderDevice Device) Open(WindowSettings settings, string choice, string source, string gpu, string cacheDirectory)
         {
             var reasons = new System.Collections.Generic.List<string>();
             if (choice == OpenGl) reasons.Add($"OpenGL chosen ({source})");
-            bool windows = OperatingSystem.IsWindows(), integrated = false, direct3dFailed = false;
+            bool windows = OperatingSystem.IsWindows(), integrated = false, vulkanTried = false;
             string order = null;
-            D3dStart probe = null;
             if (choice == Auto && windows)
             {
-                probe = OpenD3d11(gpu, auto: true, cacheDirectory, out var failure);
-                if (probe == null)
+                var (platform, device, failure, integratedGpu) = TryVulkan(settings, gpu, auto: true, cacheDirectory, yieldIfIntegrated: true);
+                if (device != null)
                 {
-                    direct3dFailed = true;
-                    reasons.Add($"Direct3D 11 unavailable: {failure}");
-                    order = "the GPU's kind not known, so Vulkan first";
+                    EngineLog.Engine($"renderer: Vulkan (auto, {source}); {integratedGpu ?? "the GPU"} is not integrated, so Vulkan first");
+                    return (platform, device);
                 }
-                else if (probe.Context.UnifiedMemory == true)
+                if (integratedGpu != null)
                 {
                     integrated = true;
-                    order = $"{probe.Context.Adapter.Name} is integrated (unified memory architecture), so Direct3D 11 first";
+                    order = $"{failure}, so Direct3D 11 first";
                 }
                 else
                 {
-                    order = $"{probe.Context.Adapter.Name} is not integrated (unified memory architecture {(probe.Context.UnifiedMemory == false ? "no" : "not known")}), so Vulkan first";
-                    probe.Release();
-                    probe = null;
+                    vulkanTried = true;
+                    reasons.Add($"Vulkan unavailable: {failure}");
                 }
             }
             foreach (var attempt in Attempts(choice, windows, integrated))
             {
                 if (attempt.Renderer == OpenGl) break;
                 bool d3d = attempt.Renderer == D3d11;
-                if (d3d && attempt.Auto && direct3dFailed) continue;
+                if (!d3d && attempt.Auto && vulkanTried) continue;
                 GlfwPlatform platform;
                 RenderDevice device;
-                string failure = null;
-                if (!d3d) (platform, device, failure) = TryVulkan(settings, gpu, attempt.Auto, cacheDirectory);
-                else
-                {
-                    var start = probe ?? OpenD3d11(gpu, attempt.Auto, cacheDirectory, out failure);
-                    probe = null;
-                    (platform, device, failure) = start == null ? (null, null, failure) : StartD3d11(settings, start);
-                }
+                string failure;
+                if (d3d) (platform, device, failure) = TryD3d11(settings, gpu, attempt.Auto, cacheDirectory);
+                else (platform, device, failure, _) = TryVulkan(settings, gpu, attempt.Auto, cacheDirectory);
                 string name = d3d ? "Direct3D 11" : "Vulkan";
                 if (device != null)
                 {
@@ -136,14 +130,24 @@ namespace OniMoono.Desktop
             }
         }
 
-        static (GlfwPlatform, RenderDevice, string) TryVulkan(WindowSettings settings, string gpu, bool auto, string cacheDirectory)
+        /// The fourth value: with `yieldIfIntegrated`, the GPU's name when it is integrated (then
+        /// nothing was made and the failure says why), else its name when it started; null when
+        /// Vulkan stopped for another reason.
+        static (GlfwPlatform, RenderDevice, string, string) TryVulkan(WindowSettings settings, string gpu, bool auto, string cacheDirectory, bool yieldIfIntegrated = false)
         {
             VkContext context;
             VkStartGuard guard = null;
             string build = BuildId();
-            // Before the device is made: the deny list (auto only), then the start-up guard.
+            string integrated = null;
+            // Before the device is made: an integrated GPU given way (Open), the deny list (auto
+            // only), then the start-up guard.
             string Admit(VkGpuIdentity id)
             {
+                if (yieldIfIntegrated && id.Integrated)
+                {
+                    integrated = id.DeviceName;
+                    return $"{id.DeviceName} is integrated (VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)";
+                }
                 if (auto && VkDenyList.Reason(id) is { } denied)
                     return $"{denied} is on the deny list (--renderer vulkan tries it)";
                 if (cacheDirectory == null) return null;
@@ -159,18 +163,18 @@ namespace OniMoono.Desktop
             catch (VulkanUnavailableException e)
             {
                 guard?.Abandon();
-                return (null, null, e.Message);
+                return (null, null, e.Message, integrated);
             }
             catch (Exception e) when (e is DllNotFoundException or TypeInitializationException or EntryPointNotFoundException or BadImageFormatException)
             {
                 guard?.Abandon();
-                return (null, null, $"{e.GetType().Name}: {e.Message}");
+                return (null, null, $"{e.GetType().Name}: {e.Message}", null);
             }
             GlfwPlatform platform = null;
             try
             {
                 platform = new GlfwPlatform(settings with { Api = RenderApi.Vulkan });
-                return (platform, new VkDevice(platform, context, cacheDirectory, guard), null);
+                return (platform, new VkDevice(platform, context, cacheDirectory, guard), null, context.DeviceName);
             }
             catch (Exception e)
             {
@@ -179,7 +183,7 @@ namespace OniMoono.Desktop
                 platform?.Dispose();
                 context.Dispose();
                 guard?.Abandon();
-                return (null, null, e is VulkanUnavailableException ? e.Message : $"{e.GetType().Name}: {e.Message}");
+                return (null, null, e is VulkanUnavailableException ? e.Message : $"{e.GetType().Name}: {e.Message}", null);
             }
         }
 
@@ -223,12 +227,21 @@ namespace OniMoono.Desktop
             {
                 return new D3dStart(new D3d.D3d11Context(gpu, allowSoftware: !auto, Admit), guard);
             }
-            catch (Exception e) when (e is D3d.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException or TypeInitializationException or BadImageFormatException)
+            catch (Exception e)
             {
+                // Any failure: auto on Windows asks this first, so nothing here may stop a start
+                // another renderer can make (the context released what it made).
                 guard?.Abandon();
-                failure = e.Message;
+                failure = e is D3d.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException ? e.Message : $"{e.GetType().Name}: {e.Message}";
                 return null;
             }
+        }
+
+        /// Direct3D 11's two steps (OpenD3d11, StartD3d11).
+        static (GlfwPlatform, RenderDevice, string) TryD3d11(WindowSettings settings, string gpu, bool auto, string cacheDirectory)
+        {
+            var start = OpenD3d11(gpu, auto, cacheDirectory, out var failure);
+            return start == null ? (null, null, failure) : StartD3d11(settings, start);
         }
 
         /// The second step: the window and the device's swap chain and presenter. Any failure

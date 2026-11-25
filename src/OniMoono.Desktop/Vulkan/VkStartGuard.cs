@@ -8,7 +8,7 @@ namespace OniMoono.Desktop.Vulkan
 {
     /// The GPU and driver a Vulkan start would use (VkContext, read before the device is made).
     /// `DriverVersion` is the driver's own encoding of its version; `DriverId` is VkDriverId.
-    internal readonly record struct VkGpuIdentity(uint VendorId, uint DeviceId, uint DriverVersion, int DriverId, string DriverName, string DeviceName);
+    internal readonly record struct VkGpuIdentity(uint VendorId, uint DeviceId, uint DriverVersion, int DriverId, string DriverName, string DeviceName, bool Integrated = false);
 
     /// Start-up crash guard, as Firefox's DriverCrashGuard (ARCHITECTURE §3.5, *Starting*):
     /// before the Vulkan device is made, a line `starting KEY` is written to
@@ -147,7 +147,7 @@ namespace OniMoono.Desktop.Vulkan
     /// The renderer a start-up guard is for: its file and how its messages name it.
     internal sealed record GuardNames(string Api, string Option, string Instead, string File, string LogPrefix)
     {
-        public static readonly GuardNames Vulkan = new("Vulkan", "vulkan", "OpenGL", "vulkan-start-guard.txt", "vulkan");
+        public static readonly GuardNames Vulkan = new("Vulkan", "vulkan", OperatingSystem.IsWindows() ? "Direct3D 11 or OpenGL" : "OpenGL", "vulkan-start-guard.txt", "vulkan");
         /// Under auto a refused Direct3D 11 start goes on to the next renderer (Renderers.Open).
         public static readonly GuardNames D3d11 = new("Direct3D 11", "d3d11", "the next renderer", "d3d11-start-guard.txt", "d3d11");
     }

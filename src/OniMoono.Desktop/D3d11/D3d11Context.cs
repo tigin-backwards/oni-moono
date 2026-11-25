@@ -38,13 +38,6 @@ namespace OniMoono.Desktop.D3d11
         public Dxgi.AdapterDesc1 Adapter { get; private set; }
         public bool Tearing { get; private set; }
         public D3d11GpuIdentity Identity { get; private set; }
-        /// The device's Unified Memory Architecture answer: "Specifies whether the hardware and
-        /// driver support Unified Memory Architecture. The runtime sets this member to TRUE if
-        /// the hardware and driver support this option" (D3D11_FEATURE_DATA_D3D11_OPTIONS2,
-        /// Direct3D 11.3, Windows 10); null when the query fails (an older runtime). Auto takes
-        /// it as "an integrated GPU" (Renderers.Open): observed TRUE on the AMD Radeon iGPU and
-        /// FALSE on the RTX 3090 (d3d11-plan.md, "M6").
-        public bool? UnifiedMemory { get; private set; }
 
         public static void Check(int hr, string what)
         {
@@ -97,10 +90,6 @@ namespace OniMoono.Desktop.D3d11
                 Device = d;
                 Context = c;
                 FeatureLevel = level;
-                D3D11_FEATURE_DATA_D3D11_OPTIONS2 options2;
-                UnifiedMemory = d->lpVtbl->CheckFeatureSupport(d, D3D11_FEATURE.D3D11_FEATURE_D3D11_OPTIONS2, &options2, (uint)sizeof(D3D11_FEATURE_DATA_D3D11_OPTIONS2)) >= 0
-                    ? options2.UnifiedMemoryArchitecture != 0 : null;
-                EngineLog.Engine($"d3d11: {desc.Name}: unified memory architecture {(UnifiedMemory is { } uma ? uma ? "yes" : "no" : "not known (D3D11_OPTIONS2 not answered)")}");
                 D3d11Fault.FailAt("device");
             }
             finally

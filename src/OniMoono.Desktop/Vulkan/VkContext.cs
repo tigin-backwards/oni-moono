@@ -365,7 +365,7 @@ namespace OniMoono.Desktop.Vulkan
             DxgiInterop = OperatingSystem.IsWindows() && OniMoono.Desktop.Gl.DxgiSwapChain.Enabled
                           && VkDxgiSupport.MissingExtensions(ExternalMemoryWin32, Win32KeyedMutex) == null;
             DriverInfo = DriverDescription(out int driverId);
-            Identity = new VkGpuIdentity((uint)Properties.VendorID, (uint)Properties.DeviceID, (uint)Properties.DriverVersion, driverId, DriverName, DeviceName);
+            Identity = new VkGpuIdentity((uint)Properties.VendorID, (uint)Properties.DeviceID, (uint)Properties.DriverVersion, driverId, DriverName, DeviceName, candidates[chosen].Type == VkPhysicalDeviceType.IntegratedGpu);
             if (admit?.Invoke(Identity) is { } refused) throw new VulkanUnavailableException(refused);
 
             var enable = new VkPhysicalDeviceFeatures2();

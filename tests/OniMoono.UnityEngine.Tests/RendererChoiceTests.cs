@@ -162,5 +162,6 @@ namespace OniMoono.Tests
                 Assert.Equal("opengl", Of("opengl", windows: true, integrated));
             }
         }
+
     }
 }
