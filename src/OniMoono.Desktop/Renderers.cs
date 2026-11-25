@@ -77,7 +77,8 @@ namespace OniMoono.Desktop
                 string name = d3d ? "Direct3D 11" : "Vulkan";
                 if (device != null)
                 {
-                    EngineLog.Engine($"renderer: {name} ({(attempt.Auto ? Auto : attempt.Renderer)}, {source})");
+                    // The devices tried before it, and why they did not start.
+                    EngineLog.Engine($"renderer: {name} ({(attempt.Auto ? Auto : attempt.Renderer)}, {source}){(reasons.Count > 0 ? "; " + string.Join("; ", reasons) : "")}");
                     return (platform, device);
                 }
                 // `--renderer d3d11` that cannot start goes on as auto (M2).
@@ -170,7 +171,7 @@ namespace OniMoono.Desktop
             {
                 context = new D3d.D3d11Context(gpu, allowSoftware: !auto, Admit);
             }
-            catch (Exception e) when (e is D3d.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException)
+            catch (Exception e) when (e is D3d.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException or TypeInitializationException or BadImageFormatException)
             {
                 guard?.Abandon();
                 return (null, null, e.Message);

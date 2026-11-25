@@ -597,7 +597,9 @@ namespace OniMoono.Desktop.D3d11
     /// the frame counts. Busy is GlWorker's (GlTimings.Busy: every handed-over batch), less the
     /// frame-latency wait after each frame's Present (FrameStatsWindow.PresenterQueueWait, the
     /// "device thread waiting for the presenter" of the main thread's waits). Present includes
-    /// that wait. Timed only with frame stats on.
+    /// that wait. Timed only with frame stats on. The parts overlap where one calls another
+    /// (SetTarget runs inside Present and render-texture making, so targets count in both), and
+    /// meshes made ahead in idle time count under mesh uploads but not in busy: as VkTimings'.
     internal static class D3d11Timings
     {
         public static long Draws, Constants, TextureUploads, MeshUploads, Targets, Present;

@@ -447,10 +447,14 @@ namespace OniMoono.Desktop.D3d11
                     }
                 if (same)
                 {
-                    // Levels without texels are zeroed (as a new texture's are).
+                    // Levels without texels are zeroed (as a new texture's are), and the copy
+                    // UploadChanged compares with no longer what the texture holds.
                     if (u.Memory == null)
+                    {
                         for (int i = 0; i < subresources; i++)
                             Ctx->lpVtbl->UpdateSubresource(Ctx, t.Resource, (uint)i, null, datas[i].pSysMem, datas[i].SysMemPitch, datas[i].SysMemSlicePitch);
+                        t.UploadedTexels = null;
+                    }
                     return;
                 }
                 ID3D11Resource* made;
