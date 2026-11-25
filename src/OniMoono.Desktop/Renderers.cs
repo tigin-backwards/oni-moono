@@ -70,7 +70,10 @@ namespace OniMoono.Desktop
         /// VkPhysicalDeviceType) Vulkan stops before its deny list, guard and device
         /// (VkGpuIdentity.Integrated), and the order becomes Direct3D 11, Vulkan, OpenGL. A hybrid
         /// laptop or a desktop with a discrete card is not integrated: Vulkan picks the discrete
-        /// GPU. Nothing more is made to tell (the instance is Vulkan's own first step).
+        /// GPU, when its Vulkan driver is there and meets the requirements (else that GPU is not
+        /// one Vulkan can draw on, and the integrated one is). Nothing more is made to tell (the
+        /// instance is Vulkan's own first step). Direct3D 11 then takes its own adapter by its GPU
+        /// choice rule (M5: EnumAdapters1(0), or the `--gpu` preference), logged on its own line.
         public static (GlfwPlatform Platform, RenderDevice Device) Open(WindowSettings settings, string choice, string source, string gpu, string cacheDirectory)
         {
             var reasons = new System.Collections.Generic.List<string>();
@@ -79,13 +82,13 @@ namespace OniMoono.Desktop
             string order = null;
             if (choice == Auto && windows)
             {
-                var (platform, device, failure, integratedGpu) = TryVulkan(settings, gpu, auto: true, cacheDirectory, yieldIfIntegrated: true);
+                var (platform, device, failure, gpuName) = TryVulkan(settings, gpu, auto: true, cacheDirectory, yieldIfIntegrated: true);
                 if (device != null)
                 {
-                    EngineLog.Engine($"renderer: Vulkan (auto, {source}); {integratedGpu ?? "the GPU"} is not integrated, so Vulkan first");
+                    EngineLog.Engine($"renderer: Vulkan (auto, {source}); {gpuName ?? "the GPU"} is not integrated, so Vulkan first");
                     return (platform, device);
                 }
-                if (integratedGpu != null)
+                if (gpuName != null)
                 {
                     integrated = true;
                     order = $"{failure}, so Direct3D 11 first";
@@ -187,32 +190,17 @@ namespace OniMoono.Desktop
             }
         }
 
-        /// A Direct3D 11 device made and its start-up guard entered, not yet started.
-        sealed class D3dStart(D3d.D3d11Context context, VkStartGuard guard)
+        /// Direct3D 11 as TryVulkan: the adapter chosen, then (before its device is made) the
+        /// start-up guard (`d3d11-start-guard.txt`, honoured under `auto` only; `--renderer d3d11`
+        /// always tries and its clean start clears the key); a software adapter only when not
+        /// `auto`. Any failure releases what was made, the guard's line going with it. No driver
+        /// is on a deny list: Vulkan's two entries are Vulkan drivers' (VkDenyList), and no
+        /// Direct3D 11 driver is known to need one (d3d11-plan.md, "M5").
+        static (GlfwPlatform, RenderDevice, string) TryD3d11(WindowSettings settings, string gpu, bool auto, string cacheDirectory)
         {
-            public readonly D3d.D3d11Context Context = context;
-            public readonly VkStartGuard Guard = guard;
-
-            /// Not to be started: the device goes, and the guard's line with it.
-            public void Release()
-            {
-                Context.Dispose();
-                Guard?.Abandon();
-            }
-        }
-
-        /// Direct3D 11 as TryVulkan, in two steps. This one: the adapter chosen, then (before its
-        /// device is made) the start-up guard (`d3d11-start-guard.txt`, honoured under `auto`
-        /// only; `--renderer d3d11` always tries and its clean start clears the key); a software
-        /// adapter only when not `auto`; then the device. Null, with the reason, having released
-        /// what was made (the guard's line with it). No driver is on a deny list: Vulkan's two
-        /// entries are Vulkan drivers' (VkDenyList), and no Direct3D 11 driver is known to need
-        /// one (d3d11-plan.md, "M5").
-        static D3dStart OpenD3d11(string gpu, bool auto, string cacheDirectory, out string failure)
-        {
-            failure = null;
             foreach (var unknown in D3d.D3d11Fault.Unknown())
                 EngineLog.Engine($"d3d11: {D3d.D3d11Fault.Variable}: no fault '{unknown}' in this build");
+            D3d.D3d11Context context;
             VkStartGuard guard = null;
             string build = BuildId(D3d.D3d11Fault.Text("guard-build"));
             string Admit(D3d.D3d11GpuIdentity id)
@@ -225,39 +213,24 @@ namespace OniMoono.Desktop
             }
             try
             {
-                return new D3dStart(new D3d.D3d11Context(gpu, allowSoftware: !auto, Admit), guard);
+                context = new D3d.D3d11Context(gpu, allowSoftware: !auto, Admit);
             }
-            catch (Exception e)
+            catch (Exception e) when (e is D3d.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException or TypeInitializationException or BadImageFormatException)
             {
-                // Any failure: auto on Windows asks this first, so nothing here may stop a start
-                // another renderer can make (the context released what it made).
                 guard?.Abandon();
-                failure = e is D3d.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException ? e.Message : $"{e.GetType().Name}: {e.Message}";
-                return null;
+                return (null, null, e is D3d.D3d11UnavailableException ? e.Message : $"{e.GetType().Name}: {e.Message}");
             }
-        }
-
-        /// Direct3D 11's two steps (OpenD3d11, StartD3d11).
-        static (GlfwPlatform, RenderDevice, string) TryD3d11(WindowSettings settings, string gpu, bool auto, string cacheDirectory)
-        {
-            var start = OpenD3d11(gpu, auto, cacheDirectory, out var failure);
-            return start == null ? (null, null, failure) : StartD3d11(settings, start);
-        }
-
-        /// The second step: the window and the device's swap chain and presenter. Any failure
-        /// releases the window, the context and the guard's line.
-        static (GlfwPlatform, RenderDevice, string) StartD3d11(WindowSettings settings, D3dStart start)
-        {
             GlfwPlatform platform = null;
             try
             {
                 platform = new GlfwPlatform(settings with { Api = RenderApi.Direct3D11 });
-                return (platform, new D3d.D3d11Device(platform, start.Context, start.Guard), null);
+                return (platform, new D3d.D3d11Device(platform, context, guard), null);
             }
             catch (Exception e)
             {
                 platform?.Dispose();
-                start.Release();
+                context.Dispose();
+                guard?.Abandon();
                 return (null, null, e is D3d.D3d11UnavailableException ? e.Message : $"{e.GetType().Name}: {e.Message}");
             }
         }
