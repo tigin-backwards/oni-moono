@@ -348,6 +348,8 @@ namespace OniMoono.Desktop.Vulkan
                     vk.Device.PInvoke.vkCmdClearColorImage.Invoke(cb.Handle, image.Image, VkImageLayout.TransferDstOptimal, &color, 1, &range);
                 }
                 image.ForSampling(cb);
+                // The texels UploadChanged compares with are no longer what the image holds.
+                vt.UploadedTexels = null;
                 return;
             }
             if (same && type == VkImageViewType._2D && UploadChanged(cb, u, vt, f, levels)) return;
