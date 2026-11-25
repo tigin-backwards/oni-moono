@@ -36,6 +36,9 @@ namespace OniMoono.Desktop.D3d11
         public TextureFormat StorageFormat = (TextureFormat)(-1);
         /// The sampler its settings select (owned by the device's cache).
         public ID3D11SamplerState* Sampler;
+        /// Level 0's texels as last uploaded, for uploads of only the rows that changed
+        /// (UploadChanged); null after the storage is made.
+        public byte[] UploadedTexels;
 
         public void Release()
         {
@@ -386,10 +389,18 @@ namespace OniMoono.Desktop.D3d11
                         && t.Levels == levels && t.Layers == layers && t.Depth == depth;
             // Each subresource's texels (converted when the format needs it), level by level
             // within each slice: D3D11CalcSubresource's order (MipSlice + ArraySlice * MipLevels).
+            if (same && u.Memory != null && target == TexTarget2D && UploadChanged(t, u, f, levels)) return;
             int subresources = levels * layers;
             var datas = new D3D11_SUBRESOURCE_DATA[subresources];
-            var kept = new List<byte[]>();
-            var handles = new List<GCHandle>();
+            // Converted levels of a texture being made: each in native memory of its own until
+            // it is made (the conversion's scratch is reused by the next level). Unconverted
+            // levels are read where they are: the upload's memory lives until UploadTexture
+            // frees it. A re-upload into the same storage converts and writes one level at a
+            // time: "When UpdateSubresource returns, the application is free to change or even
+            // free the data pointed to by pSrcData because the method has already copied/snapped
+            // away the original contents" (its Remarks), so it keeps no copy. No level's texels
+            // go to the managed heap (they did, a copy each: 1 GB/s on a late-game colony, M6).
+            var copies = new List<nint>();
             byte* zeros = null;
             try
             {
@@ -399,7 +410,7 @@ namespace OniMoono.Desktop.D3d11
                         int w = Math.Max(1, u.Width >> m), h = Math.Max(1, u.Height >> m), d = Math.Max(1, depth >> m);
                         int blocksWide = (w + f.BlockSize - 1) / f.BlockSize, blocksHigh = (h + f.BlockSize - 1) / f.BlockSize;
                         uint pitch = (uint)(blocksWide * f.BlockBytes), slice = (uint)(pitch * blocksHigh);
-                        void* p;
+                        int sub = m + s * levels;
                         if (u.Memory == null)
                         {
                             // No texels (a texture made and not filled): zero, as drivers clear
@@ -409,27 +420,37 @@ namespace OniMoono.Desktop.D3d11
                                 long most = (long)Math.Max(1, (u.Width + f.BlockSize - 1) / f.BlockSize) * f.BlockBytes * Math.Max(1, (u.Height + f.BlockSize - 1) / f.BlockSize) * depth;
                                 zeros = (byte*)NativeMemory.AllocZeroed((nuint)most);
                             }
-                            p = zeros;
+                            datas[sub] = new D3D11_SUBRESOURCE_DATA { pSysMem = zeros, SysMemPitch = pitch, SysMemSlicePitch = slice };
+                            continue;
                         }
-                        else
+                        long offset = target == TexTarget2DArray ? s * u.SliceBytes + u.MipOffset(m) : u.MipOffset(m);
+                        long length = target == TexTarget3D ? u.MipSize(m) : TextureFormats.MipSize(u.Format, w, h);
+                        byte* source = u.Memory.Pointer + offset;
+                        var data = D3d11Formats.Convert(f, u.Format, source, length, w, h * d, ref conversionScratch);
+                        fixed (byte* converted = data)
                         {
-                            long offset = target == TexTarget2DArray ? s * u.SliceBytes + u.MipOffset(m) : u.MipOffset(m);
-                            long length = target == TexTarget3D ? u.MipSize(m) : TextureFormats.MipSize(u.Format, w, h);
-                            var data = D3d11Formats.Convert(f, u.Format, u.Memory.Pointer + offset, length, w, h * d, ref conversionScratch);
-                            // The converted bytes live in the scratch array, reused by the next
-                            // level: each kept in its own copy until the texture is made.
-                            var copy = data.ToArray();
-                            kept.Add(copy);
-                            var handle = GCHandle.Alloc(copy, GCHandleType.Pinned);
-                            handles.Add(handle);
-                            p = (void*)handle.AddrOfPinnedObject();
+                            if (same)
+                            {
+                                Ctx->lpVtbl->UpdateSubresource(Ctx, t.Resource, (uint)sub, null, converted, pitch, slice);
+                                continue;
+                            }
+                            void* p = converted;
+                            if (converted != source)
+                            {
+                                var copy = (byte*)NativeMemory.Alloc((nuint)Math.Max(1, data.Length));
+                                copies.Add((nint)copy);
+                                data.CopyTo(new Span<byte>(copy, data.Length));
+                                p = copy;
+                            }
+                            datas[sub] = new D3D11_SUBRESOURCE_DATA { pSysMem = p, SysMemPitch = pitch, SysMemSlicePitch = slice };
                         }
-                        datas[m + s * levels] = new D3D11_SUBRESOURCE_DATA { pSysMem = p, SysMemPitch = pitch, SysMemSlicePitch = slice };
                     }
                 if (same)
                 {
-                    for (int i = 0; i < subresources; i++)
-                        Ctx->lpVtbl->UpdateSubresource(Ctx, t.Resource, (uint)i, null, datas[i].pSysMem, datas[i].SysMemPitch, datas[i].SysMemSlicePitch);
+                    // Levels without texels are zeroed (as a new texture's are).
+                    if (u.Memory == null)
+                        for (int i = 0; i < subresources; i++)
+                            Ctx->lpVtbl->UpdateSubresource(Ctx, t.Resource, (uint)i, null, datas[i].pSysMem, datas[i].SysMemPitch, datas[i].SysMemSlicePitch);
                     return;
                 }
                 ID3D11Resource* made;
@@ -483,13 +504,54 @@ namespace OniMoono.Desktop.D3d11
                 t.RenderTarget = t.DepthOnly = false;
                 t.StorageFormat = u.Format;
                 t.Sampler = defaultSampler;
+                t.UploadedTexels = null;
             }
             finally
             {
-                foreach (var h in handles) h.Free();
+                foreach (var c in copies) NativeMemory.Free((void*)c);
                 if (zeros != null) NativeMemory.Free(zeros);
             }
         }
+
+        const long UploadedTexelsLimit = 4 << 20;
+
+        /// GlTextures.UploadChanged, as VkDevice's: a re-upload into the same storage sends only
+        /// the rows between the first and the last that differ from the previous upload, or
+        /// none; false (a full upload) the first time, and for textures with mips, converted or
+        /// block-compressed texels, or a level 0 over 4 MB. The rows go by UpdateSubresource
+        /// with a box (in texels for textures, "If NULL, the data is written to the destination
+        /// subresource with no offset": pDstBox), the source pointing at the first changed row.
+        /// Every upload was whole before (M6: 6.2 ms a frame of the device thread on a late-game
+        /// colony, against Vulkan's 1.4).
+        bool UploadChanged(D3d11Texture t, TexelUpload u, in D3d11TextureFormat f, int levels)
+        {
+            long length = u.MipSize(0);
+            if (levels != 1 || f.Conversion != Vulkan.TexelConversion.None || f.ArgbToRgba || f.BlockSize > 1 || length > UploadedTexelsLimit || length % u.Height != 0) return false;
+            var now = new ReadOnlySpan<byte>(u.Memory.Pointer + u.Base, (int)length);
+            var before = t.UploadedTexels;
+            if (before == null || before.Length != length)
+            {
+                t.UploadedTexels = now.ToArray();
+                return false;
+            }
+            int rowBytes = (int)(length / u.Height), first = 0, last = u.Height - 1;
+            while (first < u.Height && now.Slice(first * rowBytes, rowBytes).SequenceEqual(before.AsSpan(first * rowBytes, rowBytes))) first++;
+            if (first >= u.Height)
+            {
+                unchangedUploads++;
+                return true;
+            }
+            while (now.Slice(last * rowBytes, rowBytes).SequenceEqual(before.AsSpan(last * rowBytes, rowBytes))) last--;
+            var changed = now.Slice(first * rowBytes, (last - first + 1) * rowBytes);
+            var box = new D3D11_BOX { left = 0, right = (uint)u.Width, top = (uint)first, bottom = (uint)(last + 1), front = 0, back = 1 };
+            fixed (byte* rows = changed)
+                Ctx->lpVtbl->UpdateSubresource(Ctx, t.Resource, 0, &box, rows, (uint)rowBytes, (uint)changed.Length);
+            changed.CopyTo(before.AsSpan(first * rowBytes));
+            partialUploads++;
+            return true;
+        }
+
+        long unchangedUploads, partialUploads;
 
         /// Point: nearest; Bilinear: linear within a level, nearest level; Trilinear: linear
         /// across levels (as GlTextures.ApplySampler); anisotropy above 1 with a filter other

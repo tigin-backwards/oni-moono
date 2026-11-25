@@ -473,8 +473,9 @@ namespace OniMoono.Desktop.D3d11
         public override string TakeFrameCounters(int n) => worker.Call(() =>
         {
             string text = D3d11Timings.Take(n) + $"; d3d11: draws {draws / n}, constant-buffer maps {constantMaps / n}, shader changes {shaderChanges / n}, programs {livePrograms.Count}, state objects {states.Made}, "
-                          + $"textures {liveTextures.Count}, meshes {liveMeshes.Count}, debug-layer messages {debugMessages}";
+                          + $"textures {liveTextures.Count}, meshes {liveMeshes.Count}, texture uploads of changed rows {partialUploads / (double)n:F1}, unchanged {unchangedUploads / (double)n:F1}, debug-layer messages {debugMessages}";
             draws = constantMaps = shaderChanges = 0;
+            partialUploads = unchangedUploads = 0;
             return text;
         });
 
