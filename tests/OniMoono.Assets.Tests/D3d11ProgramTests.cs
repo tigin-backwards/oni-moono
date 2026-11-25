@@ -149,6 +149,58 @@ namespace OniMoono.Assets.Tests
             Assert.Contains("prefix SRV count 3, 2 declared", D3d11Bindings.From(Params("uirdefault-ps")).Check(D3d11Program.Read(entry)));
         }
 
+        /// A U60 entry in Unity 2020.3's layout (d3d11-plan.md M7): its magic, a second (local)
+        /// keyword list after the first, and the subprogram's parameters after the vertex inputs.
+        static byte[] As2020(byte[] entry, byte[] tail)
+        {
+            int keywords = BitConverter.ToInt32(entry, 24), pos = 28;
+            for (int i = 0; i < keywords; i++) pos += 4 + ((BitConverter.ToInt32(entry, pos) + 3) & ~3);
+            var e = entry[..pos].Concat(new byte[4]).Concat(entry[pos..]).Concat(tail).ToArray();
+            Put(e, 0, D3d11Program.LegacyEntryMagic);
+            return e;
+        }
+
+        /// A parameter blob's body (no magic): an empty root buffer, "$Globals" of 32 bytes with
+        /// one float4 at 16, and its binding at b0.
+        static byte[] InlineParameters()
+        {
+            var b = new List<byte>();
+            void I(int v) => b.AddRange(BitConverter.GetBytes(v));
+            void S(string v)
+            {
+                I(v.Length);
+                b.AddRange(System.Text.Encoding.UTF8.GetBytes(v));
+                while (b.Count % 4 != 0) b.Add(0);
+            }
+            I(2);
+            S(""); I(0); I(0); I(0);
+            S("$Globals"); I(32); I(1); S("_Tint"); I(0); I(1); I(4); I(0); I(0); I(16); I(0);
+            I(1);
+            S("$Globals"); I(1); I(0); I(1);
+            return b.ToArray();
+        }
+
+        [Fact]
+        public void A2020EntryReadsWithItsParameters()
+        {
+            var u60 = D3d11Program.Read(Entry("fullscreen-vs"));
+            var p = D3d11Program.Read(As2020(Entry("fullscreen-vs"), InlineParameters()));
+            Assert.True(p.Legacy);
+            Assert.False(u60.Legacy);
+            Assert.Empty(u60.LegacyTail);
+            Assert.Equal(u60.Dxbc.Bytes, p.Dxbc.Bytes);
+            Assert.Equal(u60.ChannelMask, p.ChannelMask);
+            Assert.Equal(u60.Inputs, p.Inputs);
+            Assert.Equal(InlineParameters(), p.LegacyTail);
+            var parameters = ShaderParameters.ReadInline(p.LegacyTail);
+            Assert.Equal(["", "$Globals"], parameters.ConstantBuffers.Select(c => c.Name));
+            Assert.Equal(16, parameters.Buffer("$Globals")!.Members.Single().Offset);
+            Assert.Equal(("$Globals", 0), (parameters.ConstantBufferBindings.Single().Name, parameters.ConstantBufferBindings.Single().Index));
+            // A tail of whole ints only, and one that parses to its end.
+            Assert.Contains("not whole ints", Assert.Throws<InvalidDataException>(() => D3d11Program.Read(As2020(Entry("fullscreen-vs"), [1, 2]))).Message);
+            Assert.Throws<InvalidDataException>(() => ShaderParameters.ReadInline(InlineParameters().Concat(new byte[4]).ToArray()));
+        }
+
         [Fact]
         public void DamagedEntriesAreRefused()
         {
@@ -161,7 +213,7 @@ namespace OniMoono.Assets.Tests
             }
             int dxbc = DxbcOffset(good);
             void Refused(byte[] e, string message) => Assert.Contains(message, Assert.Throws<InvalidDataException>(() => D3d11Program.Read(e)).Message);
-            Refused(With(e => Put(e, 0, 0x0C07513C)), "Not a shader program entry");
+            Refused(With(e => Put(e, 0, 0x0C07513D)), "Not a shader program entry");
             Refused(With(e => Put(e, 4, (uint)GpuProgramTypes.SpirV)), "is not a D3D11 program");
             Refused(With(e => Put(e, 4, (uint)GpuProgramTypes.D3D11PixelSM40)), "GPU program type 17, but the DXBC is program type 1");
             Refused(With(e => Put(e, 24, 0x7FFFFFFF)), "bad keyword count");

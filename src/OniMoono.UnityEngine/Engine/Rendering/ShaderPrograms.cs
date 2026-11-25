@@ -183,6 +183,29 @@ namespace OniMoono.Engine.Rendering
             }
         }
 
+        /// What a subprogram reads: Parameters for its parameter blob, or, for a Direct3D 11
+        /// subprogram of a shader serialized by Unity 2020.3, the stage's common parameters
+        /// merged with those its program entry carries (ShaderParameters.ReadInline, which plays
+        /// the parameter blob's part). Such a subprogram's own `m_Parameters` is empty in all
+        /// 1,722 of the Workshop mods read; one that is not is refused (InvalidDataException),
+        /// as its relation to the entry's is not measured. Read on first use.
+        public ShaderParameters Parameters(Fields pass, PlayerSubprogram sub)
+        {
+            if (sub.LegacyParameters is not { } own) return Parameters(pass, sub.Stage, sub.ParameterBlobIndex);
+            if (Platform != ShaderNative.D3D11Platform) throw new InvalidOperationException($"Shader platform {Platform}: 2020.3 subprogram parameters are read for D3D11 only.");
+            foreach (var item in own.Items)
+                if (item.Value is object[] { Length: > 0 }) throw new InvalidDataException($"A 2020.3 subprogram with its own parameters ({item.Key}) is not read.");
+            lock (parameters)
+            {
+                // Keyed apart from the blob indexes (-1 or more) by the entry's.
+                var key = (pass, sub.Stage, -2 - sub.BlobIndex);
+                if (parameters.TryGetValue(key, out var p)) return p;
+                p = ShaderParameters.Merge(PlayerSubprograms.Common(pass, sub.Stage, PlayerSubprograms.Names(pass)), ShaderParameters.ReadInline(D3d11(sub.BlobIndex).LegacyTail));
+                parameters[key] = p;
+                return p;
+            }
+        }
+
         static readonly string[] stageNames = ["VERTEX", "FRAGMENT", "GEOMETRY", "HULL", "DOMAIN"];
 
         /// The stage sections of Unity's combined GLSL: the text inside each `#ifdef STAGE`

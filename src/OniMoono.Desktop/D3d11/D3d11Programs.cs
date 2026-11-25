@@ -134,13 +134,20 @@ namespace OniMoono.Desktop.D3d11
         /// Whether that refusal was of an accepted, unreachable program (AcceptedUnreachable).
         [ThreadStatic] public static bool LastRefusalAccepted;
 
-        /// Platform 4 when the shader carries Direct3D 11 programs, else 0 (not drawn, logged once).
+        /// Platform 4 when the shader carries Direct3D 11 programs the device reads, else 0 (not
+        /// drawn, logged once). A shader serialized by Unity 2018 (a mod's bundle) carries them in
+        /// a program table of another format, which is not read (D3d11Variants.OfLegacy).
         public static uint PlatformOf(ShaderNative shader)
         {
-            if (shader.HasProgramsFor(ShaderNative.D3D11Platform)) return ShaderNative.D3D11Platform;
+            string why;
+            if (!shader.HasProgramsFor(ShaderNative.D3D11Platform)) why = "has no Direct3D 11 programs";
+            else if (Array.Exists(shader.SubShaders, s => Array.Exists(s.Passes, p => p.Legacy))
+                     && Array.TrueForAll(shader.SubShaders, s => Array.TrueForAll(s.Passes, p => p.Type != 0 || p.D3d11.IsEmpty)))
+                why = "has Direct3D 11 programs of a layout older than Unity 2020.3, which are not read";
+            else return ShaderNative.D3D11Platform;
             lock (reported)
                 if (reported.Add($"{shader.ShaderName}\nno programs"))
-                    EngineLog.Engine($"d3d11: shader '{shader.ShaderName}' has no Direct3D 11 programs; it is not drawn");
+                    EngineLog.Engine($"d3d11: shader '{shader.ShaderName}' {why}; it is not drawn");
             return 0;
         }
 
@@ -237,15 +244,17 @@ namespace OniMoono.Desktop.D3d11
             {
                 if (stages[s] is not { } sub) continue;
                 var entry = programs.D3d11(sub.BlobIndex);
-                var bindings = D3d11Bindings.From(programs.Parameters(choice.Pass.Data, PlayerSubprograms.Stages[s], sub.ParameterBlobIndex));
+                var bindings = D3d11Bindings.From(programs.Parameters(choice.Pass.Data, sub));
                 var errors = bindings.Check(entry);
                 if (errors.Count > 0)
                 {
                     NotDrawn(shader, sub.Keywords, $"bindings that do not match their DXBC ({errors[0]})");
                     return program;
                 }
-                // M1 left the inline sampler state's encoding unread (d3d11-plan.md "Carried to
-                // M2"); no game shader has one.
+                // The inline sampler state's encoding is not read (d3d11-plan.md M1, "Carried to
+                // M2, then to M7"): no game shader has one, and the only mod shader with one
+                // (Aki's Extra Twitch Events' Hidden/Dither) is never drawn by the original, whose
+                // mod loader fails on that mod (d3d11-plan.md M7).
                 if (bindings.Samplers.Length > 0)
                 {
                     NotDrawn(shader, sub.Keywords, "inline sampler states");

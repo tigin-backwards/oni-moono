@@ -24,9 +24,26 @@ namespace OniMoono.Assets.Shaders
     /// buffer (b#) and sampler (s#) slot counts (960/960; D3d11Bindings.Check compares them with
     /// the DXBC declarations). Byte 0 (2 in every entry) and bytes 4–37 (zero in all but the
     /// geometry program) are kept as raw, unknown values.
+    ///
+    /// Shaders serialized by Unity 2020.3 (mods' bundles, d3d11-plan.md M7) have entries of
+    /// another magic, 0x0C07513C, measured on the 1,449 such entries of the Workshop mods read
+    /// (every one parses to its end this way): the same header, two keyword lists (global, then
+    /// local) where U60's has one, the same payload, channel mask and pairs, and then the
+    /// subprogram's own parameters as a U60 parameter blob holds them, without the blob's magic
+    /// (LegacyTail, read by ShaderParameters.ReadInline; with the stage's common parameters
+    /// D3d11Bindings.Check compares them with the DXBC declarations as it does U60's).
     public sealed class D3d11Program
     {
         public const int PrefixBytes = 38;
+
+        /// The program entry magic of shaders serialized by Unity 2020.3.
+        public const uint LegacyEntryMagic = 0x0C07513C;
+
+        /// Whether the entry is of the Unity 2020.3 layout.
+        public bool Legacy { get; private init; }
+        /// A 2020.3 entry's bytes after its vertex inputs: its parameters (ShaderParameters.
+        /// ReadInline); empty otherwise.
+        public byte[] LegacyTail { get; private init; } = [];
 
         public int GpuProgramType { get; private init; }
         /// The header's four statistics ints (meaning unknown; programs.md §2).
@@ -66,22 +83,29 @@ namespace OniMoono.Assets.Shaders
                 pos += 4;
                 return v;
             }
-            if ((uint)Int(entry) != MetalProgram.EntryMagic) throw new InvalidDataException("Not a shader program entry.");
+            uint magic = (uint)Int(entry);
+            if (magic != MetalProgram.EntryMagic && magic != LegacyEntryMagic) throw new InvalidDataException("Not a shader program entry.");
+            bool legacy = magic == LegacyEntryMagic;
             int type = Int(entry);
             if (!GpuProgramTypes.IsD3D11(type)) throw new InvalidDataException($"Shader program entry of GPU program type {type} is not a D3D11 program.");
             if (type > GpuProgramTypes.D3D11GeometrySM40)
                 throw new InvalidDataException($"D3D11 program: GPU program type {type} is not supported (15-19 are all U60's data and mods have).");
             var statistics = new[] { Int(entry), Int(entry), Int(entry), Int(entry) };
-            int keywordCount = Int(entry);
-            if (keywordCount < 0 || keywordCount > entry.Length / 4) throw new InvalidDataException($"D3D11 program: bad keyword count {keywordCount}.");
-            var keywords = new string[keywordCount];
-            for (int i = 0; i < keywordCount; i++)
+            // U60's entries have one keyword list; 2020.3's two (global, then local).
+            var keywordList = new System.Collections.Generic.List<string>();
+            for (int list = 0; list < (legacy ? 2 : 1); list++)
             {
-                int len = Int(entry);
-                if (len < 0 || len > entry.Length - pos) throw new InvalidDataException("D3D11 program: bad keyword.");
-                keywords[i] = Encoding.UTF8.GetString(entry.Slice(pos, len));
-                pos = (int)Math.Min(entry.Length, pos + (((long)len + 3) & ~3L));
+                int keywordCount = Int(entry);
+                if (keywordCount < 0 || keywordCount > entry.Length / 4) throw new InvalidDataException($"D3D11 program: bad keyword count {keywordCount}.");
+                for (int i = 0; i < keywordCount; i++)
+                {
+                    int len = Int(entry);
+                    if (len < 0 || len > entry.Length - pos) throw new InvalidDataException("D3D11 program: bad keyword.");
+                    keywordList.Add(Encoding.UTF8.GetString(entry.Slice(pos, len)));
+                    pos = (int)Math.Min(entry.Length, pos + (((long)len + 3) & ~3L));
+                }
             }
+            var keywords = keywordList.ToArray();
             int payloadLength = Int(entry);
             if (payloadLength < PrefixBytes + DxbcContainer.HeaderBytes || payloadLength > entry.Length - pos)
                 throw new InvalidDataException($"D3D11 program: bad payload length {payloadLength}.");
@@ -101,7 +125,8 @@ namespace OniMoono.Assets.Shaders
             if (inputCount < 0 || inputCount > 32) throw new InvalidDataException($"D3D11 program: bad vertex input count {inputCount}.");
             var inputs = new (int, int)[inputCount];
             for (int i = 0; i < inputCount; i++) inputs[i] = (Int(entry), Int(entry));
-            if (pos != entry.Length) throw new InvalidDataException($"D3D11 program: {entry.Length - pos} bytes after the vertex inputs.");
+            if (!legacy && pos != entry.Length) throw new InvalidDataException($"D3D11 program: {entry.Length - pos} bytes after the vertex inputs.");
+            if (legacy && (entry.Length - pos) % 4 != 0) throw new InvalidDataException($"D3D11 program: a 2020.3 tail of {entry.Length - pos} bytes, not whole ints.");
             return new D3d11Program
             {
                 GpuProgramType = type,
@@ -111,6 +136,8 @@ namespace OniMoono.Assets.Shaders
                 Dxbc = dxbc,
                 ChannelMask = channels,
                 Inputs = inputs,
+                Legacy = legacy,
+                LegacyTail = legacy ? entry[pos..].ToArray() : [],
             };
         }
 

@@ -32,14 +32,15 @@ namespace OniMoono.Assets.Tests
         }
 
         [Fact]
-        public void EveryModProgramOfU60sLayoutReadsAndAgrees()
+        public void EveryModProgramOfU60sAnd2020sLayoutReadsAndAgrees()
         {
             if (!Directory.Exists(Mods)) Assert.Skip(NeedsMods + Mods);
             var log = new StringWriter();
             var t = D3d11Survey.Bundles(Mods, log);
             Assert.True(t.Failures == 0, log.ToString());
-            // The mod set grows; at least the 652 entries of the 2026-11-22 survey.
-            Assert.True(t.Entries >= 652, $"{t.Entries} entries");
+            // The mod set grows; at least the 652 entries of U60's layout of the 2026-11-22
+            // survey and the 1,449 of Unity 2020.3's of 2026-11-25 (d3d11-plan.md M7).
+            Assert.True(t.Entries >= 652 + 1449, $"{t.Entries} entries");
         }
     }
 }

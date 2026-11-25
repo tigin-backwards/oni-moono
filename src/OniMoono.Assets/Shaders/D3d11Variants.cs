@@ -22,7 +22,7 @@ namespace OniMoono.Assets.Shaders
 
         public bool IsEmpty => Vertex.Length == 0 && Fragment.Length == 0;
 
-        /// No programs for any stage (a legacy pass, or one without keyword names).
+        /// No programs for any stage (a pass without keyword names).
         public static readonly D3d11Variants Empty = new()
         {
             Stages = Array.ConvertAll(PlayerSubprograms.Stages, _ => Array.Empty<PlayerSubprogram>()),
@@ -36,6 +36,24 @@ namespace OniMoono.Assets.Shaders
                 var list = new List<PlayerSubprogram>();
                 foreach (var sub in PlayerSubprograms.Of(pass, PlayerSubprograms.Stages[s], keywordNames))
                     if (sub.Platform == ShaderCompilerPlatform.D3D11) list.Add(sub);
+                stages[s] = list.ToArray();
+            }
+            return new D3d11Variants { Stages = stages };
+        }
+
+        /// A pass of a shader serialized before Unity 2021.2 (PlayerSubprograms.Legacy). Only
+        /// 2020.3's subprograms are taken: those of 2018 (keywords in one list, no
+        /// m_Parameters) sit in a program table of another format (ShaderProgramTable cannot
+        /// load it), and the original cannot use the only 2018 bundles the mods have
+        /// (d3d11-plan.md M7, the Japanese Font Patch).
+        public static D3d11Variants OfLegacy(Fields pass)
+        {
+            var stages = new PlayerSubprogram[PlayerSubprograms.Stages.Length][];
+            for (int s = 0; s < stages.Length; s++)
+            {
+                var list = new List<PlayerSubprogram>();
+                foreach (var sub in PlayerSubprograms.Legacy(pass, PlayerSubprograms.Stages[s]))
+                    if (sub.Platform == ShaderCompilerPlatform.D3D11 && sub.LegacyParameters != null) list.Add(sub);
                 stages[s] = list.ToArray();
             }
             return new D3d11Variants { Stages = stages };

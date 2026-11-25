@@ -78,8 +78,10 @@ namespace OniMoono.Engine.Rendering
         /// Its Direct3D 11 programs, one list per stage, each keyed by the keywords that stage
         /// uses (D3d11Variants); empty lists for shaders without them. Read on first use (only
         /// the Direct3D 11 device asks).
-        public D3d11Variants D3d11 => d3d11Variants ??= Legacy || KeywordNames == null
-            ? D3d11Variants.Empty : D3d11Variants.Of(Data, KeywordNames);
+        /// A shader serialized before Unity 2021.2 (a mod's bundle) has them in its parsed form
+        /// (D3d11Variants.OfLegacy).
+        public D3d11Variants D3d11 => d3d11Variants ??= Legacy ? D3d11Variants.OfLegacy(Data)
+            : KeywordNames == null ? D3d11Variants.Empty : D3d11Variants.Of(Data, KeywordNames);
         D3d11Variants d3d11Variants;
         /// The shader's keyword names, and whether it is a legacy (pre-parsed-form) shader.
         public string[] KeywordNames;
@@ -282,6 +284,8 @@ namespace OniMoono.Engine.Rendering
                 metalProgramsLoaded = false;
                 vulkanPrograms = null;
                 vulkanProgramsLoaded = false;
+                d3d11Programs = null;
+                d3d11ProgramsLoaded = false;
             }
             HasOpenGLCorePrograms = Platforms.Contains(OpenGLCorePlatform);
             ShaderRegistry.Register(this);

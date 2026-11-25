@@ -62,6 +62,21 @@ namespace OniMoono.Assets.Shaders
         {
             var r = new BlobReader(blob);
             if ((uint)r.Int() != Magic) throw new InvalidDataException("Not a shader parameter blob.");
+            return ReadBody(ref r);
+        }
+
+        /// The parameters a Unity 2020.3 Direct3D 11 program entry carries after its vertex inputs
+        /// (D3d11Program.LegacyTail): a parameter blob as Read reads it, without the magic
+        /// (measured: all 1,449 such entries of the Workshop mods read parse to their end, the
+        /// first buffer an empty unnamed one; d3d11-plan.md M7).
+        public static ShaderParameters ReadInline(ReadOnlySpan<byte> tail)
+        {
+            var r = new BlobReader(tail);
+            return ReadBody(ref r);
+        }
+
+        static ShaderParameters ReadBody(ref BlobReader r)
+        {
             var p = new ShaderParameters();
             int buffers = r.Count();
             for (int c = 0; c < buffers; c++)

@@ -58,7 +58,7 @@ static class Data
             foreach (var pass in sub.Array("m_Passes").Cast<Fields>())
             {
                 foreach (var stage in PlayerSubprograms.Stages)
-                    foreach (var x in PlayerSubprograms.Of(pass, stage, keywords))
+                    foreach (var x in parsed.Contains("m_KeywordNames") ? PlayerSubprograms.Of(pass, stage, keywords) : PlayerSubprograms.Legacy(pass, stage))
                         yield return new Subprogram($"s{s}p{p}", pass, x);
                 p++;
             }
@@ -69,10 +69,13 @@ static class Data
     /// The keywords as the survey prints them: sorted, joined by '+'.
     public static string KeywordKey(IEnumerable<string> keywords) => string.Join("+", keywords.Order(StringComparer.Ordinal));
 
-    /// A subprogram's parameters: its stage's common ones and its blob's.
+    /// A subprogram's parameters: its stage's common ones and its blob's (or, 2020.3, its entry's).
     public static ShaderParameters Parameters(Subprogram x, Platform blobs)
     {
-        var common = PlayerSubprograms.Common(x.Pass, x.Sub.Stage, PlayerSubprograms.Names(x.Pass));
+        var names = PlayerSubprograms.Names(x.Pass);
+        var common = PlayerSubprograms.Common(x.Pass, x.Sub.Stage, names);
+        // A 2020.3 subprogram's own parameters are in its program entry.
+        if (x.Sub.LegacyParameters != null) return ShaderParameters.Merge(common, ShaderParameters.ReadInline(D3d11Program.Read(blobs.Table!.Get(x.Sub.BlobIndex)).LegacyTail));
         if (x.Sub.ParameterBlobIndex < 0) return common;
         return ShaderParameters.Merge(common, ShaderParameters.Read(blobs.Table!.Get(x.Sub.ParameterBlobIndex)));
     }

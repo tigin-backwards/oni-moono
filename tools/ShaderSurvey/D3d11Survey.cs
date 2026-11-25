@@ -21,8 +21,10 @@ namespace ShaderSurvey;
 /// - per pass with Vulkan programs: each stage's keyword sets are distinct, and for every Vulkan
 ///   variant's keywords K, D3d11Variants.Select picks in every stage the program whose keywords
 ///   are exactly K ∩ (the keywords that stage's programs use).
-/// Mod shaders serialized before Unity 2021.2 (no shader-wide keyword names: 2020.3 and 2018
-/// bundles) are another entry layout and are counted, not read. A bundle, serialized file or
+/// Mod shaders serialized by Unity 2020.3 (no shader-wide keyword names; their entries of
+/// another magic, D3d11Program.Legacy; their subprograms' parameters in the parsed form) are
+/// read the same way, but for the Vulkan comparison; 2018's (another program table) are counted,
+/// not read. A bundle, serialized file or
 /// shader that cannot be read is a failure. Its source is also compiled into
 /// OniMoono.Assets.Tests, whose D3d11DataTests run it on the frozen data.
 static class D3d11Survey
@@ -44,7 +46,7 @@ static class D3d11Survey
     public static int RunBundles(string wsDir, TextWriter o)
     {
         var t = Bundles(wsDir, o);
-        o.WriteLine($"{t.LegacyShaders} shaders with D3D11 programs serialized before Unity 2021.2 (another entry layout), not read");
+        o.WriteLine($"{t.LegacyShaders} shaders with D3D11 programs serialized by Unity 2018 (another program table), not read");
         return Report(t, o);
     }
 
@@ -94,7 +96,7 @@ static class D3d11Survey
                             continue;
                         }
                         if (!shader.Contains("platforms") || Array.IndexOf(shader.Get<uint[]>("platforms"), ShaderCompilerPlatform.D3D11) < 0) continue;
-                        if (!shader.Contains("m_ParsedForm") || !shader.Struct("m_ParsedForm").Contains("m_KeywordNames"))
+                        if (!shader.Contains("m_ParsedForm") || !shader.Struct("m_ParsedForm").Contains("m_KeywordNames") && !Is2020(shader))
                         {
                             t.LegacyShaders++;
                             continue;
@@ -166,7 +168,7 @@ static class D3d11Survey
             var errors = new List<string>();
             if (program.GpuProgramType != x.Sub.GpuProgramType) errors.Add($"entry type {program.GpuProgramType}, subprogram type {x.Sub.GpuProgramType}");
             if (Data.KeywordKey(program.Keywords) != Data.KeywordKey(x.Sub.Keywords)) errors.Add($"entry keywords [{Data.KeywordKey(program.Keywords)}]");
-            if (x.Sub.ParameterBlobIndex < 0) errors.Add("no parameter blob");
+            if (x.Sub.ParameterBlobIndex < 0 && x.Sub.LegacyParameters == null) errors.Add("no parameter blob");
             else
             {
                 try
@@ -223,10 +225,24 @@ static class D3d11Survey
         return errors;
     }
 
+    /// A shader serialized by Unity 2020.3: no shader-wide keyword names, and its subprograms list
+    /// global and local keyword indices and their own parameters (2018's list one kind of index).
+    static bool Is2020(Fields shader)
+    {
+        foreach (var sub in shader.Struct("m_ParsedForm").Array("m_SubShaders").Cast<Fields>())
+            foreach (var pass in sub.Array("m_Passes").Cast<Fields>())
+                foreach (var stage in PlayerSubprograms.Stages)
+                    if (pass.Contains(stage) && pass.Struct(stage).Contains("m_SubPrograms"))
+                        foreach (var sp in pass.Struct(stage).Array("m_SubPrograms").Cast<Fields>())
+                            return sp.Contains("m_GlobalKeywordIndices") && sp.Contains("m_Parameters");
+        return false;
+    }
+
     static void Pass(string where, string name, Fields shader, Fields pass, bool hasVulkan, Totals t, TextWriter o)
     {
-        var keywordNames = shader.Struct("m_ParsedForm").Array("m_KeywordNames").Cast<string>().ToArray();
-        var variants = D3d11Variants.Of(pass, keywordNames);
+        bool legacy = !shader.Struct("m_ParsedForm").Contains("m_KeywordNames");
+        var keywordNames = legacy ? [] : shader.Struct("m_ParsedForm").Array("m_KeywordNames").Cast<string>().ToArray();
+        var variants = legacy ? D3d11Variants.OfLegacy(pass) : D3d11Variants.Of(pass, keywordNames);
         if (variants.IsEmpty) return;
         t.Passes++;
         for (int s = 0; s < variants.Stages.Length; s++)
@@ -235,7 +251,7 @@ static class D3d11Survey
             foreach (var x in variants.Stages[s])
                 if (!keys.Add(Data.KeywordKey(x.Keywords))) Fail(t, o, $"{where} {name} {PlayerSubprograms.Stages[s]}: two programs keyed [{Data.KeywordKey(x.Keywords)}]");
         }
-        if (!hasVulkan) return;
+        if (!hasVulkan || legacy) return;
         var vulkan = PlayerSubprograms.Of(pass, "progVertex", keywordNames).Where(x => x.Platform == ShaderCompilerPlatform.Vulkan).ToList();
         if (vulkan.Count > 0 && (variants.Vertex.Length == 0 || variants.Fragment.Length == 0))
             Fail(t, o, $"{where} {name}: a pass with Vulkan programs lacks D3D11 vertex or fragment programs");
