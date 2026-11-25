@@ -133,6 +133,13 @@ namespace OniMoono.Desktop.D3d11
         /// DXGI_STATUS_OCCLUDED: Microsoft's DXGI_STATUS list).
         void PresentNow(int frame, int interval, int windowWidth, int windowHeight, int renderWidth, int renderHeight)
         {
+            long started = D3d11Timings.Start();
+            PresentFrame(frame, interval, windowWidth, windowHeight, renderWidth, renderHeight);
+            D3d11Timings.Add(ref D3d11Timings.Present, started);
+        }
+
+        void PresentFrame(int frame, int interval, int windowWidth, int windowHeight, int renderWidth, int renderHeight)
+        {
             if (lost != null) return;
             var b = CurrentScreen;
             var choice = GlPresenter.Choose(b.Texture != null, b.DrawnSinceAllocation, b.DrawnThisFrame, shownScreen != null);
@@ -184,7 +191,16 @@ namespace OniMoono.Desktop.D3d11
             }
             if (exclusiveLeftByDxgi) LeaveByDxgi();
             RestoreAfterPresenter(always: true);
-            if (choice != GlPresenter.PresentChoice.Nothing) Out.WaitForFrame();
+            if (choice != GlPresenter.PresentChoice.Nothing)
+            {
+                // The device thread's wait for the next picture to be taken (as Vulkan's for its
+                // presenter: frame stats' "device thread waiting for the presenter").
+                long waiting = GlTimings.Now;
+                Out.WaitForFrame();
+                long waited = GlTimings.Now - waiting;
+                System.Threading.Interlocked.Add(ref OniMoono.Engine.DeviceThreadStats.PresentWaitTicks, waited);
+                if (OniMoono.Engine.PlayerLoop.FrameStats) System.Threading.Interlocked.Add(ref OniMoono.Engine.FrameStatsWindow.PresenterQueueWait, waited);
+            }
         }
 
         enum ShowKind { Frame, Again, Redraw, Repeat }

@@ -334,6 +334,8 @@ namespace OniMoono.Desktop.Gl
                     if (GlBatchProfile.Enabled) GlBatchProfile.BatchDone(GlTimings.Now - start);
                     busyBefore += GlTimings.Now - busyFrom;
                     System.Threading.Interlocked.Add(ref OniMoono.Engine.StartupStats.GlBusyTicks, GlTimings.Now - start);
+                    System.Threading.Interlocked.Add(ref OniMoono.Engine.DeviceThreadStats.BatchTicks, GlTimings.Now - start);
+                    System.Threading.Interlocked.Increment(ref OniMoono.Engine.DeviceThreadStats.Batches);
                     frame.Reset();
                     Batches++;
                     lock (gate)

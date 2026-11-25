@@ -301,6 +301,7 @@ namespace OniMoono.Engine
             }
             Mark(3);
             EndStats();
+            DeviceThreadStats.FrameEnd(Time.frameCount);
         }
 
         /// Unity sends OnApplicationQuit to every active MonoBehaviour before shutting down, then

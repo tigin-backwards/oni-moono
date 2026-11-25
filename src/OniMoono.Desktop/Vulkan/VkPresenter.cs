@@ -261,13 +261,14 @@ namespace OniMoono.Desktop.Vulkan
             }
             lock (gate)
             {
-                if (queued >= QueueLimit(interval) && OniMoono.Engine.PlayerLoop.FrameStats)
+                if (queued >= QueueLimit(interval))
                 {
                     long waiting = GlTimings.Now;
                     while (queued >= QueueLimit(interval) && failure == null) Monitor.Wait(gate);
-                    Interlocked.Add(ref OniMoono.Engine.FrameStatsWindow.PresenterQueueWait, GlTimings.Now - waiting);
+                    long waited = GlTimings.Now - waiting;
+                    Interlocked.Add(ref OniMoono.Engine.DeviceThreadStats.PresentWaitTicks, waited);
+                    if (OniMoono.Engine.PlayerLoop.FrameStats) Interlocked.Add(ref OniMoono.Engine.FrameStatsWindow.PresenterQueueWait, waited);
                 }
-                while (queued >= QueueLimit(interval) && failure == null) Monitor.Wait(gate);
                 if (failure != null) return; // VkDevice reports it (Failure); Run's end stopped Presented
                 queue.Enqueue((b, interval, Math.Max(1, width), Math.Max(1, height), complete ? FrameStarted : 0, Frame, need));
                 queued++;

@@ -85,6 +85,13 @@ namespace OniMoono.Desktop.D3d11
 
         void SetTarget(BoundTarget t)
         {
+            long started = D3d11Timings.Start();
+            SetTargetNow(t);
+            D3d11Timings.Add(ref D3d11Timings.Targets, started);
+        }
+
+        void SetTargetNow(BoundTarget t)
+        {
             lastTarget = t;
             targetTextures.Clear();
             for (int i = 0; i < targetViews.Length; i++) targetViews[i] = null;
@@ -240,6 +247,13 @@ namespace OniMoono.Desktop.D3d11
 
         void RunDraw(ProgramInputs r)
         {
+            long started = D3d11Timings.Start();
+            DrawNow(r);
+            D3d11Timings.Add(ref D3d11Timings.Draws, started);
+        }
+
+        void DrawNow(ProgramInputs r)
+        {
             var mesh = r.Mesh?.D3d;
             if (lost != null || r.Program.D3d is not { } program || mesh?.Vertices == null || r.SubMesh.Count <= 0 || ViewportEmpty) return;
             var layout = Layout(program, Vulkan.VkPipelines.LayoutKey(r.Layout), r.Layout);
@@ -285,6 +299,13 @@ namespace OniMoono.Desktop.D3d11
         long immediateVertexCapacity, immediateIndexCapacity;
 
         void ExecuteImmediate(ProgramInputs recorded, ImmediatePrimitive primitive, float[] data, int count, int[] indices)
+        {
+            long started = D3d11Timings.Start();
+            ExecuteImmediateNow(recorded, primitive, data, count, indices);
+            D3d11Timings.Add(ref D3d11Timings.Draws, started);
+        }
+
+        void ExecuteImmediateNow(ProgramInputs recorded, ImmediatePrimitive primitive, float[] data, int count, int[] indices)
         {
             if (lost != null || recorded.Program.D3d is not { } program || ViewportEmpty) return;
             var layout = Layout(program, Vulkan.VkPipelines.ImmediateLayout, null);
@@ -624,6 +645,7 @@ namespace OniMoono.Desktop.D3d11
             }
             if (cb.Held == null || !bytes.SequenceEqual(cb.Held))
             {
+                long started = D3d11Timings.Start();
                 D3D11_MAPPED_SUBRESOURCE mapped;
                 D3d11Context.Check(Ctx->lpVtbl->Map(Ctx, (ID3D11Resource*)cb.Buffer, 0, D3D11_MAP.D3D11_MAP_WRITE_DISCARD, 0, &mapped), "Map (constant buffer)");
                 bytes.CopyTo(new Span<byte>(mapped.pData, size));
@@ -631,6 +653,7 @@ namespace OniMoono.Desktop.D3d11
                 cb.Held ??= new byte[size];
                 bytes.CopyTo(cb.Held);
                 constantMaps++;
+                D3d11Timings.Add(ref D3d11Timings.Constants, started);
             }
             if (slot < boundBuffers[stage].Length && boundBuffers[stage][slot] == (nint)cb.Buffer) return;
             if (slot < boundBuffers[stage].Length) boundBuffers[stage][slot] = (nint)cb.Buffer;

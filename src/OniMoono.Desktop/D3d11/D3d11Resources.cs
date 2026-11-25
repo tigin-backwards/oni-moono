@@ -353,6 +353,7 @@ namespace OniMoono.Desktop.D3d11
 
         public void UploadTexture(DeviceTexture g, TexelUpload u)
         {
+            long t = D3d11Timings.Start();
             u.Copying.Wait();
             try
             {
@@ -363,6 +364,7 @@ namespace OniMoono.Desktop.D3d11
                 if (u.Pooled) { if (u.Memory != null) UploadBuffers.Return(u.Memory); }
                 else u.Memory?.Free();
                 u.Memory = null;
+                D3d11Timings.Add(ref D3d11Timings.TextureUploads, t);
             }
         }
 
@@ -533,6 +535,7 @@ namespace OniMoono.Desktop.D3d11
 
         public void UploadMesh(DeviceMesh d, MeshUpload upload)
         {
+            long t = D3d11Timings.Start();
             try
             {
                 if (MeshNative.VerifyReuse) MeshReuseVerify.Uploading(upload);
@@ -541,6 +544,7 @@ namespace OniMoono.Desktop.D3d11
             finally
             {
                 upload.Ran();
+                D3d11Timings.Add(ref D3d11Timings.MeshUploads, t);
             }
         }
 

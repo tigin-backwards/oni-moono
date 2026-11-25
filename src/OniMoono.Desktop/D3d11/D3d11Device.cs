@@ -472,7 +472,7 @@ namespace OniMoono.Desktop.D3d11
 
         public override string TakeFrameCounters(int n) => worker.Call(() =>
         {
-            string text = $"d3d11: draws {draws / n}, constant-buffer maps {constantMaps / n}, shader changes {shaderChanges / n}, programs {livePrograms.Count}, state objects {states.Made}, "
+            string text = D3d11Timings.Take(n) + $"; d3d11: draws {draws / n}, constant-buffer maps {constantMaps / n}, shader changes {shaderChanges / n}, programs {livePrograms.Count}, state objects {states.Made}, "
                           + $"textures {liveTextures.Count}, meshes {liveMeshes.Count}, debug-layer messages {debugMessages}";
             draws = constantMaps = shaderChanges = 0;
             return text;
@@ -589,6 +589,37 @@ namespace OniMoono.Desktop.D3d11
             chain.Dispose();
             Ctx->lpVtbl->Flush(Ctx);
             d3d.Dispose();
+        }
+    }
+
+    /// Diagnostics (--frame-stats): the device thread's time by kind of work, as VkTimings, in
+    /// the frame counts. Busy is GlWorker's (GlTimings.Busy: every handed-over batch), less the
+    /// frame-latency wait after each frame's Present (FrameStatsWindow.PresenterQueueWait, the
+    /// "device thread waiting for the presenter" of the main thread's waits). Present includes
+    /// that wait. Timed only with frame stats on.
+    internal static class D3d11Timings
+    {
+        public static long Draws, Constants, TextureUploads, MeshUploads, Targets, Present;
+        static long waitTaken;
+
+        public static long Start() => PlayerLoop.FrameStats ? GlTimings.Now : 0;
+
+        public static void Add(ref long into, long started)
+        {
+            if (started != 0) into += GlTimings.Now - started;
+        }
+
+        public static string Take(int frames)
+        {
+            static string Ms(long ticks, int frames) => (ticks * 1000.0 / System.Diagnostics.Stopwatch.Frequency / frames).ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+            long wait = System.Threading.Interlocked.Read(ref OniMoono.Engine.DeviceThreadStats.PresentWaitTicks);
+            long waited = wait - waitTaken;
+            waitTaken = wait;
+            var text = $"d3d11 thread busy {Ms(GlTimings.Busy - waited, frames)}: draws {Ms(Draws, frames)} (constant-buffer writes {Ms(Constants, frames)}), texture uploads {Ms(TextureUploads, frames)}, "
+                       + $"mesh uploads {Ms(MeshUploads, frames)}, targets {Ms(Targets, frames)}, present {Ms(Present - waited, frames)}; frame-latency wait {Ms(waited, frames)}";
+            Draws = Constants = TextureUploads = MeshUploads = Targets = Present = 0;
+            GlTimings.Busy = 0;
+            return text;
         }
     }
 }
