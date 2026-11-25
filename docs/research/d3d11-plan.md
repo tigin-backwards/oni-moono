@@ -50,7 +50,11 @@ finished unit, after every done criterion below passes and the user says so.
    Capsule 2.0, Aki's Extra Twitch Events, the Simplified Chinese font replacement 3561866116, the
    Japanese Font Patch 3135364297, MAGNET!!! under OpenGL) and the 4 lost on every OS (Portal
    Network, PortalNetwork+, Spring Festival Pack, Twitchery's LiquidRefraction) draw on D3D11. That
-   needs the 2020.3 and 2018.3 program layouts read as well as U60's.
+   needs the 2020.3 and 2018.3 program layouts read as well as U60's. **Scoped by the user,
+   2026-11-25:** "For older shader formats we don't have to support them if the original didn't
+   support it". So the original is run first with each mod whose shaders use an older layout:
+   only what the original draws must draw on ours, and where the original does not draw a mod's
+   shaders, ours not drawing them either is parity (per mod, with the evidence, in "M7").
 7. Performance: CPU frame time and fps against Vulkan on the same saves, measured and decided by the
    default/fallback rule below.
 8. Correctness gates: the MSVC slot/struct check; no open UNVERIFIED notes; every milestone's review
@@ -74,7 +78,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user. Desktop runs 2026-11-24 ("M4 desktop runs"): the original's full screen observed (captures 10 settled but for its chain inside exclusive), Loading Pip passes (0 pixels differ), ours through windowed/borderless/stretch/exclusive clean (j0009137). Focused exclusive observed (j0009185: the original's is DXGI's own, a blt DISCARD chain in DXGI's full-screen state; it goes windowed on losing the focus; ours minimizes). HDR on the HDR monitor (j0009190, j0009200): the original and ours composed as SDR at the 240-nit SDR white level, no Auto HDR boost (Auto HDR most likely off). Exclusive full screen made the original's (the user's "Match original"; j0009222: DXGI's own, windowed on losing the focus, debug layer clean; proof j0009211); Auto HDR engages for both when forced (j0009213). Second review fixes 2026-11-24 ("M4 second review fixes"). Final review 2026-11-24 ("M4 final review"): 3 findings fixed (a37817cf2), the refused-exclusive path ruled documented and observed in the original, not blocking (its fault hook goes in M5): done |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | 2026-11-24 ("M5"): ONI_D3D11_FAIL hooks at the 7 start-up steps (each falls back to Vulkan, logged; no guard line left), a removed device from Present (the quit error, exit 1), DXGI_STATUS_MODE_CHANGED (the buffers made again) and the refused exclusive (a fullscreen window), all observed (j0009347); the start-up guard as Vulkan's (keyed by the driver's version, CheckInterfaceSupport; crash-at observed), honoured under auto only, which did not try D3D11 yet (it does from M6); no driver deny entry (none has evidence), software refused under auto; the GPU choice rule kept: the original's device on EnumAdapters1's 0, which is also high performance's first (j0009349). A real TDR (dxcap -forcetdr): DEVICE_RESET, the quit error, exit 1 (j0009366); the four focus/mode/load items run on the desktop (j0009359, j0009360, j0009361, j0009367; a monitor move not run, needs monitor 1). The quit error stays on screen until OK (the user's decision, both devices). Review: done | done |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | 2026-11-25 ("M6"): the main thread is the bottleneck on every save measured, the device thread busy 3.5-7 ms and waited for under 0.1 ms a frame; the largest avoidable cost, the texture upload path (a managed copy of every level, about 1.1 GB/s, and whole re-uploads), fixed: 38.4 → 50.7 fps and p99 86 → 34 ms on the RTX 3090, 32.5 → 41.1 fps on the iGPU (j0009577, j0009580, j0009585); the per-draw binding filters measured no gain and dropped. The rule's table (j0009589, j0009634-j0009638): two RTX 3090 cells fail, so Direct3D 11 is the fallback after Vulkan; the iGPU cells pass by 13-37%, and the user decided (2026-11-25) that auto defaults to Direct3D 11 when Vulkan's GPU choice is an integrated GPU (observed both ways, j0009656). Reviews: 3 (milestone, the iGPU change twice), fixed. check.sh green (j0009657): done |
-| M7 | Mods and compatibility | Mod set and SystemInfo parity | |
+| M7 | Mods and compatibility | Mod set and SystemInfo parity | 2026-11-25 ("M7"): the original run first (the user's decision on older formats): it draws the 2020.3 bundles of Backwalls ×2, Chaos Events, The Capsules, Portal Network ×2 and Spring Festival, cannot use the Japanese Font Patch's 2018.3 fonts (material null) and fails to load Aki's Extra Twitch Events; the 2020.3 entry layout read (its parameters in the entry's tail), 2,101 mod entries agree with their DXBC, every Windows mod bundle's programs build with the debug layer clean but Hidden/Dither (j0009679, j0009694); Backwalls ×2, Chaos, Capsules, Forcefield and the Chinese fonts draw as the original; SystemInfo's values equal the original's at 11_1 and 11_0, the format answers and compute/sparse left as recorded gaps; review fixed. Open for the user: Portal Network ×2 and Spring Festival draw nothing on ours (engine particles: mesh particles not drawn, the Cartoon FX billboards not traced), MAGNET!!!'s field not observable in this harness, the original on the AMD iGPU |
 | M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
 
 **M1 (2026-11-22, branch `d3d11-m1`).** Built in `src/OniMoono.Assets/Shaders`:
@@ -2235,6 +2239,148 @@ error), j0009647 (67 pass, the .pot regenerated, and the Windows build); profile
 resubmitted); the rule j0009589, j0009634-j0009638 (j0009590-j0009594 cancelled and resubmitted
 at user; j0009639 cancelled); auto's order j0009648, j0009653, j0009654 (the UMA probe), j0009656 (Vulkan's type; j0009645 build error, j0009646 cancelled); unit tests and builds j0009652, j0009655; check.sh j0009640 cancelled
 (started before the last changes), check.sh j0009657 (green, on 647787c47; com-check matches the SDK headers).
+
+## M7: mods and compatibility (2026-11-25, branch `d3d11-m7`)
+
+Done criteria 6 and 2's SystemInfo part. Base: `d3d11-m6` (52134f1cf). Every Windows run:
+runq burndown, owner `d3d11-m7`; Windows 11, the RTX 3090 (NVIDIA driver 32.0.16.1088), the
+frozen U60 764025 build, windowed 1280×720 on monitor 2, unfocused, muted, ours with
+`--renderer d3d11 --d3d11-debug`; the original by `scripts/original-windows.sh` on its own Direct3D
+11, each in a run home of its own. Mods: every one through the mod gate (onimaxxing's reviews of
+the downloaded uploads, read with U59's data, as the user allows across builds); the scratch
+decompiles (pinned ilspycmd) only to find what to put in view. Evidence: the specs
+`tests/e2e/d3d11-mods-*.yaml` and `d3d11-systeminfo.yaml`, run by `scripts/e2e-windows/run.py
+--player both` (the original first, ours compared with its shots and values).
+
+**The user's decision (2026-11-25)**, written into criterion 6: "For older shader formats we
+don't have to support them if the original didn't support it". So the original was run first.
+
+**The original with the older layouts** (j0009669, j0009670; shots and Player.log of each):
+- **2020.3** (Backwalls, Backwalls Fixed, Chaos Events, The Capsules, Portal Network,
+  PortalNetwork+, Spring Festival): the original loads every bundle and **draws** them (the shiny
+  Metal Tile backwall, the fog and fire, the laser core, the ice hit and fire thrower, the falling
+  petals); its Player.log has no shader error, only "fallback shader ... not found" notes for
+  Particles/Standard Unlit, Standard and the two Backwalls shaders. So the 2020.3 layout is read.
+- **2018.3** (the Japanese Font Patch 3135364297): the fonts load, but the original's TextMeshPro
+  cannot use them: their `material` reads null (j0009695) and setting one as a label's font throws
+  in `TMP_FontAsset.ReadFontAssetDefinition` (NullReferenceException, j0009669). No text is ever
+  drawn with the bundle's shaders, so the 2018 table is **not** read; ours sees the same (material
+  null, j0009695) and logs the shaders as Unity 2018's layout, not drawn.
+- **Aki's Extra Twitch Events** (2990227046): its loader fails in the original (TypeLoadException
+  for ElementEntry in ElementLoaderPatch; the mod is disabled and the game quits at the menu,
+  j0009669), and in ours the same way (j0009686; ours exits 1, the original 0). So neither
+  Hidden/Dither (its inline samplers) nor Beached/LiquidRefraction ever draws in the original;
+  the inline sampler decode is **not** needed, and the device keeps refusing those programs.
+  LiquidRefraction is also only in `akis_twitch_events_new`, which the mod's code never loads.
+
+**The 2020.3 entry layout** (57a01552d; measured on the Workshop mods read, every entry):
+magic 0x0C07513C, U60's header, two keyword lists (global, local), U60's payload, channel mask
+and pairs, then the subprogram's parameters as a U60 parameter blob without its magic (an empty
+unnamed buffer first). All 1,449 such entries parse to their end; the 1,722 2020.3 Direct3D 11
+subprograms are all hardware tier 3 and have empty `m_Parameters` (ShaderSurvey `d3d11-bundles`
+tallies both); bindings are the stage's `m_CommonParameters` merged with the entry's tail, and
+ShaderSurvey finds all 2,101 mod entries (652 of U60's layout, 1,449 of 2020.3's) agreeing with
+their DXBC declarations both ways (0 failures). Passes of 2020.3 shaders take their variants
+from `m_SubPrograms` (highest tier per keyword set). Unity 2018's table stays unread.
+
+**--check-shaders over the mods' bundles** (db9016fca: `ONI_CHECK_BUNDLES`; the Windows bundles
+with Direct3D 11 programs of the 38 mods, one copy of each identical file, two launches for the
+three that clash by internal name; j0009679, again after the review fixes j0009694): 210 and 128
+shaders, 1,143 and 534 programs built, 3,429 and 1,602 input layouts, **0 debug-layer messages**,
+0 failed; refused only Hidden/Dither's two programs (inline samplers, above); "refused,
+unreachable" 84 and 76 (the game's 68, and The Capsules' Particles/Standard Unlit
+PROCEDURAL_INSTANCING_ON variants: its two Particles/Standard Unlit renderers are Billboard, so
+no mod can select them, as M3 part C found for the game).
+
+**Per mod** (the original's result; ours; evidence):
+
+| Mod | Layout | Original | Ours on Direct3D 11 | Evidence |
+|---|---|---|---|---|
+| Backwalls 2921809973 | 2020.3 | draws Backwalls/TileShader (shiny walls) | draws, within the shot tolerance | j0009688 `backwalls`, coverage `Backwalls/TileShader` |
+| Backwalls Fixed 3753518460 | 2020.3 (byte-identical bundles) | draws | draws | j0009681 |
+| Chaos Events 3433108302 | 2020.3 | draws fog and fire (Mobile/Particles) | draws (fire smoke random, masked) | j0009688 `effects`, coverage |
+| The Capsules 2.0 3179880371 | 2020.3 | draws the laser core (Hovl CenterGlow) | draws | j0009688 `laser-core` |
+| Portal Network 2968184715, PortalNetwork+ 3790434066 | 2020.3 | draws the ice hit and fire thrower (Cartoon FX) | **nothing drawn** | j0009683, j0009695 |
+| Spring Festival 3152316922 | 2020.3 | draws the petals | **nothing drawn** | j0009681, j0009695 |
+| Japanese Font Patch 3135364297 | 2018.3 | cannot use the fonts (material null) | same | j0009669, j0009695 |
+| Aki's Extra Twitch Events 2990227046 | 2022.3 + 2020.3 | mod fails to load | same | j0009669, j0009686 |
+| Forcefield Projectors 3568684741 | 6000.3 | draws the shield | draws, as the original | j0009684 `shield` |
+| Simplified Chinese fonts 3561866116 | 6000.3 | draws the labels in its fonts | same (labels identical; the original's spec label masked) | j0009688 `plan` |
+| MAGNET!!! 3637202410 | 6000.3 | field not turned on in this harness | same | j0009684 (FieldOn false in both) |
+| the other 25 (22 that swap in the game's shaders, 3 broken) | U60 or 2020.3 | not drawn (the mods replace the bundle shaders, or fail) | their programs build clean | M0 research; j0009679 |
+
+- **Portal Network ×2 and Spring Festival: open.** Ours simulates their particles as the
+  original (74 against 77, 118 against 116 alive, j0009695) and Shader.isSupported is true, but
+  no Cartoon FX program is ever asked for (no coverage line, no refusal): the engine's particle
+  renderer does not draw mesh-mode particles (the original has 3 and 1 of them alive there) nor
+  honour custom vertex streams (logged at load, "not drawn as Unity draws it"), and its billboard
+  ones were not traced to a cause within the time box (a probe, j0009697: 4 renderers enabled,
+  visible and playing, in view). These shaders had no programs for any device before, so this is
+  the first time this path is reached; it is the engine's particle code, shared by every device.
+- **MAGNET!!!:** on Windows the runner's synthetic keys reach KInput, not
+  `UnityEngine.Input.GetKey`, which the magnet reads, so neither player turns the field on; its
+  two shaders build clean (j0009679) and isSupported is true in both. Drawing it needs real
+  input (the user's desktop) or another way to hold the key.
+
+**SystemInfo** (`d3d11-systeminfo.yaml`: every value Moono's SystemInfo has, every TextureFormat
+and RenderTextureFormat, the default graphics formats; j0009685, j0009688 at level 11_1,
+j0009690 at 11_0 with Unity's `-force-feature-level-11-0`, which ours now honours, 6be8f3905):
+- **Equal** to the original's at both levels: type, name, vendor `NVIDIA`, version (`Direct3D
+  11.0 [level 11.1]` and `[level 11.0]`, which settles M2's 11_0 note), device and vendor ids,
+  graphicsMemorySize **24322** (M2's note settled: DedicatedVideoMemory in MiB gives it),
+  shader level 50, multithreaded False, maxTextureSize 16384, 8 targets, 2D arrays, 3D,
+  instancing, AsyncGPUReadback, shadows, NPOT Full, copyTextureSupport, the LDR, HDR, Shadow and
+  Video formats, and DepthStencil, fixed (d62987a62: D32_SFloat_S8_UInt on Direct3D 11).
+- **Gaps, recorded** (ours says no where the original says yes): supportsComputeShaders and
+  supportsSparseTextures (no device of ours dispatches compute or makes tiled resources);
+  textures RGB9e5Float, DXT1Crunched, DXT5Crunched and the 8 `_SIGNED` formats, and YUY2 at 11_1
+  (the original says no at 11_0, as ours); render textures ARGBInt, RGInt, RInt, RGBAUShort,
+  BGRA10101010_XR, BGR101010_XR. The engine itself cannot encode, decode or upload those
+  texture formats on any device, and no game code and none of the 38 mods' bundles use them
+  (their textures are Alpha8, R8, RGB24, RGBA32, DXT1, DXT5, BC4 and BC7; no render textures).
+- **Not measured:** DeviceVendor and the rest on AMD and Intel: the original on the AMD iGPU
+  needs Windows' per-app GPU preference (the user's registry) or a monitor on the iGPU; it stays
+  UNVERIFIED with captures 15 (the original on the AMD iGPU).
+
+**The other M7 items:**
+- B2 3 for mods (B8G8R8A8 render textures): no mod bundle has a render texture, and no mod calls
+  GetNativeTexturePtr (M0's API scan), the only way the resource format would show: closed.
+- Captures 5 for mods: all 145 passes of the mods' Windows bundles have Offset 0, 0, so none
+  tells factor from units: closed.
+- Captures 7 (the original's 14 input elements): a difference only for a program reading a
+  channel its mesh lacks; no mod draw compared here showed it. Kept as measured, not pursued.
+- Captures 8 (which copy of Klei/Substance and Klei/LiquidSubstance draws): the data's and
+  `expansion1_bundle`'s Direct3D 11 entries are byte-identical (13 and 6 entries, SHA-256), so
+  the copy cannot change a pixel: closed.
+- Captures 9 (TMP Surface s0p1/s0p2): no mod bundle has the shader: closed, unreachable.
+- M1's inline samplers: not needed (the original never draws Hidden/Dither), above.
+
+**Review** (a fresh agent given the code; 10 findings), fixed in 3639b49c2 unless said:
+1. Damaged 2020.3 parsed forms could throw into the draw path: Legacy reads Direct3D 11
+   subprograms only, throws InvalidDataException for damaged fields, and a pass with damaged ones
+   has none (logged).
+2. Comments cited numbers not in the plan: recorded above, and ShaderSurvey now tallies the tiers
+   and checks `m_Parameters` empty (the reviewer's "1,722 is the game's texture count" is a
+   coincidence: it is also the 2020.3 subprogram count).
+3. Hardware tiers not filtered: the highest tier per keyword set is kept.
+4. PlatformOf guessed the 2018 layout from emptiness and could drop a UsePass-only shader: it
+   detects 2018's subprograms directly, needs a normal pass, and is kept per shader.
+5. Entry and subprogram layouts not cross-checked: Build and Parameters require them to match.
+6. The `m_Parameters` refusal ran before the cache: moved after it; null lists count as empty.
+7. ShaderCheck's bundle path could throw or skip silently: guarded, bundles not loaded counted,
+   2018 shaders named, and `-force-feature-level-11-0` honoured there too.
+8. Stale comments on the default depth format: fixed.
+9. PlatformOf's per-draw cost: cached on the shader (reset when it is bound again).
+10. A damaged blob index: refused.
+Tests added: the option, Legacy's order, tiers and refusals, damaged 2020.3 entries.
+
+**Runs:** the original first: j0009669, j0009670 (j0009664-j0009667: set-up errors, no
+`local-tools` link and no E2eDriver build; j0009668 the E2eDriver build); bundle checks
+j0009673 (an old build, no bundles), j0009678 (every bundle, names clashing), j0009679, j0009694;
+both players j0009681, j0009683-j0009686 (j0009680 cancelled: ours on Vulkan, as runq drops
+`WIN_RENDERER`); j0009688-j0009690; j0009695; probe j0009697 (j0009696 a spec error); builds j0009663, j0009672 and
+j0009674 (an MSBuild node crash, a compile error), j0009675-j0009677, j0009682, j0009687,
+j0009693; unit tests j0009671 (owner then mis-set), j0009691, j0009692.
 
 ## Research so far (M0)
 

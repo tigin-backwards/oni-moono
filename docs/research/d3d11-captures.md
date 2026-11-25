@@ -487,7 +487,8 @@ only.
    are not measured. **Closed for the game**: with factor = units in every shipped pass (§2,
    ShaderSurvey `states`) the two assignments give the same state, so no game draw can tell
    them apart; the cited one stays. **Moved to M7** for mods (a mod pass with factor ≠ units
-   would tell them apart). GLCore's values are not needed for D3D11 parity.
+   would tell them apart). **Closed in M7**: all 145 passes of the mods' Windows bundles have
+   Offset 0, 0 (d3d11-plan.md "M7"). GLCore's values are not needed for D3D11 parity.
 6. **The UI's winding.** **Settled** (observed, j0008168's recordings): the state with
    FrontCounterClockwise 0 is bound only with the two 1024×768 views the main menu's frame draws
    everything into (the menu scene, its UI at stride 76, and the frame's last draw, stride 88,
@@ -500,14 +501,17 @@ only.
 7. **Input layouts.** What the R8_UNORM-at-slot-0 entries and the slot-1 entries stand for.
    **Moved to M7**: the device's layouts name only the inputs a program reads (d3d11-plan.md,
    B2), and the scene set's pixels show no input differing (M3); the original's extra elements
-   matter only for parity of what a mod's program could read, which M7 owns.
+   matter only for parity of what a mod's program could read, which M7 owns. **M7**: no mod draw
+   compared showed it; kept as measured.
 8. **The 4 unmatched shaders** (built-ins or StreamingAssets bundle shaders). **Moved to M7**:
    the player's built-ins and bundles are what M7's mod and compatibility work reads. M3 part C
    added the Spaced Out bundle's copies of Klei/LiquidSubstance and Klei/Substance to
    `--check-shaders` (j0008865: 123 shaders, 1,082 subprograms, all built); which copy a draw
-   uses stays M7's.
+   uses stays M7's. **Closed in M7**: the two copies' Direct3D 11 entries are byte-identical
+   (d3d11-plan.md "M7"), so which one draws cannot change a pixel.
 9. **TMP Surface s0p1/s0p2.** That they are shadow-caster passes. **Moved to M7**: no scene of
-   the scene set draws them (M3's coverage list), so only a mod's use would show it.
+   the scene set draws them (M3's coverage list), so only a mod's use would show it. **Closed in
+   M7**: no mod bundle has the shader.
 
 **M4 (presentation and frame pacing)**
 10. **The full-screen swap chain.** Its description (`FullScreenWindow` and exclusive), and
@@ -527,4 +531,6 @@ only.
 14. **Missed draws.** Draws missed after unhooked calls, or made by other routes (NVAPI).
 
 **M7 (mods and compatibility)**
-15. **The original on the AMD iGPU.** Its swap chain, state and frame counts there.
+15. **The original on the AMD iGPU.** Its swap chain, state and frame counts there. **Still
+    open after M7**: it needs Windows' per-app GPU preference (the user's registry) or a monitor
+    on the iGPU (d3d11-plan.md "M7").
