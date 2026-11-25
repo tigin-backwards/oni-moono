@@ -1,0 +1,23 @@
+# MAGNET!!! (3637202410): its Windows bundle (Unity 6000.3, U60's program layout) carries
+# Clover/MagnetField and Clover/MagnetComposite with Direct3D 11 and Vulkan programs; the field
+# effect around the pointer is drawn with them while the magnet's key is held (FieldEffect). As
+# mods/3637202410-magnet.yaml: Q held with the pointer two cells above the pit west of the
+# printing pod, with 1 kg of diamond in the pit; the field's world shot is compared with the
+# original's (docs/research/d3d11-plan.md, M7). On Windows the runner's synthetic keys reach
+# the game's KInput, not UnityEngine.Input.GetKey, which the magnet reads: neither player turns
+# the field on there (FieldOn false in both, M7), so the shot shows no field in either.
+from: early-base
+mods: [3637202410]
+setup:
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Diamond\").substance", method: SpawnResource, args: [[109.5, 206.5, -12], 1, 300, 255, 0]}}
+steps:
+  - run: {seconds: 2}
+  - driver: {camera.set: {cell: [110, 208], ortho: 8}}
+  - key: {code: Q, down: true, at: [111, 209]}
+  - run: {seconds: 1}
+  - expect_state:
+      "type:Magnet.FieldEffect::fieldShader.isSupported": "== original"
+      "type:Magnet.FieldEffect::compositeShader.isSupported": "== original"
+      "Game.Instance.GetComponent<Magnet.MagnetController>.FieldOn": "== original"
+  - world_shot: {name: field, ortho: 8, at: [110, 208], specks: 5, threshold: 0.1}
+  - key: {code: Q, up: true}

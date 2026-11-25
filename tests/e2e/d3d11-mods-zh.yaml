@@ -1,0 +1,22 @@
+# Font Replacement in Simplified Chinese (3561866116) on Windows: its fonts_bundle_win (Unity
+# 6000.3, U60's program layout) carries TextMeshPro/Distance Field and Mobile/Distance Field with
+# Direct3D 11 programs only, and the mod sets each replaced label's material to its font's
+# (fontSharedMaterial = fontAsset.material). In the game's Simplified Chinese (`language:
+# zh_klei`) the build menu's category labels are drawn in its fonts; their shot is compared with
+# the original's (docs/research/d3d11-plan.md, M7; mods/3561866116-font-replacement-zh-cn.yaml
+# plays the mod itself on Linux).
+from: early-base
+mods: [3561866116]
+language: zh_klei
+steps:
+  - expect_state:
+      "Localization.GetCurrentLanguageCode()": zh_klei
+      "type:OniFontPatchZhCN.CustomFontAssets::IsZhCN": true
+      "type:OniFontPatchZhCN.CustomFontAssets::MyHeaderFont": exists
+      "type:OniFontPatchZhCN.CustomFontAssets::MyTitleFont": exists
+      "type:OniFontPatchZhCN.CustomFontAssets::MyDescriptionFont": "== original"
+      "ui:**/PlanScreen/Toggle:*::GetComponentInChildren<LocText>.font.name": {contains: my}
+      "ui:**/PlanScreen/Toggle:*::GetComponentInChildren<LocText>.fontSharedMaterial.shader.name": "== original"
+  # The original's run shows the e2e spec label at the bottom left; ours does not.
+  - shot: {name: plan, crop: "**/PlanScreen", threshold: 0.04, mask: [[0, 660, 160, 60]]}
+  - shot: {name: screen, threshold: 0.04, specks: 5, mask: [[0, 660, 160, 60]]}

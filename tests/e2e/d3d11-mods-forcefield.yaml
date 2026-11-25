@@ -1,0 +1,22 @@
+# Forcefield Projectors (3568684741): its Windows bundle (Unity 6000.3, U60's program layout)
+# carries Shader Graphs/ForceField with Direct3D 11 programs only; the shield mesh over a powered
+# projector is drawn with it (ShieldGrid). setup builds a projector from steel beside a charged
+# battery, wired (as mods/3568684741-forcefield-projectors.yaml does through the build menu); the
+# shield's world shot is compared with the original's (docs/research/d3d11-plan.md, M7).
+from: early-base
+mods: [3568684741]
+setup:
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Battery\")", method: Build, args: [131784, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Battery>", method: AddEnergy, args: [10000.0]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [131783, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [131784, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: SetConnections, args: ["Right", 131783, true]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: SetConnections, args: ["Left", 131784, true]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: ForceRebuildNetworks}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"FFT_ForceFieldProjector\")", method: Build, args: [131783, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 20}
+  - expect_state:
+      "all:ForceFieldWallTile.Content.Scripts.ForceFieldTile::[0].ShieldActive": "== original"
+      "type:ForceFieldWallTile.ModAssets::ForceFieldMaterial.shader.name": "== original"
+  - world_shot: {name: shield, ortho: 4, at: [131, 209], threshold: 0.1}

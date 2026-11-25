@@ -1,0 +1,22 @@
+# Spring Festival Pack (3152316922): every bundle of it (windows, linux, mac) is Unity 2020.3
+# with Direct3D 11 programs only. Its snow and falling petals (Cartoon FX Remaster shaders), put
+# in view at the corridor west of the printing pod as the mod places them. Run on Windows to see
+# whether the original loads the mod and draws them (docs/research/d3d11-plan.md, M7).
+from: early-base
+mods: [3152316922]
+setup:
+  - driver: {camera.set: {cell: [112, 208], ortho: 6}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "type:SpringFestival.LoadAssets::snow"}, [110.5, 210.5, 0], FXFront2, null, 0]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "type:SpringFestival.LoadAssets::petals"}, [114.5, 210.5, 0], FXFront2, null, 0]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "type:SpringFestival.LoadAssets::uberShader.name": "== original"
+      "type:SpringFestival.LoadAssets::uberShader.isSupported": "== original"
+      "type:SpringFestival.LoadAssets::snowShader.isSupported": "== original"
+  - run: {seconds: 3, speed: 1}
+  # Mesh-mode particle renderers: ours draws none (ParticleSystemRendererNative), the original does.
+  - expect_state:
+      "count:all:ParticleSystemRenderer::[*] if .renderMode == Mesh": "== original"
+  - world_shot: {name: effects, ortho: 6, at: [112, 208], specks: 5, threshold: 0.02}

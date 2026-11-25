@@ -1,0 +1,19 @@
+# Backwalls Fixed (3753518460), a copy of Backwalls with the same two Windows bundles (byte for
+# byte, Unity 2020.3, Direct3D 11 programs only): as d3d11-mods-legacy.yaml's backwalls, alone
+# (the two mods add the same buildings). docs/research/d3d11-plan.md, M7.
+from: early-base
+mods: [3753518460]
+setup:
+  - driver: {camera.set: {cell: [107, 208], ortho: 2}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Backwall_DecorativeBackwall\")", method: Build, args: [132394, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Backwalls.Cmps.Backwall>", method: SetPattern, args: [{"$": "type:Backwalls.Mod::variants[\"MetalTile\"]"}]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Backwall_DecorativeBackwall\")", method: Build, args: [132395, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Backwalls.Cmps.Backwall>", method: SetPattern, args: [{"$": "type:Backwalls.Mod::variants[\"MetalTile\"]"}]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Backwall_DecorativeBackwall\")", method: Build, args: [132396, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Backwalls.Cmps.Backwall>", method: SetPattern, args: [{"$": "type:Backwalls.Mod::variants[\"MetalTile\"]"}]}}
+steps:
+  - expect_state:
+      "type:Backwalls.Cmps.BackwallRenderer::shinyMaterial.shader.name": Backwalls/TileShader
+      "type:Backwalls.Cmps.BackwallRenderer::shinyMaterial.shader.isSupported": "== original"
+  - run: {seconds: 1, speed: 1}
+  - world_shot: {name: backwalls, ortho: 2, at: [107, 208], threshold: 0.1}

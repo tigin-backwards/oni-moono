@@ -1,0 +1,43 @@
+# Mods whose shaders were built with Unity 2020.3 (docs/research/d3d11-plan.md, M7; done
+# criterion 6): Backwalls (2921809973), Chaos Events for Twitch Integration (3433108302) and The
+# Capsules 2.0 (3179880371), whose Windows bundles carry Direct3D 11 programs only. Run on Windows (scripts/e2e-windows/run.py) to see whether the
+# original's Direct3D 11 draws those shaders, and whether ours draws what it draws.
+#
+# setup puts each mod's own bundle objects in view, as the mods themselves do, at the corridor
+# west of the printing pod: four Decorative Backwalls in the Metal Tile pattern (its shine atlas
+# picks the bundle's Backwalls/TileShader material, BackwallRenderer.GetMaterialForDef), two of
+# Chaos Events' fires (FireManager.SpawnFire: the bundle's fire particle prefab) and its fog
+# (the fog event's prefab at the camera, z 40, as FogEvent does), the Capsules' laser core
+# (its "Glowing orb 3" prefab, Hovl CenterGlow materials, as MiningCapsule.ScanGroup places it).
+# The Japanese Font Patch is d3d11-mods-japanese.yaml.
+from: early-base
+mods: [2921809973, 3433108302, 3179880371]
+setup:
+  - driver: {camera.set: {cell: [112, 208], ortho: 6}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Backwall_DecorativeBackwall\")", method: Build, args: [132394, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Backwalls.Cmps.Backwall>", method: SetPattern, args: [{"$": "type:Backwalls.Mod::variants[\"MetalTile\"]"}]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Backwall_DecorativeBackwall\")", method: Build, args: [132395, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Backwalls.Cmps.Backwall>", method: SetPattern, args: [{"$": "type:Backwalls.Mod::variants[\"MetalTile\"]"}]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Backwall_DecorativeBackwall\")", method: Build, args: [132396, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Backwalls.Cmps.Backwall>", method: SetPattern, args: [{"$": "type:Backwalls.Mod::variants[\"MetalTile\"]"}]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Backwall_DecorativeBackwall\")", method: Build, args: [132397, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Backwalls.Cmps.Backwall>", method: SetPattern, args: [{"$": "type:Backwalls.Mod::variants[\"MetalTile\"]"}]}}
+  - driver: {setup.call: {target: "type:Imalas_TwitchChaosEvents.Fire.FireManager::Instance", method: SpawnFire, args: [132401]}}
+  - driver: {setup.call: {target: "type:Imalas_TwitchChaosEvents.Fire.FireManager::Instance", method: SpawnFire, args: [132402]}}
+  - driver: {setup.call: {type: Util, method: KInstantiate, args: [{"$": "type:Imalas_TwitchChaosEvents.ModAssets::FogSpawner"}, [112.5, 208.5, 40]]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "type:Capsule_2.LoadAssets::laserCore"}, [117.5, 209.5, 0], FXFront2, null, 0]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "type:Backwalls.Cmps.BackwallRenderer::shinyMaterial.shader.name": Backwalls/TileShader
+      "type:Imalas_TwitchChaosEvents.ModAssets::FireSpawner.GetComponent<ParticleSystemRenderer>.sharedMaterial.shader.name": "== original"
+      "type:Capsule_2.LoadAssets::Add_CenterGlow.name": Hovl/Particles/Add_CenterGlow
+      "type:Backwalls.Cmps.BackwallRenderer::shinyMaterial.shader.isSupported": "== original"
+      "type:Capsule_2.LoadAssets::Add_CenterGlow.isSupported": "== original"
+      "type:Capsule_2.LoadAssets::Blend_CenterGlow.isSupported": "== original"
+  - run: {seconds: 2, speed: 1}
+  - world_shot: {name: effects, ortho: 6, at: [112, 208], specks: 5, threshold: 0.2}
+  - world_shot: {name: backwalls, ortho: 2, at: [107, 208], threshold: 0.1}
+  # The left of the frame holds the smoke of the Chaos fires, random between runs.
+  - world_shot: {name: laser-core, ortho: 2, at: [117, 209], specks: 5, threshold: 0.2, mask: [[0, 0, 560, 720]]}

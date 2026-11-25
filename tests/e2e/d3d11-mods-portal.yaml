@@ -1,0 +1,23 @@
+# Portal Network (2968184715): its Windows bundle (the only one it ships) is Unity 2020.3 with Direct3D
+# 11 programs only. Its ice hit and fire thrower effects (Cartoon FX Remaster shaders), put in
+# view at the corridor west of the printing pod as the mod places them. Run on Windows to see
+# whether the original loads the mod and draws them (docs/research/d3d11-plan.md, M7).
+from: early-base
+mods: [2968184715]
+setup:
+  - driver: {camera.set: {cell: [112, 208], ortho: 6}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "type:Portal_Cube_2.LoadAssets::HitIce"}, [110.5, 209.5, 0], FXFront2, null, 0]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+  - driver: {setup.call: {type: GameUtil, method: KInstantiate, args: [{"$": "type:Portal_Cube_2.LoadAssets::FireThrower"}, [114.5, 209.5, 0], FXFront2, null, 0]}}
+  - driver: {setup.call: {target: "last:", method: SetActive, args: [true]}}
+steps:
+  - expect_state:
+      "type:Portal_Cube_2.LoadAssets::particleUbershader.name": "== original"
+      "type:Portal_Cube_2.LoadAssets::particleUbershader.isSupported": "== original"
+      "type:Portal_Cube_2.LoadAssets::ringShader.isSupported": "== original"
+      "type:Portal_Cube_2.LoadAssets::glowShader.isSupported": "== original"
+  - run: {seconds: 1, speed: 1}
+  # Mesh-mode particle renderers: ours draws none (ParticleSystemRendererNative), the original does.
+  - expect_state:
+      "count:all:ParticleSystemRenderer::[*] if .renderMode == Mesh": "== original"
+  - world_shot: {name: effects, ortho: 6, at: [112, 208], specks: 5, threshold: 0.02}

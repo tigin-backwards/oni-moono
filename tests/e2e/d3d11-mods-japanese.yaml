@@ -1,0 +1,16 @@
+# Japanese Font Patch (3135364297): its Windows fonts.bundle is Unity 2018.3, with TMP Distance
+# Field shaders carrying Direct3D 11 programs only. The patch puts its fonts on text only under a
+# Japanese translation (Localization.SwapToLocalizedFont), which the game applies from a Steam
+# subscription alone. The original's TextMeshPro cannot use those font assets: their material
+# reads null, and setting one as a label's font throws in TMP_FontAsset.ReadFontAssetDefinition
+# (NullReferenceException; both seen in the original on Windows, docs/research/d3d11-plan.md M7),
+# so no text is ever drawn with the bundle's shaders. This spec checks that ours sees the same:
+# the fonts load and their material reads as the original's (null).
+from: early-base
+mods: [3135364297]
+steps:
+  - expect_state:
+      "type:enslo.OniFontPatchJp.Patcher::Fonts.Title.name": GN-Kin-iro_SansSerif SDF
+      "type:enslo.OniFontPatchJp.Patcher::Fonts.Head.name": Senobi-Gothic-Bold SDF
+      "type:enslo.OniFontPatchJp.Patcher::Fonts.Title.material": "== original"
+      "type:enslo.OniFontPatchJp.Patcher::Fonts.Head.material": "== original"

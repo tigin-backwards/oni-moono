@@ -1,0 +1,19 @@
+# Aki's Extra Twitch Events (2990227046): its code loads the Windows bundles
+# akis_twitch_events and aetn_fireoverlay (Unity 2022.3, U60's program layout, Direct3D 11
+# only), never akis_twitch_events_new (Unity 2020.3, the only one with Beached/LiquidRefraction).
+# Its retro vision (RetroVisionEvent: AETE_DitherPostFx.DoDither) blits the world through the
+# bundle's Hidden/Dither, whose programs carry inline sampler states (m_Samplers). Run on
+# Windows: whether the original loads the mod and draws the dither, and ours as it does
+# (docs/research/d3d11-plan.md, M7).
+from: early-base
+mods: [2990227046]
+setup:
+  - driver: {camera.set: {cell: [112, 208], ortho: 6}}
+  - driver: {setup.call: {target: "type:Twitchery.Content.Scripts.AETE_DitherPostFx::Instance", method: DoDither}}
+steps:
+  - expect_state:
+      "type:Twitchery.ModAssets+Materials::ditherMaterial.shader.name": Hidden/Dither
+      "type:Twitchery.ModAssets+Materials::ditherMaterial.shader.isSupported": "== original"
+      "type:Twitchery.Content.Scripts.AETE_DitherPostFx::Instance.isDithered": "== original"
+  - run: {seconds: 3, speed: 1}
+  - world_shot: {name: dither, ortho: 6, at: [112, 208], threshold: 0.1}
