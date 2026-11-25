@@ -30,6 +30,9 @@ namespace OniMoono.Desktop.D3d11
         /// whose messages the device logs.
         public static bool Validation;
 
+        /// Unity's -force-feature-level-11-0: the device is made at level 11_0 alone.
+        public static bool FeatureLevel110Only;
+
         public IDXGIFactory2* Factory { get; private set; }
         public ID3D11Device* Device { get; private set; }
         public ID3D11DeviceContext* Context { get; private set; }
@@ -80,12 +83,15 @@ namespace OniMoono.Desktop.D3d11
                 if (software && !allowSoftware) throw new D3d11UnavailableException($"{desc.Name} is a software adapter (only used with --renderer d3d11)");
                 if (admit?.Invoke(Identity) is { } refused) throw new D3d11UnavailableException(refused);
                 var levels = stackalloc D3D_FEATURE_LEVEL[] { D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_0 };
+                // pFeatureLevels "determine the order of feature levels to attempt to create"
+                // (D3D11CreateDevice); with 11_0 alone only 11_0 is attempted.
+                if (FeatureLevel110Only) levels[0] = D3D_FEATURE_LEVEL.D3D_FEATURE_LEVEL_11_0;
                 var flags = D3D11_CREATE_DEVICE_FLAG.D3D11_CREATE_DEVICE_BGRA_SUPPORT | (Validation ? D3D11_CREATE_DEVICE_FLAG.D3D11_CREATE_DEVICE_DEBUG : 0);
                 ID3D11Device* d;
                 ID3D11DeviceContext* c;
                 D3D_FEATURE_LEVEL level;
                 // An adapter given: the driver type is UNKNOWN (D3D11CreateDevice remarks).
-                Check(D3D11.D3D11CreateDevice((IDXGIAdapter*)adapter, D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_UNKNOWN, IntPtr.Zero, flags, levels, 2,
+                Check(D3D11.D3D11CreateDevice((IDXGIAdapter*)adapter, D3D_DRIVER_TYPE.D3D_DRIVER_TYPE_UNKNOWN, IntPtr.Zero, flags, levels, FeatureLevel110Only ? 1u : 2u,
                     D3D11.D3D11_SDK_VERSION, &d, &level, &c), $"D3D11CreateDevice on {desc.Name}{(Validation ? " with the debug layer" : "")}");
                 Device = d;
                 Context = c;

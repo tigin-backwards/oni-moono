@@ -90,6 +90,9 @@ namespace OniMoono.Host
         public bool VulkanValidation;
         /// `--d3d11-debug`: the Direct3D 11 device with the debug layer (D3d11Context.Validation).
         public bool D3d11Debug;
+        /// Unity's -force-feature-level-11-0: the Direct3D 11 device asks for feature level 11_0
+        /// alone.
+        public bool D3d11FeatureLevel110;
         /// --dxgi on|off: Windows, presenting through DXGI (OniMoono.Desktop.Gl.DxgiTarget), over
         /// the Moono Tweaks settings; null when not given (then the effective value).
         public bool? Dxgi;
@@ -490,6 +493,12 @@ namespace OniMoono.Host
                     // --renderer; the later of the two wins.
                     case var force when UnityArguments.Renderer(force) is { } renderer:
                         o.Renderer = renderer;
+                        break;
+                    // Unity's "-force-feature-level-11-0: Force DirectX 11.0 feature level"
+                    // (Unity's Windows player command-line arguments); kept among the game's
+                    // arguments as the other Unity ones are.
+                    case var level when string.Equals(level, "-force-feature-level-11-0", StringComparison.OrdinalIgnoreCase):
+                        o.D3d11FeatureLevel110 = true;
                         break;
                     // Another of Unity's (-popupwindow, -force-d3d11, -screen-quality…) or a stray
                     // word: ignored, as Unity's player ignores what it does not know. Ours are strict.
