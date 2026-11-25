@@ -623,8 +623,8 @@ msgid "Which graphics API the game draws with. Needs a restart."
 msgstr "游戏使用哪种图形 API 绘制。需要重启。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.RENDERER.DETAIL"
-msgid "Auto: Vulkan, or OpenGL when Vulkan can't start on this PC. Vulkan: Vulkan whenever it starts (also a software one). OpenGL: the original game's API. The picture is the same; Player.log names the one used and why."
-msgstr "自动：使用 Vulkan，若此电脑上 Vulkan 无法启动则使用 OpenGL。Vulkan：只要能启动就使用 Vulkan（包括软件实现）。OpenGL：原版游戏使用的 API。画面相同；Player.log 会写明使用了哪一个以及原因。"
+msgid "Auto: Vulkan, or OpenGL when Vulkan can't start on this PC; on Windows Direct3D 11 comes before OpenGL, and first on an integrated GPU. Vulkan: Vulkan whenever it starts (also a software one). OpenGL: the original game's API. The picture is the same; Player.log names the one used and why."
+msgstr "自动：使用 Vulkan，若此电脑上 Vulkan 无法启动则使用 OpenGL；在 Windows 上先于 OpenGL 尝试 Direct3D 11，集成显卡上则首先使用 Direct3D 11。Vulkan：只要能启动就使用 Vulkan（包括软件实现）。OpenGL：原版游戏使用的 API。画面相同；Player.log 会写明使用了哪一个以及原因。"
 
 msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.RENDERER.AUTO"
 msgid "auto"

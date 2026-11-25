@@ -223,6 +223,19 @@ namespace OniMoono.Desktop.D3d11
     {
         D3D11_FEATURE_THREADING = 0,
         D3D11_FEATURE_D3D11_OPTIONS = 5,
+        D3D11_FEATURE_D3D11_OPTIONS2 = 14,
+    }
+
+    [Native(Header = "d3d11.h")]
+    internal enum D3D11_CONSERVATIVE_RASTERIZATION_TIER
+    {
+        D3D11_CONSERVATIVE_RASTERIZATION_NOT_SUPPORTED = 0,
+    }
+
+    [Native(Header = "d3d11.h")]
+    internal enum D3D11_TILED_RESOURCES_TIER
+    {
+        D3D11_TILED_RESOURCES_NOT_SUPPORTED = 0,
     }
 
     [Native(Header = "d3dcommon.h")]
@@ -718,6 +731,22 @@ namespace OniMoono.Desktop.D3d11
         public int SAD4ShaderInstructions;
         public int ExtendedDoublesShaderInstructions;
         public int ExtendedResourceSharing;
+    }
+
+    /// D3D11_FEATURE_DATA_D3D11_OPTIONS2 (Direct3D 11.3, Windows 10): read for
+    /// UnifiedMemoryArchitecture alone (D3d11Context.UnifiedMemory).
+    [Native(Header = "d3d11.h")]
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct D3D11_FEATURE_DATA_D3D11_OPTIONS2
+    {
+        public int PSSpecifiedStencilRefSupported;
+        public int TypedUAVLoadAdditionalFormats;
+        public int ROVsSupported;
+        public D3D11_CONSERVATIVE_RASTERIZATION_TIER ConservativeRasterizationTier;
+        public D3D11_TILED_RESOURCES_TIER TiledResourcesTier;
+        public int MapOnDefaultTextures;
+        public int StandardSwizzle;
+        public int UnifiedMemoryArchitecture;
     }
 
     // ----- Interfaces -----

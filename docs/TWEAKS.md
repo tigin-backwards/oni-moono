@@ -20,7 +20,8 @@ A **General** section holds eight options of the player:
 - Hiding personal paths in the log (on by default).
 - For laptops with two GPUs, the graphics card the game draws with (default, discrete or
   integrated; default does what the original does).
-- The renderer (auto: Vulkan, or OpenGL when Vulkan can't start).
+- The renderer (auto: Vulkan, or OpenGL when Vulkan can't start; on Windows Direct3D 11 before
+  OpenGL, and first on an integrated GPU).
 - On Windows, presenting through Direct3D as the original does (on by default).
 - [Garbage collection](#garbage-collection) (fast by default).
 
@@ -227,8 +228,10 @@ launch options:
   ([ARCHITECTURE.md](ARCHITECTURE.md#2-process-and-assembly-structure), "The GPU option").
 - `--renderer auto|vulkan|opengl`: the graphics API; auto is Vulkan, or OpenGL when Vulkan can't
   start, the driver is on a short deny list, or an earlier start with this graphics card,
-  driver and Moono build never got its first frames on screen; vulkan always tries Vulkan
-  ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering)). If Vulkan stops working in play, the game
+  driver and Moono build never got its first frames on screen; on Windows auto tries Direct3D 11
+  before OpenGL, and first when the GPU it would use is integrated (its device reports a unified
+  memory architecture; [research/d3d11-plan.md](research/d3d11-plan.md), "M6"); vulkan always
+  tries Vulkan ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering)). If Vulkan stops working in play, the game
   quits with an error; choose OpenGL here or under Renderer in Moono Tweaks if it keeps
   happening.
 - `--dxgi on|off`: Windows, frames shown through a Direct3D 11 swap chain or through the

@@ -257,7 +257,7 @@ msgstr ""
 
 #. Tooltip: how it works (renderer)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.RENDERER.DETAIL"
-msgid "Auto: Vulkan, or OpenGL when Vulkan can't start on this PC. Vulkan: Vulkan whenever it starts (also a software one). OpenGL: the original game's API. The picture is the same; Player.log names the one used and why."
+msgid "Auto: Vulkan, or OpenGL when Vulkan can't start on this PC; on Windows Direct3D 11 comes before OpenGL, and first on an integrated GPU. Vulkan: Vulkan whenever it starts (also a software one). OpenGL: the original game's API. The picture is the same; Player.log names the one used and why."
 msgstr ""
 
 #. A choice on the row's button (shown in capitals) and in its tooltip (renderer)

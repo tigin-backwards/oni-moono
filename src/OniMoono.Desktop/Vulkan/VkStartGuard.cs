@@ -17,11 +17,11 @@ namespace OniMoono.Desktop.Vulkan
     /// are presented (first pipelines and presents behind it), or the game ends cleanly before
     /// that, the key's lines go. A `starting` line found at the next launch means that start
     /// never got there (a crash, a hang the user ended): it becomes `crashed KEY`, and under
-    /// auto every start with that key uses OpenGL. Another GPU, driver or build tries Vulkan
+    /// auto every start with that key goes without Vulkan (Direct3D 11 on Windows, else OpenGL). Another GPU, driver or build tries Vulkan
     /// again; `--renderer vulkan` always tries, and its clean start clears the key. A run whose
     /// device ran out of video memory (RanOutOfMemory, at any time) leaves `out of memory KEY`,
     /// which auto honours the same way (#114). The Direct3D 11 device keeps its own file with the
-    /// same rules (`d3d11-start-guard.txt`, GuardNames.D3d11; Renderers.TryD3d11).
+    /// same rules (`d3d11-start-guard.txt`, GuardNames.D3d11; Renderers.OpenD3d11).
     internal sealed class VkStartGuard
     {
         public const int FramesToClear = 60;

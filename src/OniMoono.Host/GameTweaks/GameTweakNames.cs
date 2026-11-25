@@ -128,7 +128,7 @@ namespace OniMoono.Host.GameTweaks
                 + "On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU.",
                 IsTweak: false, Choices: [OniMoono.Host.GpuChoice.Default, OniMoono.Host.GpuChoice.Discrete, OniMoono.Host.GpuChoice.Integrated]),
             new(RendererRow, General, "Renderer", "Which graphics API the game draws with. Needs a restart.",
-                "Auto: Vulkan, or OpenGL when Vulkan can't start on this PC. Vulkan: Vulkan whenever it starts (also a software one). "
+                "Auto: Vulkan, or OpenGL when Vulkan can't start on this PC; on Windows Direct3D 11 comes before OpenGL, and first on an integrated GPU. Vulkan: Vulkan whenever it starts (also a software one). "
                 + "OpenGL: the original game's API. The picture is the same; Player.log names the one used and why.",
                 IsTweak: false, Choices: [OniMoono.Desktop.Renderers.Auto, OniMoono.Desktop.Renderers.Vulkan, OniMoono.Desktop.Renderers.OpenGl]),
             new(DxgiRow, General, "Present through Direct3D on Windows", "Windows shows the game as it shows the original: no forced HDR or brightness. Needs a restart.",

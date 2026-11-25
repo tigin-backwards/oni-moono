@@ -247,7 +247,7 @@ namespace OniMoono.Desktop.Vulkan
                 outOfMemoryNoted = true;
                 guard?.RanOutOfMemory();
                 EngineLog.Engine($"vulkan: out of video memory ({caps.Name}, {vk.DriverInfo}): {e.Message}; {HeapUsage()}; "
-                                 + (guard != null ? "the next start under the auto renderer uses OpenGL" : "start with --renderer opengl if it keeps happening"));
+                                 + (guard != null ? "the next start under the auto renderer goes without Vulkan" : "start with --renderer opengl if it keeps happening"));
             }
             if (rendering && frames.MainOpen)
             {

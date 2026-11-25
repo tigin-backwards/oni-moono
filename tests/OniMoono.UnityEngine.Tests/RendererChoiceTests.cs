@@ -145,15 +145,22 @@ namespace OniMoono.Tests
         [Fact]
         public void EachChoiceTriesItsDevicesInOrder()
         {
-            static string Of(string choice, bool windows)
-                => string.Join(" ", System.Linq.Enumerable.Select(OniMoono.Desktop.Renderers.Attempts(choice, windows), a => a.Renderer + (a.Auto ? "(auto)" : "")));
-            // Auto on Windows: Direct3D 11 where the M6 rule put it, with its guard honoured.
-            Assert.Equal(OniMoono.Desktop.Renderers.D3d11FirstInAuto ? "d3d11(auto) vulkan(auto) opengl" : "vulkan(auto) d3d11(auto) opengl", Of("auto", windows: true));
+            static string Of(string choice, bool windows, bool integrated = false)
+                => string.Join(" ", System.Linq.Enumerable.Select(OniMoono.Desktop.Renderers.Attempts(choice, windows, integrated), a => a.Renderer + (a.Auto ? "(auto)" : "")));
+            // Auto on Windows: Direct3D 11 after Vulkan (the M6 rule), first on an integrated
+            // GPU (the user's decision), its guard honoured either way.
+            Assert.Equal("vulkan(auto) d3d11(auto) opengl", Of("auto", windows: true));
+            Assert.Equal("d3d11(auto) vulkan(auto) opengl", Of("auto", windows: true, integrated: true));
             Assert.Equal("vulkan(auto) opengl", Of("auto", windows: false));
-            // --renderer d3d11 goes on as auto without trying Direct3D 11 again.
-            Assert.Equal("d3d11 vulkan(auto) opengl", Of("d3d11", windows: true));
-            Assert.Equal("vulkan opengl", Of("vulkan", windows: true));
-            Assert.Equal("opengl", Of("opengl", windows: true));
+            Assert.Equal("vulkan(auto) opengl", Of("auto", windows: false, integrated: true));
+            // Explicit choices whatever the GPU; --renderer d3d11 goes on as auto without trying
+            // Direct3D 11 again.
+            foreach (bool integrated in new[] { false, true })
+            {
+                Assert.Equal("d3d11 vulkan(auto) opengl", Of("d3d11", windows: true, integrated));
+                Assert.Equal("vulkan opengl", Of("vulkan", windows: true, integrated));
+                Assert.Equal("opengl", Of("opengl", windows: true, integrated));
+            }
         }
     }
 }
