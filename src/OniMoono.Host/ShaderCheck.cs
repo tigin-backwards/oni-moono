@@ -62,6 +62,34 @@ namespace OniMoono.Host
                     }
                 Console.WriteLine($"expansion1_bundle: {fromBundle} shaders");
             }
+            // Mods' bundles (d3d11-plan.md M7, done criterion 6): ONI_CHECK_BUNDLES names folders
+            // (separated as PATH is), and every Unity bundle under them is loaded as a mod loads
+            // it (AssetBundle.LoadFromFile) and its shaders made objects, so the device checks
+            // them as the game's. Their data is only read; no mod code runs.
+            foreach (var dir in (Environment.GetEnvironmentVariable("ONI_CHECK_BUNDLES") ?? "").Split(System.IO.Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
+                foreach (var path in System.Linq.Enumerable.Order(System.IO.Directory.EnumerateFiles(dir, "*", System.IO.SearchOption.AllDirectories), StringComparer.Ordinal))
+                {
+                    if (!IsUnityFs(path)) continue;
+                    AssetBundle loaded;
+                    try
+                    {
+                        loaded = AssetBundle.LoadFromFile(path);
+                    }
+                    catch (Exception e) when (e is System.IO.InvalidDataException or System.IO.IOException or NotSupportedException)
+                    {
+                        Console.WriteLine($"shader check: bundle {path} not read: {e.Message}");
+                        errors++;
+                        continue;
+                    }
+                    if (loaded == null) continue;
+                    var modFile = ((AssetBundleNative)loaded.NativeOrThrow).File;
+                    foreach (var info in modFile.Objects)
+                        if (modFile.TypeOf(info).ClassId == 48 && ObjectLoader.Load(modFile, info.PathId) is Shader s)
+                        {
+                            shaders++;
+                            EngineLog.Engine($"shader check: bundle {path} shader '{s.name}'");
+                        }
+                }
             // Every program built before the count is read (the game's warm-up does not wait on
             // OpenGL).
             if (device is OniMoono.Desktop.Gl.GlDevice gl) gl.WarmupShaders(wait: true);
@@ -74,6 +102,13 @@ namespace OniMoono.Host
             Console.WriteLine($"{shaders} shaders warmed up, {errors} compile/link errors{(device is OniMoono.Desktop.Vulkan.VkDevice ? $" ({OniMoono.Desktop.Vulkan.VkDevice.CheckFailures} Vulkan programs or pipelines not built)" : "")}");
             platform.Dispose();
             return errors == 0 ? 0 : 1;
+        }
+
+        static bool IsUnityFs(string path)
+        {
+            var head = new byte[8];
+            using var f = System.IO.File.OpenRead(path);
+            return f.Read(head) == 8 && System.Text.Encoding.ASCII.GetString(head) == "UnityFS\0";
         }
     }
 }
