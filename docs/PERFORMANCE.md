@@ -413,6 +413,39 @@ The 2026-11-06 tables (v2026.11.06.01 on U59) had U57 at about 90 fps with defau
   `fast-partitioner-events`, `fast-conduit-sorts`, `shared-duplicates`,
   `compact-report-history`, `lazy-table-refresh` and `loading-animation`.
 
+## Direct3D 11 against Vulkan
+
+The Direct3D 11 renderer (in development, [research/d3d11-plan.md](research/d3d11-plan.md),
+"M6") was measured against Vulkan on 2026-11-25 to decide where auto puts it. Method as [How
+it's measured](#how-its-measured), U60 764025 with every DLC, default tweaks: one job per colony
+and GPU, a warm-up launch of each renderer, then 5 pairs of launches, Direct3D 11 then Vulkan.
+The ratios are Direct3D 11 over Vulkan, each cell's median of its pairs, with the largest
+distance of a pair from it. The rule: Direct3D 11 is auto's first choice only if every cell has
+an fps ratio of at least 0.98 and a p99 ratio of at most 1.02.
+
+| Colony | GPU | fps, Direct3D 11 / Vulkan | fps ratio | p99 ms, Direct3D 11 / Vulkan | p99 ratio | Cell |
+|---|---|---|---|---|---|---|
+| late game, Spaced Out, 24 Duplicants | RTX 3090 | 52.9 / 54.7 | 0.995 (±8.5%) | 33.4 / 32.7 | 0.999 (±6.5%) | pass by the medians, spread over ±5% |
+| mid game, 50 Duplicants | RTX 3090 | 71.7 / 73.0 | 0.983 (±4.0%) | 20.1 / 19.2 | 1.047 (±17.8%) | fail |
+| late game, base game, 15 Duplicants | RTX 3090 | 138.1 / 150.0 | 0.921 (±6.0%) | 15.8 / 14.7 | 1.073 (±3.5%) | fail |
+| late game, Spaced Out, 24 Duplicants | Radeon iGPU | 45.4 / 40.2 | 1.130 (±1.2%) | 39.5 / 42.7 | 0.926 (±2.6%) | pass |
+| mid game, 50 Duplicants | Radeon iGPU | 40.0 / 32.3 | 1.239 (±8.8%) | 31.9 / 37.4 | 0.863 (±7.8%) | pass by the medians, spread over ±5% |
+| late game, base game, 15 Duplicants | Radeon iGPU | 51.8 / 37.9 | 1.368 (±0.4%) | 31.1 / 38.4 | 0.813 (±2.4%) | pass |
+
+- **Result.** Two RTX 3090 cells fail, so Direct3D 11 comes after Vulkan in auto's order on
+  Windows, before OpenGL. The rule gives a cell whose pairs spread over ±5% 5 more pairs; those
+  were not run, as the two failing cells decide it either way.
+- **Integrated GPUs** (decided by the user, 2026-11-25: "If we can detect iGPU (esp since we
+  seem to see a lot of Vulkan weirdness with integrated graphics) probably worth defaulting to
+  dx for them"): when the GPU the game will run on reports a unified memory architecture
+  (Direct3D 11's own answer for that adapter), auto tries Direct3D 11 first. The evidence is one
+  AMD Radeon iGPU and three colonies; Intel iGPUs are untested (their Vulkan driver is already
+  on the deny list below 101.5333).
+- Before these runs the Direct3D 11 renderer copied every texture upload into managed memory
+  (about 1.1 GB a second on the late-game colony) and sent whole textures where the other
+  renderers send only changed rows; fixing both took that colony from 38 to 51 fps on the RTX
+  3090, its p99 from 86 to 34 ms.
+
 ## Why the engine alone is faster
 
 Most of it is the runtime. The game's code runs on CoreCLR (.NET 10) instead of Unity's Mono,

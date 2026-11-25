@@ -229,8 +229,9 @@ launch options:
 - `--renderer auto|vulkan|opengl`: the graphics API; auto is Vulkan, or OpenGL when Vulkan can't
   start, the driver is on a short deny list, or an earlier start with this graphics card,
   driver and Moono build never got its first frames on screen; on Windows auto tries Direct3D 11
-  before OpenGL, and first when the GPU it would use is integrated (its device reports a unified
-  memory architecture; [research/d3d11-plan.md](research/d3d11-plan.md), "M6"); vulkan always
+  before OpenGL, and first when the GPU it would draw on is integrated (the GPU Vulkan's choice
+  picks, a discrete one first, is an integrated one;
+  [research/d3d11-plan.md](research/d3d11-plan.md), "M6"); vulkan always
   tries Vulkan ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering)). If Vulkan stops working in play, the game
   quits with an error; choose OpenGL here or under Renderer in Moono Tweaks if it keeps
   happening.

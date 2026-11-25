@@ -2215,6 +2215,11 @@ Tweaks screen's "Renderer" row; `Renderers.Open`) picks one:
   (`build-windows.sh`, `release.sh`) ship a vma.dll and shaderc_shared.dll built with the static
   C runtime instead (`scripts/build-native-libs.sh`), which import no MSVCP140.dll, so the
   check passes there whatever the machine has.
+- **On Windows auto also tries Direct3D 11** (the renderer in development,
+  [research/d3d11-plan.md](research/d3d11-plan.md), "M6"): after Vulkan and before OpenGL, or
+  first when the GPU Vulkan's choice picks (a discrete GPU first, or `--gpu`) is
+  VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: Vulkan then stops before its device and Direct3D 11
+  starts (`Renderers.Open`). The renderer line says which order and why.
 - **auto also refuses** software Vulkan devices (Mesa's lavapipe: the OpenGL driver is hardware
   there, under WSLg Mesa's d3d12), the drivers on a short deny list and a start the guard below
   recorded as crashed. `--renderer vulkan` takes all of them.

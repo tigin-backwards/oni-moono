@@ -72,8 +72,8 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user. Desktop runs 2026-11-24 ("M4 desktop runs"): the original's full screen observed (captures 10 settled but for its chain inside exclusive), Loading Pip passes (0 pixels differ), ours through windowed/borderless/stretch/exclusive clean (j0009137). Focused exclusive observed (j0009185: the original's is DXGI's own, a blt DISCARD chain in DXGI's full-screen state; it goes windowed on losing the focus; ours minimizes). HDR on the HDR monitor (j0009190, j0009200): the original and ours composed as SDR at the 240-nit SDR white level, no Auto HDR boost (Auto HDR most likely off). Exclusive full screen made the original's (the user's "Match original"; j0009222: DXGI's own, windowed on losing the focus, debug layer clean; proof j0009211); Auto HDR engages for both when forced (j0009213). Second review fixes 2026-11-24 ("M4 second review fixes"). Final review 2026-11-24 ("M4 final review"): 3 findings fixed (a37817cf2), the refused-exclusive path ruled documented and observed in the original, not blocking (its fault hook goes in M5): done |
-| M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | 2026-11-24 ("M5"): ONI_D3D11_FAIL hooks at the 7 start-up steps (each falls back to Vulkan, logged; no guard line left), a removed device from Present (the quit error, exit 1), DXGI_STATUS_MODE_CHANGED (the buffers made again) and the refused exclusive (a fullscreen window), all observed (j0009347); the start-up guard as Vulkan's (keyed by the driver's version, CheckInterfaceSupport; crash-at observed), honoured under auto only, which does not try D3D11 yet (M6); no driver deny entry (none has evidence), software refused under auto; the GPU choice rule kept: the original's device on EnumAdapters1's 0, which is also high performance's first (j0009349). A real TDR (dxcap -forcetdr): DEVICE_RESET, the quit error, exit 1 (j0009366); the four focus/mode/load items run on the desktop (j0009359, j0009360, j0009361, j0009367; a monitor move not run, needs monitor 1). The quit error stays on screen until OK (the user's decision, both devices). Review: done | done |
-| M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
+| M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | 2026-11-24 ("M5"): ONI_D3D11_FAIL hooks at the 7 start-up steps (each falls back to Vulkan, logged; no guard line left), a removed device from Present (the quit error, exit 1), DXGI_STATUS_MODE_CHANGED (the buffers made again) and the refused exclusive (a fullscreen window), all observed (j0009347); the start-up guard as Vulkan's (keyed by the driver's version, CheckInterfaceSupport; crash-at observed), honoured under auto only, which did not try D3D11 yet (it does from M6); no driver deny entry (none has evidence), software refused under auto; the GPU choice rule kept: the original's device on EnumAdapters1's 0, which is also high performance's first (j0009349). A real TDR (dxcap -forcetdr): DEVICE_RESET, the quit error, exit 1 (j0009366); the four focus/mode/load items run on the desktop (j0009359, j0009360, j0009361, j0009367; a monitor move not run, needs monitor 1). The quit error stays on screen until OK (the user's decision, both devices). Review: done | done |
+| M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | 2026-11-25 ("M6"): the main thread is the bottleneck on every save measured, the device thread busy 3.5-7 ms and waited for under 0.1 ms a frame; the largest avoidable cost, the texture upload path (a managed copy of every level, about 1.1 GB/s, and whole re-uploads), fixed: 38.4 → 50.7 fps and p99 86 → 34 ms on the RTX 3090, 32.5 → 41.1 fps on the iGPU (j0009577, j0009580, j0009585); the per-draw binding filters measured no gain and dropped. The rule's table (j0009589, j0009634-j0009638): two RTX 3090 cells fail, so Direct3D 11 is the fallback after Vulkan; the iGPU cells pass by 13-37%, and the user decided (2026-11-25) that auto defaults to Direct3D 11 when Vulkan's GPU choice is an integrated GPU (observed both ways, j0009656). Reviews: 3 (milestone, the iGPU change twice), fixed. check.sh green (j0009657): done |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
 | M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
 
@@ -2005,8 +2005,8 @@ comment says it counts only frames the game drew, stricter than VkDevice.Present
   VkContext's); cleared after 60 presented game frames or a clean quit; removed when the start
   falls back (`Abandon`); left by a crash. Observed: every start-up fault left no file; `crash-at`
   left `starting KEY`; the next (explicit) start tried, and its 60 frames cleared the file
-  (j0009347). Honoured under auto only: **auto does not try Direct3D 11 yet** (M6 decides where it
-  goes in auto's order), so the refusal is unit-tested only (`D3d11RobustnessTests`, 4 tests,
+  (j0009347). Honoured under auto only: **auto did not try Direct3D 11 yet** (M6 put it in
+  auto's order), so the refusal is unit-tested only (`D3d11RobustnessTests`, 4 tests,
   with VkStartGuardTests and D3d11PresentTests 18 pass, j0009345).
 - **Deny list**: none for Direct3D 11. Vulkan's two entries are Vulkan drivers' (Dozen; Intel's
   Vulkan driver below Unreal's 101.5333 threshold, keyed by VkDriverId); no Direct3D 11 driver is
@@ -2078,6 +2078,163 @@ only broke the C# build; their call sites now follow, 54d4723c0).
 PATH), j0009344 (build error), j0009345 (18 pass); Windows build j0009346; probe build j0009348;
 fault hooks j0009347; the original's adapter j0009349; COM check and mutations j0009350,
 j0009351; check.sh j0009352 (green, on 54d4723c0).
+
+## M6: performance (2026-11-25, branch `d3d11-m6`)
+
+Done criterion 7: the threading design measured and tuned, then the default/fallback rule's
+measurement. Base: `d3d11-m5` (f136194af). Every run: Windows 11, monitor 2, windowed 1280×720,
+unfocused (`--no-focus`), High priority (runq `win-perf`), muted, owner `d3d11-m6`; the RTX 3090
+(NVIDIA driver 32.0.16.1088) or the AMD Radeon iGPU (`--gpu integrated`, driver 32.0.21042.62);
+U60 764025 with every DLC; PerfProbe built from this branch (`tools/PerfProbe`, frame times).
+Colonies by kind: a late-game Spaced Out colony (24 Duplicants, about 90,000 animated objects),
+a mid-game one with 50 Duplicants, and a late-game base-game one with 15 Duplicants.
+
+**Instruments** (74e584c4d). Frame stats' frame counts gain the device thread's time by kind
+(`d3d11 thread busy`: draws, constant-buffer writes, texture and mesh uploads, targets, present)
+and the frame-latency wait after each Present, which also goes into "device thread waiting for
+the presenter", as Vulkan's queue wait does (`D3d11Timings`, timed only with frame stats on).
+`ONI_DEVICE_BUSY=1` logs every device's running totals every 600 frames without frame stats
+(`device thread totals`: batch time, the wait for the presenter or the waitable, busy = the
+first less the second; the OpenGL presenter's wait counts too, review fix), for the rule's
+"logged, not judged" busy time.
+
+**The threading design, measured** (frame stats on, late-game colony, one launch each):
+
+| Job | GPU | Build | fps | p99 ms | main: update ms | main waits for the device ms | device busy ms | of it, texture uploads ms | frame-latency wait ms | allocated |
+|---|---|---|---|---|---|---|---|---|---|---|
+| j0009577 | RTX 3090 | before | 38.4 | 86.3 | 14.8 | 0.37-0.53 | 8.7 | 6.15 | 4.3-4.7 | about 1.1 GB/s, 9 gen-2 GCs a window |
+| j0009577 | RTX 3090 | Vulkan | 51.2 | 34.0 | 9.0 | 0.05 | 2.9 | 1.43 | (presenter 0.00) | 7.7 MiB/s |
+| j0009585 | RTX 3090 | after | 50.7 | 33.9 | 9.9 | 0.09 | 3.9 | 1.70 | 2.1 | 11.5 MiB/s |
+| j0009585 | RTX 3090 | Vulkan | 52.1 | 33.5 | 8.5 | 0.05 | 2.8 | 1.32 | (presenter 0.00) | 7.8 MiB/s |
+| j0009580 | Radeon iGPU | before | 32.5 | 90.1 | 16.2 | 0.27 | 8.0 | 4.83 | 0.5 | 937 MiB/s |
+| j0009580 | Radeon iGPU | Vulkan | 39.8 | 47.0 | 12.2 | 2.35 | 14.8 (present 11.3) | 1.90 | (presenter 0.00) | 7.1 MiB/s |
+| j0009580 | Radeon iGPU | after | 41.1 | 44.2 | 11.5 | 0.08 | 4.4 | 1.76 | 0.8 | 10.5 MiB/s |
+
+- **The split.** The main thread records a frame while the device thread executes the one
+  before (GlWorker, one frame in flight, as Vulkan). The device thread alone uses the immediate
+  context and presents, then waits on the frame-latency waitable inside the frame's batch (M2,
+  M4); Vulkan hands its pictures to a presenter thread instead. On every save measured the
+  main thread is the bottleneck: after the fixes it waits under 0.1 ms a frame for the device,
+  and the device thread is busy 3.5-7 ms of a 7-25 ms frame. Its frame-latency wait (0.8-2.1 ms
+  a frame) falls in the time the main thread is still recording, so it costs no frame rate. On
+  the iGPU Vulkan's device thread is busy 20-31 ms a frame (its present and GPU waits) and the
+  main thread waits 2.4 ms a frame for it; Direct3D 11's is busy 4-7 ms.
+- **The largest avoidable cost** was the texture upload path. Every upload copied each level
+  into a new pinned managed array (about 1.1 GB a second on the late-game colony, with 8-9
+  gen-2 collections a window and pauses up to 77 ms, which also slowed the main thread's update
+  by 5-6 ms a frame), and every re-upload sent the whole texture. Fixed (ab5f5b751): unconverted
+  levels are read where they are, converted levels of a new texture go to native memory, a
+  re-upload into the same storage writes one level at a time ("When UpdateSubresource returns,
+  the application is free to change or even free the data pointed to by pSrcData because the
+  method has already copied/snapped away the original contents", UpdateSubresource, Remarks),
+  and, as the GL and Vulkan devices do (`UploadChanged`), only the rows that changed go, by
+  UpdateSubresource with a box ("Coordinates are in bytes for buffers and in texels for
+  textures", pDstBox). Gains: RTX 3090 38.4 → 50.7 fps, p99 86.3 → 33.9 ms; iGPU 32.5 → 41.1
+  fps, p99 90.1 → 44.2 ms; allocation 1.1 GB/s → 11 MiB/s; texture uploads 6.15 → 1.70 ms of
+  the device thread.
+- **Tried and dropped** (5d40a26f4, reverted by 124f2dd15): skipping unchanged
+  IASetVertexBuffers/IASetIndexBuffer calls and state-object lookups per draw, and keeping each
+  program's constant buffers instead of a lookup per draw. The device thread's draw time went
+  1.94 → 1.92 ms a frame (j0009577), within a launch's noise, so the simpler code stays.
+- **Constant buffers** stay one DYNAMIC buffer per stage, slot and size written with
+  Map(WRITE_DISCARD) when the bytes differ (M2, the original's way): 0.13-0.17 ms a frame for
+  about 1,700 maps. Nothing measured asks for UpdateSubresource or NO_OVERWRITE there.
+- **Left**: the device thread's draw submission costs more than Vulkan's (1.6-1.9 against
+  1.0-1.1 ms a frame on the late-game colony), and on the RTX 3090 the light base-game colony
+  runs 8% slower (below). Not traced further in M6; the device thread is not what the main
+  thread waits for there by the busy totals (2.8 ms of a 7 ms frame), so the cause is open.
+
+**The rule's measurement** (`d3d11-m6-final`, 124f2dd15; scratchpad `m6/launches.sh`, one job a
+cell: a warm-up launch of each device to the menu, then 5 pairs, Direct3D 11 then Vulkan; 9
+windows of 600 frames, the first 3 left out; no frame stats; `ONI_DEVICE_BUSY=1`). Per pair the
+fps ratio (Direct3D 11 / Vulkan, mean of kept windows) and the p99 frame-time ratio; the cell's
+medians; spread is the largest distance of a pair's ratio from the median.
+
+| Colony | GPU | Job | fps D3D11 / Vulkan (medians) | fps ratio (spread) | p99 ms D3D11 / Vulkan | p99 ratio (spread) | p50 ms | 1% low fps | device busy ms | Cell |
+|---|---|---|---|---|---|---|---|---|---|---|
+| late game, Spaced Out | RTX 3090 | j0009589 | 52.9 / 54.7 | 0.995 (±8.5%) | 33.4 / 32.7 | 0.999 (±6.5%) | 17.8 / 17.1 | 27.7 / 22.8 | 3.57 / 2.96 | pass by the medians; spread over ±5% |
+| mid game, 50 Duplicants | RTX 3090 | j0009634 | 71.7 / 73.0 | 0.983 (±4.0%) | 20.1 / 19.2 | 1.047 (±17.8%) | 13.7 / 13.6 | 40.0 / 48.9 | 6.43 / 5.51 | fail (p99) |
+| late game, base game | RTX 3090 | j0009635 | 138.1 / 150.0 | 0.921 (±6.0%) | 15.8 / 14.7 | 1.073 (±3.5%) | 6.6 / 6.0 | 56.2 / 62.3 | 2.84 / 1.74 | fail |
+| late game, Spaced Out | Radeon iGPU | j0009636 | 45.4 / 40.2 | 1.130 (±1.2%) | 39.5 / 42.7 | 0.926 (±2.6%) | 20.7 / 23.9 | 24.4 / 18.6 | 3.97 / 20.88 | pass |
+| mid game, 50 Duplicants | Radeon iGPU | j0009637 | 40.0 / 32.3 | 1.239 (±8.8%) | 31.9 / 37.4 | 0.863 (±7.8%) | 24.8 / 30.8 | 26.3 / 21.0 | 7.10 / 30.90 | pass by the medians; spread over ±5% |
+| late game, base game | Radeon iGPU | j0009638 | 51.8 / 37.9 | 1.368 (±0.4%) | 31.1 / 38.4 | 0.813 (±2.4%) | 19.4 / 26.4 | 29.0 / 24.8 | 3.94 / 26.33 | pass |
+
+(p50, 1% low and busy are medians of the launches, logged and not judged. Vulkan's busy on the
+iGPU includes its waits for the GPU on the device thread.)
+
+- **Result: Direct3D 11 is the fallback** (two RTX 3090 cells fail): auto tries it after Vulkan,
+  before OpenGL. The four cells whose spread was over ±5% were not given their 5 more pairs: two
+  of the RTX 3090's fail outright and decide the rule whatever more pairs show, and the user
+  decided the rest (below); the first RTX job's extra pairs (j0009639) were cancelled.
+- **Decided by the user, 2026-11-25**: on an integrated GPU auto defaults to Direct3D 11. The
+  user's words: "If we can detect iGPU (esp since we seem to see a lot of Vulkan weirdness with
+  integrated graphics) probably worth defaulting to dx for them". The evidence covers one AMD
+  Radeon iGPU and three colonies, where Direct3D 11 ran 13-37% faster with a lower p99 in every
+  pair. Intel iGPUs are untested; their Vulkan driver already has its deny entry below
+  101.5333 (VkDenyList).
+
+**Auto's order** (7cb703847, e60117f87, a25cbc5be, 647787c47; `Renderers.Open` and `Attempts`, unit-tested
+in RendererChoiceTests).
+- **Integrated** is the GPU the game would draw on: auto on Windows starts with Vulkan, whose
+  choice (`VkContext.Choose`: a discrete GPU first, or the `--gpu` preference) picks it. When that
+  device is VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU ("the device is typically one embedded in or
+  tightly coupled with the host", VkPhysicalDeviceType in the Vulkan specification), Vulkan stops
+  in its admit step, before the deny list, its guard and its device, and the order becomes
+  Direct3D 11, Vulkan, OpenGL. Otherwise Vulkan starts as before; when it fails, Direct3D 11,
+  then OpenGL. A hybrid laptop or a desktop with a discrete card picks the discrete GPU, so it
+  stays on Vulkan; nothing more is made to tell (the instance is Vulkan's first step anyway).
+- Under auto both devices honour their start-up guards (M5); a refused or failed device goes
+  on to the next, and a device that already failed is not tried again. The renderer line says
+  the order and why, with the reasons of the devices that did not start. Explicit choices are
+  unchanged (`--renderer d3d11`: Direct3D 11, then auto without it; `vulkan`: Vulkan, then
+  OpenGL; `opengl`). Elsewhere than Windows auto is Vulkan, then OpenGL.
+- Observed (j0009656, the menu, no `--renderer`, launches 2 and 3 in one run home): the RTX
+  3090: "renderer: Vulkan (auto, default); NVIDIA GeForce RTX 3090 is not integrated, so Vulkan
+  first", twice; `--gpu integrated`: "renderer: Direct3D 11 (auto, default); AMD Radeon(TM)
+  Graphics is integrated (VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU), so Direct3D 11 first".
+- **First tried and replaced** (e60117f87, its review): a Direct3D 11 device made first on the
+  adapter its GPU rule picks (EnumAdapters1(0)) and asked for D3D11_OPTIONS2's
+  UnifiedMemoryArchitecture (observed yes on the iGPU, no on the RTX 3090, j0009648). The
+  review found that a desktop whose display is on the iGPU beside a discrete card has the iGPU
+  at EnumAdapters1(0), so auto would have moved it off its discrete GPU, and the throwaway
+  device cost every discrete start 141-161 ms (j0009653, j0009654). Its declarations went with it.
+- Copy: the Tweaks screen's Renderer detail (and its Chinese), TWEAKS.md, ARCHITECTURE §3.5, and
+  the Vulkan guard's refusal and out-of-memory lines, which said auto goes to OpenGL.
+
+**Reviews** (fresh agents given the code, not these conclusions):
+- **Milestone review** (of 74e584c4d..7cb703847): 6 findings, fixed in 98b0fb72f. A texture
+  cleared for want of texels kept the copy UploadChanged compares with, so a later upload of the
+  old texels could be skipped (Vulkan had the same hole; both fixed); the renderer that starts
+  after others failed now logs their reasons; Direct3D 11's context stage catches what Vulkan's
+  does now that auto reaches it; the OpenGL presenter's wait counts in the device totals;
+  D3d11Timings says where its parts overlap; copy that said auto goes to OpenGL (fixed with the
+  iGPU change). Every API assumption of the upload path classed documented (UpdateSubresource's
+  box, pitches and copy-before-return; its destination rules), and initial data living only
+  through CreateTexture2D observed, as before this milestone.
+- **The iGPU change, first form** (e60117f87): 8 findings. The decisive one (high): classifying
+  EnumAdapters1(0) moves a desktop whose display is on the iGPU beside a discrete card off its
+  discrete GPU; with the probe's cost (finding 3, measured 141-161 ms) it led to a25cbc5be's
+  Vulkan-type detection. The others went with that form (the UMA wording, the throwaway device),
+  or were fixed (the Vulkan guard's refusal naming OpenGL, stale plan lines, ARCHITECTURE's auto
+  text); one was checked and is not a leak (D3d11Device's constructor makes nothing before its
+  try that needs releasing: the caps and state caches hold no objects then, and the swap chain
+  releases its own on failure).
+- **The iGPU change, second form** (a25cbc5be): no correctness bug; every path through Open
+  checked (starts, yields, fails before or after the admit, guards, software, `--gpu`, other
+  OSes, explicit choices; nothing left made on a yield, no guard line). The Vulkan reading
+  documented ("the device is typically one embedded in or tightly coupled with the host"; "The
+  physical device type is advertised for informational purposes only"). Fixed (647787c47): the
+  Direct3D 11 split folded back with its typed catch, comments (Direct3D 11's own adapter rule,
+  a discrete GPU without a usable Vulkan driver, the guard's "next renderer"), a name. Left as
+  noted: on an integrated machine whose Direct3D 11 then starts, Vulkan's instance was made and
+  released first (not measured); Open's first step has no unit test of its own (Attempts has).
+
+**Runs** (runq, owner `d3d11-m6`; burndown, then user from the coordinator's word): Windows
+builds j0009574, j0009578, j0009579, j0009583, j0009584, j0009588, PerfProbe j0009575, unit tests j0009581, j0009644 (build
+error), j0009647 (67 pass, the .pot regenerated, and the Windows build); profiles j0009577, j0009580, j0009585 (j0009576 cancelled and
+resubmitted); the rule j0009589, j0009634-j0009638 (j0009590-j0009594 cancelled and resubmitted
+at user; j0009639 cancelled); auto's order j0009648, j0009653, j0009654 (the UMA probe), j0009656 (Vulkan's type; j0009645 build error, j0009646 cancelled); unit tests and builds j0009652, j0009655; check.sh j0009640 cancelled
+(started before the last changes), check.sh j0009657 (green, on 647787c47; com-check matches the SDK headers).
 
 ## Research so far (M0)
 
