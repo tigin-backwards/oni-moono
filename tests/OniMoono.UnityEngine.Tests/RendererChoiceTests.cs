@@ -141,5 +141,19 @@ namespace OniMoono.Tests
             Assert.Empty(VkContext.UnlistedByVulkan([A("RTX 3090", 0x125AD, device: 0x2204), A("RTX 3090", 0x1F659, device: 0x2204)], [rtx]));
             Assert.Equal(["GTX 680"], VkContext.UnlistedByVulkan([A("RTX 3090", 0x1F659, device: 0x2204), A("GTX 680", 2, device: 0x1180)], [rtx]));
         }
+
+        [Fact]
+        public void EachChoiceTriesItsDevicesInOrder()
+        {
+            static string Of(string choice, bool windows)
+                => string.Join(" ", System.Linq.Enumerable.Select(OniMoono.Desktop.Renderers.Attempts(choice, windows), a => a.Renderer + (a.Auto ? "(auto)" : "")));
+            // Auto on Windows: Direct3D 11 where the M6 rule put it, with its guard honoured.
+            Assert.Equal(OniMoono.Desktop.Renderers.D3d11FirstInAuto ? "d3d11(auto) vulkan(auto) opengl" : "vulkan(auto) d3d11(auto) opengl", Of("auto", windows: true));
+            Assert.Equal("vulkan(auto) opengl", Of("auto", windows: false));
+            // --renderer d3d11 goes on as auto without trying Direct3D 11 again.
+            Assert.Equal("d3d11 vulkan(auto) opengl", Of("d3d11", windows: true));
+            Assert.Equal("vulkan opengl", Of("vulkan", windows: true));
+            Assert.Equal("opengl", Of("opengl", windows: true));
+        }
     }
 }

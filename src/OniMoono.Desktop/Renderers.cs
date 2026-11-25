@@ -24,39 +24,67 @@ namespace OniMoono.Desktop
         public static readonly string[] SettingsChoices = [Auto, Vulkan, OpenGl];
         public static bool IsSettingsChoice(string value) => Array.IndexOf(SettingsChoices, value) >= 0;
 
-        /// Opens the window and its device for a choice, logging which renderer it is and why.
-        /// "auto" and "vulkan" try Vulkan first: the instance and a GPU that meets the
-        /// requirements before a window exists, then the window's surface and swapchain; any
-        /// failure releases what was made and opens an OpenGL window instead, with the reason in
-        /// the log. "auto" also refuses software Vulkan devices (lavapipe), the drivers on the deny
-        /// list (VkDenyList) and a GPU, driver and build whose start never got its first frames on
-        /// screen (VkStartGuard). `source` says where the choice came from.
-        public static (GlfwPlatform Platform, RenderDevice Device) Open(WindowSettings settings, string choice, string source, string gpu, string cacheDirectory)
+        /// Where Direct3D 11 goes in auto's order on Windows, as the D3D11 plan's default/fallback
+        /// rule decided it (M6): first when it was at least as fast as Vulkan in every measured
+        /// cell, else after Vulkan and before OpenGL.
+        internal const bool D3d11FirstInAuto = false;
+
+        /// One device to try: the renderer, and whether it is tried as `auto` (its start-up guard
+        /// honoured, software devices and Vulkan's deny list refused).
+        internal readonly record struct Attempt(string Renderer, bool Auto);
+
+        /// The devices a choice tries, in order, until one starts. `d3d11` tries Direct3D 11,
+        /// then goes on as auto without it; `auto` tries Direct3D 11 (Windows only) where
+        /// D3d11FirstInAuto puts it, Vulkan, then OpenGL; `vulkan` tries Vulkan, then OpenGL;
+        /// `opengl` OpenGL alone. OpenGL, the last, always opens.
+        internal static Attempt[] Attempts(string choice, bool windows)
         {
-            string reason = null;
+            var list = new System.Collections.Generic.List<Attempt>();
             if (choice == D3d11)
             {
-                var (d3dPlatform, d3dDevice, d3dFailure) = TryD3d11(settings, gpu, auto: false, cacheDirectory);
-                if (d3dDevice != null)
-                {
-                    EngineLog.Engine($"renderer: Direct3D 11 ({choice}, {source})");
-                    return (d3dPlatform, d3dDevice);
-                }
-                EngineLog.Engine($"renderer: Direct3D 11 unavailable ({d3dFailure}); trying the others as auto");
+                list.Add(new Attempt(D3d11, false));
                 choice = Auto;
             }
-            if (choice == OpenGl) reason = $"OpenGL chosen ({source})";
-            else
+            if (choice != OpenGl)
             {
-                var (platform, device, failure) = TryVulkan(settings, gpu, auto: choice == Auto, cacheDirectory);
+                bool direct3d = windows && choice == Auto && list.Count == 0;
+                if (direct3d && D3d11FirstInAuto) list.Add(new Attempt(D3d11, true));
+                list.Add(new Attempt(Vulkan, choice == Auto));
+                if (direct3d && !D3d11FirstInAuto) list.Add(new Attempt(D3d11, true));
+            }
+            list.Add(new Attempt(OpenGl, false));
+            return list.ToArray();
+        }
+
+        /// Opens the window and its device for a choice, logging which renderer it is and why.
+        /// The choice's devices are tried in order (Attempts). Vulkan: the instance and a GPU that
+        /// meets the requirements before a window exists, then the window's surface and swapchain;
+        /// Direct3D 11 (TryD3d11) the same way; any failure releases what was made and the next is
+        /// tried, with the reason in the log. As auto, Vulkan also refuses software devices
+        /// (lavapipe), the drivers on the deny list (VkDenyList) and a GPU, driver and build whose
+        /// start never got its first frames on screen (VkStartGuard); Direct3D 11 refuses a
+        /// software adapter and honours its own start-up guard. `source` says where the choice
+        /// came from.
+        public static (GlfwPlatform Platform, RenderDevice Device) Open(WindowSettings settings, string choice, string source, string gpu, string cacheDirectory)
+        {
+            var reasons = new System.Collections.Generic.List<string>();
+            if (choice == OpenGl) reasons.Add($"OpenGL chosen ({source})");
+            foreach (var attempt in Attempts(choice, OperatingSystem.IsWindows()))
+            {
+                if (attempt.Renderer == OpenGl) break;
+                bool d3d = attempt.Renderer == D3d11;
+                var (platform, device, failure) = d3d ? TryD3d11(settings, gpu, attempt.Auto, cacheDirectory) : TryVulkan(settings, gpu, attempt.Auto, cacheDirectory);
+                string name = d3d ? "Direct3D 11" : "Vulkan";
                 if (device != null)
                 {
-                    EngineLog.Engine($"renderer: Vulkan ({choice}, {source})");
+                    EngineLog.Engine($"renderer: {name} ({(attempt.Auto ? Auto : attempt.Renderer)}, {source})");
                     return (platform, device);
                 }
-                reason = $"Vulkan unavailable: {failure}";
+                // `--renderer d3d11` that cannot start goes on as auto (M2).
+                if (d3d && !attempt.Auto) EngineLog.Engine($"renderer: Direct3D 11 unavailable ({failure}); trying the others as auto");
+                reasons.Add($"{name} unavailable: {failure}");
             }
-            EngineLog.Engine($"renderer: OpenGL ({reason})");
+            EngineLog.Engine($"renderer: OpenGL ({string.Join("; ", reasons)})");
             var glPlatform = new GlfwPlatform(settings with { Api = RenderApi.OpenGl });
             try
             {
@@ -121,8 +149,8 @@ namespace OniMoono.Desktop
         /// always tries and its clean start clears the key); a software adapter only when not
         /// `auto`. Any failure releases what was made, the guard's line going with it. No driver
         /// is on a deny list: Vulkan's two entries are Vulkan drivers' (VkDenyList), and no
-        /// Direct3D 11 driver is known to need one (d3d11-plan.md, "M5"). Auto does not try
-        /// Direct3D 11 yet (M6 decides where it goes in auto's order).
+        /// Direct3D 11 driver is known to need one (d3d11-plan.md, "M5"). Auto tries it where
+        /// D3d11FirstInAuto puts it (M6).
         static (GlfwPlatform, RenderDevice, string) TryD3d11(WindowSettings settings, string gpu, bool auto, string cacheDirectory)
         {
             foreach (var unknown in D3d.D3d11Fault.Unknown())
