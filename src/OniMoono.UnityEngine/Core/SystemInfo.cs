@@ -50,7 +50,7 @@ namespace UnityEngine
         {
             UnityEngine.Experimental.Rendering.DefaultFormat.LDR => UnityEngine.Experimental.Rendering.GraphicsFormat.R8G8B8A8_UNorm,
             UnityEngine.Experimental.Rendering.DefaultFormat.HDR => UnityEngine.Experimental.Rendering.GraphicsFormat.R16G16B16A16_SFloat,
-            UnityEngine.Experimental.Rendering.DefaultFormat.DepthStencil => UnityEngine.Experimental.Rendering.GraphicsFormat.D24_UNorm_S8_UInt,
+            UnityEngine.Experimental.Rendering.DefaultFormat.DepthStencil => Gfx.DefaultDepthStencilFormat,
             UnityEngine.Experimental.Rendering.DefaultFormat.Shadow => UnityEngine.Experimental.Rendering.GraphicsFormat.D16_UNorm,
             UnityEngine.Experimental.Rendering.DefaultFormat.Video => UnityEngine.Experimental.Rendering.GraphicsFormat.YUV2,
             _ => UnityEngine.Experimental.Rendering.GraphicsFormat.None,

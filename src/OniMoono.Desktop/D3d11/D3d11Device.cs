@@ -25,6 +25,9 @@ namespace OniMoono.Desktop.D3d11
         /// which this formula's source is UNVERIFIED against (M7).
         public override int MemorySizeMB => (int)(d3d.Adapter.DedicatedVideoMemory / (1024 * 1024));
         public override int ShaderLevel => 50;
+        /// The original's Direct3D 11 answer (d3d11-unity-probes.md §1; also observed in a colony,
+        /// d3d11-plan.md M7): its depth surfaces are D32_FLOAT_S8X24 (D3d11Formats.Depth).
+        public override UnityEngine.Experimental.Rendering.GraphicsFormat DefaultDepthStencilFormat => UnityEngine.Experimental.Rendering.GraphicsFormat.D32_SFloat_S8_UInt;
         public override int MaxTextureSize => 16384;
         public override int MaxRenderTargets => 8;
         public override bool Supports2DArrayTextures => true;

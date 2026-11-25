@@ -25,6 +25,9 @@ namespace OniMoono.Engine.Rendering
         public abstract bool SupportsComputeShaders { get; }
         public abstract bool SupportsTexture(TextureFormat format);
         public abstract bool SupportsRenderTexture(RenderTextureFormat format);
+        /// SystemInfo.GetGraphicsFormat(DefaultFormat.DepthStencil): D24_UNorm_S8_UInt, as the
+        /// original's GLCore player answers (d3d11-unity-probes.md §1).
+        public virtual UnityEngine.Experimental.Rendering.GraphicsFormat DefaultDepthStencilFormat => UnityEngine.Experimental.Rendering.GraphicsFormat.D24_UNorm_S8_UInt;
     }
 
     internal sealed class NullCaps : GraphicsCaps
