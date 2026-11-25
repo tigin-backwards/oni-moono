@@ -72,7 +72,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
 | M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user. Desktop runs 2026-11-24 ("M4 desktop runs"): the original's full screen observed (captures 10 settled but for its chain inside exclusive), Loading Pip passes (0 pixels differ), ours through windowed/borderless/stretch/exclusive clean (j0009137). Focused exclusive observed (j0009185: the original's is DXGI's own, a blt DISCARD chain in DXGI's full-screen state; it goes windowed on losing the focus; ours minimizes). HDR on the HDR monitor (j0009190, j0009200): the original and ours composed as SDR at the 240-nit SDR white level, no Auto HDR boost (Auto HDR most likely off). Exclusive full screen made the original's (the user's "Match original"; j0009222: DXGI's own, windowed on losing the focus, debug layer clean; proof j0009211); Auto HDR engages for both when forced (j0009213). Second review fixes 2026-11-24 ("M4 second review fixes"). Final review 2026-11-24 ("M4 final review"): 3 findings fixed (a37817cf2), the refused-exclusive path ruled documented and observed in the original, not blocking (its fault hook goes in M5): done |
-| M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | 2026-11-24 ("M5"): ONI_D3D11_FAIL hooks at the 7 start-up steps (each falls back to Vulkan, logged; no guard line left), a removed device from Present (the quit error, exit 1), DXGI_STATUS_MODE_CHANGED (the buffers made again) and the refused exclusive (a fullscreen window), all observed (j0009347); the start-up guard as Vulkan's (keyed by the driver's version, CheckInterfaceSupport; crash-at observed), honoured under auto only, which does not try D3D11 yet (M6); no driver deny entry (none has evidence), software refused under auto; the GPU choice rule kept: the original's device on EnumAdapters1's 0, which is also high performance's first (j0009349). Open: the real TDR and the four focus/mode/load items (scripts waiting for the user's desktop). The quit error stays on screen until OK (the user's decision, both devices) | |
+| M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | 2026-11-24 ("M5"): ONI_D3D11_FAIL hooks at the 7 start-up steps (each falls back to Vulkan, logged; no guard line left), a removed device from Present (the quit error, exit 1), DXGI_STATUS_MODE_CHANGED (the buffers made again) and the refused exclusive (a fullscreen window), all observed (j0009347); the start-up guard as Vulkan's (keyed by the driver's version, CheckInterfaceSupport; crash-at observed), honoured under auto only, which does not try D3D11 yet (M6); no driver deny entry (none has evidence), software refused under auto; the GPU choice rule kept: the original's device on EnumAdapters1's 0, which is also high performance's first (j0009349). A real TDR (dxcap -forcetdr): DEVICE_RESET, the quit error, exit 1 (j0009366); the four focus/mode/load items run on the desktop (j0009359, j0009360, j0009361, j0009367; a monitor move not run, needs monitor 1). The quit error stays on screen until OK (the user's decision, both devices). Review: done | done |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | |
 | M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
@@ -1974,8 +1974,12 @@ recreate any device-dependent resources", the same page); the device does not, a
 not: the non-readable textures have no copy to make again (ARCHITECTURE §3.5, *Device loss*).
 Done criterion 5 allows quitting cleanly. Observed in process (j0009347 above); a real removal
 (`dxcap -forcetdr`, "force a GPU Timeout Detection and Recovery event, thereby triggering
-DXGI_ERROR_DEVICE_REMOVED", the same page) resets the GPU for the whole desktop: its script is
-written (`scratchpad/m5run/tdr.sh`, with the evidence it expects) and waits for the user's OK.
+DXGI_ERROR_DEVICE_REMOVED", the same page) resets the GPU for the whole desktop; run with the user's OK, dxcap elevated
+through the UAC prompt the user approved (j0009366, `scratchpad/m5run/tdr.sh`): "the graphics
+device was lost (DXGI_ERROR_DEVICE_REMOVED, removed reason DXGI_ERROR_DEVICE_RESET)", the quit
+error, the quit in 743 ms, exit 1 after 141 s, no guard file left, the debug layer 0 messages
+(the run came before the error stayed on screen, below; test runs show no box either way). The
+event log query for the TDR returned nothing.
 
 **The error shown.** As Vulkan's: Debug.LogError, then PlayerLoop.RequestQuit(1). In j0009347
 the game made its ReportErrorDialog for the error, and the quit destroyed it 31 ms later
@@ -2035,8 +2039,8 @@ known; the device now makes the buffers again at the window's size after the pic
 returned it (`D3d11SwapChain.Resize(again)`), as the page says, and logs it. Observed only through
 the fault hook (j0009347); a real display-mode change is a desktop run (below).
 
-**The M4 final review's unconfirmed items**, each a run on the user's desktop (scripts in
-`scratchpad/m5run/`, for the coordinator to submit; none run):
+**The M4 final review's unconfirmed items**, each a run on the user's desktop with the user's OK
+(scripts in `scratchpad/m5run/`; results after the list):
 1. Exclusive kept if the focus goes while Enter pumps: `focus-during-enter.sh`
    (`enter-hold:4000`, a PowerShell window taking the foreground in the hold).
 2. Whether going windowed after a focus loss takes the foreground back with another app in front
@@ -2051,6 +2055,19 @@ the fault hook (j0009347); a real display-mode change is a desktop run (below).
 - Alt-tab out and back, minimize/restore, the resize matrix and exclusive at start-up ran in M4
   (j0009137, j0009167, j0009222, j0009263, j0009264); moving the window to another monitor
   (refresh lookup) needs monitor 1 and is left with the mode change.
+
+Results (2026-11-24, runq burndown, owner `d3d11-m5`):
+1. j0009359: the foreign window held the foreground through the hold, so exclusive was refused
+   (DXGI_ERROR_NOT_CURRENTLY_AVAILABLE) and a fullscreen window stayed: the refused path, as
+   the original's while unfocused (j0009128). No hang; the pump answered throughout.
+2. j0009360: ours did not take the foreground back; the foreign window kept it for the run's
+   20 s after the switch to windowed. Nothing to compare with the original.
+3. j0009361: a real 10 s mode change of monitor 2: frames went on, Present returned no
+   DXGI_STATUS_MODE_CHANGED (so the handling above stays observed through the hook only).
+4. j0009367 (after j0009362 skipped for a missing qa.env and j0009364 never reached exclusive,
+   its inputs set after the load had begun): the load ran in exclusive full screen, 220 redraws
+   of the loading animation, still exclusive at its end, no deadlock.
+- Not run: moving the window to another monitor (needs monitor 1).
 
 **New declarations** (`[Native]`, 4635b4f0c): IDXGIAdapter::CheckInterfaceSupport (slot 9),
 LARGE_INTEGER, IDXGIDevice's IID, DXGI_STATUS_MODE_CHANGED; the COM check matches the SDK headers
