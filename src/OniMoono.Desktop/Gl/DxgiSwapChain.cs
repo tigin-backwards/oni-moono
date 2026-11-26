@@ -118,6 +118,7 @@ namespace OniMoono.Desktop.Gl
         /// for a windowed swap chain (measured on Windows 11: in some runs they stayed on one
         /// picture for all of 30 s); the mode's rate agreed with them to 0.003% (59.951 Hz).
         long refreshPeriod;
+        string lastOutput;
         int refreshLookupIn;
         const int RefreshLookupPresents = 300;
 
@@ -468,10 +469,14 @@ namespace OniMoono.Desktop.Gl
             refreshLookupIn = RefreshLookupPresents;
             string name = OutputName();
             if (name == null) { Interlocked.Exchange(ref refreshPeriod, 0); return; }
+            // A move to another output is logged with its refresh, even when the rate is the same.
+            bool moved = name != lastOutput;
+            lastOutput = name;
             System.Threading.Tasks.Task.Run(() =>
             {
                 long period = LookUpRefreshPeriod(name);
                 long before = Interlocked.Exchange(ref refreshPeriod, period);
+                if (moved) EngineLog.Engine($"present: the swap chain is on {name}; refresh period {(period > 0 ? $"{period * 1000.0 / Stopwatch.Frequency:F4} ms" : "not known")}");
                 if (period != before)
                     EngineLog.Engine(period > 0 ? $"present: {name} refreshes every {period * 1000.0 / Stopwatch.Frequency:F4} ms; vsynced frames last whole refreshes" : $"present: {name}'s refresh rate not known; frames timed by the wall clock");
             });

@@ -333,6 +333,7 @@ namespace OniMoono.Desktop.D3d11
         /// reasons apply: frame statistics are updated only now and then for a windowed swap
         /// chain).
         long refreshPeriod;
+        string lastOutput;
         int refreshLookupIn;
         const int RefreshLookupPresents = 300;
 
@@ -346,10 +347,14 @@ namespace OniMoono.Desktop.D3d11
                 System.Threading.Interlocked.Exchange(ref refreshPeriod, 0);
                 return;
             }
+            // A move to another output is logged with its refresh, even when the rate is the same.
+            bool moved = name != lastOutput;
+            lastOutput = name;
             System.Threading.Tasks.Task.Run(() =>
             {
                 long period = DxgiSwapChain.LookUpRefreshPeriod(name);
                 long before = System.Threading.Interlocked.Exchange(ref refreshPeriod, period);
+                if (moved) EngineLog.Engine($"d3d11: the swap chain is on {name}; refresh period {(period > 0 ? $"{period * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F4} ms" : "not known")}");
                 if (period != before)
                     EngineLog.Engine(period > 0 ? $"d3d11: {name} refreshes every {period * 1000.0 / System.Diagnostics.Stopwatch.Frequency:F4} ms; vsynced frames last whole refreshes"
                         : $"d3d11: {name}'s refresh rate not known; frames timed by the wall clock");

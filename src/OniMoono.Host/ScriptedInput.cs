@@ -17,7 +17,8 @@ namespace OniMoono.Host
     /// or maximized), `vsync:N` (QualitySettings.vSyncCount), `minimize` / `restore` (Windows: the
     /// window, activating none), `stall:MS` (the main thread held up MS milliseconds), `focus` / `focusother` (Windows: the
     /// window, or a small one of the process's own, asks for the foreground), `allowforeground` (any
-    /// process may take the foreground from this one). A run
+    /// process may take the foreground from this one), `monitor:N` (a windowed window centred on
+    /// monitor N by its own position, nothing activated). A run
     /// with a script ignores the window's own mouse and keyboard, so it is reproducible.
     sealed class ScriptedInput
     {
@@ -107,6 +108,8 @@ namespace OniMoono.Host
                 case "stall": At(frame, () => System.Threading.Thread.Sleep(int.Parse(arg))); break;
                 // The window asks for the foreground, or a window of this process's own takes it
                 // (Windows; the D3D11 plan's M4 desktop runs). No key is sent, the pointer not moved.
+                // The window moved to monitor N, windowed, by its own position (test runs).
+                case "monitor": At(frame, () => OniMoono.Engine.EngineLog.Engine($"input monitor {arg}: {(PlatformServices.Current as GlfwPlatform)?.MoveToMonitor(int.Parse(arg))}")); break;
                 case "focus": At(frame, () => OniMoono.Engine.EngineLog.Engine($"input focus: {(PlatformServices.Current as GlfwPlatform)?.TakeForeground()}")); break;
                 case "allowforeground": At(frame, () => OniMoono.Engine.EngineLog.Engine($"input allowforeground: {(PlatformServices.Current as GlfwPlatform)?.AllowAnyForeground()}")); break;
                 case "focusother": At(frame, () => OniMoono.Engine.EngineLog.Engine($"input focusother: {(PlatformServices.Current as GlfwPlatform)?.GiveForegroundToOwnWindow()}")); break;

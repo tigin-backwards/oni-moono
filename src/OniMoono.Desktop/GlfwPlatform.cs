@@ -506,6 +506,19 @@ namespace OniMoono.Desktop
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         static extern int ShowWindow(IntPtr hwnd, int command);
 
+        /// Test runs (`--input FRAME:monitor:N`, the D3D11 plan's monitor-move run): a windowed
+        /// window centred on monitor N (1-based, as -monitor), by the window's own position
+        /// (GLFW's glfwSetWindowPos, which on Windows moves it with SWP_NOACTIVATE: no window is
+        /// activated, the pointer and keyboard are not touched). Says where it went.
+        public string MoveToMonitor(int n)
+        {
+            var monitors = Glfw.GetMonitors();
+            if (mode != FullScreenMode.Windowed) return $"not windowed ({mode}); not moved";
+            if (n < 1 || n > monitors.Length) return $"no monitor {n} of {monitors.Length}; not moved";
+            window.CenterToMonitor(monitors[n - 1]);
+            return $"monitor {n} of {monitors.Length} at {monitors[n - 1].Position.X},{monitors[n - 1].Position.Y}; window at {window.Position.X},{window.Position.Y}";
+        }
+
         /// Test runs (`--input FRAME:focus`, Windows, the user's word for the D3D11 plan's M4
         /// desktop runs): the window asks to be the foreground window (SetForegroundWindow, which
         /// Windows may refuse to a process not in the foreground), and says what it got. No key is
