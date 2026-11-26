@@ -1030,7 +1030,10 @@ class Daemon:
                 cmd = g.get('cmdline', '')
                 if '\\oni-runq\\j' in cmd:
                     owner_id = cmd.split('\\oni-runq\\', 1)[1].split('\\', 1)[0]
-                    if owner_id not in live_ids:
+                    # Only a job of this daemon's own that has ended: another daemon's running
+                    # job (a test daemon's, during check.sh, beside the real one) is not ours to
+                    # end. Before, a test daemon killed the real daemon's running test games.
+                    if owner_id not in live_ids and self.store.get(owner_id) is not None:
                         ext.windows = True
                         why.append(f'game pid {g.get("pid")} of ended job {owner_id} (being killed)')
                         self.kill_leftover(owner_id)
