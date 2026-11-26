@@ -39,7 +39,7 @@ namespace OniMoono.Tests
         public void AnIgnoredArgumentTakesItsDocumentedValue()
         {
             var notes = new List<string>();
-            string[] args = ["-screen-quality", "Beautiful", "-popupwindow", "-force-d3d11"];
+            string[] args = ["-screen-quality", "Beautiful", "-popupwindow", "-force-d3d12"];
             int i = 0;
             UnityArguments.Ignore(args, ref i, notes);
             Assert.Equal(1, i);
@@ -54,7 +54,9 @@ namespace OniMoono.Tests
         [InlineData("-force-opengl", "opengl")]
         [InlineData("-force-vulkan", "vulkan")]
         [InlineData("-FORCE-VULKAN", "vulkan")]
-        [InlineData("-force-d3d11", null)]
+        [InlineData("-force-d3d11", "d3d11")]
+        [InlineData("-force-d3d12", null)]
+        [InlineData("-force-d3d11-singlethreaded", null)]
         [InlineData("-force-glcore45", null)]
         [InlineData("--renderer", null)]
         public void TheForceArgumentsPickARenderer(string arg, string expected)

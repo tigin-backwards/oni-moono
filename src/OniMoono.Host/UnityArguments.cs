@@ -24,11 +24,15 @@ namespace OniMoono.Host
 
         /// The renderer one of Unity's -force-* arguments picks, as --renderer names it, or null.
         /// Measured in the U60 761211 Linux player (U60 QA spec P2): -force-glcore and
-        /// -force-opengl open OpenGL Core, -force-vulkan Vulkan.
+        /// -force-opengl open OpenGL Core, -force-vulkan Vulkan. -force-d3d11 is "Force the
+        /// application to use Direct3D 11 for rendering" (Unity's Windows player arguments), the
+        /// original's default on Windows: Direct3D 11, as `--renderer d3d11`, which goes on as
+        /// auto where Direct3D 11 cannot start (on Linux, auto's Vulkan).
         public static string? Renderer(string arg) => arg.ToLowerInvariant() switch
         {
             "-force-glcore" or "-force-opengl" => "opengl",
             "-force-vulkan" => "vulkan",
+            "-force-d3d11" => "d3d11",
             _ => null,
         };
 

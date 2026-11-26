@@ -124,6 +124,14 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void ForceD3d11InTheLaunchOptionsPicksDirect3D11()
+        {
+            var o = Options.Parse(["--no-focus", "--", Exe, "-force-d3d11"])!;
+            Assert.Equal("d3d11", o.Renderer);
+            Assert.Equal(["-force-d3d11"], o.GameArguments);
+        }
+
+        [Fact]
         public void TheGameSeesItsExecutableThenItsArguments()
         {
             var dir = Directory.CreateTempSubdirectory("oni-cmdline-");

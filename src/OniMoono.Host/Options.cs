@@ -489,7 +489,7 @@ namespace OniMoono.Host
                         o.Captures.Add((int.Parse(spec[..colon]), path, scale));
                         break;
                     }
-                    // Unity's renderer choice (-force-glcore, -force-opengl, -force-vulkan): as
+                    // Unity's renderer choice (-force-glcore, -force-opengl, -force-vulkan, -force-d3d11): as
                     // --renderer; the later of the two wins.
                     case var force when UnityArguments.Renderer(force) is { } renderer:
                         o.Renderer = renderer;
@@ -500,7 +500,7 @@ namespace OniMoono.Host
                     case var level when string.Equals(level, "-force-feature-level-11-0", StringComparison.OrdinalIgnoreCase):
                         o.D3d11FeatureLevel110 = true;
                         break;
-                    // Another of Unity's (-popupwindow, -force-d3d11, -screen-quality…) or a stray
+                    // Another of Unity's (-popupwindow, -force-d3d12, -screen-quality…) or a stray
                     // word: ignored, as Unity's player ignores what it does not know. Ours are strict.
                     case var unitys when UnityArguments.IsUnitys(unitys):
                         UnityArguments.Ignore(args, ref i, o.ArgumentNotes);
