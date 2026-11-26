@@ -1,7 +1,8 @@
 # Builds the release archives (scripts/release.sh), each with its SHA256SUMS manifest, on
 # GitHub-hosted runners, Linux on Ubuntu and Windows natively on Windows (with its MSVC-built
-# OniMoono.exe), and runs the unit tests that need no game. The game's assemblies come as
-# reference assemblies from the private refs repository (ci/game-refs.json, docs/RELEASES.md).
+# OniMoono.exe, vma.dll and shaderc_shared.dll), and runs the unit tests that need no game. The
+# game's assemblies come as reference assemblies from the private refs repository
+# (ci/game-refs.json, docs/RELEASES.md).
 # release.yml calls it to build a release.
 name: Build
 
@@ -121,6 +122,14 @@ jobs:
           app-id: ${{ vars.REFS_APP_ID }}
           app-key: ${{ secrets.REFS_APP_KEY }}
           use-cache: ${{ inputs.use_cache != false }}
+      # vma.dll and shaderc_shared.dll, which scripts/build-native-libs.sh builds from source
+      # with the static C runtime (#126), by their pins and build files. Release builds build
+      # them.
+      - if: inputs.use_cache != false
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: out/native-libs
+          key: native-libs-${{ hashFiles('src/OniMoono.NativeLibs/sources.sh', 'src/OniMoono.NativeLibs/vma.cpp', 'src/OniMoono.NativeLibs/build.cmd', 'scripts/build-native-libs.sh') }}
       - name: Build the Windows archive
         env:
           ONI_GAME_DIR: ${{ steps.refs.outputs.game-dir }}

@@ -113,6 +113,14 @@ Steamworks (`libsteam_api.so`, Steamworks.NET under MIT); `cimgui.so` (Dear ImGu
   `Ahwoo.BRUTAL.Stb.Native`, `Ahwoo.BRUTAL.FreeType` (FreeType and libpng), `Ahwoo.BRUTAL.ZLib`,
   `Ahwoo.BRUTAL.Vulkan.Native` (VulkanEx), `Ahwoo.BRUTAL.Vulkan.Vma.Native` and
   `Ahwoo.BRUTAL.ShaderC.Native`.
+- On Windows, vma.dll and shaderc_shared.dll are built from source instead
+  (`scripts/build-native-libs.sh`, `src/OniMoono.NativeLibs`), with the static C runtime, so that
+  they run whatever MSVCP140.dll a machine has (#126): the Vulkan Memory Allocator (MIT) with the
+  Vulkan-Headers (Apache-2.0 OR MIT, used under MIT), and shaderc (Apache-2.0) with glslang
+  (BSD-3-Clause and others), SPIRV-Tools (Apache-2.0) and SPIRV-Headers (MIT), at the commits
+  BRUTAL's packages name, each archive checked against its SHA-256
+  (`src/OniMoono.NativeLibs/sources.sh`). Their notices are in `NOTICE.txt`. The packages'
+  SPIRV-Tools-shared.dll is left out: shaderc_shared.dll has SPIRV-Tools linked in.
 
 ## Provenance of the bundled type trees
 

@@ -67,6 +67,10 @@ cp "$root/out/bin/OniMoono.Restarter/release_win-x64/Restarter."{exe,dll,deps.js
 # the SDK's apphost; built with MSVC on the Windows side (from WSL, or on a Windows runner).
 "$root/scripts/build-native-host.sh" "$win/player/OniMoono.exe"
 check=$($py -I "$root/scripts/check-windows-host.py" "$win/player/OniMoono.exe") || { echo "$check"; exit 1; }
+# vma.dll and shaderc_shared.dll built from source with the static C runtime, in place of the
+# packages', which need an MSVCP140.dll of 14.40 or later (#126).
+"$root/scripts/build-native-libs.sh" "$win/player"
+$py -I "$root/scripts/check-windows-natives.py" "$win/player"
 [ -f "$win/player/translations/zh.po" ] || { echo "$win/player/translations/zh.po missing"; exit 1; }
 manifest "$win" "$out/oni-moono-$version-windows-x64.SHA256SUMS"
 # zip for Windows (the archive's paths with /, as from WSL); tar.gz for Linux, which keeps the

@@ -161,6 +161,15 @@ scripts/run-windows.sh         # from WSL: a test run on the Windows install
   its PE file (the two GPU exports present, writable and 1; the icon, manifest, version and
   subsystem). `build-windows.sh` and `release.sh` run it, and `check.sh` runs it on
   `out/win/host` when there is one.
+- **Native libraries.** `scripts/build-native-libs.sh DEST` builds vma.dll and
+  shaderc_shared.dll the same way, from pinned source archives
+  (`src/OniMoono.NativeLibs/sources.sh`, checked against their SHA-256), with the static C
+  runtime, and puts them over the packages' in DEST (#126). It needs the build tools' CMake and
+  Ninja and Python 3 on the Windows PATH, and keeps the DLLs in `out/native-libs/KEY`, so only a
+  change to the pins or build files builds them again (a few minutes).
+  `scripts/check-windows-natives.py DIR` checks that no DLL in DIR imports MSVCP140.dll or
+  VCRUNTIME140_1.dll and that the two export the packages' C API; `build-windows.sh` and
+  `release.sh` run both.
 - **Crash check.** `scripts/check-native-crash.sh` (also in `check.sh`) crashes the player on
   purpose with `--test-native-crash WHERE` and checks the crash lines and minidump in its log
   (ARCHITECTURE §7, "Native crashes"). It runs on Linux, and on Windows with `out/win/host`, in
