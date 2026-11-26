@@ -16,6 +16,7 @@ set -euo pipefail
 source "$(dirname "$0")/env.sh"
 dest="$1"
 dir="$root/src/OniMoono.NativeLibs"
+# shellcheck source=../src/OniMoono.NativeLibs/sources.sh
 source "$dir/sources.sh"
 case "$(uname -s)" in MINGW*|MSYS*) native=1 ;; *) native= ;; esac
 key="$(cat "$dir/sources.sh" "$dir/vma.cpp" "$dir/build.cmd" "$0" | sha256sum | cut -c1-16)"
