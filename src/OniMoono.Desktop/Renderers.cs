@@ -202,7 +202,7 @@ namespace OniMoono.Desktop
                 EngineLog.Engine($"d3d11: {D3d.D3d11Fault.Variable}: no fault '{unknown}' in this build");
             D3d.D3d11Context context;
             VkStartGuard guard = null;
-            string build = BuildId(D3d.D3d11Fault.Text("guard-build"));
+            string build = BuildId(D3d.D3d11Fault.Text("guard-build") ?? ""); // never ONI_VULKAN_FAIL's
             string Admit(D3d.D3d11GpuIdentity id)
             {
                 if (cacheDirectory == null) return null;
@@ -215,7 +215,10 @@ namespace OniMoono.Desktop
             {
                 context = new D3d.D3d11Context(gpu, allowSoftware: !auto, Admit);
             }
-            catch (Exception e) when (e is D3d.D3d11UnavailableException or DllNotFoundException or EntryPointNotFoundException or TypeInitializationException or BadImageFormatException)
+            // Any failure of the context (an HRESULT, a missing export, anything else its calls
+            // throw) is a device that did not start: the next renderer is tried, and the guard's
+            // line, if Admit wrote one, goes (as VkContext wraps every failure of its own).
+            catch (Exception e)
             {
                 guard?.Abandon();
                 return (null, null, e is D3d.D3d11UnavailableException ? e.Message : $"{e.GetType().Name}: {e.Message}");
@@ -241,7 +244,8 @@ namespace OniMoono.Desktop
             => $"gpu {id.VendorId:x4}:{id.DeviceId:x4} driver {id.Driver} build {build}";
 
         /// Moono's build, as the start-up guard keys it: the host's informational version (its
-        /// commit), or a `guard-build:X` fault (tests): ONI_VULKAN_FAIL's, or `fault` (ONI_D3D11_FAIL's).
+        /// commit), or a `guard-build:X` fault (tests): `fault` when given (ONI_D3D11_FAIL's; empty
+        /// for none), else ONI_VULKAN_FAIL's.
         static string BuildId(string fault = null)
         {
             fault ??= VkFault.Text("guard-build");

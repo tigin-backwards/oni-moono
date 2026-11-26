@@ -494,9 +494,11 @@ namespace OniMoono.Host
                     case var force when UnityArguments.Renderer(force) is { } renderer:
                         o.Renderer = renderer;
                         break;
-                    // Unity's "-force-feature-level-11-0: Force DirectX 11.0 feature level"
-                    // (Unity's Windows player command-line arguments); kept among the game's
-                    // arguments as the other Unity ones are.
+                    // Unity's -force-feature-level-11-0, "Force DirectX 11.0 feature level 11.0"
+                    // (Unity's command-line arguments list it for Universal Windows Platform
+                    // only); observed in the original's standalone player, which then reports
+                    // "Direct3D 11.0 [level 11.0]" (d3d11-plan.md "M7", j0009690). Kept among the
+                    // game's arguments as the other Unity ones are.
                     case var level when string.Equals(level, "-force-feature-level-11-0", StringComparison.OrdinalIgnoreCase):
                         o.D3d11FeatureLevel110 = true;
                         break;

@@ -452,8 +452,11 @@ namespace OniMoono.Desktop.D3d11
             if (lost != null && !quitRequested)
             {
                 quitRequested = true;
-                string error = $"Direct3D 11 stopped working: {lost}, so the game quits. If this keeps happening, start the game without --renderer d3d11 "
-                               + $"(Vulkan or OpenGL draws then). The log is {EngineLog.FilePath ?? Application.consoleLogPath}.";
+                // Auto may have chosen Direct3D 11 (an integrated GPU, Vulkan failed), so the way
+                // out is to choose another renderer, not to drop an option the player never gave.
+                string error = $"Direct3D 11 stopped working: {lost}, so the game quits. If this keeps happening, choose Vulkan or OpenGL "
+                               + $"under Renderer in Moono Tweaks, or start the game with --renderer vulkan or --renderer opengl (and without -force-d3d11). "
+                               + $"The log is {EngineLog.FilePath ?? Application.consoleLogPath}.";
                 Debug.LogError(error);
                 // On screen until the player closes it, once the window has gone (Player).
                 PlayerLoop.RequestQuit(1, error);

@@ -54,7 +54,6 @@ namespace OniMoono.Tests
         [InlineData("-force-opengl", "opengl")]
         [InlineData("-force-vulkan", "vulkan")]
         [InlineData("-FORCE-VULKAN", "vulkan")]
-        [InlineData("-force-d3d11", "d3d11")]
         [InlineData("-force-d3d12", null)]
         [InlineData("-force-d3d11-singlethreaded", null)]
         [InlineData("-force-glcore45", null)]
@@ -62,6 +61,13 @@ namespace OniMoono.Tests
         public void TheForceArgumentsPickARenderer(string arg, string expected)
         {
             Assert.Equal(expected, UnityArguments.Renderer(arg));
+        }
+
+        [Fact]
+        public void ForceD3d11IsWindowsOnly()
+        {
+            Assert.Equal("d3d11", UnityArguments.Renderer("-force-d3d11", windows: true));
+            Assert.Null(UnityArguments.Renderer("-force-d3d11", windows: false));
         }
 
         [Fact]

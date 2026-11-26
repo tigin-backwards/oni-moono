@@ -246,7 +246,15 @@ namespace OniMoono.Desktop.D3d11
             if (gpu is "discrete" or "integrated")
             {
                 IDXGIFactory6* f6;
-                Check(Com.QueryInterface(Factory, IDXGIFactory6.IID, (void**)&f6), "QueryInterface IDXGIFactory6 (for --gpu)");
+                // EnumAdapterByGpuPreference needs Windows 10 1803 ("Minimum supported client");
+                // without it the preference cannot be asked, so the default adapter is taken.
+                int qi = Com.QueryInterface(Factory, IDXGIFactory6.IID, (void**)&f6);
+                if (qi < 0)
+                {
+                    EngineLog.Engine($"d3d11: --gpu {gpu}: no IDXGIFactory6 (0x{qi:x8}), so the default adapter, EnumAdapters1(0)");
+                    Check(((IDXGIFactory1*)Factory)->lpVtbl->EnumAdapters1((IDXGIFactory1*)Factory, 0, &adapter), "EnumAdapters1(0)");
+                    return adapter;
+                }
                 var preference = gpu == "discrete" ? DXGI_GPU_PREFERENCE.DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE : DXGI_GPU_PREFERENCE.DXGI_GPU_PREFERENCE_MINIMUM_POWER;
                 var iid = IDXGIAdapter1.IID;
                 int hr = f6->lpVtbl->EnumAdapterByGpuPreference(f6, 0, preference, &iid, (void**)&adapter);
@@ -259,7 +267,8 @@ namespace OniMoono.Desktop.D3d11
         }
 
         /// SystemInfo.graphicsDeviceVersion: the original's "Direct3D 11.0 [level 11.1]" on a
-        /// level 11_1 device (measured, d3d11-unity-probes.md §1); the 11_0 form is UNVERIFIED.
+        /// level 11_1 device (measured, d3d11-unity-probes.md §1) and "Direct3D 11.0 [level 11.0]"
+        /// with -force-feature-level-11-0 (observed, d3d11-plan.md "M7", j0009690).
         public string VersionString => $"Direct3D 11.0 [level {((int)FeatureLevel >> 12) & 0xF}.{((int)FeatureLevel >> 8) & 0xF}]";
 
         public void Dispose()
