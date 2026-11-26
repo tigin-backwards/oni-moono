@@ -2380,7 +2380,8 @@ j0009673 (an old build, no bundles), j0009678 (every bundle, names clashing), j0
 both players j0009681, j0009683-j0009686 (j0009680 cancelled: ours on Vulkan, as runq drops
 `WIN_RENDERER`); j0009688-j0009690; j0009695; probe j0009697 (j0009696 a spec error); builds j0009663, j0009672 and
 j0009674 (an MSBuild node crash, a compile error), j0009675-j0009677, j0009682, j0009687,
-j0009693; unit tests j0009671 (owner then mis-set), j0009691, j0009692.
+j0009693; unit tests j0009671 (owner then mis-set), j0009691, j0009692; check.sh j0009698 (green, on
+9ab2bb585; com-check matches the SDK headers).
 
 ## Research so far (M0)
 
