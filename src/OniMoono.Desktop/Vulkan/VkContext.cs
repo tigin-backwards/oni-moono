@@ -150,6 +150,7 @@ namespace OniMoono.Desktop.Vulkan
             }
         }
 
+        [NotNative("the Vulkan start's C++ runtime check (kernel32), outside the D3D11 binding: not declared to the check")]
         [DllImport("kernel32", CharSet = CharSet.Unicode)]
         static extern uint GetModuleFileNameW(nint module, char[] path, uint size);
 
