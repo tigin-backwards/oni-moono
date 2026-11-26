@@ -504,7 +504,10 @@ only.
    matter only for parity of what a mod's program could read, which M7 owns. **M7**: no mod draw
    compared showed it; kept as measured. **Done in M8** (the user's word): the device's layouts
    now declare the same 14 elements, a lacking channel as R8_UNORM at slot 0, offset 0
-   (d3d11-plan.md "M8").
+   (d3d11-plan.md "M8"). Corrected 2026-11-26 (fbd4450a2): only a channel the program does not
+   read gets that filler; one it reads but the mesh lacks reads a constant, as the original's
+   slot-1 COLOR0 (above) stands for. Reading position bytes as colour drew a background rock
+   black (d3d11-plan.md, "The impactor's shots judged").
 8. **The 4 unmatched shaders** (built-ins or StreamingAssets bundle shaders). **Moved to M7**:
    the player's built-ins and bundles are what M7's mod and compatibility work reads. M3 part C
    added the Spaced Out bundle's copies of Klei/LiquidSubstance and Klei/Substance to
