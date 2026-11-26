@@ -502,7 +502,9 @@ only.
    **Moved to M7**: the device's layouts name only the inputs a program reads (d3d11-plan.md,
    B2), and the scene set's pixels show no input differing (M3); the original's extra elements
    matter only for parity of what a mod's program could read, which M7 owns. **M7**: no mod draw
-   compared showed it; kept as measured.
+   compared showed it; kept as measured. **Done in M8** (the user's word): the device's layouts
+   now declare the same 14 elements, a lacking channel as R8_UNORM at slot 0, offset 0
+   (d3d11-plan.md "M8").
 8. **The 4 unmatched shaders** (built-ins or StreamingAssets bundle shaders). **Moved to M7**:
    the player's built-ins and bundles are what M7's mod and compatibility work reads. M3 part C
    added the Spaced Out bundle's copies of Klei/LiquidSubstance and Klei/Substance to
