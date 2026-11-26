@@ -74,9 +74,7 @@ namespace OniMoono.Desktop.D3d11
                 // its refusal (SetFullscreenState(0) next, j0009178), then released.
                 if (hr != 0 || !s.InFullscreenState())
                 {
-                    var sc = (IDXGISwapChain*)s.chain;
-                    sc->lpVtbl->SetFullscreenState(sc, 0, null);
-                    s.fullscreen = false;
+                    s.fullscreen = true; // whatever DXGI holds: Dispose leaves it before the release
                     s.Dispose();
                     return hr < 0 ? hr : NotEntered;
                 }
@@ -144,6 +142,28 @@ namespace OniMoono.Desktop.D3d11
         public const int NotEntered = unchecked((int)0x80004005);
 
         /// Whether DXGI holds the chain in its full-screen state now (GetFullscreenState).
+        /// Takes the chain out of DXGI's full-screen state before its release. SetFullscreenState
+        /// may answer DXGI_STATUS_MODE_CHANGE_IN_PROGRESS ("if a fullscreen/windowed mode
+        /// transition is occurring when this API is called") or another failure, and "you may
+        /// not release a swap chain in full-screen mode because doing so may create thread
+        /// contention (which will cause DXGI to raise a non-continuable exception)" ("DXGI
+        /// overview", Destroying a swap chain). So it is asked again, up to 20 times 10 ms apart,
+        /// until it succeeds and GetFullscreenState says windowed; a chain still full screen is
+        /// logged and left unreleased (false), as the process's end takes it with less harm.
+        bool LeaveFullscreenState()
+        {
+            var sc = (IDXGISwapChain*)chain;
+            int hr = 0;
+            for (int tries = 0; tries < 20; tries++)
+            {
+                hr = sc->lpVtbl->SetFullscreenState(sc, 0, null);
+                if (hr == 0 && !InFullscreenState()) return true;
+                System.Threading.Thread.Sleep(10);
+            }
+            EngineLog.Engine($"d3d11: the exclusive swap chain did not leave full screen (SetFullscreenState(FALSE) {Dxgi.Hr(hr)}); left unreleased");
+            return false;
+        }
+
         public bool InFullscreenState()
         {
             int state = 0;
@@ -437,9 +457,8 @@ namespace OniMoono.Desktop.D3d11
             // chain).
             if (fullscreen && chain != null)
             {
-                var sc = (IDXGISwapChain*)chain;
-                sc->lpVtbl->SetFullscreenState(sc, 0, null);
                 fullscreen = false;
+                if (!LeaveFullscreenState()) return;
             }
             Com.Release(ref view);
             Com.Release(ref buffer);

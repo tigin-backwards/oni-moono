@@ -19,8 +19,10 @@ namespace OniMoono.Desktop.D3d11
     /// render thread when you use full-screen swap chains" ("DXGI overview", Multithread
     /// considerations); "never block the message pump" ("DXGI best practices"). So while a chain
     /// may be full screen, and while one is entered or left, the main thread's waits for the
-    /// device thread answer sent messages every millisecond (GlWorker.WaitPump,
-    /// GlfwPlatform.PumpSentMessages, PeekMessage with PM_QS_SENDMESSAGE).
+    /// device thread answer sent messages each time the wait wakes: when the device thread
+    /// pulses it, else after a 1 ms timed wait, which Windows' timer resolution (15.6 ms by
+    /// default) may lengthen to a tick (GlWorker.WaitPump, GlfwPlatform.PumpSentMessages,
+    /// PeekMessage with PM_QS_SENDMESSAGE).
     ///
     /// Pacing without the waitable: the flag "isn't supported in full-screen mode, unless the
     /// render API is Direct3D 12" (DXGI_SWAP_CHAIN_FLAG), and the original's chain has none
