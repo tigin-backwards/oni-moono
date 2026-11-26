@@ -3,9 +3,9 @@
 Windows, from WSL. Not part of the product.
 
 Ours: out/win (scripts/build-windows.sh) staged in %TEMP%\\oni-brutal\\qa-win\\host, on the U60
-Windows data (WIN_GAME, default E:\\oni-builds\\oni-win-764025), --renderer from WIN_RENDERER
+Windows data (WIN_GAME, default E:\\oni-builds\\oni-win-764961), --renderer from WIN_RENDERER
 (default vulkan; empty for none). The original: a renamed copy of that install (WIN_ORIG, default
-E:\\oni-builds\\BrutalNotIncluded-764025), set up by scripts/original-windows.sh on its first run
+E:\\oni-builds\\BrutalNotIncluded-764961), set up by scripts/original-windows.sh on its first run
 (WIN_BEPINEX_SOURCE: a game folder with BepInEx 6), on Unity's default renderer (Direct3D 11).
 Both players run windowed 1280x720 on the second monitor, never focused, and muted (volume prefs 0; ours --audio-wav, the
 original's isolation writes a wav); guard.ps1 kills a window that stays on the first monitor
@@ -52,8 +52,8 @@ def windows_python():
 WIN_PY = os.environ.get('WIN_PYTHON') or windows_python()
 WSL_TEMP = subprocess.run(['wslpath', '-u', windows_env('TEMP')], capture_output=True, text=True).stdout.strip()
 STAGE = 'oni-brutal\\qa-win'
-WIN_GAME = os.environ.get('WIN_GAME', 'E:\\oni-builds\\oni-win-764025')
-WIN_ORIG = os.environ.get('WIN_ORIG', 'E:\\oni-builds\\BrutalNotIncluded-764025')
+WIN_GAME = os.environ.get('WIN_GAME', 'E:\\oni-builds\\oni-win-764961')
+WIN_ORIG = os.environ.get('WIN_ORIG', 'E:\\oni-builds\\BrutalNotIncluded-764961')
 RENDERER = os.environ.get('WIN_RENDERER', 'vulkan')
 # A DLC-owning Steam double for Windows (as QA_U57_STEAM is for Linux).
 STUB = os.environ.get('WIN_STEAM_STUB') or os.path.join(ROOT, 'out', 'local-tools', 'steamstub-dlc-win', 'steam_api64.dll')

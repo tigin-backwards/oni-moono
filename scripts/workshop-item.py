@@ -41,7 +41,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 STATIC = os.path.join(HERE, "..", "ci", "workshop")
-MINIMUM_BUILD = 763796  # U60's release build; its hotfix 764025 (ci/game-refs.json's default_build) runs the same Moono
+MINIMUM_BUILD = 763796  # U60's release build; its hotfixes 764025 and 764961 (764961 is ci/game-refs.json's default_build) run the same Moono
 PLATFORMS = {"windows-x64": ".zip", "linux-x64": ".tar.gz"}
 TAG = re.compile(r"v([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2})")
 COMPONENT = re.compile(r"[A-Za-z0-9._+-]+")

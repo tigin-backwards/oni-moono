@@ -7,7 +7,7 @@ using System.Reflection.PortableExecutable;
 namespace OniMoono.Host.Install
 {
     /// The installed game's build number: the constant KleiVersion.ChangeList in its
-    /// Assembly-CSharp.dll (744825 for U59, 764025 for the U60 build Moono plays),
+    /// Assembly-CSharp.dll (744825 for U59, 764961 for the U60 build Moono plays),
     /// read from the file's metadata without loading it, as the tweak checks read the game. It is
     /// the number mod_info.yaml's minimumSupportedBuild is compared with.
     internal static class GameBuild
