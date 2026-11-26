@@ -62,7 +62,7 @@ namespace OniMoono.Host.GameTweaks
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots", TableScroll = "fix-table-scroll", LazyTableRefresh = "lazy-table-refresh",
             ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history", CompactReportEntries = "compact-report-entries",
-            SimStepPace = "sim-step-pace", LowFpsTiming = "low-fps-timing", FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix", ReleasedSounds = "fix-released-sounds",
+            SimStepPace = "sim-step-pace", LowFpsTiming = "low-fps-timing", FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix",
             LoadingAnimation = "loading-animation";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
@@ -161,10 +161,6 @@ namespace OniMoono.Host.GameTweaks
             new(FmodStealFix, General, "Stolen sound crash guard", "Fixes a bug in the game's sound engine that can crash the game when many sounds play at once.",
                 "When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. "
                 + "This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes."),
-            new(ReleasedSounds, General, "Forget released sounds", "The game stops changing sounds it is done with, which after hours of play could crash it.",
-                "A bug in the game: background sounds, and looping sounds after a switch to another asteroid, keep using a sound's handle after the game releases it. "
-                + "After a couple of hours on a large colony the sound engine reuses the handle, and the game's change lands on something else, sometimes not a sound at all. "
-                + "This forgets the handle when the sound is released. Nothing you hear changes."),
             new(ExactWorldgen, General, "Worldgen as in the original", "A seed makes the same map as in the original game, so shared seeds match.",
                 "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. "
                 + "Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."),
@@ -310,7 +306,7 @@ namespace OniMoono.Host.GameTweaks
         ];
 
         /// The tweaks in src/OniMoono.GameTweaks (named here: options are read before that assembly is loaded).
-        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "critter-needs-first", SimStepPace, LowFpsTiming, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, TableScroll, FetchByCell, SharedDuplicates, LazyTableRefresh, "fast-table-rows", CompactReports, CompactReportEntries, FastPipeRebuilds, ReleasedSounds, "fast-overlay-removals", "direct-rail-bridges"];
+        public static readonly string[] Typed = ["off-screen-conveyors", "fast-save-type-checks", "fast-anim-cleanup", "fast-sublimation", "fast-anim-events", "fast-symbol-overrides", "fast-jobs", "fast-offset-tables", InstantReachability, "off-world-fallers", "fast-partitioner-cleanup", "fast-partitioner-events", "fast-conduit-sorts", "fast-anim-batches", "fast-conveyor-paths", "brain-rate", "critter-needs-first", SimStepPace, LowFpsTiming, "path-probe-repair", "fast-load-screen", "fix-load-screen-clicks", "fast-smi-lookups", "fast-save-roots", "trim-anim-lists", SoundPiles, TimelapseSnapshots, TableScroll, FetchByCell, SharedDuplicates, LazyTableRefresh, "fast-table-rows", CompactReports, CompactReportEntries, FastPipeRebuilds, "fast-overlay-removals", "direct-rail-bridges"];
 
         /// Guarded patches of the game that are no Moono Tweaks row and always install, checked as
         /// every tweak is: skip-own-workshop-item (OniMoono.GameTweaks.OwnWorkshopItem),
@@ -344,9 +340,10 @@ namespace OniMoono.Host.GameTweaks
         /// both rows. fix-disease-overlay-crash: U60 762230's CellChangeMonitor drops a destroyed
         /// object's entry itself. slow-reachability (checked every 4 s instead of every second):
         /// instant-reachability checks only what changed, sooner and for less. fmod-stale-handles
-        /// (every call on a destroyed FMOD instance skipped): fix-released-sounds clears the
-        /// handles where the game keeps them.
-        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("fix-disease-overlay-crash", null), ("slow-reachability", InstantReachability), ("fmod-stale-handles", ReleasedSounds)];
+        /// (every call on a destroyed FMOD instance skipped) gave way to fix-released-sounds,
+        /// which cleared the handles where the game kept them, and that one left with U60 764961,
+        /// whose AmbienceManager.Layer.Stop and LoopingSoundManager.StopAllSounds clear them.
+        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("fix-disease-overlay-crash", null), ("slow-reachability", InstantReachability), ("fmod-stale-handles", null), ("fix-released-sounds", null)];
 
         /// Whether a `--game-tweak` value names a retired tweak, with the value naming its
         /// replacement (with its `-` when the name has one), or null when none took its place.

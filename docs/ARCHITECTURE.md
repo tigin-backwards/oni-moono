@@ -3887,7 +3887,7 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
 ### 3.8 Audio, video, other modules
 
 - Audio: FMOD through the game's own `FMODUnity` + native `libfmodstudio.so`. The engine
-  supplies what FMODUnity needs (paths, Transform, components, Timeline/Playables types). Three
+  supplies what FMODUnity needs (paths, Transform, components, Timeline/Playables types). Two
   game tweaks guard it:
   - **`fmod-quarantine`** (on by default). On Windows FMOD allocates through OniMoono.exe's
     `fmod_heap.c`: size-class slabs in reserved address space, with every block's state, size
@@ -3898,15 +3898,11 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
     bookkeeping that the allocator or Windows trusts. It is native, since FMOD calls it on its
     own threads. Its `fmod heap:` lines in Player.log report each late write it catches
     (docs/TWEAKS.md, "The sound memory guard").
-  - **`fix-released-sounds`** (on by default, managed, every platform) removes the cause found
-    behind #78's writes. The game keeps the handles of event instances it has released at two
-    places (an ambience layer's `Stop`, `LoopingSoundManager.StopAllSounds`) and goes on
-    calling them, FMOD's 11-bit handle serials wrap, and the call lands on whatever object has
-    that handle now. Prefixes replacing those two methods clear the handle as it is released
-    (docs/TWEAKS.md, "The released sounds fix").
   - **`fmod-steal-fix`** patches FMOD's own write to a freed instance (a bus steal of an
     instance still loading) in memory, after `RuntimeManager.Initialize`, only for the FMOD
     version, file hash and bytes it was written for (docs/TWEAKS.md, "The FMOD steal fix").
+  - `fix-released-sounds`, which cleared the handles of instances the game had released, was
+    retired with U60 764961: the game clears them itself.
 - Video: `VideoPlayer` decodes VP8 WebM from `resources.resource` with our own EBML demuxer and
   our own VP8 decoder (`Video/Engine/Vp8`, a port of RFC 6386's reference decoder) on a decode
   thread per player, so no codec library is needed on either platform.

@@ -410,21 +410,6 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.DETAIL"
 msgid "When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes."
 msgstr ""
 
-#. Row title (fix-released-sounds)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_RELEASED_SOUNDS.TITLE"
-msgid "Forget released sounds"
-msgstr ""
-
-#. The line under the title (fix-released-sounds)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_RELEASED_SOUNDS.EFFECT"
-msgid "The game stops changing sounds it is done with, which after hours of play could crash it."
-msgstr ""
-
-#. Tooltip: how it works (fix-released-sounds)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_RELEASED_SOUNDS.DETAIL"
-msgid "A bug in the game: background sounds, and looping sounds after a switch to another asteroid, keep using a sound's handle after the game releases it. After a couple of hours on a large colony the sound engine reuses the handle, and the game's change lands on something else, sometimes not a sound at all. This forgets the handle when the sound is released. Nothing you hear changes."
-msgstr ""
-
 #. Row title (exact-worldgen)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
 msgid "Worldgen as in the original"

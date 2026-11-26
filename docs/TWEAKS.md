@@ -328,7 +328,6 @@ tooltips are those below, and the rest are in [PERFORMANCE.md](PERFORMANCE.md#th
 - **Moving loading screen** (`loading-animation`): The loading screen keeps moving while a colony loads. While a save loads, the game shows no new picture, for half a minute on a large colony. Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. Loading takes as long as before.
 - **Sound memory guard** (`fmod-quarantine`): Guards against a bug in the game's sound engine that can crash the game. FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some "heap corruption" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony.
 - **Stolen sound crash guard** (`fmod-steal-fix`): Fixes a bug in the game's sound engine that can crash the game when many sounds play at once. When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes.
-- **Forget released sounds** (`fix-released-sounds`): The game stops changing sounds it is done with, which after hours of play could crash it. A bug in the game: background sounds, and looping sounds after a switch to another asteroid, keep using a sound's handle after the game releases it. After a couple of hours on a large colony the sound engine reuses the handle, and the game's change lands on something else, sometimes not a sound at all. This forgets the handle when the sound is released. Nothing you hear changes.
 - **Worldgen as in the original** (`exact-worldgen`): A seed makes the same map as in the original game, so shared seeds match. Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected.
 
 ### Saving (on by default)
@@ -1072,86 +1071,12 @@ In a replay of #78's writes (stale writes on 300 freed instances a round, after 
 has moved on), the first version failed with 0xC0000374 in the first round of every run; this
 one ran all 30 rounds and logged the writes it could see.
 
-### The released sounds fix
+### The released sounds fix (retired)
 
-`fix-released-sounds` fixes a bug in the game's own code that ends in heap corruption after
-hours of play (issues #78, #72, #73 and #58): the game keeps the handle of an FMOD event
-instance after it has released it, and goes on calling it. It is on by default, in the General
-group and part of `exact`: nothing audible changes. It replaces `fmod-stale-handles`, an
-earlier guard that skipped every call on a destroyed instance; a launch option naming that one
-now names this one. It works on every platform (managed code only) and complements
-`fmod-quarantine`, which catches such writes where they land.
-
-**Why.** An FMOD Studio handle is 32 bits: a table (the low 8 bits), a slot (13 bits) and a
-serial (11 bits). FMOD resolves a handle by checking that the object in its slot still holds
-that handle; nothing checks the object's kind. A freed slot gets its serial raised by one
-(wrapping after 2,047), and freed slots are reused oldest first. In U59 and U60 the game keeps
-instances after it has released them at two places:
-
-- An ambience layer (`AmbienceManager.Layer.Stop`) stops and releases its instance but keeps the
-  handle, and `Quadrant.Update` calls `Stop` on every looping layer not among the top three each
-  update: an `isValid()` on the released handle each time, then `stop()` and `release()` on
-  whatever it resolves to.
-- `LoopingSoundManager.StopAllSounds` (switching worlds, and `Game.StopBE` as a scene unloads)
-  stops and releases every playing loop but leaves it flagged as playing: its position, volume
-  and parameters (and the parameter updaters' `setParameterByID`) keep being set every frame
-  while it is in view, and it is stopped and released again when it leaves it.
-
-Each such call fails while the slot is free or holds an object with another serial. But once
-the slot has come round 2,047 times, the object in it has the same handle, and the game's call
-lands there: on another sound, or on another kind of FMOD object. Every command is resolved
-again by the Studio update thread when it runs, without a check of the object's kind;
-`EventInstance::stop`'s increments a counter at offset 0x84 and clears a flag at 0xBD, past the
-end of a smaller object. That is the pair of writes (57 bytes apart) of #78's `fmod heap:`
-lines, which landed in freed blocks next to a live object. On a late-game Spaced Out colony at
-speed 3 (Windows, 2026-11-11) the game made 11 such calls a frame, almost all the ambience
-layers' `isValid()`, and the serials came round about 16 times a minute: a wrap after about two
-hours, and #78's writes began four and a half hours into a session.
-
-**How.** Prefixes replace the two methods with the game's own bodies plus the missing step, as
-the game's `SpeechMonitor` and `MainMenu` already do after a release:
-
-- `Layer.Stop` clears the handle after `release()` (`EventInstance.clearHandle`). `isValid()`
-  is then false without asking FMOD, as for a layer never started, and `Start` makes a new
-  instance as before.
-- `StopAllSounds` takes each playing loop off the parameter updaters as `StopSound` does (they
-  hold their own copy of the handle and find it by it), then clears its handle. The loop stays
-  flagged as playing, as in the game: the calls the game goes on making on it carry the null
-  handle, which FMOD refuses (`ERR_INVALID_HANDLE`) whatever it has made since, and
-  `RenderEveryTick` stops it when it leaves the view and starts it again when it comes back,
-  just when the game's would be. The fix sent to Klei also clears the playing flag; tried here,
-  that restarted the loops in the frame of the switch, while the sound culler still had the old
-  view, and stopped them a frame later.
-
-Each install checks the two bodies against fingerprints reviewed for U59 and every U60 build;
-a game update that changes either turns the tweak off for that build.
-
-U60 764961 ships the fix sent to Klei: `Layer.Stop` clears the handle, and `StopAllSounds` takes
-each loop off the parameter updaters, clears its handle and its playing flag (with
-`RenderEveryTick`, `StopSound` and the sandbox tools' sounds clearing theirs too). The tweak
-still replaces both methods there, so on 764961 `StopAllSounds` keeps the flag as on earlier
-builds (docs/research/u60-764961.md).
-
-With `ONI_TWEAK_VERIFY=1` (or `ONI_VERIFY_RELEASED_SOUNDS=1`) the handles released at the two
-places are kept, and any later call on one through the `EventInstance` methods the game uses is
-counted and logged with its caller (`VerifyStaleCalls`, which must stay 0). After each
-`StopAllSounds` its loops are followed for 300 frames: the log says when the game stops each one
-and whether one gets a new instance (`VerifyRestarted`, 0 when the game's timing holds), and
-FMOD's answer to the first call on a cleared loop is logged.
-
-**Measured** (Windows, a late-game Spaced Out colony at speed 3, 2026-11-11). To reach the wrap
-in minutes, a test build made and released 300 extra instances a frame, for 45,000 frames.
-Without the fix, as the serials came round, the quarantine found one write to a freed 80-byte
-block (a byte cleared to 0, as by the stop command's write at +0xBD); with it, past the same
-point, no `fmod heap:` problem and no call on a released handle. Switching to the colony's rocket
-interior and back, with and without the fix and in the original game, the same loops played
-before and after each switch (5 to 8 before; none on the rocket; the colony's own again after),
-FMOD held the same number of instances (about 110-130 on the colony, 33-36 on the rocket), and
-the recorded audio kept the same levels around each switch. With the fix, the game stopped each
-loop it had cleared one frame after the switch, as it leaves the view, and none got a new
-instance sooner; calls on a cleared loop got `ERR_INVALID_HANDLE`. A red alert loop playing as
-the view switched back stayed flagged as playing with no instance, and silent, in all three:
-the game's own behaviour, kept as it is.
+`fix-released-sounds` cleared the handles of FMOD event instances the game had released but went
+on calling (issues #78, #72, #73 and #58). It was retired with U60 764961, which ships the fix
+sent to Klei. A launch option naming it, or `fmod-stale-handles` before it, is ignored with a
+line on stderr; a settings file's entry is kept and ignored.
 
 ### The FMOD steal fix
 

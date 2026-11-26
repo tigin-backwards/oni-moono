@@ -47,11 +47,14 @@ namespace OniMoono.Tests
         {
             // fix-endless-sounds left with U60 762107, whose sound sheets fix the rows themselves,
             // and fix-disease-overlay-crash with 762230, whose CellChangeMonitor drops destroyed
-            // objects itself: a launch option naming one still starts the player, without it.
+            // objects itself, and fix-released-sounds with 764961, whose ambience layers and
+            // StopAllSounds clear released handles themselves (fmod-stale-handles, which gave way
+            // to it, with it): a launch option naming one still starts the player, without it.
             var o = Options.Parse(["--game-tweak", "fix-endless-sounds", "--game-tweak", "-fix-endless-sounds",
-                "--game-tweak", "fix-disease-overlay-crash", "--", Exe])!;
+                "--game-tweak", "fix-disease-overlay-crash", "--game-tweak", "fix-released-sounds",
+                "--game-tweak", "-fix-released-sounds", "--game-tweak", "-fmod-stale-handles", "--", Exe])!;
             Assert.NotNull(o);
-            Assert.DoesNotContain(o.GameTweaks, t => t.Contains("endless") || t.Contains("disease"));
+            Assert.Empty(o.GameTweaks);
             Assert.Null(Options.Parse(["--game-tweak", "no-such-tweak", "--", Exe]));
         }
 
@@ -62,9 +65,6 @@ namespace OniMoono.Tests
             // starts the player, with the new one (and `-NAME` leaves the new one out).
             var o = Options.Parse(["--game-tweak", "slow-reachability", "--game-tweak", "-slow-reachability", "--", Exe])!;
             Assert.Equal(new[] { "instant-reachability", "-instant-reachability" }, o.GameTweaks);
-            // fmod-stale-handles gave way to fix-released-sounds.
-            o = Options.Parse(["--game-tweak", "-fmod-stale-handles", "--", Exe])!;
-            Assert.Equal(new[] { "-fix-released-sounds" }, o.GameTweaks);
             Assert.Null(Options.Parse(["--game-tweak", "no-such-tweak", "--", Exe]));
         }
 

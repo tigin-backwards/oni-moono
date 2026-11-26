@@ -149,7 +149,7 @@ Two settings for test runs go with frame stats:
 The tweaks' other settings for measurements and test runs (environment variables, read at
 start-up; none is needed to play):
 - `ONI_TWEAK_VERIFY=1`: every tweak's verify mode ([TWEAKS.md](TWEAKS.md#how-exactly-the-same-is-checked)).
-  `ONI_VERIFY_FETCH_BY_CELL=1` and `ONI_VERIFY_RELEASED_SOUNDS=1` turn on one tweak's alone.
+  `ONI_VERIFY_FETCH_BY_CELL=1` turns on one tweak's alone.
 - `ONI_RENDER_TIMING=1`: every 600 frames, the main thread's time in rendering and its draw
   queues (`render timing`), and the render phase split into its parts with their counts, each
   camera's time and the canvas update's parts (`render split`;

@@ -21,7 +21,6 @@ quit-to-desktop                     # Quit to Desktop with Save and Quit: the pl
 compact-report-history              # the late-game colony's report history reads and saves as the original's (fixture U57)
 compact-report-entries              # its past days' entries, packed, read and save as the original's, in verify mode (fixture U57)
 pipe-network-status                 # pipes' "requires building intake" items through builds, cuts and a bridge (fast-pipe-rebuilds)
-fix-released-sounds ours            # ours only: released FMOD handles cleared, no call on one after (fixture U57)
 
 # Issue regressions: fixed, in code that changes rarely, or a variant of a kept spec
 issue-48-fast-track                 # - (Fast Track gated)
