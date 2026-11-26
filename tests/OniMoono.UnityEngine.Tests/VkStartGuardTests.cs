@@ -12,6 +12,17 @@ namespace OniMoono.Tests
         static readonly VkGpuIdentity Rtx = new(0x10DE, 0x2204, 0x98C14000, 4, "NVIDIA", "NVIDIA GeForce RTX 3090");
 
         [Fact]
+        public void AnOldCppRuntimeKeepsVulkanFromStarting()
+        {
+            // #126: VMA's first mutex lock faults in MSVCP140.dll 14.36; 14.40 has the constexpr mutex.
+            Assert.StartsWith("the Microsoft Visual C++ runtime is too old", VkContext.CppRuntimeReason(14, 36, 32532, 0));
+            Assert.Contains("MSVCP140.dll 14.36.32532.0", VkContext.CppRuntimeReason(14, 36, 32532, 0));
+            Assert.NotNull(VkContext.CppRuntimeReason(14, 39, 33519, 0));
+            Assert.Null(VkContext.CppRuntimeReason(14, 40, 33810, 0));
+            Assert.Null(VkContext.CppRuntimeReason(14, 44, 35211, 0));
+        }
+
+        [Fact]
         public void TheKeyNamesGpuDriverAndBuild()
         {
             Assert.Equal("gpu 10de:2204 driver 98c14000 (NVIDIA) build 1.0+abc", VkStartGuard.KeyOf(Rtx, "1.0+abc"));

@@ -80,6 +80,43 @@ namespace OniMoono.Desktop.Vulkan
             return true;
         }
 
+        /// Why the C++ runtime VMA would use can't run it, or null. vma.dll is built with MSVC
+        /// 14.41, whose std::mutex has a constexpr constructor (since VS 2022 17.10): an
+        /// MSVCP140.dll older than 14.40 reads the zeroed mutex as its own layout in _Mtx_lock
+        /// and faults reading 0x0 on VMA's first lock, the first buffer made (#126: 14.36 in
+        /// System32 on Windows 10). The DLL found is the one vma.dll would load: one already
+        /// loaded, else the player's folder's, else Windows' search (System32).
+        static string CppRuntimeTooOld()
+        {
+            if (!NativeLibrary.TryLoad("msvcp140.dll", typeof(VkContext).Assembly, null, out var handle)) return null;
+            try
+            {
+                var path = new char[1024];
+                uint n = GetModuleFileNameW(handle, path, (uint)path.Length);
+                if (n == 0 || n >= path.Length) return null;
+                var info = System.Diagnostics.FileVersionInfo.GetVersionInfo(new string(path, 0, (int)n));
+                return CppRuntimeReason(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart);
+            }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
+            {
+                return null; // unread, so not known to be old: Vulkan tries
+            }
+            finally
+            {
+                NativeLibrary.Free(handle);
+            }
+        }
+
+        /// The fallback's reason for MSVCP140.dll of this version, or null when it runs VMA.
+        internal static string CppRuntimeReason(int major, int minor, int build, int revision)
+            => major == 14 && minor < 40
+                ? $"the Microsoft Visual C++ runtime is too old for Vulkan's memory allocator (MSVCP140.dll {major}.{minor}.{build}.{revision}, 14.40 or later needed); "
+                  + "installing the latest Visual C++ Redistributable (x64) from Microsoft lets Vulkan start"
+                : null;
+
+        [DllImport("kernel32", CharSet = CharSet.Unicode)]
+        static extern uint GetModuleFileNameW(nint module, char[] path, uint size);
+
         /// Picks a GPU for the GPU option: "integrated" prefers an integrated GPU and "discrete" a
         /// discrete one; "default" a discrete one as the original's exe asks the Windows drivers
         /// for, or, with `defaultInDriverOrder` (Linux, where the original sets nothing), the
@@ -185,6 +222,7 @@ namespace OniMoono.Desktop.Vulkan
         void Create(string gpuChoice, bool allowSoftware, Func<VkGpuIdentity, string> admit)
         {
             if (!LoaderPresent(out var loader)) throw new VulkanUnavailableException(loader);
+            if (OperatingSystem.IsWindows() && CppRuntimeTooOld() is { } runtime) throw new VulkanUnavailableException(runtime);
             GlfwPlatform.Initialize();
             if (!Glfw.VulkanSupported()) throw new VulkanUnavailableException("GLFW finds no Vulkan support for windows");
             int instanceVersion = 0;
