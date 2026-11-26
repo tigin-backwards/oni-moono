@@ -1,0 +1,33 @@
+# Portal Network (2968184715) in play: its Temperature Cube (TemperatureCube, researched with
+# HVAC) heats or cools the gas around it, playing the bundle's fire thrower or ice hit
+# (TemperatureCore.PlayFireEffect, PlayIceEffect: Cartoon FX). setup grants HVAC and places a
+# cube from steel beside a charged battery, wired (as the forcefield spec places its battery), and
+# sets the cube's slider to 80 °C, as its side screen would; the game then runs and the cube's own
+# code decides to heat. Whether the original draws the fire in play, and ours
+# (docs/research/d3d11-plan.md, M7).
+from: early-base
+mods: [2968184715]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"HVAC\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Battery\")", method: Build, args: [131784, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<Battery>", method: AddEnergy, args: [10000.0]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [131783, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"Wire\")", method: Build, args: [131784, Neutral, null, [Cuprite], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: SetConnections, args: ["Right", 131783, true]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: SetConnections, args: ["Left", 131784, true]}}
+  - driver: {setup.call: {target: "Game.Instance.electricalConduitSystem", method: ForceRebuildNetworks}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"TemperatureCube\")", method: Build, args: [131783, Neutral, null, [Steel], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.set: {target: "last:GetComponent<Portal_Cube_2.TemperatureSlider>", member: targetTemperature, value: 80.0}}
+steps:
+  # The cube looks at its cells every 4 s (TemperatureStateMachine's middle state) and plays the
+  # fire for as long as its do_fire_boom animation runs.
+  - run: {seconds: 5, speed: 1}
+  - expect_state:
+      "all:Portal_Cube_2.TemperatureCore::[0].fire.activeSelf": "== original"
+      "all:Portal_Cube_2.TemperatureCore::[0].GetComponent<Operational>.IsOperational": "== original"
+  - world_shot: {name: effects, ortho: 4, at: [131, 209], specks: 5, threshold: 0.02}
+  - run: {seconds: 4, speed: 1}
+  - expect_state:
+      "all:Portal_Cube_2.TemperatureCore::[0].fire.activeSelf": "== original"
+  - world_shot: {name: effects2, ortho: 4, at: [131, 209], specks: 5, threshold: 0.02}

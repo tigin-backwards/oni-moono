@@ -1,0 +1,18 @@
+# Spring Festival Pack (3152316922) in play: its Falling Leaves Pack (LeavesPack, Furniture,
+# researched with Luxury) is placed complete from copper (BuildingDef.Build, as the forcefield
+# spec places its battery: the build tool found no valid cell in the corridor); its own state
+# machine then starts on and plays the falling petals (LeavesPack.PlayFallingEffect: the bundle's
+# Cartoon FX petals, mesh particles). Whether the original draws them in play, and ours
+# (docs/research/d3d11-plan.md, M7).
+from: early-base
+mods: [3152316922]
+setup:
+  - driver: {setup.call: {target: "Research.Instance", method: SetActiveResearch, args: [{"$": "Db.Get().Techs.Get(\"Luxury\")"}, true]}}
+  - driver: {setup.call: {target: "Research.Instance", method: CompleteQueue}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"LeavesPack\")", method: Build, args: [131783, Neutral, null, [Copper], 293.15, DEFAULT_FACADE]}}
+steps:
+  - run: {seconds: 3, speed: 1}
+  - expect_state:
+      "all:SpringFestival.LeavesPack::[0].petals.name": "== original"
+      "count:all:ParticleSystemRenderer::[*] if .renderMode == Mesh": "== original"
+  - world_shot: {name: petals, ortho: 4, at: [131, 209], specks: 5, threshold: 0.02}

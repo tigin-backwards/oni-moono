@@ -2317,6 +2317,31 @@ no mod can select them, as M3 part C found for the game).
   ones were not traced to a cause within the time box (a probe, j0009697: 4 renderers enabled,
   visible and playing, in view). These shaders had no programs for any device before, so this is
   the first time this path is reached; it is the engine's particle code, shared by every device.
+- **In normal play too** (the coordinator's question: MOD_COMPATIBILITY lists the three as
+  broken in the original). The specs above put the effects in view with the same
+  `GameUtil.KInstantiate` calls the mods make; `d3d11-mods-spring-play.yaml` and
+  `d3d11-mods-portal-play.yaml` / `-portal-plus-play.yaml` let the mods' own code do it: a Falling
+  Leaves Pack placed from copper starts on and plays its petals (LeavesPack.PlayFallingEffect); a
+  Temperature Cube placed from steel beside a charged battery, its slider at 80 °C, heats and
+  plays its fire thrower (TemperatureStateMachine's do_fire_boom). The original **draws both**:
+  the petals (j0009708) and the fire thrower of Portal Network and PortalNetwork+ (j0009708,
+  j0009709). Ours makes the same effect objects (the petals' and the fire's GameObjects, active)
+  and draws none of them (j0009708, j0009709; no Cartoon FX coverage line; the fire shots differ
+  from the original's by 1.0-2.5% of pixels, under the 2% threshold in three of the four, so the
+  pixel verdict alone misses it: the shots show it). In j0009709 the original exited at start-up
+  in the Spring Festival spec before loading anything (its Player.log ends after input
+  initialization); it loaded in all four other launches with the mod.
+- **Why the sweep's notes differ:** they are Linux runs. PortalNetwork+'s "Failed to load
+  AssetBundle: temperatureeffects" (sweep `u60-3047`, Linux) is the mod's code asking for
+  `assets/linux/temperatureeffects`, which it does not ship (only `assets/windows`); Spring
+  Festival's NullReferenceException at the main menu is from the U59 sweep (`s2000`, Linux, a batch
+  of 22 mods), and on U60 Windows it loads alone; Portal Network's "animations fail to load" is a
+  hand note of the U59 sweep era, and on U60 Windows its cube animates (the boom state that plays
+  the fire completes). So on Windows the three load and draw in the original; the table, which
+  records Linux sweeps, is left as it is.
+- So item 1 stands as an engine gap: the particle renderer draws no mesh-mode particles and does
+  not honour custom vertex streams, and its billboard Cartoon FX systems draw nothing either. Not
+  started: the user decides.
 - **MAGNET!!!:** on Windows the runner's synthetic keys reach KInput, not
   `UnityEngine.Input.GetKey`, which the magnet reads, so neither player turns the field on; its
   two shaders build clean (j0009679) and isSupported is true in both. Drawing it needs real
@@ -2378,7 +2403,7 @@ Tests added: the option, Legacy's order, tiers and refusals, damaged 2020.3 entr
 `local-tools` link and no E2eDriver build; j0009668 the E2eDriver build); bundle checks
 j0009673 (an old build, no bundles), j0009678 (every bundle, names clashing), j0009679, j0009694;
 both players j0009681, j0009683-j0009686 (j0009680 cancelled: ours on Vulkan, as runq drops
-`WIN_RENDERER`); j0009688-j0009690; j0009695; probe j0009697 (j0009696 a spec error); builds j0009663, j0009672 and
+`WIN_RENDERER`); j0009688-j0009690; j0009695; probe j0009697 (j0009696 a spec error); normal play j0009707 (a placement and comparison error), j0009708, j0009709; builds j0009663, j0009672 and
 j0009674 (an MSBuild node crash, a compile error), j0009675-j0009677, j0009682, j0009687,
 j0009693; unit tests j0009671 (owner then mis-set), j0009691, j0009692; check.sh j0009698 (green, on
 9ab2bb585; com-check matches the SDK headers).
