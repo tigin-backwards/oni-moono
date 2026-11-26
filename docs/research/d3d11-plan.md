@@ -2557,6 +2557,76 @@ and the release list's rendering, UI and saving specs without mods; both players
 Direct3D 11 with the debug layer) j0009772, j0009773; the COM check's M4 mutations j0009768; the
 release e2e list (Linux) after the build.
 
+**QA results** (Windows 11, the RTX 3090, NVIDIA 32.0.16.1088, windowed on monitor 2 but the
+monitor move, unfocused, muted; ours on Direct3D 11 with the debug layer unless said):
+- **check.sh**: green on the tree before the input-layout change (j0009779; 3,840 + 59 + 9 tests,
+  com-check "every declaration matches", SDK 10.0.26100.0, MSVC 14.44.35207, exports of Windows
+  10.0.26200.9974); on the final tree j0009801 (pending when this was written).
+- **The release e2e list** (Linux, both players, 2 lanes): all pass, j0009792 (60 runs, among
+  them `u60/vk-gate` and the four moono-tweaks specs) and j0009799, j0009800 (the six specs whose
+  test mods this worktree had not built).
+- **The D3D11 gate** (`u60/d3d11-gate`, ours alone): passes 3 of 3 (j0009791), with no fallback,
+  no error signature, no blank shot and no debug-layer warning, error or corruption.
+  `loading-animation-d3d11` passes (j0009780). The first gate run (j0009780) lost its game mid-run
+  to runq, not to the device (below).
+- **`u60-p2-renderer` with `-force-d3d11`** in both players: passes (j0009781), the graphics
+  device the game sees equal to the original's.
+- **--check-shaders** with the mods' bundles: 0 failed, 0 debug-layer messages, every input layout
+  made (3,264 and 1,491) with the 14 elements (j0009787); refused only the variants accepted
+  below; with the acceptance, j0009804 (pending when this was written).
+- **The Windows dogfood** (`tests/e2e/d3d11-dogfood.txt`, both players; j0009782, j0009783,
+  j0009797): ours passes early-base, u60-start-aquatic, issue-47, issue-57, gas-view, issue-71,
+  issue-75 (an 8x screenshot), menu-tiles, build-menu-search, geyser-title, issue-48, issue-23,
+  unreachable-materials and overlap-manual, and consumables-scroll with its known finding; every
+  one of ours with the debug layer at 0 warnings and errors. research-pan fails in ours alike on
+  Vulkan and on Direct3D 11 (j0009797: the drag moves the tree 1,043 units where the original's
+  moves it 360), so it is ours on Windows and not this device's: a separate finding.
+  timelapse-background-writes, scroll-zoom, sandbox-search, load-screen-many-saves, screen-dpi,
+  fullscreen-window-resolution and issue-108 fail in the original itself on Windows (checks
+  made for Linux: Screen.dpi 96, wheel and text input, resolution lists, the timelapse probe),
+  so ours was not run on them; on Linux the release list covers them. paused-overlays' ours run
+  was killed by runq (below).
+- **The monitor move** (j0009774): above.
+- **The COM check's M4 mutations** rerun: every one fails the check itself (j0009768).
+- **runq killed test games** (j0009780's gate, j0009782's paused-overlays): check.sh's test daemon
+  (test_runq_daemon's WindowsInterop, RUNQ_WINDOWS=real) killed, as leftovers, the real daemon's
+  running Windows games and their crash watchers (no crash record, no Windows event, exit
+  0xFFFFFFFF); each death fell inside a check.sh run. Fixed (423eacfdb, on master as 6e78d937d):
+  a daemon kills only its own ended jobs' games. The e2e guard now logs the exit code.
+
+**Accepted as unreachable** (the user, 2026-11-25: "are shadow variants actually unreachable? If
+so accept it"; 826167bfc): the SHADOWS_* variants of Standard, Legacy Shaders/Diffuse and Particles/
+Standard Surface refused for their comparison samplers (37 programs of the game, 55 with the
+mods' bundles). Evidence: the U60 decompile has no SHADOWS_ reference (oni-archives search, no
+match), the engine sets no SHADOWS_* keyword (it renders no real-time shadows,
+GlPrograms.SamplerTarget), and in the data the keywords are only multi_compile variants of those
+shaders and of Legacy VertexLit, Particles/Standard Unlit and TMP Surface (docs/research/assets.md).
+With them Hidden/Dither's two inline-sampler programs, whose mod fails to load in the original
+(M7, accepted).
+
+**Remaining UNVERIFIED notes** (the table above): the duplicate RTX 3090, captures 11-14 and probes
+1, 4 and 5 still await the user; the hybrid laptop's adapter is accepted for the merge, to be
+confirmed from the first laptop report; CI's Windows SDK for the COM check is settled by CI's
+first run after the merge.
+
+**Done criteria at M8:**
+
+| # | Criterion | Evidence | Status |
+|---|---|---|---|
+| 1 | Every game shader draws through its shipped DXBC; debug layer clean over all QA | M3: a validation run builds every one of the 1,070 subprograms, play draws 67 of 121 shaders and the rest are accounted for by their references; --check-shaders j0009787, j0009804; 0 debug-layer warnings or errors in every QA run of ours (j0009774, j0009780-j0009783, j0009791, j0009797) | met; refused only the accepted unreachable variants (the 68 of M3, the shadow variants and Hidden/Dither of M8) |
+| 2 | SystemInfo, projection, formats, orientation, ReadPixels, depth bias, swap chain equal to the original's | M2-M4 probes and captures; M7 SystemInfo at 11_1 and 11_0 (j0009688, j0009690); M8 input layouts as the original's (08fcc477a) | met; recorded gaps: compute, sparse and the unused texture-format answers (M7, accepted) |
+| 3 | Pixels within tolerance over the scene set | M3: 83 of 85 scenes within; the impactor's 2 coverage shots unjudged (under half stable, M3) | met but for the impactor's 2 shots, which await the user's judgement |
+| 4 | Everything the Vulkan device does | M3 (textures, render textures, readbacks, async), M4 (swap chain, repeats, splash, loading animation, HDR, full screen and resize), M5 (guard, deny list, fallback) | met |
+| 5 | Robustness | M5 (a fault hook per start-up step, TDR j0009366, alt-tab, resize, mode change, the GPU rule); the monitor move j0009774 | met |
+| 6 | All mods with shaders draw | M7: every Windows mod bundle's programs build, the 2020.3 layout read, the original first for older formats | met but the user's exceptions: Portal Network, PortalNetwork+, Spring Festival (effect parity, after the merge); MAGNET!!! UNVERIFIED |
+| 7 | Performance against Vulkan, decided by the rule | M6 (j0009589, j0009634-j0009638): the fallback, first on integrated GPUs (the user's decision) | met |
+| 8 | Correctness gates | the COM check green (j0009779, j0009801 (pending)) and its proof (j0009768); every milestone's review resolved; the final review (M8, 5 areas) fixed; UNVERIFIED notes as listed above | met but the notes awaiting the user |
+| 9 | QA | check.sh, the release list, the D3D11 gate, `u60-p2-renderer -force-d3d11`, the Windows dogfood: above | met |
+| 10 | Docs | ARCHITECTURE §3.5, D66, unity-vs-moono.md's decision record, TWEAKS.md, PERFORMANCE.md; `--renderer d3d11`, the Renderer row's opt-in, `-force-d3d11`, `-force-feature-level-11-0` | met |
+
+Also needing the user: the original on the AMD iGPU (UNVERIFIED, accepted at M7), the merge.
+
+
 ## Research so far (M0)
 
 Reports from 2026-11-22 (scratchpad copies; the findings are summarized here so they survive):
