@@ -90,6 +90,14 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_MORE"
 msgid "…more on the release page"
 msgstr "……更多内容见发布页面"
 
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_NO_NOTES"
+msgid "Click to see what changed on the release page."
+msgstr "点击在发布页面查看更新内容。"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATED_HEADLINE"
+msgid "Moo! Moono was updated"
+msgstr "哞！Moono 已更新"
+
 msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_REWRITES"
 msgid "{0} also patches {1} (it rewrites the game's code)."
 msgstr "{0} 也修补了 {1}（它会改写游戏的代码）。"

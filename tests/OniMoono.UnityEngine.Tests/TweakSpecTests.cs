@@ -268,6 +268,8 @@ namespace OniMoono.Tests
             ("mod-overlaps-en.yaml", "~Overlap Test also patches KBatchedAnimUpdater.CleanUp (it can skip the game's code).", s => OverlapTip(s, "fast-anim-cleanup")),
             ("mod-overlaps-en.yaml", "~Overlap Test also patches Sublimates.OnSpawn.\nIf something looks wrong, turn this tweak off.", s => OverlapTip(s, "fast-sublimation")),
             ("mod-overlaps-en.yaml", "~Off while Overlap Test is loaded, as it patches StateMachineController.GetSMI.", s => OverlapTip(s, "fast-smi-lookups")),
+            ("updated-badge.yaml", "Moo! Moono was updated", s => Ui(s)("UPDATED_HEADLINE")),
+            ("updated-badge-zh.yaml", "哞！Moono 已更新", s => Ui(s)("UPDATED_HEADLINE")),
             ("mod-overlaps-badges.yaml", "2 overlaps", s => string.Format(Ui(s)("OVERLAPS_MANY"), ModOverlapsCore.HighCount(TestModOverlaps()))),
             ("mod-overlaps-zh.yaml", "2 处重叠", s => string.Format(Ui(s)("OVERLAPS_MANY"), ModOverlapsCore.HighCount(TestModOverlaps()))),
             ("mod-overlaps-zh.yaml", "~打开 Moono 调整项", s => Ui(s)("OVERLAPS_TIP")),
@@ -336,6 +338,7 @@ namespace OniMoono.Tests
             "MODS", // the game's main menu button
             "~OniMoono\" -- %command%", // the launch-option line, a path
             @"/^Moono (\d{4}\.\d\d\.\d\d\.\d\d|[0-9a-f]{1,9})$/", // the header's version (UpdateCheck.VersionLabel)
+            "~2026.11.22.02", // a release title in the "Updated" badge's notes (fixtures/update-notes.json)
         ];
 
         [Fact]

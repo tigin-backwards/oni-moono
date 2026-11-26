@@ -209,6 +209,7 @@ download.
   windows-x64/  linux-x64/      the release archives' oni-moono folders
   OniMoono.exe  OniMoono.sh     start here once (Windows: double-click; Linux: sh OniMoono.sh)
   MoonoLoader.dll               the loader mod, which the original game loads (below)
+  release-notes.json            the notes of the releases up to this one, for the "Updated" badge
   verify.ps1  verify.sh  README.md  SHA256SUMS
   attestation/SHA256SUMS.sigstore.json   SHA256SUMS's provenance, for checks by hand (not listed in it)
 ```
@@ -287,7 +288,12 @@ the recorded folder alone is used, as before.
 
 Such an install has no update badge on the main menu: the
 [update check](TWEAKS.md#update-check) asks GitHub nothing, as the item brings the updates. It
-does ask when the item has no version for the game.
+does ask when the item has no version for the game. After an update it shows the
+["Updated" badge](TWEAKS.md#the-updated-badge), with the notes from the item's
+`release-notes.json`, again without a request. `workshop.yml` writes that file from GitHub's
+releases list when it lays out the item, after the release is published: the newest 30
+releases up to the item's, each with its tag, title, page and notes, in the form of GitHub's
+list.
 
 A version older than the installed one for the game is not installed, so nothing downgrades:
 neither a start from the game's old copy (its `OniMoono.exe`, or the loader's install button) nor

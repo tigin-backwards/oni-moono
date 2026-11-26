@@ -132,7 +132,8 @@ setup, a source checkout) makes one network request of its own:
   `User-Agent: OniMoono-update-check` header and nothing else (no cookies, IDs or details of
   your game). It waits at most 8 seconds.
 - **Caching.** The answer is kept for 6 hours in `oni-moono/update-check.json` beside the
-  settings file, so most launches ask nothing.
+  settings file, so most launches ask nothing. On the first launch after Moono updated, a kept
+  answer that doesn't list the running release is fetched again, for the "Updated" badge's notes.
 - **The badge.** When a newer release for your build is out, a Gassy Moo badge next to **Moono
   Tweaks** on the main menu says so. Hovering it lists what changed in each newer release.
   Clicking it opens the release page in your browser.
@@ -148,10 +149,35 @@ setup, a source checkout) makes one network request of its own:
 - **Off.** With the check off, Moono makes no network requests of its own. A build made without
   a release tag (a developer build) checks nothing.
 
+### The "Updated" badge
+
+On the first launch after the running Moono version changed, the same slot shows "Moo! Moono
+was updated" and the new release's tag, for any install mode:
+
+- **Hovering** lists the notes of every release since the version you ran before, newest first,
+  so several skipped updates all show. **Clicking** opens the new release's page.
+- **It goes away** once hovered or clicked, or after 3 launches, whichever comes first.
+- **An update available wins:** when a newer release is out, the slot shows that instead.
+- **The last version run** is kept in `oni-moono/last-version.json` beside the settings file.
+  A fresh install records its version and shows nothing. A lower version (a downgrade, or
+  `--use-version` pinning an older one) shows nothing and leaves the record as it is, so going
+  back up to the newer version shows nothing either.
+- **Where the notes come from.** Release notes are written after a release's archives are
+  built, so the archives can't carry their own. Instead:
+  - A Workshop install reads `release-notes.json` at the item's root, which the Workshop item
+    gets from the published releases (`scripts/workshop-item.py`). No network request.
+  - A GitHub install with **Update check** on uses the releases list the check reads.
+  - With the check off, the tooltip says the notes are on the release page.
+- **Not tied to the setting.** The badge shows whatever **Update check** is set to, as it makes
+  no network request of its own. A developer build shows none.
+
 For tests, `ONI_UPDATE_RELEASES_URL` reads the releases list from elsewhere (a `file://` URL, a
 path or an http(s) URL; `none` checks nothing), never cached, and `ONI_UPDATE_TAG` sets the
 release the build counts as. `scripts/run.sh` sets `ONI_UPDATE_RELEASES_URL=none`, so test runs
 never ask GitHub; `tests/e2e/update-badge.yaml` gives the badge a fixture instead.
+`ONI_UPDATE_NOTES` reads the "Updated" badge's notes from a file in place of the Workshop item's,
+and `ONI_UPDATE_PREVIOUS` sets the version recorded as last run (`tests/e2e/updated-badge.yaml`;
+`UpdatedNoticeTests` for the version logic).
 
 ## Garbage collection
 

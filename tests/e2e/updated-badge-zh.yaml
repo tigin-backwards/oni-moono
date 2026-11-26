@@ -1,0 +1,18 @@
+# updated-badge.yaml in the game's Simplified Chinese (zh_klei): the badge's headline from
+# translations/zh.po, the notes as written. Ours only (`--player ours`).
+from: main-menu
+language: zh_klei
+tweaks_menu: true
+update_check: {releases: none, tag: v2026.11.26.01, notes: update-notes.json, previous: 2026.11.20.01}
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - ui_wait: {path: "**/MoonoUpdateBadge", cond: stable, frames: 600}
+  - expect_ui:
+      "**/MoonoUpdateBadge/**/Headline": {text: "哞！Moono 已更新"}
+  - shot: menu
+  - scroll: {at: "**/MoonoUpdateBadge", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~2026.11.22.02"}
+  - shot: {name: tooltip, pointer: stay}

@@ -7,18 +7,29 @@ namespace OniMoono.GameTweaks
     /// The main menu's update badge (OniMoono.Host.UpdateCheck finds the release): a Gassy Moo
     /// with "Moo! An update is available" and the new release's tag, beside the Moono Tweaks
     /// button, or above the news tiles when those take that place. Clicking it opens the release's
-    /// page; hovering it shows the notes of every newer release in the game's tooltip. Our own
+    /// page; hovering it shows the notes of every newer release in the game's tooltip. In the same
+    /// slot, the "Updated" badge (OniMoono.Host.Updated), the first launches after Moono updated:
+    /// "Moo! Moono was updated" and this build's tag, the notes since the version last run in its
+    /// tooltip, its release page on a click; hovered or clicked, it shows no more from the next
+    /// launch on. Our own
     /// element on the menu, made as MainMenu makes its buttons (a copy of its button prefab in
     /// the normal button style), so it hovers, presses and sounds as they do: nothing of Klei's
     /// is changed.
     public sealed class UpdateBadge : MonoBehaviour
     {
-        /// The host's result: null while the check runs, empty when there is nothing newer (or it
-        /// failed), else [tag, release page, notes (TMP rich text), "1" when the notes were cut].
+        /// The host's result: null while the check runs, empty when there is no badge, else
+        /// [kind ("available" or "updated"), tag, release page, notes (TMP rich text; "" for
+        /// none), "1" when the notes were cut].
         static Func<string[]> poll;
+        /// Told when an "Updated" badge is hovered or clicked.
+        static System.Action dismissed;
         const float Gap = 8f, IconSize = 40f;
 
-        public static void Install(Func<string[]> result) => poll = result;
+        public static void Install(Func<string[]> result, System.Action seen)
+        {
+            poll = result;
+            dismissed = seen;
+        }
 
         RectTransform anchor, rect;
         /// The overlap badge (OverlapBadge), between the button and this one while it shows.
@@ -26,7 +37,7 @@ namespace OniMoono.GameTweaks
         Transform motd;
         ToolTip tip;
         string url;
-        bool built;
+        bool built, updated;
 
         /// From MoonoTweaksMenu.AddButton: the badge for this menu, hidden until there is an
         /// update; `prefab` and `style` are the menu's button prefab and normal button style.
@@ -41,6 +52,7 @@ namespace OniMoono.GameTweaks
             image.ApplyColorStyleSetting();
             var badge = go.AddComponent<UpdateBadge>();
             button.onClick += badge.Open;
+            button.onPointerEnter += badge.Seen;
             badge.anchor = tweaksButton.GetComponent<RectTransform>();
             badge.after = overlaps;
             badge.motd = Find(menu.transform, "MOTD");
@@ -164,12 +176,14 @@ namespace OniMoono.GameTweaks
         {
             var found = poll?.Invoke();
             if (found == null) return false;
-            if (found.Length < 4 || !built) return true;
-            url = found[1];
-            transform.Find("Text/Headline").GetComponent<LocText>().text = MoonoTweaksMenu.Ui("UPDATE_HEADLINE");
-            transform.Find("Text/Version").GetComponent<LocText>().text = found[0];
-            var notes = found[2];
-            if (found[3] == "1") notes += "\n\n<i>" + MoonoTweaksMenu.Ui("UPDATE_MORE") + "</i>";
+            if (found.Length < 5 || !built) return true;
+            updated = found[0] == "updated";
+            url = found[2];
+            transform.Find("Text/Headline").GetComponent<LocText>().text = MoonoTweaksMenu.Ui(updated ? "UPDATED_HEADLINE" : "UPDATE_HEADLINE");
+            transform.Find("Text/Version").GetComponent<LocText>().text = found[1];
+            var notes = found[3];
+            if (notes.Length == 0) notes = MoonoTweaksMenu.Ui("UPDATE_NO_NOTES");
+            else if (found[4] == "1") notes += "\n\n<i>" + MoonoTweaksMenu.Ui("UPDATE_MORE") + "</i>";
             tip.ClearMultiStringTooltip();
             tip.AddMultiStringTooltip(notes, PluginAssets.Instance.defaultTextStyleSetting);
             gameObject.SetActive(true);
@@ -213,7 +227,16 @@ namespace OniMoono.GameTweaks
         /// and pressed colours): the release's page in the browser.
         void Open()
         {
+            Seen();
             if (!string.IsNullOrEmpty(url)) Application.OpenURL(url);
+        }
+
+        /// An "Updated" badge hovered or clicked: the host forgets it (it stays until the menu goes).
+        void Seen()
+        {
+            if (!updated) return;
+            updated = false;
+            dismissed?.Invoke();
         }
     }
 

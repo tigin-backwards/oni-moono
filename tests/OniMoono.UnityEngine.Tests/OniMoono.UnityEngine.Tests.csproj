@@ -60,6 +60,8 @@
     <Compile Include="../../src/OniMoono.Host/ThreadDump.cs" Link="Host/ThreadDump.cs" />
     <!-- The main menu's update check: channels, tags and notes (UpdateCheckTests). -->
     <Compile Include="../../src/OniMoono.Host/UpdateCheck.cs" Link="Host/UpdateCheck.cs" />
+    <!-- The main menu's "Updated" badge: the last version run and its notes (UpdatedNoticeTests). -->
+    <Compile Include="../../src/OniMoono.Host/UpdatedNotice.cs" Link="Host/UpdatedNotice.cs" />
     <!-- Unity's player arguments, read or ignored (UnityArgumentsTests). -->
     <Compile Include="../../src/OniMoono.Host/UnityArguments.cs" Link="Host/UnityArguments.cs" />
     <!-- The standalone launch and the versioned install (LaunchTests, InstallTests). -->

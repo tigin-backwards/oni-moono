@@ -169,7 +169,10 @@ are written into the draft before it is published.
   names for them.
 - Say "as in the original" where a fix matches the original game's behaviour.
 
-Releases are immutable, but their notes can still be edited after publishing.
+Releases are immutable, but their notes can still be edited after publishing. The Workshop item's
+`release-notes.json` (the main menu's "Updated" badge, [TWEAKS.md](TWEAKS.md#the-updated-badge))
+takes the notes as they are when `workshop.yml` runs, so finish them before that; GitHub
+installs read them live.
 
 ## Verifying a release
 

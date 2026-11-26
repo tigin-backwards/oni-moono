@@ -37,6 +37,9 @@ namespace OniMoono.Host
     /// ONI_UPDATE_RELEASES_URL: the releases list from elsewhere (`file://` path, plain path or
     /// http(s) URL; `none` checks nothing), never cached: scripts/run.sh sets `none`, test specs a
     /// fixture. ONI_UPDATE_TAG: the release this build counts as (tests).
+    ///
+    /// The list it read also gives the "Updated" badge its notes (UpdatedNotice), on GitHub
+    /// installs, the first launches after Moono updated.
     internal static class UpdateCheck
     {
         public const string ReleasesUrl = "https://api.github.com/repos/tigin-backwards/oni-moono/releases";
@@ -198,21 +201,27 @@ namespace OniMoono.Host
         }
 
         static UpdateFound? result;
+        static List<MoonoRelease>? listed;
         static int done;
 
         /// The check's result: null while it runs, or when there is no newer release.
         public static UpdateFound? Result => Volatile.Read(ref result);
+        /// The releases list the check read: null while it runs, or when it read none.
+        public static List<MoonoRelease>? Listed => Volatile.Read(ref listed);
         public static bool Done => Volatile.Read(ref done) != 0;
 
         /// Starts the check on a background thread (once). `workshopSource`: the Workshop item a
         /// versioned install updates from (Install.VersionedStart.UpdatesFrom); Steam brings its
-        /// updates, so nothing is checked.
-        public static void Start(string persistentDataPath, bool beta, Action<string> log, string? workshopSource) =>
-            Start(persistentDataPath, beta, log, workshopSource, CurrentTag(), Environment.GetEnvironmentVariable("ONI_UPDATE_RELEASES_URL"));
+        /// updates, so nothing is checked. `updated`: Moono just updated (UpdatedNotice), so a
+        /// cached list that lacks this build's release is fetched again, for its notes.
+        public static void Start(string persistentDataPath, bool beta, Action<string> log, string? workshopSource, bool updated = false) =>
+            Start(persistentDataPath, beta, log, workshopSource, CurrentTag(), Environment.GetEnvironmentVariable("ONI_UPDATE_RELEASES_URL"), updated);
 
-        internal static void Start(string persistentDataPath, bool beta, Action<string> log, string? workshopSource, string? current, string? url)
+        internal static void Start(string persistentDataPath, bool beta, Action<string> log, string? workshopSource, string? current, string? url,
+            bool updated = false)
         {
             Volatile.Write(ref result, null);
+            Volatile.Write(ref listed, null);
             Volatile.Write(ref done, 0);
             bool overridden = !string.IsNullOrEmpty(url);
             if (current == null || url == "none")
@@ -230,7 +239,9 @@ namespace OniMoono.Host
             {
                 try
                 {
-                    var releases = await Releases(overridden ? url! : ReleasesUrl, overridden ? null : CachePath(persistentDataPath), DateTime.UtcNow);
+                    var releases = await Releases(overridden ? url! : ReleasesUrl, overridden ? null : CachePath(persistentDataPath), DateTime.UtcNow,
+                        updated ? Version(current) : null);
+                    Volatile.Write(ref listed, releases);
                     var found = Find(releases, current, beta);
                     Volatile.Write(ref result, found);
                     log(found == null ? $"update check: {current} is the newest" : $"update check: {found.Tag} is out (this build is {current})");
@@ -248,10 +259,10 @@ namespace OniMoono.Host
         }
 
         /// The releases list: from the cache when it is younger than CacheFor (`cache` null: never
-        /// cached), else fetched (and cached).
-        static async Task<List<MoonoRelease>> Releases(string url, string? cache, DateTime now)
+        /// cached) and lists `holding` (a version; null: any list), else fetched (and cached).
+        static async Task<List<MoonoRelease>> Releases(string url, string? cache, DateTime now, string? holding)
         {
-            if (cache != null && ReadCache(cache, now) is { } cached) return cached;
+            if (cache != null && ReadCache(cache, now) is { } cached && (holding == null || cached.Any(r => Version(r.Tag) == holding))) return cached;
             string json;
             if (Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
             {

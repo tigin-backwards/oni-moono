@@ -110,6 +110,16 @@ msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_MORE"
 msgid "…more on the release page"
 msgstr ""
 
+#. The update badge's tooltip when there are no notes to show
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_NO_NOTES"
+msgid "Click to see what changed on the release page."
+msgstr ""
+
+#. The main menu's badge after Moono updated, first line (the version is the second)
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATED_HEADLINE"
+msgid "Moo! Moono was updated"
+msgstr ""
+
 #. A row's tooltip: a mod's transpiler on a method the tweak changes; {0}: the mod, {1}: the methods
 msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_REWRITES"
 msgid "{0} also patches {1} (it rewrites the game's code)."

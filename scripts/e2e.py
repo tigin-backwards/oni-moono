@@ -530,9 +530,16 @@ def check_spec(spec):
         problems.append('`data_collection` is true or false')
     update = spec.get('update_check')
     if update is not None and not (
-        isinstance(update, dict) and set(update) == {'releases', 'tag'} and os.path.exists(os.path.join(FIXTURES, str(update['releases'])))
+        isinstance(update, dict)
+        and {'releases', 'tag'} <= set(update) <= {'releases', 'tag', 'notes', 'previous'}
+        and (update['releases'] == 'none' or os.path.exists(os.path.join(FIXTURES, str(update['releases']))))
+        and ('notes' not in update or os.path.exists(os.path.join(FIXTURES, str(update['notes']))))
+        and re.fullmatch(r'v?\d{4}\.\d{2}\.\d{2}\.\d{2}', str(update.get('previous', '2026.01.01.01')))
     ):
-        problems.append('`update_check` is {releases: FILE in tests/e2e/fixtures, tag: vYYYY.MM.DD.NN}')
+        problems.append(
+            '`update_check` is {releases: FILE in tests/e2e/fixtures or none, tag: vYYYY.MM.DD.NN,'
+            ' notes: FILE in tests/e2e/fixtures (optional), previous: YYYY.MM.DD.NN (optional)}'
+        )
     if not isinstance(spec.get('steps'), list):
         problems.append('`steps` is a list')
     mods = spec.get('mods', [])
@@ -3445,12 +3452,20 @@ class Player:
             env.update(ONI_GAME_DIR=game, ONI_RUN_HOME=self.home, ONI_CONFIG='release')
             # The main menu's update check reads the spec's releases file, as this tag (else
             # scripts/run.sh turns it off).
-            env.pop('ONI_UPDATE_RELEASES_URL', None)
-            env.pop('ONI_UPDATE_TAG', None)
+            # `notes` and `previous`: the "Updated" badge's notes file and the version recorded
+            # as last run.
+            for name in ('ONI_UPDATE_RELEASES_URL', 'ONI_UPDATE_TAG', 'ONI_UPDATE_NOTES', 'ONI_UPDATE_PREVIOUS'):
+                env.pop(name, None)
             if self.update_check:
+                releases = self.update_check['releases']
                 env.update(
-                    ONI_UPDATE_RELEASES_URL='file://' + os.path.join(FIXTURES, self.update_check['releases']), ONI_UPDATE_TAG=str(self.update_check['tag'])
+                    ONI_UPDATE_RELEASES_URL='none' if releases == 'none' else 'file://' + os.path.join(FIXTURES, releases),
+                    ONI_UPDATE_TAG=str(self.update_check['tag']),
                 )
+                if 'notes' in self.update_check:
+                    env['ONI_UPDATE_NOTES'] = os.path.join(FIXTURES, self.update_check['notes'])
+                if 'previous' in self.update_check:
+                    env['ONI_UPDATE_PREVIOUS'] = str(self.update_check['previous'])
             # OniMcp, in every spec, transpiles LoadScreen methods background-save patches: test
             # infrastructure, left out of the Moono Tweaks screen's mod overlaps.
             env['ONI_MOD_OVERLAPS_IGNORE'] = 'LIghtJUNction.OniMcp'

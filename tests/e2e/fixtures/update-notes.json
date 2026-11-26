@@ -1,0 +1,58 @@
+[
+  {
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.26.01",
+    "tag_name": "v2026.11.26.01",
+    "name": "2026.11.26.01",
+    "draft": false,
+    "prerelease": false,
+    "body": "Built by GitHub Actions from master.\n\n**New**\n- The main menu shows what changed after Moono updates.\n\n**Fixes**\n- Rocket interiors keep their lights after a save is loaded, as in the original.\n- The Consumables table scrolls smoothly with many Duplicants.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.24.01",
+    "tag_name": "v2026.11.24.01",
+    "name": "2026.11.24.01",
+    "draft": false,
+    "prerelease": false,
+    "body": "Built by GitHub Actions from master.\n\n**Faster**\n- Loading a late-game colony takes about 2 seconds less.\n- About 150 MB less memory on a 200-Duplicant colony.\n\n**Fixes**\n- Tooltips on the research screen no longer flicker.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.22.02",
+    "tag_name": "v2026.11.22.02",
+    "name": "2026.11.22.02",
+    "draft": false,
+    "prerelease": false,
+    "body": "Built by GitHub Actions from master.\n\n**Fixes**\n- Pipes built over a liquid vent show their contents again. Reported in #61.\n- Chinese text in the Moono Tweaks screen wraps at the right width.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.22.01",
+    "tag_name": "v2026.11.22.01",
+    "name": "2026.11.22.01 (Superseded)",
+    "draft": false,
+    "prerelease": false,
+    "body": "Built by GitHub Actions from master.\n\n**Superseded:** get the latest release.\n\n**Fixes**\n- A build that was replaced the same day.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.21.02",
+    "tag_name": "v2026.11.21.02",
+    "name": "2026.11.21.02 (Beta)",
+    "draft": false,
+    "prerelease": true,
+    "body": "Built by GitHub Actions from master.\n\n**Fixes**\n- A pre-release for testing.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.20.01",
+    "tag_name": "v2026.11.20.01",
+    "name": "2026.11.20.01",
+    "draft": false,
+    "prerelease": false,
+    "body": "Built by GitHub Actions from master.\n\n**Fixes**\n- The release the player ran before.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  },
+  {
+    "html_url": "https://github.com/tigin-backwards/oni-moono/releases/tag/v2026.11.18.01",
+    "tag_name": "v2026.11.18.01",
+    "name": "2026.11.18.01",
+    "draft": false,
+    "prerelease": false,
+    "body": "Built by GitHub Actions from master.\n\n**Fixes**\n- An older release.\n\nInstall or update: download the archive for your system, extract it, and run the setup in the `oni-moono` folder (Windows: double-click `setup.cmd`; Linux: `./setup.sh`). If you already set it up, running the new setup is enough.\n"
+  }
+]

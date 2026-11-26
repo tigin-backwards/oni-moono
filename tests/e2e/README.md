@@ -247,6 +247,8 @@ game_args: [-moddev, --baz=1]    # arguments for the game: after the original's 
                                  # executable in ours' Steam form (`-- …/OxygenNotIncluded ARGS`)
 update_check: {releases: update-releases.json, tag: v2026.11.01.04}   # ours' update check reads this
                                  # fixtures file as GitHub's releases list, as that release (else: none)
+                                 # (`releases: none`: no check); `notes: FILE` (fixtures) the "Updated"
+                                 # badge's notes file, `previous: 2026.11.20.01` the version last run
 setup: [...]                     # steps run first; the only place for driver setup.call
 steps: [...]
 ```

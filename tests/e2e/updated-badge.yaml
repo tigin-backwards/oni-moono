@@ -1,0 +1,21 @@
+# The main menu's "Updated" badge (in the update badge's slot): this build counts as
+# v2026.11.26.01, the version run before was 2026.11.20.01, the Update check reads nothing and
+# the notes come from a notes file as the Workshop item's (fixtures/update-notes.json). The badge
+# shows the tag and its tooltip the notes of the three normal releases since 2026.11.20.01,
+# newest first (the superseded release and the pre-release left out). Ours only (`--player ours`).
+from: main-menu
+tweaks_menu: true
+update_check: {releases: none, tag: v2026.11.26.01, notes: update-notes.json, previous: 2026.11.20.01}
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - ui_wait: {path: "**/MoonoUpdateBadge", cond: stable, frames: 600}
+  - expect_ui:
+      "**/MoonoUpdateBadge/**/Headline": {text: "Moo! Moono was updated"}
+      "**/MoonoUpdateBadge/**/Version": {text: "v2026.11.26.01"}
+  - shot: menu
+  - scroll: {at: "**/MoonoUpdateBadge", notches: 0}
+  - ui_wait: {path: "**/ToolTipScreen/**/MultitooltipContainer/LabelPrefab", cond: text, value: "~2026.11.22.02"}
+  - shot: {name: tooltip, pointer: stay}

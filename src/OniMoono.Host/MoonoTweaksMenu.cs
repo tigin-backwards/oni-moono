@@ -126,21 +126,36 @@ namespace OniMoono.Host
             }
 
             // The update badge beside the button: the check runs in the background from now on.
-            if (effective.UpdateCheck)
+            // In the same slot, the "Updated" badge (Updated) on the first launches after Moono
+            // updated, whatever the check's setting: its notes from the Workshop item's notes
+            // file, else from the releases list the check reads.
+            var tag = UpdateCheck.CurrentTag();
+            var notice = Updated.Begin(EngineConfig.PersistentDataPath, tag, EngineLog.Engine);
+            var workshop = OniMoono.Host.Install.VersionedStart.UpdatesFrom;
+            List<MoonoRelease>? notes = null;
+            if (notice != null)
+                notes = Updated.ReadNotes(Environment.GetEnvironmentVariable("ONI_UPDATE_NOTES") is { Length: > 0 } forced ? forced
+                    : workshop != null ? Path.Combine(workshop, Updated.NotesFile) : null, EngineLog.Engine);
+            bool check = effective.UpdateCheck;
+            if (!check && notice == null) return;
+            bool beta = GameVersionCheck.ThisIsBeta;
+            if (check) UpdateCheck.Start(EngineConfig.PersistentDataPath, beta, EngineLog.Engine, workshop, updated: notice != null && notes == null);
+            Func<string[]?> poll = () =>
             {
-                UpdateCheck.Start(EngineConfig.PersistentDataPath, GameVersionCheck.ThisIsBeta, EngineLog.Engine, OniMoono.Host.Install.VersionedStart.UpdatesFrom);
-                Func<string[]?> poll = () => !UpdateCheck.Done ? null
-                    : UpdateCheck.Result is { } found ? [found.Tag, found.Url, found.Notes, found.Truncated ? "1" : "0"] : [];
-                try
-                {
-                    GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.UpdateBadge", throwOnError: true)!.GetMethod("Install")!
-                        .Invoke(null, [poll]);
-                }
-                catch (Exception e)
-                {
-                    var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
-                    EngineLog.Engine($"update badge: not installed: {cause.GetType().Name}: {cause.Message}");
-                }
+                if (check && !UpdateCheck.Done) return null;
+                var badge = Updated.Badge(check ? UpdateCheck.Result : null, notice, tag ?? "", notes ?? (check ? UpdateCheck.Listed : null), beta);
+                return badge == null ? [] : [badge.Updated ? "updated" : "available", badge.Tag, badge.Url, badge.Notes, badge.Truncated ? "1" : "0"];
+            };
+            Action dismissed = () => Updated.Dismissed(EngineLog.Engine);
+            try
+            {
+                GameTweaks.GameTweaks.TypedAssembly.GetType("OniMoono.GameTweaks.UpdateBadge", throwOnError: true)!.GetMethod("Install")!
+                    .Invoke(null, [poll, dismissed]);
+            }
+            catch (Exception e)
+            {
+                var cause = e is System.Reflection.TargetInvocationException { InnerException: { } inner } ? inner : e;
+                EngineLog.Engine($"update badge: not installed: {cause.GetType().Name}: {cause.Message}");
             }
         }
     }

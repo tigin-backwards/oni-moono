@@ -49,6 +49,8 @@ namespace OniMoono.Host.GameTweaks
             ("LATER", "LATER", "The dialog's button beside Restart"),
             ("UPDATE_HEADLINE", "Moo! An update is available", "The main menu's update badge, first line"),
             ("UPDATE_MORE", "…more on the release page", "The update badge's tooltip, last line, when the notes are cut"),
+            ("UPDATE_NO_NOTES", "Click to see what changed on the release page.", "The update badge's tooltip when there are no notes to show"),
+            ("UPDATED_HEADLINE", "Moo! Moono was updated", "The main menu's badge after Moono updated, first line (the version is the second)"),
             ("OVERLAP_REWRITES", "{0} also patches {1} (it rewrites the game's code).", "A row's tooltip: a mod's transpiler on a method the tweak changes; {0}: the mod, {1}: the methods"),
             ("OVERLAP_SKIPS", "{0} also patches {1} (it can skip the game's code).", "A row's tooltip: a mod's prefix that can skip a method the tweak replaces; {0}: the mod, {1}: the methods"),
             ("OVERLAP_PATCHES", "{0} also patches {1}.", "A row's tooltip: a mod's other patches of methods the tweak changes; {0}: the mod, {1}: the methods"),
