@@ -18,14 +18,23 @@
 # unscaled frame time (NormalCamUpdate), and a dot is about a pixel wide at these sizes, so a
 # fraction of a pixel shows or hides it. Each shot snaps the camera first (SnapTo, through
 # camera.set) to about where the sequence leaves it.
+#
+# The test mod also holds off OniMcp's speech bubble, which every MCP call (the shot's own
+# screenshot too) shows at the pointer: the original on Windows reads the real pointer, so its
+# bubble sat elsewhere and after-reveal was 1.2% over 40 against it for that alone.
 from: prehistoric1
 test_mods: [FrozenImpactorTestMod]
 setup:
   - driver: {setup.call: {target: "Game.Instance", method: Trigger, args: [1633134300, {"$": "all:POITechItemUnlockWorkable::[0].gameObject"}]}}
 steps:
   - ui_wait: {path: "**/LargeImpactorSequenceReticle/CalculatingImpactSection/label", cond: exists, frames: 600}
-  # The sequence moves the camera to the surface, below the planet, and shows its card.
-  - run: {seconds: 20, speed: 1}
+  # The sequence moves the camera to the surface, below the planet, shows its card and unfolds the
+  # landing zone's grid, all in real time; at its end it gives the camera back and unpauses.
+  # The notification's state then folds the grid after 3 + 2 game seconds. Playing 20 s from the
+  # card left the shots at whatever point the frame rate gave: a slow D3D11 run with the debug
+  # layer was past the fold, others not. So the shots wait for the sequence's end and pause.
+  - wait_state: {state: {"CameraController.Instance.DisableUserCameraControl": false}, seconds: 90}
+  - call: {tool: game_control, args: {domain: speed, action: pause, confirm: true}}
   - driver: {camera.set: {pos: [119, 270.6], ortho: 22.75}}
   - shot: {name: after-reveal}
   - driver: {camera.set: {pos: [119, 270.2], ortho: 30}}

@@ -20,6 +20,11 @@ namespace FrozenImpactorTestMod
     /// is long over; not 0, as the grid's program takes the start's sign), the random numbers
     /// 0.5. Nothing else changes. A method whose reads are not the ones listed fails the load, so
     /// a new build cannot pass unfrozen.
+    ///
+    /// OniMcp's speech bubble is held off too: each MCP call, the shot's screenshot included,
+    /// shows its `task` text for 5 s at Input.mousePosition (ToolCallSpeechOverlay.ShowBubble).
+    /// The original on Windows reads the real pointer, wherever it is, so the bubble moved
+    /// between the players and covered part of after-reveal's notifications.
     public sealed class Mod : UserMod2
     {
         const float Time = 1000f, EntryStart = 1f, RandomValue = 0.5f;
@@ -30,6 +35,22 @@ namespace FrozenImpactorTestMod
             harmony.Patch(AccessTools.Method(typeof(ParallaxBackgroundObject), "LateUpdate"), transpiler: new HarmonyMethod(typeof(Mod), nameof(Planet)));
             harmony.Patch(AccessTools.Method(typeof(LargeImpactorVisualizerEffect), "OnPostRender"), transpiler: new HarmonyMethod(typeof(Mod), nameof(Grid)));
             UnityEngine.Debug.Log("FrozenImpactor: installed");
+        }
+
+        // OniMcp is another Local mod, loaded in no set order with this one.
+        public override void OnAllModsLoaded(Harmony harmony, IReadOnlyList<KMod.Mod> mods)
+        {
+            base.OnAllModsLoaded(harmony, mods);
+            var overlay = AccessTools.TypeByName("OniMcp.ToolCallSpeechOverlay") ?? throw new InvalidOperationException("FrozenImpactor: no OniMcp ToolCallSpeechOverlay");
+            var show = AccessTools.Method(overlay, "ShowBubble") ?? throw new InvalidOperationException("FrozenImpactor: no ToolCallSpeechOverlay.ShowBubble");
+            harmony.Patch(show, prefix: new HarmonyMethod(typeof(Mod), nameof(NoBubble)));
+            UnityEngine.Debug.Log("FrozenImpactor: OniMcp's speech bubble held off");
+        }
+
+        static bool NoBubble(ref bool __result)
+        {
+            __result = false;
+            return false;
         }
 
         static readonly MethodInfo UnscaledTime = AccessTools.PropertyGetter(typeof(UnityEngine.Time), nameof(UnityEngine.Time.unscaledTime));
