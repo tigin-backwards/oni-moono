@@ -1,0 +1,20 @@
+# Issue #128: Default Deconstruct (2798967122) postfixes FilteredDragTool.GetDefaultFilters with
+# `ref Dictionary<string, ToggleState> filters`, but U59 made the argument a `ToggleData[]`. The
+# original player reads the array as a dictionary with no buckets: ContainsKey is false, the
+# mod logs that it found no keys, and the Deconstruct tool keeps the game's filters. Ours read
+# the array's length as the bucket array and died of an access violation while the colony
+# loaded.
+#
+# Our test mod (tools/PatchTypesTestMod) has a postfix in the mod's shape, which asks for the
+# All and Buildings keys when the Deconstruct tool is set up. The colony loads, the postfix
+# finds neither key, and the tool's eight filters are the game's.
+from: early-base
+test_mods: [PatchTypesTestMod]
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "type:PatchTypesTestMod.Probe::Done": true
+      "type:PatchTypesTestMod.Probe::Null": false
+      "type:PatchTypesTestMod.Probe::HasAll": false
+      "type:PatchTypesTestMod.Probe::HasBuildings": false
+      "DeconstructTool.Instance.currentFilters.Length": 8

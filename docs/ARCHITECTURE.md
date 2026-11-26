@@ -1828,6 +1828,19 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   the downloaded Workshop mods (U60 764025) finds 4 such patches in 3 mods: Pipe Color
   Overlay, Multi Channel Utilities and Pinned Resource List Extended (which fails to load in the
   original player). Five more take such a field by `ref` and keep it.
+  **An array for a class gets an object with no field set.** An argument, or a `ref` one, whose
+  declared class is not an array but gets an array gets an object of the declared class made
+  with no constructor run and every field zero (`RuntimeHelpers.GetUninitializedObject`), from a
+  local for a `ref` one. Default Deconstruct (2798967122) postfixes
+  `FilteredDragTool.GetDefaultFilters` with `ref Dictionary<string, ToggleState> filters`; U59
+  made the argument a `ToggleData[]`. Mono lays out a class's reference fields first, and the
+  first one reads the array's bounds, null for an array of one dimension: the dictionary has no
+  buckets, `ContainsKey` is false, and the mod logs that it found no keys. CoreCLR read the
+  array's length there as the bucket array, and the process died of an AccessViolationException
+  while a colony loaded (issue #128). Our test mod tools/PatchTypesTestMod has a postfix in the
+  mod's shape: in both players it finds neither key and the Deconstruct tool keeps the game's
+  eight filters (tests/e2e/issue-128-patch-array-as-class.yaml). The patch's writes to a `ref`
+  one go to the local, so the game's argument stays its array.
 - **D66 The Direct3D 11 device runs Unity's Direct3D 11 programs and reports Direct3D11.** The
   Windows build's data carries Unity's Direct3D 11 programs (shader platform 4, DXBC) for every
   shader, and on Windows the Direct3D 11 device runs those unmodified, with the conventions of

@@ -941,6 +941,41 @@ namespace OniMoono.Host
                 return counted == 3 ? "the unrelated field gets null (the postfix throws NullReferenceException), __instance, the argument and a ref field the real object; a List<int> field declared for an IEnumerable<int> one counts its 3 items"
                     : throw new InvalidOperationException($"ListPostfix counted {counted} of the list's 3 items");
             });
+            Check("A mod's postfix declaring a Dictionary for an array argument by reference (PatchParameterTypes, #128)", () =>
+            {
+                PatchFrames.Install();
+                // As Default Deconstruct's postfix of FilteredDragTool.GetDefaultFilters: `ref
+                // Dictionary<string, int> filters` for an `out int[]`. On Mono the dictionary reads
+                // no buckets (the array's bounds) and ContainsKey is false; CoreCLR read the
+                // array's length as the buckets (an access violation). The postfix gets a
+                // dictionary with no field set, and its write to it leaves the game's array.
+                var module = System.Reflection.Emit.AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("ModCheck.ArrayAsClass"),
+                    System.Reflection.Emit.AssemblyBuilderAccess.Run).DefineDynamicModule("ArrayAsClass");
+                var type = module.DefineType("ArrayAsClass", TypeAttributes.Public | TypeAttributes.Abstract | TypeAttributes.Sealed);
+                var dictionary = typeof(Dictionary<string, int>);
+                var has = type.DefineField("Has", typeof(int), FieldAttributes.Public | FieldAttributes.Static);
+                // Postfix(ref Dictionary<string, int> filters): Has = filters.ContainsKey("All") ? 1 : 0,
+                // then filters = new Dictionary<string, int>().
+                var postfix = type.DefineMethod("Postfix", MethodAttributes.Public | MethodAttributes.Static, typeof(void), [dictionary.MakeByRefType()]);
+                postfix.DefineParameter(1, ParameterAttributes.None, "filters");
+                var il = postfix.GetILGenerator();
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0); il.Emit(System.Reflection.Emit.OpCodes.Ldind_Ref);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldstr, "All");
+                il.Emit(System.Reflection.Emit.OpCodes.Callvirt, dictionary.GetMethod("ContainsKey")!);
+                il.Emit(System.Reflection.Emit.OpCodes.Stsfld, has);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0); il.Emit(System.Reflection.Emit.OpCodes.Newobj, dictionary.GetConstructor(Type.EmptyTypes)!);
+                il.Emit(System.Reflection.Emit.OpCodes.Stind_Ref); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                var mod = type.CreateType();
+                var fill = typeof(ArrayFilters).GetMethod(nameof(ArrayFilters.Fill))!;
+                if (PatchParameterTypes.Mismatches(fill, mod.GetMethod("Postfix")!) is not [{ Blank: true, Unrelated: false }])
+                    throw new InvalidOperationException("Postfix: the array argument not found for a blank object");
+                mod.GetField("Has")!.SetValue(null, -1);
+                new HarmonyLib.Harmony("OniMoono.Host.CheckArrayAsClass").Patch(fill, postfix: new HarmonyLib.HarmonyMethod(mod.GetMethod("Postfix")));
+                var filters = new ArrayFilters().Get();
+                int found = (int)mod.GetField("Has")!.GetValue(null)!;
+                return found == 0 && filters is { Length: 8 } ? "the postfix gets a dictionary with no field set: ContainsKey is false, as on Mono, and the game's array of 8 stays"
+                    : throw new InvalidOperationException($"ContainsKey {found} (0 expected), the game's filters {filters?.GetType().Name ?? "null"} of {filters?.Length}");
+            });
             Check("A Harmony prefix on a method an earlier patch's replacement calls (PatchDependents)", () =>
             {
                 PatchDependents.Install();
@@ -3055,6 +3090,19 @@ namespace OniMoono.Host
         {
             public Dictionary<int, int> dict = new() { [1] = 0 };
             public List<int> list = [1];
+        }
+
+        /// The #128 check's patched class: an `out int[]` argument, as FilteredDragTool.GetDefaultFilters.
+        sealed class ArrayFilters
+        {
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            public int[] Get()
+            {
+                Fill(out var filters);
+                return filters;
+            }
+            [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+            public void Fill(out int[] filters) => filters = new int[8];
         }
 
         sealed class UnrelatedOverlay

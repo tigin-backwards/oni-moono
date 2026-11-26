@@ -41,26 +41,44 @@ namespace OniMoono.Host
     /// the first unrelated one on are stored in locals and loaded back with null in its place.
     /// Arguments, `__instance` and `ref` fields keep the real object, as on Mono: MaterialColor's
     /// `Tag[] tags`, given a HashSet<Tag>, only checks its length, which reads non-zero on both.
+    ///
+    /// An argument (or a `ref` one) whose declared class is not an array but gets an array gets an
+    /// object of the declared class with no field set (issue #128). Default Deconstruct's postfix
+    /// of FilteredDragTool.GetDefaultFilters declares `ref Dictionary<string, ToggleState>
+    /// filters`, a `ToggleData[]` since U59. Mono lays out a class's reference fields first, and
+    /// the first one reads the array's bounds, null for an array of one dimension: the
+    /// dictionary has no buckets, ContainsKey is false, and the mod logs that it found no keys.
+    /// CoreCLR reads the array's length there as the bucket array (an access violation). The
+    /// patch's writes to a `ref` one go to a local, so the game's argument stays its array.
     internal static class PatchParameterTypes
     {
         static readonly HashSet<(MethodBase, Module, int)> checkedPatches = new();
-        static readonly Dictionary<(MethodBase, Module, int), int[]> nulled = new();
+        static readonly Dictionary<(MethodBase, Module, int), Replaced[]> replaced = new();
         static readonly object gate = new();
         static Func<MethodInfo, IEnumerable<(ParameterInfo info, string realName)>>? originalParameters;
         static readonly HashSet<string> special = ["__originalMethod", "__args", "__result", "__resultRef", "__state", "__exception", "__runOriginal"];
         static FieldInfo config = null!, configOriginal = null!, configIl = null!;
         static bool installed;
+        static readonly MethodInfo getTypeFromHandle = typeof(Type).GetMethod(nameof(Type.GetTypeFromHandle))!;
+        static readonly MethodInfo uninitialized = typeof(System.Runtime.CompilerServices.RuntimeHelpers).GetMethod(
+            nameof(System.Runtime.CompilerServices.RuntimeHelpers.GetUninitializedObject))!;
 
         /// The mismatches found so far (for the self-check).
         public static int Found { get; private set; }
 
         /// A parameter of a patch method whose argument's declared type does not convert to its type.
         /// `Unrelated`: a `___field` (not by reference) of a class sharing no base class but object
-        /// with the field's; such a parameter gets null.
-        public readonly record struct MismatchedParameter(int Position, string Name, Type Declared, Type Argument, bool Unrelated)
+        /// with the field's; such a parameter gets null. `Blank`: an argument or a `ref` one of a
+        /// class that is not an array, given an array; it gets an object of that class with no
+        /// field set.
+        public readonly record struct MismatchedParameter(int Position, string Name, Type Declared, Type Argument, bool Unrelated, bool Blank = false)
         {
             public override string ToString() => $"`{Name}` is {Declared} and gets {Argument}";
         }
+
+        /// A parameter Harmony's argument is replaced for: null, or (`Blank` set) an object of that
+        /// class with no field set, by reference when `ByRef`.
+        readonly record struct Replaced(int Position, Type? Blank, bool ByRef);
 
         /// The parameters Harmony emits for a patch method (MethodCreatorTools.EmitCallParameter):
         /// an unrelated `___field` one gets null; `harmony` is PatchFrames'.
@@ -95,21 +113,26 @@ namespace OniMoono.Host
                 return;
             }
             if (mismatches.Count == 0) return;
-            var nulls = new List<int>();
+            var replace = new List<Replaced>();
             var related = new List<MismatchedParameter>();
+            var parameters = patch.GetParameters();
             foreach (var m in mismatches)
-                if (m.Unrelated) nulls.Add(m.Position);
+                if (m.Unrelated) replace.Add(new Replaced(m.Position, null, false));
+                else if (m.Blank) replace.Add(new Replaced(m.Position, m.Declared, parameters[m.Position].ParameterType.IsByRef));
                 else related.Add(m);
             lock (gate)
             {
                 Found++;
-                if (nulls.Count > 0) nulled[key] = [.. nulls];
+                if (replace.Count > 0) replaced[key] = [.. replace];
             }
             string what = $"patch parameter types: {patch.Module.Assembly.GetName().Name} ({owner}) {patch.DeclaringType?.FullName}.{patch.Name} on "
                 + $"{original.DeclaringType?.FullName}.{original.Name}: ";
-            if (nulls.Count > 0)
+            if (mismatches.Any(m => m.Unrelated))
                 EngineLog.Engine(what + string.Join(", ", mismatches.Where(m => m.Unrelated))
                     + "; fields of a class unrelated to theirs, so the patch gets null for them");
+            if (mismatches.Any(m => m.Blank))
+                EngineLog.Engine(what + string.Join(", ", mismatches.Where(m => m.Blank))
+                    + "; arrays for a class, so the patch gets an object of its class with no field set, as Mono reads the array");
             if (related.Count > 0)
             {
                 bool kept = PatchInliners.KeepCalls(patch);
@@ -170,7 +193,9 @@ namespace OniMoono.Host
                 if (argument.IsByRef) argument = argument.GetElementType()!;
                 if (Holds(declared, argument)) continue;
                 bool unrelated = field && !byRef && Unrelated(declared, argument);
-                found.Add(new MismatchedParameter(parameter.Position, parameter.Name ?? realName, declared, argument, unrelated));
+                bool blank = !field && realName != "__instance" && argument.IsArray && !declared.IsArray && !declared.IsAbstract
+                    && Unrelated(declared, argument);
+                found.Add(new MismatchedParameter(parameter.Position, parameter.Name ?? realName, declared, argument, unrelated, blank));
             }
             return found;
         }
@@ -197,30 +222,36 @@ namespace OniMoono.Host
         }
 
         /// After Harmony emits the arguments of a call of `patch` (one value per parameter, but the
-        /// first when a postfix passes its result through): from the first unrelated parameter on,
-        /// they are stored in locals and loaded back, each unrelated one replaced by null. Patches
-        /// without one are not looked at.
+        /// first when a postfix passes its result through): from the first replaced parameter on,
+        /// they are stored in locals and loaded back, each replaced one by null or by an object of
+        /// its class with no field set (from a local, for a `ref` one). Patches without one are not
+        /// looked at.
         static void CallParameters(object __0, MethodInfo __1, bool __2, List<CodeInstruction> __result)
         {
             if (__result == null || __0 == null || __1 == null) return;
             var settings = config.GetValue(__0);
             if (configOriginal.GetValue(settings) is not MethodBase original) return;
-            int[]? nulls;
+            Replaced[]? replace;
             lock (gate)
             {
-                if (nulled.Count == 0 || !nulled.TryGetValue((original, __1.Module, __1.MetadataToken), out nulls)) return;
+                if (replaced.Count == 0 || !replaced.TryGetValue((original, __1.Module, __1.MetadataToken), out replace)) return;
             }
             var parameters = __1.GetParameters();
             int start = __2 && __1.ReturnType != typeof(void) && parameters.Length > 0 && parameters[0].ParameterType == __1.ReturnType ? 1 : 0;
+            var at = new Replaced?[parameters.Length];
             int first = int.MaxValue;
-            foreach (int n in nulls)
-                if (n >= start && n < parameters.Length) first = Math.Min(first, n);
+            foreach (var r in replace)
+                if (r.Position >= start && r.Position < parameters.Length)
+                {
+                    at[r.Position] = r;
+                    first = Math.Min(first, r.Position);
+                }
             if (first == int.MaxValue) return;
             var generator = (ILGenerator)configIl.GetValue(settings)!;
             var locals = new LocalBuilder?[parameters.Length];
             for (int j = parameters.Length - 1; j >= first; j--)
             {
-                if (Array.IndexOf(nulls, j) >= 0)
+                if (at[j] != null)
                     __result.Add(new CodeInstruction(OpCodes.Pop));
                 else
                 {
@@ -229,7 +260,25 @@ namespace OniMoono.Host
                 }
             }
             for (int j = first; j < parameters.Length; j++)
-                __result.Add(locals[j] is { } kept ? new CodeInstruction(OpCodes.Ldloc, kept) : new CodeInstruction(OpCodes.Ldnull));
+            {
+                if (locals[j] is { } kept)
+                    __result.Add(new CodeInstruction(OpCodes.Ldloc, kept));
+                else if (at[j] is { Blank: { } blank } r)
+                {
+                    __result.Add(new CodeInstruction(OpCodes.Ldtoken, blank));
+                    __result.Add(new CodeInstruction(OpCodes.Call, getTypeFromHandle));
+                    __result.Add(new CodeInstruction(OpCodes.Call, uninitialized));
+                    __result.Add(new CodeInstruction(OpCodes.Castclass, blank));
+                    if (r.ByRef)
+                    {
+                        var local = generator.DeclareLocal(blank);
+                        __result.Add(new CodeInstruction(OpCodes.Stloc, local));
+                        __result.Add(new CodeInstruction(OpCodes.Ldloca, local));
+                    }
+                }
+                else
+                    __result.Add(new CodeInstruction(OpCodes.Ldnull));
+            }
         }
     }
 }
