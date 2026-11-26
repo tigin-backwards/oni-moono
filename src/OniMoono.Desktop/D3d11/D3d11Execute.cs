@@ -449,21 +449,32 @@ namespace OniMoono.Desktop.D3d11
             ("BLENDWEIGHTS", 0, -1), ("BLENDINDICES", 0, -1),
         ];
 
+        /// Where one of the 14 elements reads from (ElementSource).
+        internal enum ElementSource { Channel, Filler, Constant, None }
+
+        /// The source of one of the original's 14 elements: the mesh's channel when it has one;
+        /// else, when the program reads the element, a constant (the original binds a channel a
+        /// program reads but the mesh lacks from its slot 1, COLOR0 R8G8B8A8_UNORM at offset 4,
+        /// d3d11-captures.md §3, not from the vertex's own bytes: Klei/DLC4/DemoliorBackground
+        /// reads COLOR0 of a mesh without colours, and drew black reading the position's first
+        /// byte, j0009887; with the constant it matches the original, j0009885); else, when the
+        /// mesh has positions, the original's R8_UNORM filler at slot 0, offset 0; else nothing.
+        internal static ElementSource SourceOf(bool fed, bool read, bool slot0)
+            => fed ? ElementSource.Channel : read ? ElementSource.Constant : slot0 ? ElementSource.Filler : ElementSource.None;
+
         /// The program's input layout for a mesh layout (made on first use), as the original's
         /// (d3d11-captures.md §3, item 7 settled in M8): the 14 elements it always declares, in
-        /// its order. A channel the mesh has: slot = the channel, its format, per vertex. One it
-        /// lacks, read or not: R8_UNORM at slot 0, offset 0, per vertex, as the original's layouts
-        /// give every such element; slot 0 is the position channel, which starts each vertex
-        /// there as the original's interleaved slot 0 does, so a program reading it gets the same
-        /// bytes (CreateInputLayout validates only the elements the signature names; "the input
-        /// layout can contain elements that are not used by the shader", Remarks). A mesh without
-        /// positions has no slot 0: then an input it lacks reads a constant (below) and an unread
-        /// element is left out. An input the signature names outside the 14: a slot of its own
-        /// after the channels', per instance with InstanceDataStepRate 0, which "takes special
-        /// meaning, that the instance data should never be stepped at all" (Direct3D 11.3
-        /// Functional Specification §8.1.3), reading OpenGL's constant (ConstantOffset);
-        /// components a format lacks read 0, and alpha 1 (§19.1.3.3). Null when the layout cannot
-        /// be made (logged).
+        /// its order (SourceOf). A channel the mesh has: slot = the channel, its format, per
+        /// vertex. One it lacks and the program does not read: R8_UNORM at slot 0, offset 0, per
+        /// vertex, as the original's layouts give such elements (CreateInputLayout validates only
+        /// the elements the signature names; "the input layout can contain elements that are not
+        /// used by the shader", Remarks); left out for a mesh without positions, which has no
+        /// slot 0. One it lacks and the program reads, and an input the signature names outside
+        /// the 14: a slot of its own after the channels', per instance with InstanceDataStepRate
+        /// 0, which "takes special meaning, that the instance data should never be stepped at
+        /// all" (Direct3D 11.3 Functional Specification §8.1.3), reading OpenGL's constant
+        /// (ConstantOffset); components a format lacks read 0, and alpha 1 (§19.1.3.3). Null when
+        /// the layout cannot be made (logged).
         D3d11Layout Layout(D3d11Shaders program, long key, MeshLayout layout)
         {
             if (program.Layouts.TryGetValue(key, out var known)) return known.Layout == null ? null : known;
@@ -516,14 +527,22 @@ namespace OniMoono.Desktop.D3d11
             {
                 int read = Array.FindIndex(inputs, x => x.Index == index && string.Equals(x.Semantic, semantic, StringComparison.OrdinalIgnoreCase));
                 if (read >= 0) covered[read] = true;
-                if (Fed(c)) elements[count++] = FedElement(read >= 0 ? inputs[read].Semantic : semantic, index, c);
-                else if (slot0)
-                    elements[count++] = new D3D11_INPUT_ELEMENT_DESC
-                    {
-                        SemanticName = SemanticName(read >= 0 ? inputs[read].Semantic : semantic), SemanticIndex = index,
-                        Format = DXGI_FORMAT.DXGI_FORMAT_R8_UNORM, InputSlot = 0, AlignedByteOffset = 0,
-                    };
-                else if (read >= 0 && !Constant(inputs[read])) return TooMany();
+                switch (SourceOf(Fed(c), read >= 0, slot0))
+                {
+                    case ElementSource.Channel:
+                        elements[count++] = FedElement(read >= 0 ? inputs[read].Semantic : semantic, index, c);
+                        break;
+                    case ElementSource.Filler:
+                        elements[count++] = new D3D11_INPUT_ELEMENT_DESC
+                        {
+                            SemanticName = SemanticName(semantic), SemanticIndex = index,
+                            Format = DXGI_FORMAT.DXGI_FORMAT_R8_UNORM, InputSlot = 0, AlignedByteOffset = 0,
+                        };
+                        break;
+                    case ElementSource.Constant:
+                        if (!Constant(inputs[read])) return TooMany();
+                        break;
+                }
             }
             for (int i = 0; i < inputs.Length; i++)
                 if (!covered[i] && !Constant(inputs[i])) return TooMany();
