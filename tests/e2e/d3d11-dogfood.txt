@@ -1,0 +1,44 @@
+# The Windows dogfood on Direct3D 11 (docs/research/d3d11-plan.md, done criterion 9): both
+# players on Windows, ours on Direct3D 11 with the debug layer, covering what scripts/qa.sh's
+# Linux dogfood scenarios cover (the menu, a new game, a colony, overlays, research, resize and
+# full screen, save and load) and the release list's rendering, UI and saving specs that need no
+# mod:
+#   E2E_PLAYER_ARGS='--renderer d3d11 --d3d11-debug' scripts/e2e-windows/run.py --player both \
+#     --list tests/e2e/d3d11-dogfood.txt
+# or in parts, one Windows job each, naming a part's specs in place of --list
+# (loading-animation-d3d11 with --player ours).
+
+# Play
+early-base                          # dig, build, chores, pathing from the landing
+u60-start-aquatic                   # a new game on the newest DLC's start, embark
+
+# Rendering
+paused-overlays                     # every overlay of a loaded colony, close up
+issue-47-missile-trail              # particle shader trail (#47)
+issue-57-colony-summary-charts      # UI lines' ZTest (#57)
+gas-view                            # the gas shader where gases meet
+issue-71-space-overlay              # the space overlay
+research-pan                        # the research screen, panned
+issue-75-debug-screenshot-8x        # a super-sized screenshot
+timelapse-background-writes         # timelapse snapshots
+loading-animation-d3d11 ours        # the loading animation on Direct3D 11's presenter
+
+# UI and input
+menu-tiles                          # the main menu and its tiles
+scroll-zoom                         # wheel zoom and scrolling per notch
+consumables-scroll                  # table screen ScrollRects in step
+build-menu-search                   # build menu search grid layout
+geyser-title                        # details screen title (#12)
+issue-48-click-cycle                # selection cycling through a stack (#48)
+issue-23-storage-row-click          # a destroyed object's row clicked (#23)
+unreachable-materials               # the build menu's materials, reachability
+sandbox-search                      # sandbox pickers' filter fields
+
+# Saving and loading
+overlap-manual                      # pause-menu save and Save and Quit during an autosave
+load-screen-many-saves              # the Load screen with many saves
+
+# Windowing
+screen-dpi                          # Screen.dpi
+fullscreen-window-resolution        # fullscreen at a lower resolution, pointer mapping
+issue-108-fullscreen-over-panel     # fullscreen over a model desktop panel (#108)
