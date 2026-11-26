@@ -243,7 +243,15 @@ namespace OniMoono.Desktop.D3d11
                 EngineLog.Engine($"d3d11: {t.Format} has no automatic mip generation on this device; render texture '{name}' keeps its levels above 0 as cleared");
             // A sample count the device has for the format (CheckMultisampleQualityLevels: a
             // combination it lacks gives a failure or 0 quality levels), and its depth's: the
-            // next lower power of two otherwise, logged once.
+            // next lower power of two otherwise, logged once. A format that cannot be a
+            // multisampled target or be resolved (D3D11_FORMAT_SUPPORT's MULTISAMPLE_RENDERTARGET
+            // and MULTISAMPLE_RESOLVE; the texture is resolved before it is sampled) gets 1.
+            if (t.Samples > 1 && !FormatHas(t.Format, D3D11_FORMAT_SUPPORT.D3D11_FORMAT_SUPPORT_MULTISAMPLE_RENDERTARGET | D3D11_FORMAT_SUPPORT.D3D11_FORMAT_SUPPORT_MULTISAMPLE_RESOLVE))
+            {
+                if (fewerSamples.Add((t.Format, t.Samples)))
+                    EngineLog.Engine($"d3d11: {t.Format} cannot be a resolved multisampled target on this device; render texture '{name}' gets 1 sample, not {t.Samples}");
+                t.Samples = 1;
+            }
             if (t.Samples > 1)
             {
                 int asked = t.Samples;
