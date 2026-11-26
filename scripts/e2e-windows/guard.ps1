@@ -30,6 +30,9 @@ while (-not $p -and (Get-Date) -lt $deadline) {
 }
 if (-not $p) { L "no process"; exit 1 }
 L "pid $($p.Id) $($p.ProcessName)"
+# The handle held from now on, so ExitCode can be read after the process ends (a Process that
+# never opened one reports none).
+$null = $p.Handle
 $last = ''
 while (-not $p.HasExited) {
     $p.Refresh()
@@ -53,4 +56,7 @@ while (-not $p.HasExited) {
     }
     Start-Sleep -Milliseconds 100
 }
-L "exited"
+# The exit code, for a game that ended on its own mid-run (0xC000xxxx: a crash; 1: our quit
+# error; 70: a crash-at fault; -1 or 1 from TerminateProcess by another process).
+$code = try { $p.WaitForExit(); '0x{0:X8}' -f $p.ExitCode } catch { 'unknown' }
+L "exited, exit code $code"
