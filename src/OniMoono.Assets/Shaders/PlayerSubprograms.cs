@@ -48,11 +48,33 @@ namespace OniMoono.Assets.Shaders
         /// (`m_SubPrograms`; keywords as global then local indices into the pass's name table,
         /// the subprogram's own `m_Parameters`; no parameter blobs). Subprograms of other
         /// platforms, and Direct3D 11 ones without `m_Parameters` (Unity 2018's layout, whose
-        /// program table is not read), are left out. Of subprograms with the same keywords only
-        /// those of the highest hardware tier are kept (desktop Direct3D 11 is tier 3; every
-        /// 2020.3 Direct3D 11 subprogram of the Workshop mods read is tier 3 alone, d3d11-plan.md
-        /// M7). Damaged or unexpected fields throw InvalidDataException.
-        public static IEnumerable<PlayerSubprogram> Legacy(Fields pass, string stage)
+        /// program table is not read), are left out. Only hardware tier 3's are kept: Unity's
+        /// manual (2020.3, "Graphics tiers") puts "Desktop: OpenGL, Metal, Vulkan, DirectX 11+" in
+        /// Tier 3 and says Unity "only loads the variants for the active tier"; every 2020.3
+        /// Direct3D 11 subprogram of the Workshop mods read is tier 3 (d3d11-plan.md M7,
+        /// docs/research/d3d11/m7-mod-survey.txt). Damaged or unexpected fields throw
+        /// InvalidDataException.
+        public static IEnumerable<PlayerSubprogram> Legacy(Fields pass, string stage) => Guarded(() => LegacyOf(pass, stage));
+
+        /// The parsed form's casts and lookups throw other exceptions on damaged fields
+        /// (InvalidCastException, KeyNotFoundException, FormatException, OverflowException):
+        /// InvalidDataException for all, as the reader promises.
+        static T Guarded<T>(Func<T> read)
+        {
+            try
+            {
+                return read();
+            }
+            catch (Exception e) when (e is InvalidCastException or KeyNotFoundException or FormatException or OverflowException or NullReferenceException)
+            {
+                throw new System.IO.InvalidDataException($"A 2020.3 pass with damaged fields: {e.Message}", e);
+            }
+        }
+
+        /// Desktop Direct3D 11's hardware tier ("Graphics tiers": Tier 3).
+        const int DesktopTier = 3;
+
+        static List<PlayerSubprogram> LegacyOf(Fields pass, string stage)
         {
             if (!pass.Contains(stage)) return [];
             var program = pass.Struct(stage);
@@ -75,18 +97,27 @@ namespace OniMoono.Assets.Shaders
                         keywords.Add(names.TryGetValue(k, out var name) ? name : throw new System.IO.InvalidDataException($"Shader pass keyword index {k} has no name."));
                 if (sub["m_Parameters"] is not Fields parameters) throw new System.IO.InvalidDataException("A 2020.3 subprogram's m_Parameters is not a structure.");
                 int tier = sub.Contains("m_ShaderHardwareTier") ? Number("m_ShaderHardwareTier") : 0;
+                if (tier != DesktopTier) continue;
                 found.Add((new PlayerSubprogram(stage, type, (int)blob, -1, keywords.ToArray(), parameters), tier));
             }
-            var best = new Dictionary<string, int>(StringComparer.Ordinal);
-            string Key(string[] k) => string.Join("\n", System.Linq.Enumerable.Order(k, StringComparer.Ordinal));
-            foreach (var (sub, tier) in found)
-                best[Key(sub.Keywords)] = Math.Max(tier, best.GetValueOrDefault(Key(sub.Keywords), int.MinValue));
-            return found.FindAll(f => f.Tier == best[Key(f.Sub.Keywords)]).ConvertAll(f => f.Sub);
+            return found.ConvertAll(f => f.Sub);
+        }
+
+        /// Whether a 2020.3 subprogram's own `m_Parameters` holds nothing: every field null or an
+        /// empty list (SerializedProgramParameters' fields are all lists). The player refuses one
+        /// that holds anything, and ShaderSurvey counts it as a failure, by this one rule.
+        public static bool EmptyParameters(Fields own)
+        {
+            foreach (var item in own.Items)
+                if (item.Value is not (object[] { Length: 0 } or null)) return false;
+            return true;
         }
 
         /// Whether a pass stage has Direct3D 11 subprograms of Unity 2018's layout (one keyword
         /// index list, no m_Parameters), which are not read.
-        public static bool Has2018D3d11(Fields pass, string stage)
+        public static bool Has2018D3d11(Fields pass, string stage) => Guarded(() => Has2018Of(pass, stage));
+
+        static bool Has2018Of(Fields pass, string stage)
         {
             if (!pass.Contains(stage) || !pass.Struct(stage).Contains("m_SubPrograms")) return false;
             foreach (var item in pass.Struct(stage).Array("m_SubPrograms"))
@@ -97,7 +128,9 @@ namespace OniMoono.Assets.Shaders
         }
 
         /// The pass's name table (`m_NameIndices`: name → index), as index → name.
-        public static Dictionary<int, string> Names(Fields pass)
+        public static Dictionary<int, string> Names(Fields pass) => Guarded(() => NamesOf(pass));
+
+        static Dictionary<int, string> NamesOf(Fields pass)
         {
             var names = new Dictionary<int, string>();
             foreach (var item in pass.Array("m_NameIndices"))

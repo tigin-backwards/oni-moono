@@ -222,7 +222,7 @@ namespace OniMoono.Assets.Tests
             ("progVertex", F(("m_SubPrograms", subs.Cast<object>().ToArray()))));
 
         [Fact]
-        public void A2020PassListsItsDirect3D11SubprogramsOfTheHighestTier()
+        public void A2020PassListsItsDirect3D11SubprogramsOfTier3()
         {
             var pass = Pass2020(
                 Sub2020(GpuProgramTypes.GLCore32, 0, [3], [], 3),
@@ -238,6 +238,8 @@ namespace OniMoono.Assets.Tests
             Assert.True(PlayerSubprograms.Has2018D3d11(pass, "progVertex"));
             Assert.False(PlayerSubprograms.Has2018D3d11(Pass2020(Sub2020(GpuProgramTypes.D3D11VertexSM40, 1, [], [], 3)), "progVertex"));
             Assert.Equal(2, D3d11Variants.OfLegacy(pass).Vertex.Length);
+            // A keyword set with tier 1's subprogram alone: none (desktop Direct3D 11 loads tier 3).
+            Assert.Empty(PlayerSubprograms.Legacy(Pass2020(Sub2020(GpuProgramTypes.D3D11VertexSM40, 1, [3], [], 1)), "progVertex"));
         }
 
         [Fact]
@@ -249,6 +251,11 @@ namespace OniMoono.Assets.Tests
             Assert.Throws<InvalidDataException>(() => PlayerSubprograms.Legacy(Pass2020(F(("m_GpuProgramType", (sbyte)GpuProgramTypes.D3D11VertexSM40), ("m_Parameters", F()),
                 ("m_GlobalKeywordIndices", Array.Empty<ushort>()), ("m_LocalKeywordIndices", Array.Empty<ushort>()))), "progVertex").ToArray());
             Assert.Single(PlayerSubprograms.Legacy(Pass2020(Sub2020(GpuProgramTypes.GLCore32, 0, [9], [], 3), Sub2020(GpuProgramTypes.D3D11VertexSM40, 1, [], [], 3)), "progVertex"));
+            // A name table entry of the wrong kind, and a keyword list of the wrong type, are
+            // damage too (casts that would throw InvalidCastException).
+            var badNames = F(("m_NameIndices", new object[] { "FOG" }), ("progVertex", F(("m_SubPrograms", new object[] { Sub2020(GpuProgramTypes.D3D11VertexSM40, 1, [], [], 3) }))));
+            Assert.Throws<InvalidDataException>(() => PlayerSubprograms.Legacy(badNames, "progVertex").ToArray());
+            Assert.Throws<InvalidDataException>(() => PlayerSubprograms.Has2018D3d11(F(("progVertex", "not a structure")), "progVertex"));
         }
 
         [Fact]

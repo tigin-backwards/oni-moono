@@ -92,10 +92,16 @@ namespace OniMoono.Engine.Rendering
             }
             catch (System.IO.InvalidDataException e)
             {
-                EngineLog.Engine($"d3d11: a pass of a 2020.3 shader has unreadable Direct3D 11 subprograms, which are not drawn: {e.Message}");
+                System.Threading.Interlocked.Increment(ref LegacyUnreadable);
+                EngineLog.Engine($"d3d11: pass '{Name}' of 2020.3 shader '{ShaderName}' has unreadable Direct3D 11 subprograms, which are not drawn: {e.Message}");
                 return D3d11Variants.Empty;
             }
         }
+        /// Passes of 2020.3 shaders whose Direct3D 11 subprograms could not be read (each a
+        /// failure of --check-shaders).
+        public static int LegacyUnreadable;
+        /// The shader's name, for the log.
+        public string ShaderName = "";
         D3d11Variants d3d11Variants;
         /// The shader's keyword names, and whether it is a legacy (pre-parsed-form) shader.
         public string[] KeywordNames;
@@ -282,6 +288,7 @@ namespace OniMoono.Engine.Rendering
                 Lod = s.Int("m_LOD"),
                 Passes = s.Array("m_Passes").Cast<Fields>().Select(p => new ShaderPass
                 {
+                    ShaderName = ShaderName,
                     Name = p.Struct("m_State").String("m_Name"),
                     Type = p.Int("m_Type"),
                     UseName = p.String("m_UseName"),

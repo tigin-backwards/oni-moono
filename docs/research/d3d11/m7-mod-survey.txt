@@ -1,0 +1,12 @@
+# tools/ShaderSurvey d3d11-bundles over the Workshop mods' bundles (out/ws), 2026-11-25, d3d11-m7 after
+# the 2020.3 reader (d3d11-plan.md M7); kept here at M8's review so the cited counts stay.
+11 shaders with D3D11 programs serialized by Unity 2018 (another program table), not read
+chunk sets: ISGN+OSGN+SHDR 1975, ISGN+OSGN+SHEX 70, RDEF+ISGN+OSGN+SHDR+STAT+SPDB 56
+program types: 15:vs_4_0 1052, 16:vs_5_0 30, 17:ps_4_0 979, 18:ps_5_0 40
+vertex input (channel->component) pairs: 0->0 1231, 1->1 828, 3->3 892, 4->5 1152, 5->6 860, 6->7 38
+prefix bytes 0 and 4-37: [0]=2 2101
+constant buffer bindings' second int: progFragment:0 893, progFragment:1 755, progVertex:0 884, progVertex:1 3565
+bindings checked: 2147 textures (28 without a sampler), 4 inline samplers, 6097 constant buffers
+sampler slots two or more textures of one subprogram name: 0
+2020.3 Direct3D 11 subprograms by hardware tier: tier 3 1722
+162 shaders, 231 passes, 2378 subprograms, 2101 distinct entries (8006348 DXBC bytes), 5 Vulkan variant keys mapped, 0 failures

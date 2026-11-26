@@ -43,8 +43,9 @@ namespace OniMoono.Assets.Shaders
 
         /// A pass of a shader serialized by Unity 2020.3 (PlayerSubprograms.Legacy, which leaves
         /// out Unity 2018's subprograms: their program table is not read, and the original's
-        /// TextMeshPro cannot use the fonts of the only 2018 bundles the mods have, d3d11-plan.md
-        /// M7). Throws InvalidDataException for damaged data.
+        /// TextMeshPro cannot use the fonts of the two mods' 2018 bundles with Direct3D 11
+        /// programs, the Japanese Font Patch's and Font Loader for Traditional Chinese's,
+        /// d3d11-plan.md M7). Throws InvalidDataException for damaged data.
         public static D3d11Variants OfLegacy(Fields pass)
         {
             var stages = new PlayerSubprogram[PlayerSubprograms.Stages.Length][];

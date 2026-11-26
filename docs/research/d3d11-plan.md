@@ -2303,11 +2303,12 @@ no mod can select them, as M3 part C found for the game).
 | Portal Network 2968184715, PortalNetwork+ 3790434066 | 2020.3 | draws the ice hit and fire thrower (Cartoon FX) | **nothing drawn** | j0009683, j0009695 |
 | Spring Festival 3152316922 | 2020.3 | draws the petals | **nothing drawn** | j0009681, j0009695 |
 | Japanese Font Patch 3135364297 | 2018.3 | cannot use the fonts (material null) | same | j0009669, j0009695 |
+| Font Loader for Traditional Chinese 2119648603 | 2018.4 | broken in the original (MOD_COMPATIBILITY: FaceInfo) | its two TMP shaders logged as an older layout, not drawn | j0009694 (added at M8's review) |
 | Aki's Extra Twitch Events 2990227046 | 2022.3 + 2020.3 | mod fails to load | same | j0009669, j0009686 |
 | Forcefield Projectors 3568684741 | 6000.3 | draws the shield | draws, as the original | j0009684 `shield` |
 | Simplified Chinese fonts 3561866116 | 6000.3 | draws the labels in its fonts | same (labels identical; the original's spec label masked) | j0009688 `plan` |
 | MAGNET!!! 3637202410 | 6000.3 | field not turned on in this harness | same | j0009684 (FieldOn false in both) |
-| the other 25 (22 that swap in the game's shaders, 3 broken) | U60 or 2020.3 | not drawn (the mods replace the bundle shaders, or fail) | their programs build clean | M0 research; j0009679 |
+| the other 24 (22 that swap in the game's shaders, 2 broken) | U60 or 2020.3 | not drawn (the mods replace the bundle shaders, or fail) | their programs build clean | M0 research; j0009679 |
 
 - **Portal Network ×2 and Spring Festival: open.** Ours simulates their particles as the
   original (74 against 77, 118 against 116 alive, j0009695) and Shader.isSupported is true, but

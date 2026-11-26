@@ -242,9 +242,8 @@ static class D3d11Survey
                         {
                             if (!GpuProgramTypes.IsD3D11(Convert.ToInt32(sp["m_GpuProgramType"]))) continue;
                             Tally(t.LegacyTiers, $"tier {sp["m_ShaderHardwareTier"]}");
-                            foreach (var item in sp.Struct("m_Parameters").Items)
-                                if (item.Value is object[] { Length: > 0 })
-                                    Fail(t, o, $"{where} {Data.NameOf(shader)} {stage}: a 2020.3 subprogram with its own {item.Key}");
+                            if (!PlayerSubprograms.EmptyParameters(sp.Struct("m_Parameters")))
+                                Fail(t, o, $"{where} {Data.NameOf(shader)} {stage}: a 2020.3 subprogram with its own m_Parameters");
                         }
     }
 

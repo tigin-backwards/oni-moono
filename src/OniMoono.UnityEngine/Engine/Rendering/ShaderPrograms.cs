@@ -200,8 +200,7 @@ namespace OniMoono.Engine.Rendering
                 var key = (pass, sub.Stage, -2 - sub.BlobIndex);
                 if (parameters.TryGetValue(key, out var p)) return p;
                 // SerializedProgramParameters' fields are all lists: any item in one is refused.
-                foreach (var item in own.Items)
-                    if (item.Value is not object[] { Length: 0 } and not null) throw new InvalidDataException($"A 2020.3 subprogram with its own parameters ({item.Key}) is not read.");
+                if (!PlayerSubprograms.EmptyParameters(own)) throw new InvalidDataException("A 2020.3 subprogram with its own parameters (m_Parameters) is not read.");
                 var entry = D3d11(sub.BlobIndex);
                 if (!entry.Legacy) throw new InvalidDataException("A 2020.3 subprogram whose program entry is of U60's layout.");
                 p = ShaderParameters.Merge(PlayerSubprograms.Common(pass, sub.Stage, PlayerSubprograms.Names(pass)), ShaderParameters.ReadInline(entry.LegacyTail));

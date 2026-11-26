@@ -140,6 +140,10 @@ namespace OniMoono.Desktop.D3d11
         /// not read: a shader with normal passes all of whose Direct3D 11 subprograms are of that
         /// layout (PlayerSubprograms.Has2018D3d11) is not drawn. A shader with no normal pass
         /// (UsePass and GrabPass alone) keeps 4: the recorder resolves its used passes.
+        /// Shaders PlatformOf found with Direct3D 11 programs it could not read, not of an older
+        /// layout (each a failure of --check-shaders).
+        public static int Unreadable;
+
         public static uint PlatformOf(ShaderNative shader)
         {
             int known = shader.D3d11Readable;
@@ -148,17 +152,31 @@ namespace OniMoono.Desktop.D3d11
             if (!shader.HasProgramsFor(ShaderNative.D3D11Platform)) why = "has no Direct3D 11 programs";
             else if (shader.SubShaders.Length > 0 && Array.TrueForAll(shader.SubShaders, s => Array.TrueForAll(s.Passes, p => p.Legacy)))
             {
-                bool normal = false, readable = false, of2018 = false;
+                bool normal = false, readable = false, of2018 = false, damaged = false;
                 foreach (var sub in shader.SubShaders)
                     foreach (var pass in sub.Passes)
                     {
                         if (pass.Type != 0) continue;
                         normal = true;
                         if (!pass.D3d11.IsEmpty) readable = true;
-                        foreach (var stage in PlayerSubprograms.Stages) of2018 |= PlayerSubprograms.Has2018D3d11(pass.Data, stage);
+                        try
+                        {
+                            foreach (var stage in PlayerSubprograms.Stages) of2018 |= PlayerSubprograms.Has2018D3d11(pass.Data, stage);
+                        }
+                        catch (System.IO.InvalidDataException)
+                        {
+                            damaged = true;
+                        }
                     }
                 if (normal && !readable)
-                    why = of2018 ? "has Direct3D 11 programs of Unity 2018's layout, which are not read" : "has no Direct3D 11 programs this device reads";
+                {
+                    // Subprograms without m_Parameters are Unity 2018's layout, or 2019's and
+                    // early 2020.3's (m_Parameters came with 2020.3.2): none is read.
+                    bool older = of2018 && !damaged;
+                    why = older ? "has Direct3D 11 programs of a layout before Unity 2020.3.2 (Unity 2018's or 2019's), which are not read"
+                        : "has no Direct3D 11 programs this device reads";
+                    if (!older) System.Threading.Interlocked.Increment(ref Unreadable);
+                }
             }
             if (why != null)
                 lock (reported)

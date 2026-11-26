@@ -25,9 +25,10 @@ namespace OniMoono.Desktop.D3d11
         public static bool CheckPrograms;
 
         /// Programs that failed, were refused (but for the unreachable ones), subprograms no
-        /// keyword set selects, input layouts that could not be made, and debug-layer messages
-        /// (--check-shaders).
-        public static int CheckFailures => D3d11Programs.Failures + D3d11Programs.Refused - D3d11Programs.RefusedUnreachable + checkUnselected + checkLayoutFailures + checkDebugMessages + checkNotCreated;
+        /// keyword set selects, input layouts that could not be made, debug-layer messages, and
+        /// shaders or 2020.3 passes whose programs could not be read (--check-shaders).
+        public static int CheckFailures => D3d11Programs.Failures + D3d11Programs.Refused - D3d11Programs.RefusedUnreachable + checkUnselected + checkLayoutFailures + checkDebugMessages + checkNotCreated
+                                           + D3d11Programs.Unreadable + ShaderPass.LegacyUnreadable;
 
         /// checkNotCreated: stage entries no built program holds and no accepted, unreachable
         /// program explains (each a failure).
@@ -61,7 +62,8 @@ namespace OniMoono.Desktop.D3d11
                     EngineLog.Engine($"d3d11 check: '{shader.ShaderName}' has no Direct3D 11 programs");
                     continue;
                 }
-                // Unity 2018's layout (mods' bundles): not read, and not drawn (logged by PlatformOf).
+                // A layout before Unity 2020.3.2 (mods' bundles): not read, and not drawn (logged by
+                // PlatformOf); unreadable programs count as failures there.
                 if (D3d11Programs.PlatformOf(shader) == 0)
                 {
                     EngineLog.Engine($"d3d11 check: '{shader.ShaderName}' has Direct3D 11 programs this device does not read");
