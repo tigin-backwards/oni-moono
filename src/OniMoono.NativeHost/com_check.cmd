@@ -22,7 +22,8 @@ call "%VCVARS64%" >nul || exit /b 1
 cl /nologo /std:c++17 /W4 /WX /Zs com_check.cpp || exit /b 1
 cl /nologo /std:c++17 /W4 /WX /Zs /DCOM_CHECK_IIDS com_check.cpp || exit /b 1
 for /f "tokens=3,4" %%a in ('findstr /b /c:"// export: " com_check.cpp') do call :export %%a %%b || exit /b 1
-echo com_check.cpp: every declaration matches the Windows SDK headers (Windows SDK %WindowsSDKVersion:\=%, MSVC %VCToolsVersion%)
+for /f "tokens=*" %%v in ('ver') do set OSVER=%%v
+echo com_check.cpp: every declaration matches the Windows SDK headers (Windows SDK %WindowsSDKVersion:\=%, MSVC %VCToolsVersion%; exports of %OSVER%)
 exit /b 0
 
 :export
