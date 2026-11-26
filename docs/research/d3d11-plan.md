@@ -74,7 +74,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M0 | Research: probes of the original, RenderDoc captures, threading/perf measurement, mod API scan, demand count, tooling; this plan | Every convention has a measured or cited answer | done 2026-11-22: reviewed (17 findings fixed, re-measured); remaining unknowns assigned to M2–M7 in `d3d11-captures.md` |
 | M1 | Program reader for platform 4 | All 960 game entries and 652 mod entries parse, validate and match their DXBC declarations in unit tests | done 2026-11-22: reviewed (findings fixed), check.sh green (j0008164); prep commit on master (7c5476eec) |
 | M2 | Device bring-up, own swap chain | Main menu draws, debug layer clean, pixel-diff tooling against OpenGL | reviewed; review fixes 2026-11-23 ("M2 review fixes"); the BatchedAnimationUI debug-layer warning decided by the user 2026-11-23 (denied in the storage filter, M3): done |
-| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. Open for the user: the impactor's 2 coverage shots unjudged (under half stable) |
+| M3 | Full draw feature set | A colony plays; scene-set pixel parity | part A 2026-11-23: three colonies draw, debug layer clean (the RTV warning denied, the user's decision), scene set and tolerance defined, M3 UNVERIFIED settled or moved. Part B 2026-11-23: criterion 1's proof decided (a validation run makes all 1,070 subprograms but the 68 refused programs; play draws 49 of 121 shaders; the rest accounted for by their references), the research and mid-game starmap scenes fixed, the overlays' light pools fixed as the original draws them (cameras to the screen into a render texture), 75 of 75 scenes within the tolerance. Part C 2026-11-23: the 68 refused programs accepted as unreachable (the user's decision; the check counts them apart and exits 0), the bundle's two shader copies checked, the 38 settled: 13 drawn (62 of 121 shaders in play), 20 shown unreachable, 4 reachable and not drawn, 1 not traced; 8 new scenes, 5 within (the sky judged against Vulkan, which equals the original there: the original's own D3D11 mirrors the northern lights against GL), 1 over (nav lines two rows thick) and 2 unjudged. Open: that one over (UNVERIFIED, M4: what the original draws), 5 shaders not drawn (4 reachable, Standard not traced), how the original hands its camera texture to the screen (UNVERIFIED, M4). Review fixes 2026-11-24 ("M3 review fixes"): 9 findings fixed or settled; draws to the screen during cameras land in the camera screen (the Timelapser's freeze frame), the debug layer stores everything but the RTV warning (nothing above INFO was hidden), the check exempts only the accepted 68, both UNVERIFIED items closed (the original's own lines are two rows thick), the 5 shaders drawn (67 of 121 in play), 83 of 85 scenes within. The impactor's 2 coverage shots judged 2026-11-26 ("The impactor's shots judged"): within against the original's D3D11, 85 of 85; one object (the orbital background, OrbitalBG) drawn black on D3D11, open |
 | M4 | Presentation and frame pacing | Repeats, splash, loading animation, HDR, fullscreen/resize matrix | 2026-11-24 ("M4"): the original observed (its screen in a typeless texture drawn into buffer 0 last; its main thread waits on the waitable once a frame; nothing presented during a load); the device presents from two screen textures of its own, with repeats, the splash, the loading animation and refresh-paced frame deltas on the device thread; menu, loading animation and the landing's 22 scenes pass, debug layer clean. Open: captures UNVERIFIED 10 and the full-screen matrix (runs on the user's desktop, listed), the HDR check and Auto HDR (#112; no monitor in HDR), the mod-kanim loading spec (mod gate). Review fixes 2026-11-24 ("M4 review fixes"): 8 items fixed or recorded; the repeat's waitable pairing observed balanced over 1,001 repeats (the discarded case still UNVERIFIED); the presenter's own program accepted by the user. Desktop runs 2026-11-24 ("M4 desktop runs"): the original's full screen observed (captures 10 settled but for its chain inside exclusive), Loading Pip passes (0 pixels differ), ours through windowed/borderless/stretch/exclusive clean (j0009137). Focused exclusive observed (j0009185: the original's is DXGI's own, a blt DISCARD chain in DXGI's full-screen state; it goes windowed on losing the focus; ours minimizes). HDR on the HDR monitor (j0009190, j0009200): the original and ours composed as SDR at the 240-nit SDR white level, no Auto HDR boost (Auto HDR most likely off). Exclusive full screen made the original's (the user's "Match original"; j0009222: DXGI's own, windowed on losing the focus, debug layer clean; proof j0009211); Auto HDR engages for both when forced (j0009213). Second review fixes 2026-11-24 ("M4 second review fixes"). Final review 2026-11-24 ("M4 final review"): 3 findings fixed (a37817cf2), the refused-exclusive path ruled documented and observed in the original, not blocking (its fault hook goes in M5): done |
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | 2026-11-24 ("M5"): ONI_D3D11_FAIL hooks at the 7 start-up steps (each falls back to Vulkan, logged; no guard line left), a removed device from Present (the quit error, exit 1), DXGI_STATUS_MODE_CHANGED (the buffers made again) and the refused exclusive (a fullscreen window), all observed (j0009347); the start-up guard as Vulkan's (keyed by the driver's version, CheckInterfaceSupport; crash-at observed), honoured under auto only, which did not try D3D11 yet (it does from M6); no driver deny entry (none has evidence), software refused under auto; the GPU choice rule kept: the original's device on EnumAdapters1's 0, which is also high performance's first (j0009349). A real TDR (dxcap -forcetdr): DEVICE_RESET, the quit error, exit 1 (j0009366); the four focus/mode/load items run on the desktop (j0009359, j0009360, j0009361, j0009367; a monitor move not run, needs monitor 1). The quit error stays on screen until OK (the user's decision, both devices). Review: done | done |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | 2026-11-25 ("M6"): the main thread is the bottleneck on every save measured, the device thread busy 3.5-7 ms and waited for under 0.1 ms a frame; the largest avoidable cost, the texture upload path (a managed copy of every level, about 1.1 GB/s, and whole re-uploads), fixed: 38.4 → 50.7 fps and p99 86 → 34 ms on the RTX 3090, 32.5 → 41.1 fps on the iGPU (j0009577, j0009580, j0009585); the per-draw binding filters measured no gain and dropped. The rule's table (j0009589, j0009634-j0009638): two RTX 3090 cells fail, so Direct3D 11 is the fallback after Vulkan; the iGPU cells pass by 13-37%, and the user decided (2026-11-25) that auto defaults to Direct3D 11 when Vulkan's GPU choice is an integrated GPU (observed both ways, j0009656). Reviews: 3 (milestone, the iGPU change twice), fixed. check.sh green (j0009657): done |
@@ -1004,8 +1004,8 @@ j0008867 and j0008868, Vulkan j0008871, the sky's reference; no debug-layer mess
 | debug/navgrid | 2.29% | 94.3% | 0.137% | 0.128% | 31.8 dB | **over** (> 40) |
 | debug/scanner | 2.25% | 94.2% | 0.010% | 0.001% | 46.8 dB | within |
 | rockets/launch-conditions | 0.13% | 99.7% | 0.006% | 0.000% | 58.7 dB | within |
-| impactor/after-reveal | 7.05% | 34.6% | 0.331% | 0.269% | 38.1 dB | unjudged |
-| impactor/impactor-world | 3.69% | 45.4% | 0.017% | 0.002% | 53.6 dB | unjudged |
+| impactor/after-reveal | 7.05% | 34.6% | 0.331% | 0.269% | 38.1 dB | unjudged (within since 2026-11-26, below) |
+| impactor/impactor-world | 3.69% | 45.4% | 0.017% | 0.002% | 53.6 dB | unjudged (within since 2026-11-26, below) |
 | sky (against Vulkan, below) | 0.00% | 99.8% | 0.007% | 0.000% | | within |
 
 - **navgrid** (over by 0.028 points). The differing pixels are the grid's horizontal lines
@@ -1032,7 +1032,7 @@ j0008867 and j0008868, Vulkan j0008871, the sky's reference; no debug-layer mess
   behaviour, so D3D11 is right; `scenes.py` judges this scene against the Vulkan run
   (`VULKAN_REFERENCE`), which equals D3D11 there: 0.007% over 16, 0.000% over 40. Klei/
   LargeImpactorFragments and DemoliorBackground draw in the same shot.
-- **impactor** (unjudged). The planet's material gets `_Random` from Random.value and
+- **impactor** (unjudged; judged within on 2026-11-26, "The impactor's shots judged"). The planet's material gets `_Random` from Random.value and
   `_UnscaledTime` every frame (ParallaxBackgroundObject.LateUpdate) and the reveal animates in
   real time, so two OpenGL runs agree on under half the image. Drawn, not judged.
 
@@ -1059,8 +1059,8 @@ Coverage in play (`coverage.py` over the D3D11 runs: part B's and j0008866, j000
 | Lines/Colored Blended | drawn, over | debug/navgrid, above |
 | Klei/NorthernLights | drawn, within (against Vulkan, which equals the original) | sky, above |
 | Klei/LargeImpactorFragments | drawn, within (the same shot) | sky |
-| Klei/DLC4/DemoliorBackground | drawn, unjudged; also in sky | impactor (BGPlanet, ParallaxBackgroundObject) |
-| Klei/PostFX/LargeImpactorVisualizerShader | drawn, unjudged | impactor |
+| Klei/DLC4/DemoliorBackground | drawn, unjudged (within since 2026-11-26); also in sky | impactor (BGPlanet, ParallaxBackgroundObject) |
+| Klei/PostFX/LargeImpactorVisualizerShader | drawn, unjudged (within since 2026-11-26) | impactor |
 | Unlit/VirtualCursorCutoutShader | drawn once, no comparable shot | the dropped gamepad spec, above |
 | Klei/Standard Unlit | reachable, not drawn | long_smoke_trail on LongRangeMissileSmokeTrailFX's TrailFX2; instantiated in particles, nothing drew (why not traced: open) |
 | Klei/AnimationInvisible | reachable, not drawn | only LargeComet sets MaterialType.Invisible: the Demolior's crash, at the event's end |
@@ -1320,16 +1320,17 @@ original. Whether a mod's could is M7's.
 | Coverage specs (A-C) | 11 | 2.37% | 93% | 0.122% | 0.092% | 33.7 dB | 11 of 11 (sky against Vulkan, navgrid against the original) |
 | Freeze frame | 1 | 0.00% | 100% | 0.235% | 0.085% | 42.2 dB | 1 of 1 |
 | Gamepad | 1 | 1.71% | 94% | 0.010% | 0.001% | 48.9 dB | 1 of 1 |
-| Impactor | 2 | | 45-48% | | | | unjudged |
+| Impactor | 2 | | 45-48% | | | | unjudged (2026-11-26: 2 of 2 within, below) |
 
-83 of 85 scenes are within the tolerance; the 2 impactor shots are unjudged. Every scene of done
+83 of 85 scenes are within the tolerance; the 2 impactor shots are unjudged (judged within on
+2026-11-26: 85 of 85). Every scene of done
 criterion 3's set is within.
 
 **State of M3 under the Rules.** No UNVERIFIED note of M3 is open: the hand-over (finding 1)
 and the navigation grid (finding 5) are closed. What remains for the user's word before M3 is
 marked done:
 - the impactor's two coverage shots, drawn and debug-layer clean, but unjudged (under half the
-  image stable);
+  image stable; judged within on 2026-11-26, "The impactor's shots judged");
 - the loading screens of criterion 3's set, which stay M4's (animated; M4 owns the loading
   animation), as part A recorded.
 
@@ -1339,6 +1340,83 @@ run j0009020 (5,557 dropped, which led to the limit); the scene set on D3D11 j00
 j0009023; OpenGL j0009024; the original j0009025 (navgrid, freeze); the impactor on Vulkan and
 the original j0009026, its grid program's dump j0009027, the impactor held again (entry start 1 s)
 j0009028; check.sh j0009029 (green, on d391fcd70).
+
+## The impactor's shots judged (2026-11-26, branch `d3d11-impactor`)
+
+The impactor's two coverage shots (`d3d11-coverage-impactor`) had been unjudged since M3 part C:
+two OpenGL runs agreed on under half of each image. Every input that still varied is now held,
+in the spec or in FrozenImpactorTestMod, without changing the game in the player.
+
+**Inputs held fixed:**
+- The planet's `_UnscaledTime` and `_Random`, and the grid's fold check, `_EntryStartTime` and
+  `_UnscaledTime` (FrozenImpactorTestMod since the M3 review fixes: 1000 s, 1 s, 0.5).
+- The camera: each shot snaps it first (`camera.set`), as the d3d11-dots branch found
+  (4042d787c, its b86f0dadb cherry-picked). The sequence leaves CameraController easing by
+  unscaled frame time, and a fraction of a pixel shows or hides a grid dot.
+- The animation point (5ddc4d386). LargeImpactorRevealSequence.Sequence (U60 764025) runs in
+  real time, pauses the game, unfolds the grid and at its end gives the camera back and
+  unpauses; LargeImpactorNotificationMonitor then folds the grid after 3 + 2 game seconds
+  (`delayEntry`, FoldTheVisualization). Playing 20 s from the card put the shots wherever the
+  frame rate left the sequence: on master, D3D11 with the debug layer was past the fold (no
+  grid, the Demolior notification shown) while both OpenGL runs were before it (j0009860:
+  D3D11 87% over 8 against OpenGL). The spec now waits for
+  `CameraController.Instance.DisableUserCameraControl` to be false (the sequence's end) and
+  pauses at once.
+- OniMcp's speech bubble (5ddc4d386). Every MCP call, the shot's own screenshot included,
+  shows its `task` text for 5 s at Input.mousePosition (OniMcp ToolCallSpeechOverlay). The
+  original on Windows reads the real pointer, so its bubble sat elsewhere: after-reveal was
+  1.23% over 40 against the original for the bubble alone (OpenGL against the original the
+  same). FrozenImpactorTestMod skips ShowBubble, after all mods load (OniMcp is another Local
+  mod); a build without it fails the load.
+
+**Stability** (two OpenGL runs, the share of the image `scenes.py` compares: the pixels where
+they differ, grown by 3, and the watermark mask left out):
+
+| Held | after-reveal | impactor-world |
+|---|---|---|
+| Nothing (M3 part C) | 34.7% | 45.6% |
+| Material inputs (M3 review fixes) | 44.9% | 48.1% |
+| and the camera (j0009860, 20 s of play) | 98.8% | 98.8% |
+| and the sequence's end, paused, no bubble (j0009867) | 95.4% | 96.8% |
+
+The last row is lower than the third although the game is paused: the pause comes up to a
+quarter second after the sequence ends (`wait_state` polls), so the gas and the sky's
+particles differ between runs by 1 to 3 levels in two patches of the upper left (spread over 8:
+0.007% and 0.009% of pixels). Nothing differs by more than 8 there but a few sky particles.
+
+**Results** (j0009867: ours on D3D11 with the debug layer, OpenGL twice, Vulkan, the original's
+Direct3D 11; part A's tolerance, the OpenGL pair's unstable pixels left out as `scenes.py` does
+for `REFERENCE`):
+
+| Shot | Against | > 16 | > 40 | PSNR | Verdict |
+|---|---|---|---|---|---|
+| after-reveal | D3D11 against the original | 0.202% | 0.040% | 46.1 dB | within |
+| | D3D11 against OpenGL | 0.213% | 0.040% | 45.1 dB | within |
+| | OpenGL against the original | 0.011% | 0.000% | 51.6 dB | within |
+| | Vulkan against the original | 0.016% | 0.001% | 51.3 dB | within |
+| impactor-world | D3D11 against the original | 0.186% | 0.036% | 46.4 dB | within |
+| | D3D11 against OpenGL | 0.190% | 0.036% | 46.1 dB | within |
+| | OpenGL against the original | 0.006% | 0.000% | 57.6 dB | within |
+| | Vulkan against the original | 0.013% | 0.003% | 52.1 dB | within |
+
+The debug layer stored no message above INFO. Both shots are within, so all 85 scenes are,
+and done criterion 3 has no exception left.
+
+**Open: the orbital background drawn black** (observed; within the tolerance, but a real
+difference). Nearly all of D3D11's difference from the original is one object of about 52 by
+63 pixels (624-676, 319-381 in after-reveal), drawn solid black on D3D11 and textured (a dark
+rock) by OpenGL, Vulkan and the original. It is the world's OrbitalBG (OrbitalObject: a
+KBatchedAnimController with `isMovable`, visibility Always, its transform at the orbit's origin,
+y 361, and the anim drawn at an Offset down to the sky behind the surface; found with
+`expect_state` probes, j0009873-j0009881: no grid object, tile or renderer component at those
+cells, and no other anim near). The d3d11-dots runs (2026-11-24, on d3d11-m4 at 3300b8869) drew
+it as the original does at the same camera position, so it is a regression between d3d11-m4 and
+master 287fc57d8 (inference from the two runs; not bisected). No renderer code was changed.
+
+**Runs** (runq, user, owner `impactor-shots`): builds j0009856, j0009866; j0009859 (skipped:
+the worktree had no qa.env); the camera snap alone, 20 s of play, j0009860; the judged set
+j0009867; the OrbitalBG probes j0009870, j0009873-j0009881 (j0009875, j0009878 and j0009880
+failed on a probe expression).
 
 ## M4: presentation and frame pacing (2026-11-24, branch `d3d11-m4`)
 
@@ -2615,7 +2693,7 @@ first run after the merge.
 |---|---|---|---|
 | 1 | Every game shader draws through its shipped DXBC; debug layer clean over all QA | M3: a validation run builds every one of the 1,070 subprograms, play draws 67 of 121 shaders and the rest are accounted for by their references; --check-shaders j0009787, j0009811; 0 debug-layer warnings or errors in every QA run of ours (j0009774, j0009780-j0009783, j0009791, j0009797) | met; refused only the accepted unreachable variants (the 68 of M3, the shadow variants and Hidden/Dither of M8) |
 | 2 | SystemInfo, projection, formats, orientation, ReadPixels, depth bias, swap chain equal to the original's | M2-M4 probes and captures; M7 SystemInfo at 11_1 and 11_0 (j0009688, j0009690); M8 input layouts as the original's (08fcc477a) | met; recorded gaps: compute, sparse and the unused texture-format answers (M7, accepted) |
-| 3 | Pixels within tolerance over the scene set | M3: 83 of 85 scenes within; the impactor's 2 coverage shots unjudged (under half stable, M3) | met but for the impactor's 2 shots, which await the user's judgement |
+| 3 | Pixels within tolerance over the scene set | M3: 83 of 85 scenes within; the impactor's 2 coverage shots within against the original's D3D11 (0.040% and 0.036% over 40, 95% and 97% of the image stable; j0009867, "The impactor's shots judged") | met, 85 of 85; open: the orbital background object drawn black on D3D11 (within the tolerance, a regression since M4) |
 | 4 | Everything the Vulkan device does | M3 (textures, render textures, readbacks, async), M4 (swap chain, repeats, splash, loading animation, HDR, full screen and resize), M5 (guard, deny list, fallback) | met |
 | 5 | Robustness | M5 (a fault hook per start-up step, TDR j0009366, alt-tab, resize, mode change, the GPU rule); the monitor move j0009774 | met |
 | 6 | All mods with shaders draw | M7: every Windows mod bundle's programs build, the 2020.3 layout read, the original first for older formats | met but the user's exceptions: Portal Network, PortalNetwork+, Spring Festival (effect parity, after the merge); MAGNET!!! UNVERIFIED |
