@@ -101,7 +101,8 @@ namespace OniMoono.Desktop.D3d11
         /// A refused variant among the ones accepted as unreachable: the procedural-instancing
         /// variants of the three particle shaders and the five Physics2D debug shaders (structured
         /// buffers), the frame debugger display's _MSAA_ variants and BlitToDepth_MSAA
-        /// (multisample textures).
+        /// (multisample textures), the SHADOWS_* variants with comparison samplers, and
+        /// Hidden/Dither (inline samplers; its mod never loads in the original).
         public static bool AcceptedUnreachable(string shader, string[] keywords, string why) => why switch
         {
             "structured buffers" => shader is "Particles/Standard Surface" or "Particles/Standard Unlit" or "Klei/Standard Unlit"
@@ -110,6 +111,14 @@ namespace OniMoono.Desktop.D3d11
                                             or "Hidden/Physics2D/SDF_Point" or "Hidden/Physics2D/SDF_PolygonGeometry",
             "multisample textures" => shader == "Hidden/BlitToDepth_MSAA"
                                       || shader == "Hidden/FrameDebuggerRenderTargetDisplay" && Array.Exists(keywords, k => k.StartsWith("_MSAA_", StringComparison.Ordinal)),
+            // The user's acceptance (2026-11-25, d3d11-plan.md "M8"): the engine sets no SHADOWS_*
+            // keyword (it renders no real-time shadows; GlPrograms.SamplerTarget) and the game's
+            // code names none, so the shadow-receiving variants that sample with sample_c are
+            // unreachable.
+            "shadow (depth-comparison) samplers" => Array.Exists(keywords, k => k.StartsWith("SHADOWS_", StringComparison.Ordinal)),
+            // Aki's Extra Twitch Events' Hidden/Dither: the mod fails to load in the original
+            // (d3d11-plan.md "M7", accepted), so nothing ever selects it.
+            "inline sampler states" => shader == "Hidden/Dither",
             _ => false,
         };
 
