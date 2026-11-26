@@ -126,6 +126,9 @@ namespace OniMoono.Desktop
                 if (!initialized) Glfw.SetInitHint(GlfwInitHint.Platform, GLFW_ANY_PLATFORM);
             }
             if (!initialized && !(initialized = Glfw.Init())) throw new InvalidOperationException("GLFW could not initialize (no display available).");
+            // Xlib's default handler ends the process on any failed request: a RandR one fails
+            // when a monitor goes before GLFW sees it go (#129).
+            if (Glfw.GetPlatform() == Brutal.GlfwApi.GlfwPlatform.X11) X11Errors.Install(Brutal.GlfwApi.X11.X11Extensions.GetX11Display());
         }
 
         public GlfwPlatform(WindowSettings settings)
