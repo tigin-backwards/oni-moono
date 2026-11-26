@@ -1,7 +1,8 @@
 # Detours across tier-up: the short-code overrun, and a plan
 
 Plan, 2026-11-26, from issue #127 (the game's own `DailyReport.GetEntry` ran with
-compact-report-entries' prefix skipped). No code here yet. It needs the user's go-ahead first.
+compact-report-entries' prefix skipped). Option 1 is done (`src/OniMoono.Host/PatchedTiering.cs`);
+see "Done" at the end.
 
 ## What happens now
 
@@ -84,3 +85,68 @@ detour.
   for GetEntry, and no "Size too small" line.
 - **Perf:** none needed, since nothing that runs changes. A start-up time before and after on one
   colony, as a check.
+
+## Done (option 1)
+
+`PatchedTiering`, installed with the host's first patches (after MonoModLog), is a prefix of
+MonoMod's `PlatformTripleDetourFactory.CreateDetour`, which compiles the method it detours and
+applies the detour. For an IL method eligible for tiering whose native code slot is still empty,
+it clears `enum_flag3_IsEligibleForTieredCompilation` (0x8000 in `m_wFlags3AndTokenRemainder`).
+A prefix there, not on `TryDisableInlining`, because ModLoaderInlining calls that too, on methods
+it does not detour. `ONI_PATCHED_TIERING=0` turns it off; Player.log gets a summary line at quit.
+
+The premise, in the .NET 10.0.13 runtime (`src/coreclr/vm`):
+
+- Eligibility is set once per chunk (`MethodDescChunk::DetermineAndSetIsEligibleForTieredCompilation`,
+  method.cpp), for a type's methods by `MethodTableBuilder` as it builds the type
+  (methodtablebuilder.cpp, "Make sure that eligibility for versionability is computed"), so it is
+  final before reflection can name a method. A set flag means determined and eligible.
+- Call counting starts only once the method has code. `CodeVersionManager::PublishVersionableCodeIfNecessary`
+  (codeversion.cpp) compiles the default code version when `GetNativeCode()` is null and only then
+  publishes it through `CallCountingManager::SetCodeEntryPoint` (callcounting.cpp), the one place
+  a call-counting stub is installed. That function reads the flag again first: with it clear it
+  sets the entry point and counts nothing.
+- With the flag clear before the first compile, the prestub takes a never-eligible method's path:
+  `DoPrestub`'s `IsVersionable()` is false (prestub.cpp), `PrepareILBasedCode` compiles with
+  `shouldTier` false, `TieredCompilationManager::GetJitFlags` gives no tier-0 flags and
+  `GetInitialOptimizationTier` says Optimized (tieredcompilation.cpp). That is the path of a method
+  with AggressiveOptimization, which `DetermineAndSetIsEligibleForTieredCompilation` excludes.
+- `GetNativeCode` reads the native code slot, after the MethodDesc (16 bytes), the optional
+  non-vtable slot (8) and MethodImpl (16) (`GetAddrOfNativeCodeSlot`).
+
+The start-up check emits a probe type and reads two static and two virtual methods' flags and
+code slots before and after `RuntimeHelpers.PrepareMethod`; any mismatch turns it off with a log
+line. A virtual method's `PrepareMethod` compiles nothing until it has a temporary entry point
+(`MethodDesc::IsPointingToPrestub`), so the probe asks for its function pointer first, as MonoMod's
+detour does. A first call racing the patch on another thread: the flag is set back when code
+appeared meanwhile, and otherwise that tier-0 code stays final.
+
+Methods patched before compile are now compiled fully optimised by MonoMod's own compile, so an
+empty method is a 1-byte `ret` at apply time. The apply's jump is not the move's: MonoMod passes
+no size hint there and picks rel32 (5 bytes) or rel32 through a nearby slot (6), Abs64 only when
+it cannot allocate near (`x86_64Arch.ComputeDetourInfo`). The code heap
+(`ExplicitControlLoaderHeap::AllocMemForCode_NoThrow`, 16-byte `CODE_SIZE_ALIGN`) puts the next
+allocation's 8-byte CodeHeader at the earliest 8 bytes past a 1-byte method's start, so a 5- or
+6-byte jump stays in its padding, where the 14-byte move's ran into the header.
+
+Results (2026-11-26, Linux):
+
+- Unit (`PatchedTieringTests`, `MonoModLogTests`; the latter now calls its method before the
+  patch, as a late patch): an empty virtual method and a loop patched before their first call
+  are never compiled again while a method compiled before its patch tiers up beside them; every
+  call runs its prefix.
+- `--check-types`: a new last check, the same three shapes in the host (5,000 calls each).
+- Specs `late-patch`, `issue-52-automation-overlay`, `issue-52-click-cycle-patched` pass;
+  `issue-52-fast-track-no-tiering` is skipped by the mod gate on U60 (Fast Track runs on U59 only).
+- #127's 2minnow Tune Up run with `MONOMOD_LogToFile`: 156 patched methods kept off tier-up, 27
+  compiled before their patch keep tiering, 75 not tiered anyway (stubs, generic code, methods
+  marked AggressiveOptimization). MonoMod's detour moves fell from 146 to 34, all of Harmony's,
+  MonoMod's and the runtime's own methods, which run before they are patched. No move of
+  GetEntry or UpdateCell, no "Size too small", and no MonoModLog short-code line in Player.log.
+
+- Start-up and a CPU-side figure, one pair on a Linux lane of a loaded machine (release QA ran
+  beside it), 2minnow, after a warm-up launch: the save's load (load-times.json, all stages)
+  9.2 s off (`ONI_PATCHED_TIERING=0`) and 9.9 s on, where the warm-up launch, also off, took
+  9.9 s: within the spread. 60 game seconds at speed 3 took 20.9 s wall off (and in the warm-up)
+  and 21.3 s on, 2 % from one pair on a loaded machine; nothing that runs changed (the patched
+  bodies never run), so read as noise, to confirm on Windows if it matters.
