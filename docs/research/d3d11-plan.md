@@ -2541,13 +2541,13 @@ each needs the user's acceptance (the three M7 closed are accepted).
 | The original's adapter on a desktop whose display is on the iGPU, or on a hybrid laptop | plan M5 | not observable on this machine; ours takes what D3D11CreateDevice's default takes, so no claim rests on it. **Open: for the user to accept** |
 | CI's `windows-2025` runner's Windows SDK for the COM check | plan M2 part A | known only when CI runs the branch (never pushed). **Open: for the user to accept, or settled by CI's first run after the merge** |
 
-**QA (criterion 9)**, runq user (the user raised Direct3D 11's priority, 2026-11-25: "Move dx11 higher in priority"; the burndown chain j0009726-j0009736 cancelled before it ran), owner `d3d11-m8` (results below when they land): check.sh
-j0009745; the Windows build j0009746; `--check-shaders` with the mods' bundles j0009748; the
-D3D11 gate (`u60/d3d11-gate`, ours alone, debug layer) and loading-animation-d3d11 j0009749;
-`u60-p2-renderer` with `-force-d3d11` in both players j0009750; the Windows dogfood
+**QA (criterion 9)**, runq user (the user raised Direct3D 11's priority, 2026-11-25: "Move dx11 higher in priority"; the burndown chain j0009726-j0009736 cancelled before it ran; j0009745-j0009752 stopped at a build error of the review fixes, fixed in 759d754d3), owner `d3d11-m8` (results below when they land): check.sh
+j0009766; the Windows build j0009767; `--check-shaders` with the mods' bundles j0009769; the
+D3D11 gate (`u60/d3d11-gate`, ours alone, debug layer) and loading-animation-d3d11 j0009770;
+`u60-p2-renderer` with `-force-d3d11` in both players j0009771; the Windows dogfood
 (`tests/e2e/d3d11-dogfood.txt`: the specs that cover what qa.sh's Linux dogfood scenarios do,
 and the release list's rendering, UI and saving specs without mods; both players, ours on
-Direct3D 11 with the debug layer) j0009751, j0009752; the COM check's M4 mutations j0009747; the
+Direct3D 11 with the debug layer) j0009772, j0009773; the COM check's M4 mutations j0009768; the
 release e2e list (Linux) after the build.
 
 ## Research so far (M0)
