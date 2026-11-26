@@ -86,7 +86,7 @@ namespace OniMoono.Host.GameTweaks
                     all.Add(new(RowKey(row, "TITLE"), row.Title, $"Row title ({row.Id})"));
                     all.Add(new(RowKey(row, "EFFECT"), row.Effect, $"The line under the title ({row.Id})"));
                     if (row.Detail.Length > 0) all.Add(new(RowKey(row, "DETAIL"), row.Detail, $"Tooltip: how it works ({row.Id})"));
-                    foreach (var choice in row.Choices ?? [])
+                    foreach (var choice in row.CatalogChoices ?? row.Choices ?? [])
                         all.Add(new(ChoiceKey(row, choice), ChoiceEnglish(choice), $"A choice on the row's button (shown in capitals) and in its tooltip ({row.Id})"));
                     if (GameTweakNames.GainText(row) is { } gain && gains.Add(gain.Gain))
                         all.Add(new(GainKey(gain.Gain), gain.Text, $"Tooltip: the measured gain ({(row.Gain != null ? row.Id : "every " + group.Title + " row")})"));

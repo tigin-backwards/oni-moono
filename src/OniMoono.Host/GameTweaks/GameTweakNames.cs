@@ -23,13 +23,15 @@ namespace OniMoono.Host.GameTweaks
     /// for the row's tooltip and the docs. `IsTweak` is false for the player's options (the
     /// splash, frame stats, log paths and the GPU), which are rows but not `--game-tweak` names.
     /// `Choices`: a row with more values than on and off (the GPU's), in the order its button
-    /// steps through them; null for a toggle. `ChangesBehaviour`: a tweak outside the groups
+    /// steps through them; null for a toggle. `CatalogChoices`: when the row offers fewer on
+    /// some OS (the renderer's Direct3D 11, Windows only), every choice, so the translation
+    /// catalog is the same on every OS. `ChangesBehaviour`: a tweak outside the groups
     /// that change gameplay (Changes gameplay, Bug fixes) that still changes what the game does a little (off by default, left out
     /// of `exact`). `OnByDefault`: a tweak that changes what the game does (left out of `exact`)
     /// but is on by default all the same (the player's choice: path-probe-repair,
     /// fix-load-screen-clicks, fix-sound-piles, fix-timelapse-snapshots, fix-table-scroll).
     internal sealed record TweakInfo(string Id, TweakGroup Group, string Title, string Effect, string Detail = "", TweakGain? Gain = null, bool IsTweak = true,
-        string[]? Choices = null, bool ChangesBehaviour = false, bool OnByDefault = false)
+        string[]? Choices = null, bool ChangesBehaviour = false, bool OnByDefault = false, string[]? CatalogChoices = null)
     {
         /// The launch option that sets this row (shown in its tooltip); "" for none (update checks).
         public string LaunchOption => Id switch
@@ -128,9 +130,9 @@ namespace OniMoono.Host.GameTweaks
                 + "On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU.",
                 IsTweak: false, Choices: [OniMoono.Host.GpuChoice.Default, OniMoono.Host.GpuChoice.Discrete, OniMoono.Host.GpuChoice.Integrated]),
             new(RendererRow, General, "Renderer", "Which graphics API the game draws with. Needs a restart.",
-                "Auto: Vulkan, or OpenGL when Vulkan can't start on this PC; on Windows Direct3D 11 comes before OpenGL, and first on an integrated GPU. Vulkan: Vulkan whenever it starts (also a software one). "
-                + "OpenGL: the original game's API. The picture is the same; Player.log names the one used and why.",
-                IsTweak: false, Choices: [OniMoono.Desktop.Renderers.Auto, OniMoono.Desktop.Renderers.Vulkan, OniMoono.Desktop.Renderers.OpenGl]),
+                "Auto: Vulkan, falling back to Direct3D 11 (Windows), then OpenGL, if one can't start on this PC; on integrated graphics Direct3D 11 comes first. Vulkan: Vulkan whenever it starts (also a software one). "
+                + "Direct3D 11 (Windows): the original game's API on Windows. OpenGL: its API on Linux. The picture is the same; Player.log names the one used and why.",
+                IsTweak: false, Choices: OniMoono.Desktop.Renderers.TweakChoices(OperatingSystem.IsWindows()), CatalogChoices: OniMoono.Desktop.Renderers.TweakChoices(windows: true)),
             new(DxgiRow, General, "Present through Direct3D on Windows", "Windows shows the game as it shows the original: no forced HDR or brightness. Needs a restart.",
                 "With Vulkan or OpenGL, frames reach the screen through a Direct3D 11 swap chain, as in the original. Off: "
                 + "the renderer presents them, and Auto HDR or RTX HDR can force HDR on the game. "

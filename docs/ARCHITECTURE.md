@@ -2217,7 +2217,8 @@ Direct3D 11 devices render the OpenGL device's pixels. Only mods' shaders withou
 reads are compiled from their GLSL (*Shaders without U60's Vulkan programs* below).
 
 The renderer option (`--renderer auto|vulkan|opengl|d3d11`, settings.json's `renderer`, the
-Moono Tweaks screen's "Renderer" row, which offers auto, Vulkan and OpenGL; `Renderers.Open`)
+Moono Tweaks screen's "Renderer" row, which offers auto, Vulkan, Direct3D 11 (Windows only, an
+opt-in) and OpenGL; `Renderers.Open`)
 picks one:
 
 - **auto and vulkan** try Vulkan first. Any failure to start it (no loader, no GPU with dynamic

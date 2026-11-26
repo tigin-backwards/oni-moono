@@ -11,18 +11,25 @@ namespace OniMoono.Desktop
     /// The renderer choice (the Moono Tweaks screen's "Renderer" row, settings.json's
     /// "renderer", `--renderer`): auto is Vulkan, else OpenGL; on Windows Direct3D 11 comes
     /// after Vulkan, or first on an integrated GPU (Attempts). ARCHITECTURE §3.5. `d3d11`
-    /// (Windows; `--renderer d3d11`, not in the Tweaks row) is the Direct3D 11 device being
-    /// built (docs/research/d3d11-plan.md); when it cannot start, the choice goes on as auto.
+    /// (Windows; `--renderer d3d11`, Unity's -force-d3d11, or the Tweaks row's opt-in) is the
+    /// Direct3D 11 device (docs/research/d3d11-plan.md); when it cannot start, the choice goes
+    /// on as auto.
     internal static class Renderers
     {
         public const string Auto = "auto", Vulkan = "vulkan", OpenGl = "opengl", D3d11 = "d3d11";
         public static readonly string[] Choices = [Auto, Vulkan, OpenGl, D3d11];
         public static bool IsChoice(string value) => Array.IndexOf(Choices, value) >= 0;
 
-        /// What settings.json may hold (the Tweaks screen's choices): d3d11 stays a command-line
-        /// choice until the device ships.
-        public static readonly string[] SettingsChoices = [Auto, Vulkan, OpenGl];
+        /// What settings.json may hold: every choice. d3d11 there off Windows goes on as auto, as
+        /// `--renderer d3d11` does.
+        public static readonly string[] SettingsChoices = [Auto, Vulkan, D3d11, OpenGl];
         public static bool IsSettingsChoice(string value) => Array.IndexOf(SettingsChoices, value) >= 0;
+
+        /// The Tweaks screen's Renderer row, in its order: Direct3D 11 is an opt-in on Windows
+        /// only (the user's decision, 2026-11-25: "Direct 11 should be an optional thing to opt
+        /// in if u want as a tweak"; Unity documents it for Windows alone), so elsewhere the row
+        /// does not offer it.
+        public static string[] TweakChoices(bool windows) => windows ? [Auto, Vulkan, D3d11, OpenGl] : [Auto, Vulkan, OpenGl];
 
         /// One device to try: the renderer, and whether it is tried as `auto` (its start-up guard
         /// honoured, software devices and Vulkan's deny list refused).

@@ -20,8 +20,9 @@ A **General** section holds eight options of the player:
 - Hiding personal paths in the log (on by default).
 - For laptops with two GPUs, the graphics card the game draws with (default, discrete or
   integrated; default does what the original does).
-- The renderer (auto: Vulkan, or OpenGL when Vulkan can't start; on Windows Vulkan, Direct3D
-  11, then OpenGL, with Direct3D 11 first on an integrated GPU).
+- The renderer: auto (the default), Vulkan, Direct3D 11 (Windows only, to opt in to) or OpenGL.
+  Auto is Vulkan, falling back to Direct3D 11 on Windows and then OpenGL; on integrated graphics
+  Direct3D 11 comes first.
 - On Windows, presenting through Direct3D as the original does (on by default).
 - [Garbage collection](#garbage-collection) (fast by default).
 
@@ -233,7 +234,8 @@ launch options:
   integrated (the GPU Vulkan's choice picks, a discrete one first, is an integrated one;
   [PERFORMANCE.md](PERFORMANCE.md#direct3d-11-against-vulkan)). vulkan always tries Vulkan;
   d3d11 (Windows; Unity's `-force-d3d11` in the launch options picks it too) tries Direct3D 11,
-  the original's renderer, and goes on as auto when it can't start
+  the original's renderer on Windows (also the Renderer row's Direct3D 11), and goes on as auto
+  when it can't start
   ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering)). If the renderer stops working in play, the
   game quits with an error; choose another here or under Renderer in Moono Tweaks if it keeps
   happening. Unity's `-force-glcore`, `-force-opengl` and `-force-vulkan` choose too, and

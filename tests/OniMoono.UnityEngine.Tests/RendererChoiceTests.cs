@@ -15,9 +15,13 @@ namespace OniMoono.Tests
         [Fact]
         public void TheTweaksScreenTakesARendererItDoesNotOffer()
         {
-            // --renderer d3d11 (not one of the row's choices): the row shows locked, at what the
-            // settings file keeps, else the default, and never indexes outside its choices.
-            var row = System.Linq.Enumerable.First(GameTweakNames.Rows, r => r.Id == GameTweakNames.RendererRow);
+            // --renderer d3d11 off Windows (not one of the row's choices there): the row shows
+            // locked, at what the settings file keeps, else the default, and never indexes
+            // outside its choices.
+            var row = System.Linq.Enumerable.First(GameTweakNames.Rows, r => r.Id == GameTweakNames.RendererRow) with
+            {
+                Choices = OniMoono.Desktop.Renderers.TweakChoices(windows: false),
+            };
             var file = PlayerSettings.Parse("""{ "renderer": "opengl" }""");
             var o = EffectiveOptions.Resolve([], [], [], null, false, file, commandLineRenderer: "d3d11");
             var state = TweakRowState.Of(row, o, file);
@@ -43,14 +47,34 @@ namespace OniMoono.Tests
             Assert.Equal(("vulkan", OptionSource.CommandLine), (o.Renderer, o.RendererSource));
             Assert.Contains("renderer vulkan (the command line)", o.Describe());
             Assert.Throws<FormatException>(() => PlayerSettings.Parse("""{ "renderer": "metal" }"""));
-            // The Direct3D 11 device being built (Renderers.D3d11) is a command-line choice only.
-            Assert.Throws<FormatException>(() => PlayerSettings.Parse("""{ "renderer": "d3d11" }"""));
             o = EffectiveOptions.Resolve([], [], [], null, false, file, commandLineRenderer: "d3d11");
             Assert.Equal(("d3d11", OptionSource.CommandLine), (o.Renderer, o.RendererSource));
             // Saved only when it isn't the default; kept when the screen didn't set it.
             Assert.Equal("{\"renderer\":\"vulkan\"}", EffectiveOptions.Apply(new PlayerSettings(), [], new Dictionary<string, bool>(), null, null, renderer: "vulkan").ToJson(indented: false));
             Assert.Equal("{}", EffectiveOptions.Apply(file, [], new Dictionary<string, bool>(), null, null, renderer: "auto").ToJson(indented: false));
             Assert.Equal("{\"renderer\":\"opengl\"}", EffectiveOptions.Apply(file, [], new Dictionary<string, bool>(), null, null).ToJson(indented: false));
+        }
+
+        [Fact]
+        public void Direct3D11IsAnOptInOfTheRowOnWindowsOnly()
+        {
+            // The user's decision (2026-11-25): Direct3D 11 is a choice to opt in to, on Windows.
+            Assert.Equal(["auto", "vulkan", "d3d11", "opengl"], OniMoono.Desktop.Renderers.TweakChoices(windows: true));
+            Assert.Equal(["auto", "vulkan", "opengl"], OniMoono.Desktop.Renderers.TweakChoices(windows: false));
+            var row = System.Linq.Enumerable.First(GameTweakNames.Rows, r => r.Id == GameTweakNames.RendererRow);
+            Assert.Equal(OniMoono.Desktop.Renderers.TweakChoices(OperatingSystem.IsWindows()), row.Choices);
+            // Its strings are in the catalog on every OS.
+            Assert.Contains(TweakStrings.All, t => t.Key == TweakStrings.ChoiceKey(row, "d3d11"));
+            // Chosen there, it is saved and read back as --renderer d3d11's choice: Direct3D 11
+            // first, then the others as auto (Renderers.Attempts).
+            var saved = EffectiveOptions.Apply(new PlayerSettings(), [], new Dictionary<string, bool>(), null, null, renderer: "d3d11");
+            Assert.Equal("{\"renderer\":\"d3d11\"}", saved.ToJson(indented: false));
+            var o = EffectiveOptions.Resolve([], [], [], null, false, PlayerSettings.Parse(saved.ToJson(indented: false)));
+            Assert.Equal(("d3d11", OptionSource.SettingsFile), (o.Renderer, o.RendererSource));
+            var windowsRow = row with { Choices = OniMoono.Desktop.Renderers.TweakChoices(windows: true) };
+            var state = TweakRowState.Of(windowsRow, o, PlayerSettings.Parse(saved.ToJson(indented: false)));
+            Assert.Equal(("d3d11", false), (windowsRow.Choices![state.Value], state.Locked));
+            Assert.Equal("d3d11", OniMoono.Desktop.Renderers.Attempts("d3d11", windows: true, integrated: false)[0].Renderer);
         }
 
         static readonly VkCandidate Discrete = new("RTX", VkPhysicalDeviceType.DiscreteGpu, VkContext.RequiredApi, null);
