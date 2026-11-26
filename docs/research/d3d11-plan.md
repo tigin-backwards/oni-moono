@@ -79,7 +79,7 @@ Out of scope: retiring OpenGL on Windows (decided later, on the results).
 | M5 | Robustness | Fault hooks, TDR, guard, deny list and fallback tests | 2026-11-24 ("M5"): ONI_D3D11_FAIL hooks at the 7 start-up steps (each falls back to Vulkan, logged; no guard line left), a removed device from Present (the quit error, exit 1), DXGI_STATUS_MODE_CHANGED (the buffers made again) and the refused exclusive (a fullscreen window), all observed (j0009347); the start-up guard as Vulkan's (keyed by the driver's version, CheckInterfaceSupport; crash-at observed), honoured under auto only, which did not try D3D11 yet (it does from M6); no driver deny entry (none has evidence), software refused under auto; the GPU choice rule kept: the original's device on EnumAdapters1's 0, which is also high performance's first (j0009349). A real TDR (dxcap -forcetdr): DEVICE_RESET, the quit error, exit 1 (j0009366); the four focus/mode/load items run on the desktop (j0009359, j0009360, j0009361, j0009367; a monitor move not run, needs monitor 1). The quit error stays on screen until OK (the user's decision, both devices). Review: done | done |
 | M6 | Performance | Threading design measured and tuned; the rule's table decides default or fallback | 2026-11-25 ("M6"): the main thread is the bottleneck on every save measured, the device thread busy 3.5-7 ms and waited for under 0.1 ms a frame; the largest avoidable cost, the texture upload path (a managed copy of every level, about 1.1 GB/s, and whole re-uploads), fixed: 38.4 → 50.7 fps and p99 86 → 34 ms on the RTX 3090, 32.5 → 41.1 fps on the iGPU (j0009577, j0009580, j0009585); the per-draw binding filters measured no gain and dropped. The rule's table (j0009589, j0009634-j0009638): two RTX 3090 cells fail, so Direct3D 11 is the fallback after Vulkan; the iGPU cells pass by 13-37%, and the user decided (2026-11-25) that auto defaults to Direct3D 11 when Vulkan's GPU choice is an integrated GPU (observed both ways, j0009656). Reviews: 3 (milestone, the iGPU change twice), fixed. check.sh green (j0009657): done |
 | M7 | Mods and compatibility | Mod set and SystemInfo parity | 2026-11-25 ("M7"): the original run first (the user's decision on older formats): it draws the 2020.3 bundles of Backwalls ×2, Chaos Events, The Capsules, Portal Network ×2 and Spring Festival, cannot use the Japanese Font Patch's 2018.3 fonts (material null) and fails to load Aki's Extra Twitch Events; the 2020.3 entry layout read (its parameters in the entry's tail), 2,101 mod entries agree with their DXBC, every Windows mod bundle's programs build with the debug layer clean but Hidden/Dither (j0009679, j0009694); Backwalls ×2, Chaos, Capsules, Forcefield and the Chinese fonts draw as the original; SystemInfo's values equal the original's at 11_1 and 11_0, the format answers and compute/sparse left as recorded gaps; review fixed. Closed by the user (2026-11-25, "Close m7"): Portal Network ×2 and Spring Festival's effects (engine particles, every device: mesh particles and custom vertex streams not drawn, the Cartoon FX billboards not traced) moved to separate effect-parity work, queued at low priority after the D3D11 merge; MAGNET!!!'s field (not observable in this harness) and the original on the AMD iGPU left UNVERIFIED; the unused texture-format answers kept as recorded gaps. Review: done |
-| M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | |
+| M8 | Final | Full review, all QA, docs, rebase, merge on the user's word | 2026-11-25 ("M8"): rebased onto master, docs, the final review (5 areas) fixed; QA running |
 
 **M1 (2026-11-22, branch `d3d11-m1`).** Built in `src/OniMoono.Assets/Shaders`:
 
@@ -2423,6 +2423,132 @@ after dx11"). M7 is done with these carried out of it:
   preference, the user's registry, or a monitor on the iGPU: UNVERIFIED.
 - The texture and render-texture format answers ours gives as no where the original gives yes
   (above) stay recorded gaps: neither the game nor any of the 38 mods' bundles uses them.
+
+## M8: final (2026-11-25, branch `d3d11`)
+
+Full review, all QA, docs, rebase; the merge waits for the user's word.
+
+**Consolidation and rebase.** The milestone chain (d3d11, d3d11-m2 … d3d11-m7 at d97673586) was
+brought into `d3d11` and rebased onto origin/master (f3a0e1b9f) as one linear history: the
+milestones' commits kept, the merges of master and of M1 dropped (their content is master's or
+the chain's), the 8 duplicate M0 commits of the d3d11 line (byte-identical to the m2 line's)
+dropped, and the commits master already carries in Vulkan or shared form (the quit error, the
+stall input, timed idle work, setup.set, 00e349cee's prep) left out as applied. Conflicts: the
+DXGI constants against master's presenter settings, ScriptedInput, E2eDriver's setup.set, the
+plan's M1/M2 rows, ARCHITECTURE's auto bullets. The result equals a merge of m7 and master but
+for the constants' order, the unused AlphaModeIgnore (removed where m7 removed it) and a usage
+block the merge had twice. Master's MSVCP140 check (#126) added a DllImport the COM check's sweep
+refuses: marked outside the binding (74da5f1c8); an old runtime now makes auto go to Direct3D 11,
+then OpenGL. Backups: tags `d3d11-m8-backup-m7`, `d3d11-m8-backup-d3d11`.
+
+**Docs (criterion 10)** (c6d52f82d): ARCHITECTURE §3.5's devices, renderer option and auto order,
+and a section "The Direct3D 11 device"; D66; the decision record in unity-vs-moono.md ("A
+Direct3D 11 renderer", superseding "No Direct3D renderer, by choice"); TWEAKS.md and
+PERFORMANCE.md (whose integrated-GPU line still described the replaced detection). Unity's
+`-force-d3d11` ("(Windows only) Force the application to use Direct3D 11 for rendering") is
+`--renderer d3d11` on Windows and ignored with a note elsewhere (c0a6cd270, a94066471);
+`-force-feature-level-11-0` was added in M7.
+
+**Decided by the user (2026-11-25):**
+- "Direct 11 should be an optional thing to opt in if u want as a tweak": the Tweaks screen's
+  Renderer row offers auto (the default), Vulkan, Direct3D 11 and OpenGL on Windows, and auto,
+  Vulkan and OpenGL elsewhere; settings.json's `d3d11` acts as `--renderer d3d11` (6b656329e).
+- The monitor move of criterion 5 (monitor 1) approved: `--input FRAME:monitor:N` moves the
+  window in process (glfwSetWindowPos, SWP_NOACTIVATE), and both swap chains log the output they
+  are on with its refresh period when the lookup finds a new one (944b4bece); the run is
+  submitted by the coordinator (`scratchpad/m8/monitor-move.sh`).
+
+**The final review** (criterion 8): five fresh agents, each given the code of one area and the
+plan's Rules, not these conclusions, each finding classed documented, observed or invented. No
+high-severity finding in any area. Fixed (commits after the rebase):
+- *Device core* (11 findings). Fixed (a686b53c2, 4700fdbae): ReadPixels threw device-thread
+  failures into game code (now a failed command, as ReadPixelsRgba8); R11G11B10_FLOAT render
+  textures could not be read back (decoded, FS "11-bit and 10-bit Floating Point"); buffers left
+  mapped when a copy threw; GL.Begin(QUADS) with under 4 vertices asked for a 0-byte buffer
+  (documented E_INVALIDARG, M2's smoke test); the screen depth texture leaked when its view
+  failed; a format query after shutdown; the camera screen handed over inside a capture or a
+  camera's own rendering; multisampling took a format's quality levels as resolve support
+  (invented: MULTISAMPLE_RENDERTARGET and MULTISAMPLE_RESOLVE now asked). Left as noted: the
+  player asks for no live-object report at shutdown (the comment now says only the smoke test
+  does); a vertex stage with no IA inputs (none in the data: every input layout of the game and
+  mods was made in the --check-shaders runs); a debug message stored by another thread between
+  the drain's count and its clear (CheckFormatSupport from the main thread; not seen).
+- *Presentation* (4). Fixed (8d26e1afa): SetFullscreenState(FALSE)'s result was not checked
+  before the chain's release ("you may not release a swap chain in full-screen mode", DXGI
+  overview: now retried until windowed, else left unreleased and logged); the exclusive notes said
+  sent messages are answered every millisecond (invented: a timed 1 ms wait can last a timer tick).
+  Left as noted: callbacks the pumping wait dispatches run inside it (none waits for the worker;
+  unchanged from what M4 and M5 ran); the first exclusive ResizeBuffers takes the asked size,
+  which the next present corrects.
+- *Programs reader and the checks* (6). Fixed (453039fe4, 13c7fbefa, 0a6c8c58a): comparison
+  samplers (sample_c) were drawn with plain sampler states (documented wrong, SampleCmp: now not
+  drawn, logged, as Vulkan's shadow samplers); three M4 mutations of the COM check's proof failed
+  only on C# errors (j0009211, j0009249), so the proof's "each M4 mutation fails the check" was
+  not shown (their call sites now follow, and a C# error counts as a broken proof; rerun below);
+  gen-dxbc-check.py refuses a const it does not read, ResourceDimensionOf names the checked
+  constants; the check names the Windows build whose exports it read. Left as noted: GL and WGL
+  function pointers cast inside method bodies are outside the sweep (not the Direct3D 11
+  binding); an Opaque void* parameter is passed null only.
+- *Robustness and auto's order* (8). Fixed (a94066471): the lost-device error told players auto
+  put on Direct3D 11 to drop an option they never gave; `-force-d3d11` is "(Windows only)" in
+  Unity's arguments (ignored elsewhere now); `--gpu` without IDXGIFactory6 (Windows 10 before
+  1803) failed the device; an unexpected exception from the context's start escaped Open; the
+  Direct3D 11 guard's test build fell back to the Vulkan hook's; `-force-feature-level-11-0` is
+  listed for UWP only, so it is cited as observed (j0009690). Left as noted: a mod's
+  Application.wantsToQuit refusing the lost device's quit (shared with Vulkan; the game
+  registers none); Open's own flow has no unit test (Attempts has); no out-of-memory guard mark
+  for Direct3D 11 (stated in M5).
+- *Mod shader reader* (8). Fixed (96006a5ee): --check-shaders passed unreadable 2020.3 passes and
+  shaders silently (now failures); exceptions other than InvalidDataException could reach the
+  recorder; a lower hardware tier was taken when tier 3 had none (invented; Unity's "Graphics
+  tiers" loads the active tier alone, desktop DirectX 11 is tier 3); subprograms without
+  m_Parameters were all called Unity 2018's (2019 and early 2020.3 have none either); the
+  unreadable-pass line named no shader; the player and ShaderSurvey judged an empty m_Parameters
+  differently; the M7 survey's output was only in a scratchpad (now
+  `docs/research/d3d11/m7-mod-survey.txt`); a second 2018 bundle (Font Loader for Traditional
+  Chinese 2119648603, broken in the original) was missing from the M7 table.
+
+**UNVERIFIED notes at M8** (every one in this plan, `d3d11-captures.md` and
+`d3d11-unity-probes.md`; criterion 8). Settled ones are listed with where; the rest are open and
+each needs the user's acceptance (the three M7 closed are accepted).
+
+| Note | Where | State |
+|---|---|---|
+| The frame-latency waitable: does the original wait on it | captures 1 | settled in M4 (j0009056, j0009060: once a frame) |
+| The frame's last draw into buffer 0 | captures 2, plan B2 5 | settled in M4 (j0009056, j0009060) |
+| The duplicate RTX 3090 (why DXGI lists it twice) | captures 3, §4 | M5: neither GPU rule ever takes it (j0009349); why it is listed is unknown and nothing rests on it. **Open: for the user to accept** |
+| RenderDoc under the isolation | captures 4 | closed, not pursued (the in-process recorder answered every question) |
+| Depth-bias factor and units | captures 5 | closed for the game (M3) and for mods (M7: every mod pass has Offset 0, 0) |
+| The UI's winding | captures 6, plan B2 1 | settled in M3 (follows the target) |
+| The original's 14 input elements | captures 7 | kept as measured (M7): only a program reading a channel its mesh lacks would show it; none drawn did. **Open: for the user to accept** |
+| The 4 unmatched shaders; which bundle copy draws | captures 8 | closed in M7 (byte-identical entries) |
+| TMP Surface s0p1/s0p2 | captures 9 | closed in M7 (no bundle has the shader) |
+| The original's full-screen swap chain | captures 10 | settled in M4 (j0009128, j0009185) |
+| That the original's 250-300 Map(WRITE) textures a frame are staging uploads | captures 11 | not measured; ours uploads with UpdateSubresource (M6, documented), which rests on nothing of the original's. **Open: for the user to accept** |
+| The original's CPU split (main, render thread, driver) | captures 12 | not measured in the original; M6 measured ours against Vulkan, which is what the rule decides on. **Open: for the user to accept** |
+| Typical frames beyond the one recorded | captures 13 | not measured; the scene set's pixels (M3) and the rule's runs (M6) cover play. **Open: for the user to accept** |
+| Draws missed by the recorder (unhooked calls, NVAPI) | captures 14 | not measured; no claim rests on a draw count. **Open: for the user to accept** |
+| The original on the AMD iGPU | captures 15, probes 6, plan M7 | **accepted by the user** (M7 closed) |
+| MAGNET!!!'s field drawn | plan M7 | **accepted by the user** (M7 closed) |
+| `GetNativeDepthBufferPtr` and `GetNativeRenderBufferPtr` on Direct3D 11 | probes 1, inline (an RT with depth) | no mod and no game code calls a native pointer getter (M0's API scan): unreachable. **Open: for the user to accept** |
+| Whether the screen camera targets buffer 0 | probes 2 | settled (cross-run inference, then M4's observation) |
+| GLCore's VP y sign in a render texture | probes 3 | measured (j0008169) |
+| GetGPUProjectionMatrix's z row float form and the zeros' sign | probes 4 | not measured: both forms agree on the six inputs measured, and the scene set's pixels (M3) and SystemInfo (M7) show no difference. **Open: for the user to accept** |
+| The mipmap filter's rounding | probes 5 | not measured (the pattern averaged exactly); GENERATE_MIPS is the driver's in both players. **Open: for the user to accept** |
+| The values outside the main menu | probes 7 | settled for SystemInfo (M7, read in a colony, j0009688) and for the conventions (M3's scene set in three colonies) |
+| The Graphics Tools feature's state | probes 8 | settled: installed 2026-11-22, the debug layer runs (M2) |
+| The repeat's waitable pairing when a picture is discarded | plan M4 review fixes 2 | closed by design (b728e6e7c: the waitable is resynced after repeats and timeouts) |
+| The original's adapter on a desktop whose display is on the iGPU, or on a hybrid laptop | plan M5 | not observable on this machine; ours takes what D3D11CreateDevice's default takes, so no claim rests on it. **Open: for the user to accept** |
+| CI's `windows-2025` runner's Windows SDK for the COM check | plan M2 part A | known only when CI runs the branch (never pushed). **Open: for the user to accept, or settled by CI's first run after the merge** |
+
+**QA (criterion 9)**, runq burndown, owner `d3d11-m8` (results below when they land): check.sh
+j0009726; the Windows build j0009727; `--check-shaders` with the mods' bundles j0009731; the
+D3D11 gate (`u60/d3d11-gate`, ours alone, debug layer) and loading-animation-d3d11 j0009732;
+`u60-p2-renderer` with `-force-d3d11` in both players j0009733; the Windows dogfood
+(`tests/e2e/d3d11-dogfood.txt`: the specs that cover what qa.sh's Linux dogfood scenarios do,
+and the release list's rendering, UI and saving specs without mods; both players, ours on
+Direct3D 11 with the debug layer) j0009734, j0009735; the COM check's M4 mutations j0009736; the
+release e2e list (Linux) after the build.
 
 ## Research so far (M0)
 
