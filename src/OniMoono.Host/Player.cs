@@ -115,6 +115,7 @@ namespace OniMoono.Host
                 File.WriteAllLines(options.BuiltinReport, OniMoono.Engine.Assets.ObjectLoader.BuiltinLoads()
                     .Select(b => $"{b.File}\t{b.PathId}\t{b.ClassId}\t{b.Type}\t{b.Name}"));
             var quitClock = Stopwatch.StartNew();
+            EngineLog.Engine(PatchedTiering.Summary());
             QuitStats.Start();
             GameTweaks.GameTweaks.Quitting();
             PlayerLoop.SendApplicationQuit();

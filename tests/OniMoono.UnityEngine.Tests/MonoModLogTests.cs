@@ -62,7 +62,8 @@ namespace OniMoono.Tests
         }
 
         /// An empty patched method tiers up to a 1-byte `ret`; MonoMod's move then writes a longer
-        /// jump into it, which the log names (OffsetTracker.UpdateCell's case in the game).
+        /// jump into it, which the log names (OffsetTracker.UpdateCell's case in the game, before
+        /// PatchedTiering kept methods patched before their first compile off tier-up).
         [NeedsGameAssembly("0Harmony")]
         [Fact]
         public void ATinyRecompiledMethodIsLogged()
@@ -76,8 +77,11 @@ namespace OniMoono.Tests
                 MonoModLog.Install();
                 var tracker = EmitTracker();
                 var update = tracker.GetMethod("UpdateCell")!;
-                harmony.Patch(update, prefix: new HarmonyMethod(typeof(MonoModLogTests), nameof(Counted)));
                 var call = (Action<int, int>)Delegate.CreateDelegate(typeof(Action<int, int>), Activator.CreateInstance(tracker)!, update);
+                // Compiled before its patch, so it tiers even with PatchedTiering installed, as a
+                // method patched late does.
+                call(0, 1);
+                harmony.Patch(update, prefix: new HarmonyMethod(typeof(MonoModLogTests), nameof(Counted)));
                 var clock = Stopwatch.StartNew();
                 bool Seen() { lock (lines) return lines.Any(l => l.Contains("Tracker.UpdateCell was recompiled") && l.Contains("byte(s)")); }
                 while (!Seen() && clock.Elapsed < TimeSpan.FromSeconds(20))

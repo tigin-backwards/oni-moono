@@ -198,6 +198,9 @@ namespace OniMoono.Host
                     PatchedFilters.Install();
                     // After PatchedFilters: MonoMod reads its DMD switch when it first builds a replacement.
                     MonoModLog.Install();
+                    // Before any patch of a game method: those patched before their first compile
+                    // are kept off tier-up (#127).
+                    PatchedTiering.Install();
                     ModVersionStamp.Install();
                     MonoValueTypeHashes.Install();
                     ModAccess.Install();
@@ -2976,6 +2979,65 @@ namespace OniMoono.Host
             Check("compact-nav-links: the hot walks' IL and the reviewed transpilers (CompactNavLinks)", GameTweaks.CompactNavLinks.SelfCheck);
             Check("paged-path-grids: the rewritten PathGrid against a model of its arrays (PagedPathGrids)", GameTweaks.PagedPathGrids.SelfCheck);
             Check("exact-worldgen: float arithmetic widened as Mono evaluates it (MonoFloatWidening)", GameTweaks.ExactWorldgen.SelfCheck);
+            // Last: every method patched after this is kept off tier-up.
+            Check("Harmony prefixes on methods patched before and after their first compile, across tier-up (PatchedTiering)", () =>
+            {
+                PatchedTiering.Install();
+                if (!PatchedTiering.Available) return "off here: " + PatchedTiering.Summary();
+                // An empty virtual method, as OffsetTracker.UpdateCell, and a loop, patched before
+                // their first call: compiled once, never tiered. A third is called before its patch
+                // and keeps tiering, its detour moved by MonoMod.
+                var module = System.Reflection.Emit.AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("OniMoono.Host.PatchedTieringCheck"),
+                    System.Reflection.Emit.AssemblyBuilderAccess.Run).DefineDynamicModule("PatchedTieringCheck");
+                var type = module.DefineType("Tracker", TypeAttributes.Public);
+                foreach (var name in new[] { "UpdateCell", "CompiledFirst" })
+                    type.DefineMethod(name, MethodAttributes.Public | MethodAttributes.Virtual | MethodAttributes.HideBySig, typeof(void), [typeof(int)])
+                        .GetILGenerator().Emit(System.Reflection.Emit.OpCodes.Ret);
+                var sum = type.DefineMethod("Sum", MethodAttributes.Public | MethodAttributes.Static, typeof(int), [typeof(int)]);
+                var il = sum.GetILGenerator();
+                var total = il.DeclareLocal(typeof(int));
+                var i = il.DeclareLocal(typeof(int));
+                var test = il.DefineLabel();
+                var body = il.DefineLabel();
+                il.Emit(System.Reflection.Emit.OpCodes.Br, test);
+                il.MarkLabel(body);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldloc, total); il.Emit(System.Reflection.Emit.OpCodes.Ldloc, i); il.Emit(System.Reflection.Emit.OpCodes.Add); il.Emit(System.Reflection.Emit.OpCodes.Stloc, total);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldloc, i); il.Emit(System.Reflection.Emit.OpCodes.Ldc_I4_1); il.Emit(System.Reflection.Emit.OpCodes.Add); il.Emit(System.Reflection.Emit.OpCodes.Stloc, i);
+                il.MarkLabel(test);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldloc, i); il.Emit(System.Reflection.Emit.OpCodes.Ldarg_0); il.Emit(System.Reflection.Emit.OpCodes.Blt, body);
+                il.Emit(System.Reflection.Emit.OpCodes.Ldloc, total); il.Emit(System.Reflection.Emit.OpCodes.Ret);
+                type.DefineDefaultConstructor(MethodAttributes.Public);
+                var tracker = type.CreateType();
+                var instance = Activator.CreateInstance(tracker)!;
+                var update = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), instance, tracker.GetMethod("UpdateCell")!);
+                var first = (Action<int>)Delegate.CreateDelegate(typeof(Action<int>), instance, tracker.GetMethod("CompiledFirst")!);
+                var loop = (Func<int, int>)Delegate.CreateDelegate(typeof(Func<int, int>), tracker.GetMethod("Sum")!);
+                first(0);
+                var harmony = new HarmonyLib.Harmony("OniMoono.Host.Check");
+                var prefix = new HarmonyLib.HarmonyMethod(typeof(Program), nameof(CountT));
+                foreach (var name in new[] { "UpdateCell", "CompiledFirst", "Sum" })
+                    harmony.Patch(tracker.GetMethod(name)!, prefix: prefix);
+                if (PatchedTiering.Eligible(tracker.GetMethod("UpdateCell")!) || PatchedTiering.Eligible(tracker.GetMethod("Sum")!))
+                    throw new InvalidOperationException("a method patched before its first call is still eligible for tiered compilation");
+                if (!PatchedTiering.Eligible(tracker.GetMethod("CompiledFirst")!))
+                    throw new InvalidOperationException("a method compiled before its patch is no longer eligible for tiered compilation");
+                // Tier 1 recompiles a method after 30 calls once 100 ms pass without new tier-0
+                // compiles, in the background: 2 s of calls covers it on a loaded machine.
+                int before = prefixedT, calls = 0;
+                var clock = System.Diagnostics.Stopwatch.StartNew();
+                while (clock.Elapsed.TotalSeconds < 2)
+                {
+                    for (int n = 0; n < 50; n++)
+                    {
+                        update(n); first(n);
+                        if (loop(100) != 4950) throw new InvalidOperationException("the patched loop computed the wrong sum");
+                        calls++;
+                    }
+                    Thread.Sleep(20);
+                }
+                return prefixedT - before == 3 * calls ? $"the prefixes ran on all {calls:N0} calls of each; {PatchedTiering.Summary()}"
+                    : throw new InvalidOperationException($"the prefixes ran {prefixedT - before} times in {3 * calls} calls");
+            });
             return failures;
         }
 
@@ -3123,6 +3185,8 @@ namespace OniMoono.Host
         static void CountE() => prefixedE++;
         static int prefixedG;
         static void CountG() => prefixedG++;
+        static int prefixedT;
+        static void CountT() => Interlocked.Increment(ref prefixedT);
 
         static int drawn;
         static void CountDraw() => drawn++;
