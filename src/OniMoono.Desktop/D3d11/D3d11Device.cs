@@ -84,6 +84,7 @@ namespace OniMoono.Desktop.D3d11
         {
             D3D11_FORMAT_SUPPORT support = 0;
             var device = d3d.Device;
+            if (device == null) return false; // after Shutdown
             return device->lpVtbl->CheckFormatSupport(device, format, &support) >= 0 && (support & wanted) == wanted;
         }
 
@@ -339,6 +340,7 @@ namespace OniMoono.Desktop.D3d11
             if (primitive == ImmediatePrimitive.Quads)
             {
                 int quads = vertices.Length / 4;
+                if (quads == 0) return; // fewer than 4 vertices draw no quad (and a 0-byte buffer is refused)
                 indices = new int[quads * 6];
                 for (int q = 0; q < quads; q++)
                 {
@@ -389,7 +391,21 @@ namespace OniMoono.Desktop.D3d11
             for (int y0 = 0; y0 < h; y0 += band)
             {
                 int rows = Math.Min(band, h - y0), bandY = y0;
-                var pixels = worker.Call(() => ReadNow(device, autoMips, screenRows, rect.x, rect.y + bandY, w, rows));
+                // A read that fails on the device thread counts as a failed command and leaves
+                // the destination as it was, as ReadPixelsRgba8's: Unity's ReadPixels does not throw.
+                var pixels = worker.Call(() =>
+                {
+                    try
+                    {
+                        return ReadNow(device, autoMips, screenRows, rect.x, rect.y + bandY, w, rows);
+                    }
+                    catch (Exception e)
+                    {
+                        CommandFailed(e);
+                        return null;
+                    }
+                });
+                if (pixels == null) return;
                 var mip = destination.Memory.Slice(destination.MipOffset(0), destination.MipSize(0));
                 for (int y = 0; y < rows; y++)
                     for (int x = 0; x < w; x++)

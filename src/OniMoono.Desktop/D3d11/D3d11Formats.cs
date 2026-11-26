@@ -139,6 +139,8 @@ namespace OniMoono.Desktop.D3d11
             static float U8(byte v) => v / 255f;
             static float U16(ushort v) => v / 65535f;
             static float H(ushort v) => (float)BitConverter.UInt16BitsToHalf(v);
+            // An unsigned small float as the half with the same exponent and mantissa bits.
+            static float Small(uint bits, int mantissa) => H((ushort)(bits << (10 - mantissa)));
             switch (format)
             {
                 case DXGI_FORMAT.DXGI_FORMAT_R8G8B8A8_UNORM: return new(U8(p[0]), U8(p[1]), U8(p[2]), U8(p[3]));
@@ -158,6 +160,10 @@ namespace OniMoono.Desktop.D3d11
                 // DXGI order from the least significant bit: B 0-4, G 5-9, R 10-14, A 15.
                 case DXGI_FORMAT.DXGI_FORMAT_B5G5R5A1_UNORM: { int v = ((ushort*)p)[0]; return new((v >> 10 & 31) / 31f, (v >> 5 & 31) / 31f, (v & 31) / 31f, v >> 15); }
                 case DXGI_FORMAT.DXGI_FORMAT_R10G10B10A2_UNORM: { uint v = ((uint*)p)[0]; return new((v & 1023) / 1023f, (v >> 10 & 1023) / 1023f, (v >> 20 & 1023) / 1023f, (v >> 30) / 3f); }
+                // R in bits 0-10, G 11-21 (6-bit mantissa), B 22-31 (5-bit): unsigned floats with a
+                // 5-bit exponent of bias 15 (Direct3D 11.3 Functional Specification, "11-bit and
+                // 10-bit Floating Point"; the half's form without its sign).
+                case DXGI_FORMAT.DXGI_FORMAT_R11G11B10_FLOAT: { uint v = ((uint*)p)[0]; return new(Small(v & 0x7FF, 6), Small(v >> 11 & 0x7FF, 6), Small(v >> 22, 5), 1); }
                 default: throw new NotSupportedException($"reading back {format}");
             }
         }

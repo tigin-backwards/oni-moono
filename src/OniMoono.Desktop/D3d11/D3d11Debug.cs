@@ -4,7 +4,8 @@ using System.Runtime.InteropServices;
 namespace OniMoono.Desktop.D3d11
 {
     // The debug layer's interfaces (d3d11sdklayers.h), queried from a device created with
-    // D3D11_CREATE_DEVICE_DEBUG: its stored messages and the live-object report at shutdown.
+    // D3D11_CREATE_DEVICE_DEBUG: its stored messages (the device) and the live-object report
+    // (tools/D3d11Smoke only: the player does not ask for it at shutdown).
 
     [Native(Header = "d3d11sdklayers.h", Base = typeof(IUnknown))]
     internal unsafe struct ID3D11Debug

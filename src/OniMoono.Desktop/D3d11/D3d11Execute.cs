@@ -68,7 +68,15 @@ namespace OniMoono.Desktop.D3d11
             if (backDepth != null && backDepthWidth == w && backDepthHeight == h) return;
             ReleaseBackDepth();
             var t = new D3d11Texture { Width = w, Height = h };
-            MakeDepth(t, 24, 1, shaderView: false);
+            try
+            {
+                MakeDepth(t, 24, 1, shaderView: false);
+            }
+            catch
+            {
+                t.Release(); // the texture when its view failed
+                throw;
+            }
             backDepth = t.DepthStencil;
             backDepthView = t.Dsv;
             backDepthWidth = w;
@@ -320,8 +328,14 @@ namespace OniMoono.Desktop.D3d11
             Bind(recorded, program, layout, topology);
             var bytes = MemoryMarshal.AsBytes(data.AsSpan());
             var into = Write(ref immediateVertices, ref immediateVertexCapacity, bytes.Length, D3D11_BIND_FLAG.D3D11_BIND_VERTEX_BUFFER);
-            bytes.CopyTo(new Span<byte>(into, bytes.Length));
-            Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)immediateVertices, 0);
+            try
+            {
+                bytes.CopyTo(new Span<byte>(into, bytes.Length));
+            }
+            finally
+            {
+                Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)immediateVertices, 0);
+            }
             int n = 1 + layout.Constants.Length;
             var buffers = stackalloc ID3D11Buffer*[n];
             var strides = stackalloc uint[n];
@@ -340,8 +354,14 @@ namespace OniMoono.Desktop.D3d11
             {
                 var ib = MemoryMarshal.AsBytes(indices.AsSpan());
                 var at = Write(ref immediateIndices, ref immediateIndexCapacity, ib.Length, D3D11_BIND_FLAG.D3D11_BIND_INDEX_BUFFER);
-                ib.CopyTo(new Span<byte>(at, ib.Length));
-                Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)immediateIndices, 0);
+                try
+                {
+                    ib.CopyTo(new Span<byte>(at, ib.Length));
+                }
+                finally
+                {
+                    Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)immediateIndices, 0);
+                }
                 Ctx->lpVtbl->IASetIndexBuffer(Ctx, immediateIndices, DXGI_FORMAT.DXGI_FORMAT_R32_UINT, 0);
                 Ctx->lpVtbl->DrawIndexed(Ctx, (uint)indices.Length, 0, 0);
             }

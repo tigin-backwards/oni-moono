@@ -1285,7 +1285,9 @@ namespace OniMoono.Engine.Rendering
         /// drew into it this frame.
         static void HandOverCameraScreen()
         {
-            if (!cameraScreenDrawn) return;
+            // Not inside a capture (its target is the screen then) nor inside a camera's own
+            // rendering (the screen is the camera screen itself): the outer frame hands it over.
+            if (!cameraScreenDrawn || screenOverride != null || camerasRendering > 0) return;
             cameraScreenDrawn = false;
             if (cameraScreen) Graphics.Blit(cameraScreen, (RenderTexture)null);
         }

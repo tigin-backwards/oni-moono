@@ -628,14 +628,27 @@ namespace OniMoono.Desktop.D3d11
                 total = (total + AsBytes(array, upload.VertexCount).Length + 15) / 16 * 16;
             }
             long vertexBytes = Math.Max(16, total), indexBytes = Math.Max(16L, (long)(upload.Indices != null ? upload.IndexCount : 0) * 4);
+            // Unmapped whatever the copy throws: a mapped buffer may not be bound or copied.
             var vertices = Write(ref m.Vertices, ref m.VertexCapacity, vertexBytes, D3D11_BIND_FLAG.D3D11_BIND_VERTEX_BUFFER);
-            for (int c = 0; c < upload.Channels.Length; c++)
-                if (upload.Channels[c] is { } array) AsBytes(array, upload.VertexCount).CopyTo(new Span<byte>(vertices + offsets[c], (int)(vertexBytes - offsets[c])));
-            Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)m.Vertices, 0);
+            try
+            {
+                for (int c = 0; c < upload.Channels.Length; c++)
+                    if (upload.Channels[c] is { } array) AsBytes(array, upload.VertexCount).CopyTo(new Span<byte>(vertices + offsets[c], (int)(vertexBytes - offsets[c])));
+            }
+            finally
+            {
+                Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)m.Vertices, 0);
+            }
             offsets.CopyTo(m.ChannelOffsets);
             var indices = Write(ref m.Indices, ref m.IndexCapacity, indexBytes, D3D11_BIND_FLAG.D3D11_BIND_INDEX_BUFFER);
-            if (upload.Indices != null) MemoryMarshal.AsBytes(upload.Indices.AsSpan(0, upload.IndexCount)).CopyTo(new Span<byte>(indices, (int)indexBytes));
-            Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)m.Indices, 0);
+            try
+            {
+                if (upload.Indices != null) MemoryMarshal.AsBytes(upload.Indices.AsSpan(0, upload.IndexCount)).CopyTo(new Span<byte>(indices, (int)indexBytes));
+            }
+            finally
+            {
+                Ctx->lpVtbl->Unmap(Ctx, (ID3D11Resource*)m.Indices, 0);
+            }
         }
 
         /// The buffer mapped for `bytes` of new contents (Unmap is the caller's): the one there
