@@ -23,6 +23,26 @@ namespace OniMoono.Tests
         }
 
         [Fact]
+        public void TheRuntimeCheckReadsTheImportTable()
+        {
+            // #126: only a vma.dll that imports MSVCP140.dll is checked; a managed assembly
+            // imports mscoree.dll alone.
+            string self = typeof(VkStartGuardTests).Assembly.Location;
+            Assert.True(VkContext.ImportsLibrary(self, "MSCOREE.dll"));
+            Assert.False(VkContext.ImportsLibrary(self, "msvcp140.dll"));
+            string text = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(text, "not a PE file");
+                Assert.True(VkContext.ImportsLibrary(text, "msvcp140.dll"));
+            }
+            finally
+            {
+                File.Delete(text);
+            }
+        }
+
+        [Fact]
         public void TheKeyNamesGpuDriverAndBuild()
         {
             Assert.Equal("gpu 10de:2204 driver 98c14000 (NVIDIA) build 1.0+abc", VkStartGuard.KeyOf(Rtx, "1.0+abc"));

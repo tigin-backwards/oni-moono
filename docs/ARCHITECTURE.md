@@ -2208,10 +2208,13 @@ Tweaks screen's "Renderer" row; `Renderers.Open`) picks one:
   rendering and synchronization2, no surface or swapchain for the window) releases what was
   made and opens an OpenGL window instead. Player.log names the renderer and why
   (`renderer: Vulkan (auto, default)`, `renderer: OpenGL (Vulkan unavailable: …)`).
-- **An old C++ runtime** (Windows) is such a failure too: an MSVCP140.dll older than 14.40.
-  vma.dll is built with MSVC 14.41, whose `std::mutex` constructor is constexpr, and an older
-  runtime faults on VMA's first lock (#126). The reason names the version and the Visual C++
-  Redistributable.
+- **An old C++ runtime** (Windows) is such a failure too: an MSVCP140.dll older than 14.40,
+  when the player's vma.dll imports it. BRUTAL's package's vma.dll is built with MSVC 14.41,
+  whose `std::mutex` constructor is constexpr, and an older runtime faults on VMA's first lock
+  (#126). The reason names the version and the Visual C++ Redistributable. The Windows builds
+  (`build-windows.sh`, `release.sh`) ship a vma.dll and shaderc_shared.dll built with the static
+  C runtime instead (`scripts/build-native-libs.sh`), which import no MSVCP140.dll, so the
+  check passes there whatever the machine has.
 - **auto also refuses** software Vulkan devices (Mesa's lavapipe: the OpenGL driver is hardware
   there, under WSLg Mesa's d3d12), the drivers on a short deny list and a start the guard below
   recorded as crashed. `--renderer vulkan` takes all of them.

@@ -80,14 +80,19 @@ namespace OniMoono.Desktop.Vulkan
             return true;
         }
 
-        /// Why the C++ runtime VMA would use can't run it, or null. vma.dll is built with MSVC
-        /// 14.41, whose std::mutex has a constexpr constructor (since VS 2022 17.10): an
-        /// MSVCP140.dll older than 14.40 reads the zeroed mutex as its own layout in _Mtx_lock
-        /// and faults reading 0x0 on VMA's first lock, the first buffer made (#126: 14.36 in
-        /// System32 on Windows 10). The DLL found is the one vma.dll would load: one already
-        /// loaded, else the player's folder's, else Windows' search (System32).
+        /// Why the C++ runtime VMA would use can't run it, or null. BRUTAL's package's vma.dll is
+        /// built with MSVC 14.41 and imports MSVCP140.dll, whose std::mutex has a constexpr
+        /// constructor (since VS 2022 17.10): an MSVCP140.dll older than 14.40 reads the zeroed
+        /// mutex as its own layout in _Mtx_lock and faults reading 0x0 on VMA's first lock, the
+        /// first buffer made (#126: 14.36 in System32 on Windows 10). The vma.dll the Windows
+        /// builds ship (scripts/build-native-libs.sh) has the static C runtime and imports none,
+        /// so only a vma.dll that imports MSVCP140.dll (a plain `dotnet build`'s) is checked. The
+        /// DLL found is the one vma.dll would load: one already loaded, else the player's
+        /// folder's, else Windows' search (System32).
         static string CppRuntimeTooOld()
         {
+            string vma = System.IO.Path.Combine(AppContext.BaseDirectory, "vma.dll");
+            if (System.IO.File.Exists(vma) && !ImportsLibrary(vma, "msvcp140.dll")) return null;
             if (!NativeLibrary.TryLoad("msvcp140.dll", typeof(VkContext).Assembly, null, out var handle)) return null;
             try
             {
@@ -113,6 +118,36 @@ namespace OniMoono.Desktop.Vulkan
                 ? $"the Microsoft Visual C++ runtime is too old for Vulkan's memory allocator (MSVCP140.dll {major}.{minor}.{build}.{revision}, 14.40 or later needed); "
                   + "installing the latest Visual C++ Redistributable (x64) from Microsoft lets Vulkan start"
                 : null;
+
+        /// Whether the PE file at `path` imports `library` (case-insensitive), from its import
+        /// table; true when the file cannot be read as one, so that the check it guards runs.
+        internal static bool ImportsLibrary(string path, string library)
+        {
+            try
+            {
+                using var stream = System.IO.File.OpenRead(path);
+                using var pe = new System.Reflection.PortableExecutable.PEReader(stream);
+                var table = pe.PEHeaders.PEHeader?.ImportTableDirectory ?? default;
+                if (table.Size == 0) return false;
+                // IMAGE_IMPORT_DESCRIPTOR: 20 bytes, the library name's RVA at 12; all zero ends.
+                for (int at = table.RelativeVirtualAddress; ; at += 20)
+                {
+                    var entry = pe.GetSectionData(at).GetReader();
+                    if (entry.Length < 20) return true;
+                    entry.Offset = 12;
+                    int nameRva = entry.ReadInt32();
+                    if (nameRva == 0) return false;
+                    var name = pe.GetSectionData(nameRva).GetReader();
+                    var text = new System.Text.StringBuilder();
+                    for (byte b; name.RemainingBytes > 0 && (b = name.ReadByte()) != 0;) text.Append((char)b);
+                    if (string.Equals(text.ToString(), library, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+            }
+            catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException or BadImageFormatException or InvalidOperationException)
+            {
+                return true;
+            }
+        }
 
         [DllImport("kernel32", CharSet = CharSet.Unicode)]
         static extern uint GetModuleFileNameW(nint module, char[] path, uint size);
