@@ -18,7 +18,7 @@ C# reference source or decompiled Unity assemblies. What it says about Moono com
 | Garbage collector | Boehm-Demers-Weiser, with an incremental mode that spreads work over frames in small slices [2][3] (whether ONI's build turns it on: to check in its player settings) | .NET's generational collector (Server GC, concurrent): parallel on every core, mostly short gen0 pauses |
 | Engine data layout | Engine-side arrays in native memory; transforms grouped per hierarchy root and updated in jobs [4] | Separate managed objects per GameObject, component and transform |
 | Rendering threads | The main thread records intermediate graphics commands, a render thread turns them into graphics API calls; graphics jobs can spread that over worker threads [5] | The same split: draws recorded on the main thread and on worker threads, executed on a GL thread; texture copies on workers (ARCHITECTURE §3.5) |
-| Graphics APIs | D3D11 in the Windows build, OpenGL in the Linux build | OpenGL and, on U60, Vulkan with the game's shipped shaders |
+| Graphics APIs | D3D11 in the Windows build, OpenGL in the Linux build | OpenGL and, on U60, Vulkan with the game's shipped shaders; on Windows also Direct3D 11, with the same shipped DXBC programs as the original |
 
 ## The differences that matter for ONI
 
@@ -117,7 +117,7 @@ for some games Unity serves.
 | **.NET's generational garbage collector** | Most of ONI's garbage dies young and is collected in short gen0 pauses, spread over all cores: about 0.1 ms a frame of main-thread cost on a late-game colony. | Memory (about 1.3–1.6× the original's), and an occasional gen1 pause of tens to hundreds of ms on very large colonies. | Unity's incremental mode trades throughput for small, predictable slices [3], which suits frame-rate-sensitive games on any hardware. |
 | **A managed object model** (§3.2) | ONI's C# makes thousands of small engine calls a frame; as plain .NET calls the JIT can inline them. | More managed objects for the collector to trace; objects are scattered in memory. | Its native core serves IL2CPP and every platform, and runs heavy engine-side work (physics, skinned animation, culling at 3D scale) on compact native data [1][4]. |
 | **Only the API the game and its mods use, each member complete or absent** (§3.1) | A smaller engine whose every member is checked against what's referenced (ApiCheck). A missing member fails loudly with its exact name. | A mod calling Unity API that nobody else uses fails until we add it; the mod catalog scan finds these ahead of time. | It must offer its whole documented API to every project. |
-| **Run the game's shipped shader programs on our own GL 4.5 (and Vulkan on U60) device**, with Unity's built-in forward renderer restricted to what ONI uses (§3.5) | Every Klei visual effect keeps its exact logic, with no hand-ported shaders; the renderer is tailored (draw recording and texture copies on worker threads). | Tied to each game build's shader data; GL driver quirks (an AMD Windows driver issue, Mesa under WSL). No Direct3D renderer, by choice: the Windows build's shaders also carry Direct3D 11 programs, so one could be added, but one GL/Vulkan renderer covers both platforms (Windows already presents through DXGI). | It supports every pipeline, platform API and shader feature. |
+| **Run the game's shipped shader programs on our own GL 4.5 (and Vulkan on U60) device**, with Unity's built-in forward renderer restricted to what ONI uses (§3.5) | Every Klei visual effect keeps its exact logic, with no hand-ported shaders; the renderer is tailored (draw recording and texture copies on worker threads). | Tied to each game build's shader data; GL driver quirks (an AMD Windows driver issue, Mesa under WSL). On Windows a Direct3D 11 renderer as well, on the same shipped programs (*A Direct3D 11 renderer* below, which supersedes "No Direct3D renderer, by choice"). | It supports every pipeline, platform API and shader feature. |
 | **Our own reader for Unity's asset files** (§3.4) | No Unity runtime needed; loading can be tuned for this game (the Load screen, the save's reads). | Asset formats can change with a game update's Unity version. | — |
 | **Clean-room uGUI, TextMeshPro and Timeline** (docs/cleanroom) | Licence-clean; the UI's per-frame costs can be optimised for this game's HUD (hidden screens skipped, raycasts and canvas work). | Their behaviour must match Unity's packages, including what mods patch with Harmony. | — |
 | **Unity's threading rules, plus our own threads** (§4) | The game's worker threads keep their release-player leniency; the GL thread, the draw recorders and the presenter run beside the main thread. | Our engine must stay safe under the same leniency. | Same rules, implemented natively [5]. |
@@ -126,6 +126,30 @@ for some games Unity serves.
 **What we gave up, honestly:** memory, an occasional long collection on the biggest colonies, a
 native Linux crash reporter (the Linux player has no native host of ours), and the work of
 matching every Unity behaviour the game or a mod depends on, again with each game update.
+
+### A Direct3D 11 renderer (decided 2026-11-22, done 2026-11-25)
+
+This supersedes the earlier decision "No Direct3D renderer, by choice", which held that one
+GL/Vulkan renderer covers both platforms and that Windows already presented through DXGI.
+
+- **Decision.** Moono gets a Direct3D 11 device on Windows that runs the game's shipped Direct3D
+  11 (DXBC) programs unmodified, as the original's player does, with the same discipline as the
+  Vulkan device: Unity's conventions from its documentation and measurement of the original
+  only, every COM declaration checked against the Windows SDK headers by MSVC, every API
+  assumption cited or observed ([d3d11-plan.md](d3d11-plan.md)).
+- **Why.** Direct3D 11 is the original's API on Windows, so the original can be measured call by
+  call (its swap chain, states, formats and SystemInfo answers) and matched. Vulkan drivers fail
+  on some machines: user logs from issues showed an old AMD card's Vulkan loader and a crashed
+  Vulkan start on a laptop, and maybe a Vulkan hang on Intel integrated graphics. Mods that ship only Direct3D 11 programs in their Windows bundles (built
+  with Unity 2020.3) draw their shaders on it.
+- **What it costs.** A third device to maintain, Windows only, and a third set of programs read
+  (the DXBC entries of U60's data, and the 2020.3 layout of mods' bundles).
+- **Result.** Measured against Vulkan on the same colonies
+  ([PERFORMANCE.md](../PERFORMANCE.md#direct3d-11-against-vulkan)), it is slower on an RTX 3090
+  and faster on an AMD iGPU. So auto on Windows tries Vulkan, then Direct3D 11, then OpenGL, and
+  Direct3D 11 first when the GPU the game draws on is an integrated one (the user's decision,
+  2026-11-25). `--renderer d3d11` and Unity's `-force-d3d11` choose it (ARCHITECTURE §3.5,
+  *The Direct3D 11 device*).
 
 ## What this adds up to
 

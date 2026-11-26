@@ -415,8 +415,8 @@ The 2026-11-06 tables (v2026.11.06.01 on U59) had U57 at about 90 fps with defau
 
 ## Direct3D 11 against Vulkan
 
-The Direct3D 11 renderer (in development, [research/d3d11-plan.md](research/d3d11-plan.md),
-"M6") was measured against Vulkan on 2026-11-25 to decide where auto puts it. Method as [How
+The Direct3D 11 renderer (Windows; [research/d3d11-plan.md](research/d3d11-plan.md), "M6") was
+measured against Vulkan on 2026-11-25 to decide where auto puts it. Method as [How
 it's measured](#how-its-measured), U60 764025 with every DLC, default tweaks: one job per colony
 and GPU, a warm-up launch of each renderer, then 5 pairs of launches, Direct3D 11 then Vulkan.
 The ratios are Direct3D 11 over Vulkan, each cell's median of its pairs, with the largest
@@ -437,10 +437,13 @@ an fps ratio of at least 0.98 and a p99 ratio of at most 1.02.
   were not run, as the two failing cells decide it either way.
 - **Integrated GPUs** (decided by the user, 2026-11-25: "If we can detect iGPU (esp since we
   seem to see a lot of Vulkan weirdness with integrated graphics) probably worth defaulting to
-  dx for them"): when the GPU the game will run on reports a unified memory architecture
-  (Direct3D 11's own answer for that adapter), auto tries Direct3D 11 first. The evidence is one
-  AMD Radeon iGPU and three colonies; Intel iGPUs are untested (their Vulkan driver is already
-  on the deny list below 101.5333).
+  dx for them"): when the GPU Vulkan's choice would draw on (a discrete GPU first, or the
+  `--gpu` preference) is an integrated one (VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU), auto tries
+  Direct3D 11 first, then Vulkan, then OpenGL. A desktop or laptop with a discrete GPU stays on
+  Vulkan first. The evidence is one AMD Radeon iGPU and three colonies; Intel iGPUs are untested
+  (their Vulkan driver is already on the deny list below 101.5333).
+- **Auto's order on Windows,** then: Vulkan, Direct3D 11, OpenGL; Direct3D 11, Vulkan, OpenGL on
+  an integrated GPU. `--renderer d3d11` (or Unity's `-force-d3d11`) chooses Direct3D 11.
 - Before these runs the Direct3D 11 renderer copied every texture upload into managed memory
   (about 1.1 GB a second on the late-game colony) and sent whole textures where the other
   renderers send only changed rows; fixing both took that colony from 38 to 51 fps on the RTX

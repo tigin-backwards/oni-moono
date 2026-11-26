@@ -1828,6 +1828,20 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   the downloaded Workshop mods (U60 764025) finds 4 such patches in 3 mods: Pipe Color
   Overlay, Multi Channel Utilities and Pinned Resource List Extended (which fails to load in the
   original player). Five more take such a field by `ref` and keep it.
+- **D66 The Direct3D 11 device runs Unity's Direct3D 11 programs and reports Direct3D11.** The
+  Windows build's data carries Unity's Direct3D 11 programs (shader platform 4, DXBC) for every
+  shader, and on Windows the Direct3D 11 device runs those unmodified, with the conventions of
+  the original's own Direct3D 11 player as measured (reversed Z, render textures rendered
+  flipped, UVs from the top; §3.5, *The Direct3D 11 device*). `SystemInfo.graphicsDeviceType`
+  is `Direct3D11` there, and the rest of SystemInfo equals the original's on the same GPU at
+  feature levels 11_1 and 11_0 (`graphicsDeviceVersion` `Direct3D 11.0 [level 11.1]`, the
+  DXGI adapter's name, vendor, ids and dedicated memory), except where the device does less:
+  `supportsComputeShaders` and `supportsSparseTextures` are false, and the texture and
+  render-texture formats the engine cannot upload or render (RGB9e5, the Crunched and `_SIGNED`
+  formats, YUY2, the integer and XR render-texture formats) answer no. Neither the game nor any
+  of the 38 Workshop mods with shaders uses them. This supersedes "No Direct3D renderer, by
+  choice" (docs/research/unity-vs-moono.md). A device lost in play ends the game with an error,
+  as on Vulkan.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
@@ -2193,16 +2207,18 @@ same either way; `ONI_BUNDLE_BLOCKS=0` decompresses every bundle whole, and
 
 ### 3.5 Rendering
 
-**Devices: Vulkan 1.3 by default, OpenGL 4.5 core as the fallback, both via BRUTAL + GLFW.**
-Every shader ships as GLSL 150 text produced by Unity's HLSLcc and as SPIR-V for Unity's Vulkan
+**Devices: Vulkan 1.3 by default, OpenGL 4.5 core as the fallback, both via BRUTAL + GLFW; on
+Windows Direct3D 11 as well.** Every shader ships as GLSL 150 text produced by Unity's HLSLcc,
+as SPIR-V for Unity's Vulkan player and, in the Windows build, as DXBC for its Direct3D 11
 player, each with per-variant parameter tables (*assets §5*). The OpenGL device runs the GLSL
-text and the Vulkan device the SPIR-V (D54). No shader is hand-ported or recompiled, so every
-Klei visual effect keeps its exact logic, and the Vulkan device renders the OpenGL device's
-pixels. Only mods' shaders without SPIR-V U60 reads are compiled from their GLSL (*Shaders
-without U60's Vulkan programs* below).
+text, the Vulkan device the SPIR-V (D54) and the Direct3D 11 device the DXBC (D66). No shader is
+hand-ported or recompiled, so every Klei visual effect keeps its exact logic, and the Vulkan and
+Direct3D 11 devices render the OpenGL device's pixels. Only mods' shaders without SPIR-V U60
+reads are compiled from their GLSL (*Shaders without U60's Vulkan programs* below).
 
-The renderer option (`--renderer auto|vulkan|opengl`, settings.json's `renderer`, the Moono
-Tweaks screen's "Renderer" row; `Renderers.Open`) picks one:
+The renderer option (`--renderer auto|vulkan|opengl|d3d11`, settings.json's `renderer`, the
+Moono Tweaks screen's "Renderer" row, which offers auto, Vulkan and OpenGL; `Renderers.Open`)
+picks one:
 
 - **auto and vulkan** try Vulkan first. Any failure to start it (no loader, no GPU with dynamic
   rendering and synchronization2, no surface or swapchain for the window) releases what was
@@ -2215,17 +2231,23 @@ Tweaks screen's "Renderer" row; `Renderers.Open`) picks one:
   (`build-windows.sh`, `release.sh`) ship a vma.dll and shaderc_shared.dll built with the static
   C runtime instead (`scripts/build-native-libs.sh`), which import no MSVCP140.dll, so the
   check passes there whatever the machine has.
-- **On Windows auto also tries Direct3D 11** (the renderer in development,
-  [research/d3d11-plan.md](research/d3d11-plan.md), "M6"): after Vulkan and before OpenGL, or
-  first when the GPU Vulkan's choice picks (a discrete GPU first, or `--gpu`) is
-  VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: Vulkan then stops before its device and Direct3D 11
-  starts (`Renderers.Open`). The renderer line says which order and why.
+- **On Windows auto also tries Direct3D 11:** Vulkan, Direct3D 11, then OpenGL. Direct3D 11
+  comes first when the GPU Vulkan's choice picks (a discrete GPU first, or `--gpu`) is
+  VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: Vulkan then stops before its device and the order is
+  Direct3D 11, Vulkan, OpenGL (`Renderers.Open`). The renderer line says which order and why.
+  The order is measured ([PERFORMANCE.md](PERFORMANCE.md#direct3d-11-against-vulkan)): Direct3D
+  11 is slower than Vulkan on the RTX 3090 and faster on an AMD iGPU (the user's decision,
+  2026-11-25). `--renderer d3d11` tries Direct3D 11 first and goes on as auto when it cannot
+  start (*The Direct3D 11 device* below).
 - **auto also refuses** software Vulkan devices (Mesa's lavapipe: the OpenGL driver is hardware
   there, under WSLg Mesa's d3d12), the drivers on a short deny list and a start the guard below
   recorded as crashed. `--renderer vulkan` takes all of them.
 - **Unity's launch options** choose too, as the U60 player reads them (measured on 761211,
   Linux, U60 QA spec P2): `-force-glcore` and `-force-opengl` are `--renderer opengl`,
-  `-force-vulkan` is `--renderer vulkan`. The later of these and `--renderer` wins.
+  `-force-vulkan` is `--renderer vulkan`, and `-force-d3d11` ("Force the application to use
+  Direct3D 11 for rendering", Unity's Windows player arguments) is `--renderer d3d11`. The later
+  of these and `--renderer` wins. `-force-feature-level-11-0` makes the Direct3D 11 device at
+  feature level 11_0 alone, as the original's does then.
 - **Software devices.** Unity's player also refuses a CPU Vulkan device ("Vulkan detection: 0",
   then OpenGL Core), as auto does. One difference is deliberate: where the only Vulkan device
   is a software one, Unity's player given `-force-vulkan` exits ("Forced renderer 21 is not
@@ -2241,14 +2263,15 @@ DriverDenyList).
 - **A good start.** When the first 60 frames are presented (the first pipelines built and
   presents done), or the game ends cleanly before that, the key's lines go.
 - **A bad start.** A `starting` line found at the next launch is a start that never got there
-  (a crash, or a hang the user ended). It becomes `crashed KEY`, and auto starts that key on
-  OpenGL with the reason in the log, for as long as the GPU, driver and build stay the same.
+  (a crash, or a hang the user ended). It becomes `crashed KEY`, and auto starts that key on the
+  next renderer (Direct3D 11 on Windows, else OpenGL) with the reason in the log, for as long as
+  the GPU, driver and build stay the same.
   Another one tries Vulkan again.
 - **`--renderer vulkan`** always tries Vulkan, and its clean start clears the key.
 - **A clean fallback** (Vulkan unavailable) leaves no line.
 - **Out of video memory.** A run whose device ran out of video memory, at any time, leaves
-  `out of memory KEY`, kept when the start is cleared, and auto starts that key on OpenGL as for
-  a crash. VMA has tried every memory type the resource allows by then. The failed allocations
+  `out of memory KEY`, kept when the start is cleared, and auto starts that key on the next
+  renderer as for a crash. VMA has tried every memory type the resource allows by then. The failed allocations
   stay engine faults, and the run goes on. (#114: AMD's 25.8.1 driver for Vega iGPUs offered a
   1.9 GB device-local heap, and textures and the back buffer could not be made before the menu.)
 - **Later failures.** Otherwise the guard is not consulted for anything that happens later. A device lost
@@ -2630,9 +2653,10 @@ read within 0.05 ms of one, two or three refreshes.
   ([research/frame-timing.md](research/frame-timing.md)). Rounding to the refresh's quanta errs
   by less than our frame starts jitter, so no variable-refresh guard is needed.
 
-**Presentation on Windows (DXGI).** On Windows both devices present through a Direct3D 11
-flip-model swap chain (`DxgiSwapChain`), on by default (Moono Tweaks' "Present through Direct3D
-on Windows", settings.json `"dxgi"`, `--dxgi on|off`). The original (Unity 6 on D3D11) presents
+**Presentation on Windows (DXGI).** On Windows the Vulkan and OpenGL devices present through a
+Direct3D 11 flip-model swap chain (`DxgiSwapChain`), on by default (Moono Tweaks' "Present through Direct3D
+on Windows", settings.json `"dxgi"`, `--dxgi on|off`; the Direct3D 11 device has a swap chain of its
+own, *The Direct3D 11 device* below). The original (Unity 6 on D3D11) presents
 through an 8-bit flip-model DXGI swap chain in the default sRGB colour space, so Windows knows
 its frames are SDR. OpenGL presents through WGL with no swap chain Windows can see, and a
 VkSwapchainKHR is the driver's to implement; NVIDIA's "Vulkan/OpenGL present method" (Auto by
@@ -3422,6 +3446,111 @@ Only the work posted for resources differs (`IResourceWork`).
     in `variant=0` or `variant=1`.
   - **`ONI_CAPTURE_TWICE=full-uploads`** renders each super-sized capture again after every texture
     loaded this way is uploaded in full.
+
+**The Direct3D 11 device (`OniMoono.Desktop.D3d11`, Windows).** It runs the game's shipped
+Direct3D 11 programs (D66) with the conventions of the original's own Direct3D 11 player, as
+measured in it (`tools/UnityProbe`, an in-process recorder of its frames;
+docs/research/d3d11-unity-probes.md and d3d11-captures.md). The work's record, with every
+measurement and decision, is [research/d3d11-plan.md](research/d3d11-plan.md). Its main-thread
+side is the Vulkan device's (`GlDrawRecorder`, `GlTextures.Prepare`, `GlMeshes.Prepare`,
+`GlWorker`); only the work for resources and the device thread differ.
+
+- *Programs* (`D3d11Program`, `Dxbc`, `D3d11Bindings`, `D3d11Variants`, `D3d11Programs`).
+  - **An entry** of the shader's platform-4 blob is Unity's header and a 38-byte prefix (bytes 1–3
+    the texture, constant-buffer and sampler counts) around one DXBC container. The reader checks
+    the container's checksum and signatures as vkd3d-shader reads them, and decodes only the
+    declarations the data has (constant buffers, resources, samplers, global flags; models 4.0 and
+    5.0); anything else is refused, not decoded untested. Each token value it uses is checked
+    against DirectX-Headers by a generated C++ file MSVC compiles in the Windows build
+    (`dxbc_check.cpp`). The DXBC bytes reach `CreateVertexShader` and the other stages unmodified.
+  - **Bindings.** Unity's parameters (the stage's common ones and the entry's) give each texture,
+    sampler and constant buffer its t#, s# and b#; they are checked both ways against the DXBC's
+    declarations (kind, dimension, size) and the prefix's counts. `tools/ShaderSurvey d3d11`
+    checks all 960 of U60's entries; `--check-shaders` builds every one of the 1,070 subprograms
+    with the debug layer on. 68 programs no draw of the game can reach are refused (counted apart).
+  - **Mods' bundles** built with Unity 2020.3 carry another entry layout (two keyword lists, the
+    parameters in the entry's tail), read too; each pass takes the highest hardware tier per
+    keyword set. Unity 2018's table is not read: the original cannot use those bundles' shaders
+    either. Programs with inline sampler states are refused (no reachable one exists).
+  - **Constant buffers** are one DYNAMIC buffer per stage, slot and size, bound whole and written
+    with `Map(WRITE_DISCARD)` when a draw's bytes differ, as the original's are. Matrices are
+    column-major, one register per column.
+- *Resources* (`D3d11Resources`, `D3d11Formats`).
+  - **Textures** take the original's DXGI formats where measured (RGBA32, ARGB32, RGB24 and
+    RGBA4444 as R8G8B8A8, Alpha8 as A8, BC1/BC3/BC7, the half and float formats). They are made
+    DEFAULT with their texels as initial data. A re-upload into the same storage sends only the
+    rows that changed (`UpdateSubresource` with a box), as the other devices do.
+  - **Render textures** are a colour texture with render-target views per level, and depth as the
+    original's: D32_FLOAT_S8X24 above 16 bits (`SystemInfo`'s default depth-stencil format is
+    D32_SFloat_S8_UInt), D16 at 16 or less. New surfaces are cleared.
+  - **Meshes** are one DYNAMIC vertex buffer and a 32-bit index buffer. An input layout per program
+    and mesh layout gives a channel the mesh lacks OpenGL's constant attribute from a small
+    buffer stepped never (`InstanceDataStepRate` 0).
+  - **Readbacks** copy into a STAGING texture and map it; `AsyncGPUReadback` maps it later without
+    a wait.
+- *Conventions.* Reversed Z (comparisons reversed, depth cleared to 1 − the value asked for),
+  render textures rendered upside down with their rows in OpenGL's order, the screen upright;
+  viewport and scissor rectangles turned over in the back buffer; `FrontCounterClockwise` 1 into
+  a render texture and 0 into the screen; depth bias −units and −factor; blend colour factors in
+  the alpha slots as their alpha forms. `D3d11StatesTests` checks the state tables against the
+  original's recorded ones.
+- *Threads.* A `GlWorker` ("Direct3D 11"): the device thread alone uses the immediate context and
+  the swap chain, as Microsoft's multithreading guide asks of DXGI calls; one frame in flight. No
+  deferred contexts or command lists (the original uses none). On a late-game colony the main
+  thread is the bottleneck and waits for the device under 0.1 ms a frame.
+- *Presentation* (`D3d11SwapChain`, `D3d11Present`, `D3d11Exclusive`, `D3d11LoadAnimation`). The
+  device's own flip-model swap chain on the player window, made on the rendering device, with
+  the original's measured settings (2 buffers, FLIP_SEQUENTIAL, R8G8B8A8_UNORM, ALLOW_MODE_SWITCH
+  | FRAME_LATENCY_WAITABLE_OBJECT | ALLOW_TEARING, maximum frame latency 2; `Present(1, 0)` with
+  vsync, `Present(0, ALLOW_TEARING)` without). The DXGI presenter of the other devices is not
+  used.
+  - **The screen** is drawn into one of two typeless screen textures, as the original draws its
+    screen, and copied (or stretched) into the back buffer at present. The device thread waits on
+    the frame-latency waitable once a frame, as the original's main thread does.
+  - **Between frames** it shows the last frame again: under the start-up splash, under the
+    loading animation during a save load, and as repeats while no frame comes, as the DXGI
+    presenter does (*Repeats while no frame comes*). Frame deltas with vsync follow the
+    presentation (*Frame deltas with vsync*). These pictures use small programs of the player's
+    own (`scripts/gen-d3d11-present.py`, checked against fxc's output); the game's draws use
+    only the shipped programs.
+  - **Exclusive full screen** is the original's: a second, blt-model DISCARD chain taken into
+    DXGI's full-screen state (`ResizeTarget`, `SetFullscreenState`, `ResizeBuffers`). Losing the
+    focus, the window goes windowed, as the original's does; a refused switch
+    (DXGI_ERROR_NOT_CURRENTLY_AVAILABLE) leaves a fullscreen window. While a chain may be full
+    screen, the main thread's waits for the device thread answer sent window messages, as DXGI's
+    documentation asks. HDR displays compose it as SDR, as the original.
+- *Starting* (`D3d11Context`, `Renderers.Open`).
+  - **The adapter** follows the original: `--gpu default` takes `EnumAdapters1(0)`, the adapter
+    of the desktop's primary output and `D3D11CreateDevice`'s own default, which the exe's
+    NvOptimus and PowerXpress exports steer on hybrid laptops; `discrete` and `integrated` take
+    `EnumAdapterByGpuPreference`'s first. Every adapter is logged. A device at feature level 11_1
+    or 11_0 (11_0 alone with `-force-feature-level-11-0`), BGRA support on.
+  - **auto** refuses a software adapter (the Basic Render Driver), which `--renderer d3d11` takes.
+    No driver deny list: none is known to need one.
+  - **The guard** is Vulkan's (*Starting* above) with its own file, `d3d11-start-guard.txt`, keyed
+    by the adapter's ids, the user-mode driver's version (`CheckInterfaceSupport`) and the build;
+    honoured under auto only.
+  - **A failed step** releases what was made and the next renderer is tried, the reason logged.
+    `ONI_D3D11_FAIL` fails a named step for tests (`factory`, `adapter`, `device`, `debug`,
+    `swapchain`, `presenter`, `screen`; `removed-after:N`, `mode-changed-after:N`,
+    `exclusive-refused`, `crash-at:N`).
+- *Device loss.* DXGI_ERROR_DEVICE_REMOVED, _RESET, _HUNG or a driver error from `Present` or
+  `ResizeBuffers` logs `GetDeviceRemovedReason`, stops the device's work and quits with an error
+  that says how to start on another renderer, as Vulkan's does; the error stays on screen until OK. The device does
+  not recreate itself: non-readable textures have no copy to make again (as on Vulkan). Observed
+  with a real GPU reset (`dxcap -forcetdr`). DXGI_STATUS_MODE_CHANGED makes the buffers again.
+- *Checks.* `--d3d11-debug` turns the debug layer on: each message is counted by its ID and the
+  draw that made it, logged in full the first time, and the counts every 600 frames while they
+  grow. Only the RENDERTARGETVIEW_NOT_SET warning (an unbound extra target, which the original
+  leaves unbound alike) is denied in the storage filter. Every COM interface, method slot and signature, struct, enum, IID and
+  DLL export the device declares (`D3d11.cs`, `DxgiInterfaces.cs`, `Gl/Dxgi.cs`) is checked
+  against the Windows SDK headers: `tools/ComCheckGen` writes `com_check.cpp` from the built
+  assembly, which MSVC compiles in the Windows build and `scripts/com-check.sh` (check.sh). Every
+  other native import of `OniMoono.Desktop` must say why it is outside the check.
+- *Not done.* No compute shaders, tiled resources or the texture formats the engine cannot upload
+  (`supportsComputeShaders` false, as on the other devices); mods' particle effects drawn as mesh
+  particles or through custom vertex streams are the engine's particle renderer's gap on every
+  device.
 
 **Super-sized captures.** `ScreenCapture.CaptureScreenshot(path, superSize)` renders the frame
 again as a screen `superSize` times larger would show it (`FrameRenderer.Capture`), the cameras

@@ -20,8 +20,8 @@ A **General** section holds eight options of the player:
 - Hiding personal paths in the log (on by default).
 - For laptops with two GPUs, the graphics card the game draws with (default, discrete or
   integrated; default does what the original does).
-- The renderer (auto: Vulkan, or OpenGL when Vulkan can't start; on Windows Direct3D 11 before
-  OpenGL, and first on an integrated GPU).
+- The renderer (auto: Vulkan, or OpenGL when Vulkan can't start; on Windows Vulkan, Direct3D
+  11, then OpenGL, with Direct3D 11 first on an integrated GPU).
 - On Windows, presenting through Direct3D as the original does (on by default).
 - [Garbage collection](#garbage-collection) (fast by default).
 
@@ -226,15 +226,18 @@ launch options:
   `<name>`, `<klei id>`), or as logged.
 - `--gpu default|discrete|integrated`: the graphics card on a laptop with two
   ([ARCHITECTURE.md](ARCHITECTURE.md#2-process-and-assembly-structure), "The GPU option").
-- `--renderer auto|vulkan|opengl`: the graphics API; auto is Vulkan, or OpenGL when Vulkan can't
-  start, the driver is on a short deny list, or an earlier start with this graphics card,
-  driver and Moono build never got its first frames on screen; on Windows auto tries Direct3D 11
-  before OpenGL, and first when the GPU it would draw on is integrated (the GPU Vulkan's choice
-  picks, a discrete one first, is an integrated one;
-  [research/d3d11-plan.md](research/d3d11-plan.md), "M6"); vulkan always
-  tries Vulkan ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering)). If Vulkan stops working in play, the game
-  quits with an error; choose OpenGL here or under Renderer in Moono Tweaks if it keeps
-  happening.
+- `--renderer auto|vulkan|opengl|d3d11`: the graphics API; auto is Vulkan, or OpenGL when
+  Vulkan can't start, the driver is on a short deny list, or an earlier start with this graphics
+  card, driver and Moono build never got its first frames on screen. On Windows auto's order is
+  Vulkan, Direct3D 11, then OpenGL, and Direct3D 11 first when the GPU it would draw on is
+  integrated (the GPU Vulkan's choice picks, a discrete one first, is an integrated one;
+  [PERFORMANCE.md](PERFORMANCE.md#direct3d-11-against-vulkan)). vulkan always tries Vulkan;
+  d3d11 (Windows; Unity's `-force-d3d11` in the launch options picks it too) tries Direct3D 11,
+  the original's renderer, and goes on as auto when it can't start
+  ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering)). If the renderer stops working in play, the
+  game quits with an error; choose another here or under Renderer in Moono Tweaks if it keeps
+  happening. Unity's `-force-glcore`, `-force-opengl` and `-force-vulkan` choose too, and
+  `-force-feature-level-11-0` makes Direct3D 11 use feature level 11_0.
 - `--dxgi on|off`: Windows, frames shown through a Direct3D 11 swap chain or through the
   renderer's own presentation (Vulkan's swapchain, OpenGL's SwapBuffers) ([ARCHITECTURE.md](ARCHITECTURE.md#35-rendering), "Presentation on
   Windows").
