@@ -281,6 +281,16 @@ namespace OniMoono.Desktop.D3d11
                     NotDrawn(shader, sub.Keywords, "inline sampler states");
                     return program;
                 }
+                // A comparison sampler (dcl_sampler's mode COMPARISON, for sample_c) needs "a
+                // sampler-comparison state, which is the sampler state plus a comparison state"
+                // (SampleCmp); the device makes plain sampler states only, and the comparison
+                // function Unity's shadow variants want is not measured. Not drawn, as Vulkan's
+                // shadow (depth-comparison) samplers: the game selects none of those variants.
+                if (Array.Exists(entry.Dxbc.Shader.Samplers, x => x.Comparison))
+                {
+                    NotDrawn(shader, sub.Keywords, "shadow (depth-comparison) samplers");
+                    return program;
+                }
                 if (bindings.StructuredBuffers.Length > 0)
                 {
                     NotDrawn(shader, sub.Keywords, "structured buffers");
@@ -310,8 +320,9 @@ namespace OniMoono.Desktop.D3d11
                     int index = program.Samplers.Count;
                     program.Samplers.Add(new SamplerBinding { Location = t.Slot, Unit = index, Target = target, PropertyId = ShaderPropertyIds.Get(t.Name) });
                     textures.Add((t.Slot, index));
-                    // A sampler slot two textures name takes the first's state. Whether any
-                    // program shares one is UNVERIFIED (d3d11-plan.md, B2's list).
+                    // A sampler slot two textures name takes the first's state. No program of
+                    // the game or the mods read shares one (ShaderSurvey d3d11, j0008601;
+                    // d3d11-plan.md "M3", B2 2), so the rule never applies.
                     if (t.Sampler >= 0 && !samplers.Exists(x => x.Item1 == t.Sampler)) samplers.Add((t.Sampler, index));
                 }
                 stage.ConstantBuffers = cbs.ToArray();

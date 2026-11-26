@@ -12,7 +12,7 @@ namespace OniMoono.Desktop.D3d11
     ///   FillMode SOLID, DepthClipEnable 1, MultisampleEnable 1, AntialiasedLineEnable 0.
     ///   FrontCounterClockwise 1 into a render texture (measured on the probe's draws into render
     ///   textures) and 0 into the back buffer (the colony frame's UI draws had 0; that they are
-    ///   the back buffer's is the inference d3d11-captures.md UNVERIFIED 6 asks to measure; a
+    ///   the screen's, d3d11-captures.md item 6, settled in M3; a
     ///   render texture is rendered upside down, which turns its winding over, as VkPipelines'
     ///   front face). ScissorEnable as the draw's scissor (Unity's player keeps it 0 with no
     ///   scissor).

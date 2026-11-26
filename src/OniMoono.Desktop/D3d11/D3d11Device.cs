@@ -15,14 +15,15 @@ namespace OniMoono.Desktop.D3d11
     {
         public override GraphicsDeviceType DeviceType => GraphicsDeviceType.Direct3D11;
         public override string DeviceName => d3d.Adapter.Name;
-        /// "NVIDIA" on NVIDIA (measured); other vendors' strings are UNVERIFIED (M7), so they
-        /// read empty rather than guessed.
+        /// "NVIDIA" on NVIDIA (measured); other vendors' strings are not measured (the original
+        /// on the AMD iGPU stays UNVERIFIED, the user's M7 exception), so they read empty
+        /// rather than guessed.
         public override string DeviceVendor => d3d.Adapter.VendorId == 0x10DE ? "NVIDIA" : "";
         public override string DeviceVersion => d3d.VersionString;
         public override int DeviceId => (int)d3d.Adapter.DeviceId;
         public override int VendorId => (int)d3d.Adapter.VendorId;
-        /// The adapter's dedicated video memory in MB. The original reported 24322 on the 3090,
-        /// which this formula's source is UNVERIFIED against (M7).
+        /// The adapter's dedicated video memory in MB: the original's 24322 on the 3090, equal
+        /// (d3d11-plan.md "M7", j0009688).
         public override int MemorySizeMB => (int)(d3d.Adapter.DedicatedVideoMemory / (1024 * 1024));
         public override int ShaderLevel => 50;
         /// The original's Direct3D 11 answer (d3d11-unity-probes.md §1; also observed in a colony,

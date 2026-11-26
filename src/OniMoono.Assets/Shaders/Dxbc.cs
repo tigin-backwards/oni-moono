@@ -38,7 +38,11 @@ namespace OniMoono.Assets.Shaders
 
     /// A sampler declaration (`dcl_sampler s#, mode`): Mode is a D3D10_SB_SAMPLER_MODE, 0 default or
     /// 1 comparison (the ones the data has).
-    public readonly record struct DxbcSamplerDeclaration(int Slot, int Mode);
+    public readonly record struct DxbcSamplerDeclaration(int Slot, int Mode)
+    {
+        /// D3D10_SB_SAMPLER_MODE_COMPARISON: the program samples through it with sample_c.
+        public bool Comparison => Mode == DxbcTokenFormat.D3D10_SB_SAMPLER_MODE_COMPARISON;
+    }
 
     /// A DXBC container (the D3D shader bytecode format of shader models 4 and 5), read as the
     /// open-source readers read it and checked, never changed: the bytes stay as given, for the

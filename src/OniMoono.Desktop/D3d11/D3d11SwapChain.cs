@@ -51,7 +51,7 @@ namespace OniMoono.Desktop.D3d11
         }
 
         /// The exclusive full-screen chain for `hwnd`, as the original's (j0009185, captures
-        /// UNVERIFIED 10): DXGI_SWAP_EFFECT_DISCARD, 1 buffer, R8G8B8A8_UNORM, usage SHADER_INPUT |
+        /// item 10, settled in M4): DXGI_SWAP_EFFECT_DISCARD, 1 buffer, R8G8B8A8_UNORM, usage SHADER_INPUT |
         /// RENDER_TARGET_OUTPUT, flags ALLOW_MODE_SWITCH; then, as it does, ResizeTarget to the
         /// mode and SetFullscreenState(TRUE) (ResizeTarget "should be called before calling
         /// SetFullscreenState", "DXGI best practices", Full-Screen Issues), and ResizeBuffers to
