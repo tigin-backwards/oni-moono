@@ -1,19 +1,19 @@
 {
   "schema": 2,
   "comment": "The stripped game (tools/GameStrip) the CI game tests run on, by hash: a release asset of the private refs repository, one release per build and archive hash. scripts/fetch-game-content.py fetches it, and the fixture saves through tests/e2e/fixtures.json (docs/DEVELOPMENT.md, \"Game tests in CI\"). Private: never published.",
-  "default_build": "764025",
+  "default_build": "764961",
   "source": {
     "kind": "github-release",
     "host": "github.com",
     "repository": "tigin-backwards/oni-moono-refs"
   },
   "builds": {
-    "764025": {
+    "764961": {
       "game": "U60",
-      "tag": "game/764025-c308863009c64763",
-      "asset": "oni-764025.tar.zst",
-      "size": 115698111,
-      "sha256": "c308863009c64763baed2d7a6632159990290f6674dd5400ba0a02732cee82c2"
+      "tag": "game/764961-47798ab41a84e8b2",
+      "asset": "oni-764961.tar.zst",
+      "size": 115652778,
+      "sha256": "47798ab41a84e8b273e58dd2b0989d781d81fa9c7fef44a38b5f76aeb05338cc"
     }
   }
 }
