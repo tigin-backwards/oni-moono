@@ -3,7 +3,7 @@ makes them) become the Workshop item's folder: the release at the root with its 
 moono.json, manifests and players, no archived_versions, nothing at the top the game would load
 but the loader mod, and SHA256SUMS over every file. A tampered archive, one with a path outside
 its folder, a U60 beta build (-u60) and another release's assets are refused; older releases' date-only
-names are taken."""
+names are taken. With --notes, the root's release-notes.json holds the releases up to the item's."""
 
 import hashlib, io, json, os, subprocess, sys, tarfile, tempfile, unittest, zipfile
 
@@ -60,13 +60,15 @@ class WorkshopItemTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_script(self, assets='assets', loader='MoonoLoader.dll'):
+    def run_script(self, assets='assets', loader='MoonoLoader.dll', notes=None):
         out = os.path.join(self.dir, 'item')
         with open(os.path.join(self.dir, loader), 'wb') as f:
             f.write(b'MZ loader')
         p = subprocess.run(
             [sys.executable, '-I', SCRIPT, '--assets', os.path.join(self.dir, assets), '--tag', 'v2026.11.08.02']
-            + ['--loader', os.path.join(self.dir, loader), out],
+            + ['--loader', os.path.join(self.dir, loader)]
+            + (['--notes', notes] if notes else [])
+            + [out],
             capture_output=True,
             text=True,
         )
@@ -107,6 +109,31 @@ class WorkshopItemTests(unittest.TestCase):
             cwd=os.path.join(out, 'linux-x64'),
             check=True,
         )
+
+    def test_release_notes(self):
+        """The releases list's releases up to the item's, newest first, drafts and other tags left
+        out, with the fields the badge reads; listed in SHA256SUMS like every file."""
+        release(os.path.join(self.dir, 'assets'), '2026.11.08.02')
+
+        def r(tag, **extra):
+            return dict(
+                {'tag_name': tag, 'name': tag[1:], 'prerelease': False, 'draft': False, 'body': f'**Fixes**\n- {tag}', 'url': 'api'},
+                html_url=f'https://github.com/tigin-backwards/oni-moono/releases/tag/{tag}',
+                **extra,
+            )
+
+        listed = [r('v2026.11.09.01'), r('v2026.11.07.01', prerelease=True), r('v2026.11.08.02'), r('v2026.11.08.03', draft=True)]
+        listed += [r('vtest-v2026.11.08.01-1'), r('v2026.11.06.01')]
+        notes = os.path.join(self.dir, 'releases.json')
+        with open(notes, 'w') as f:
+            json.dump(listed, f)
+        p, out = self.run_script(notes=notes)
+        self.assertEqual(p.returncode, 0, p.stderr)
+        kept = json.loads(read(os.path.join(out, 'release-notes.json')))
+        self.assertEqual([k['tag_name'] for k in kept], ['v2026.11.08.02', 'v2026.11.07.01', 'v2026.11.06.01'])
+        self.assertEqual(set(kept[0]), {'tag_name', 'name', 'prerelease', 'html_url', 'body'})
+        self.assertTrue(kept[1]['prerelease'])
+        self.assertIn('release-notes.json', self.check_sums(out))
 
     def test_tampered_archive_is_refused(self):
         release(os.path.join(self.dir, 'assets'), '2026.11.08', tamper='player/OniMoono.dll')

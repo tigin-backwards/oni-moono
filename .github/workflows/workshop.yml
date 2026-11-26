@@ -4,8 +4,9 @@
 # checked against their SLSA provenance (signed by attest.yml, built from master), laid out by
 # scripts/workshop-item.py (that release alone, for the current game, U60; U59 players install
 # from a GitHub release) with the loader mod (src/MoonoLoader, built here from this run's commit
-# against U60's reference assemblies), and the item's SHA256SUMS and every file in it attested
-# by attest.yml in turn. The Sigstore bundle naming SHA256SUMS goes into the item as
+# against U60's reference assemblies) and the releases' notes (release-notes.json, for the
+# main menu's "Updated" badge, from the releases list as published), and the item's SHA256SUMS
+# and every file in it attested by attest.yml in turn. The Sigstore bundle naming SHA256SUMS goes into the item as
 # attestation/SHA256SUMS.sigstore.json, for anyone to check the item by hand
 # (ci/workshop/verify.sh, docs/RELEASES.md); Moono's installer checks no signature
 # (docs/INSTALL-MODES.md). The last job checks the artifact with the repository's verify.sh.
@@ -95,10 +96,14 @@ jobs:
           DOTNET_CLI_TELEMETRY_OPTOUT: "1"
           DOTNET_NOLOGO: "1"
         run: dotnet build src/MoonoLoader -c Release -p:OniGameDir="$GAME_DIR" -v q -nologo "-clp:ErrorsOnly;NoSummary"
+      # The releases' notes as published (a dry run's release is not among them): the item's
+      # release-notes.json keeps those up to its own.
+      - name: Fetch the releases list
+        run: gh api "repos/$GH_REPO/releases?per_page=50" > "$RUNNER_TEMP/releases.json"
       - name: Lay out the item
         run: |
           python3 -I scripts/workshop-item.py --assets "$RUNNER_TEMP/assets" --tag "$TAG" \
-            --loader out/bin/MoonoLoader/release/MoonoLoader.dll workshop-item
+            --loader out/bin/MoonoLoader/release/MoonoLoader.dll --notes "$RUNNER_TEMP/releases.json" workshop-item
       - id: sums
         run: |
           echo "checksums=$(sha256sum workshop-item/SHA256SUMS | sed 's|workshop-item/||')" >> "$GITHUB_OUTPUT"

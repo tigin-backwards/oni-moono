@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Lays out Moono's Workshop item from a release's assets (docs/INSTALL-MODES.md).
 
-    python3 -I scripts/workshop-item.py --assets DIR --tag vYYYY.MM.DD.NN --loader MoonoLoader.dll OUT
+    python3 -I scripts/workshop-item.py --assets DIR --tag vYYYY.MM.DD.NN --loader MoonoLoader.dll [--notes RELEASES.json] OUT
 
 DIR holds the release's assets as downloaded (and verified: .github/workflows/workshop.yml
 checks their attestations first): its Windows zip, Linux tarball and their SHA256SUMS manifests.
@@ -13,8 +13,13 @@ one version:
       windows-x64/   linux-x64/  the archives' oni-moono folders
       OniMoono.exe  OniMoono.sh  verify.ps1  verify.sh  README.md   (root only)
       MoonoLoader.dll            the loader mod (src/MoonoLoader, built by workshop.yml; root only)
+      release-notes.json         the notes of the releases up to this one (root only; --notes)
       SHA256SUMS                 every other file of OUT (root only)
       attestation/               added by workshop.yml once SHA256SUMS is attested: its Sigstore bundle
+
+RELEASES.json is GitHub's releases list (workshop.yml fetches it once the release is published):
+release-notes.json keeps the NOTES_KEPT newest releases up to the item's, drafts left out, with
+the fields Moono's "Updated" badge reads (tag, title, pre-release, page, notes in Markdown).
 
 The item has one version, master's release: no archived_versions (the original U59 game lists a
 folder item as failed to download, so U59 players install Moono from a GitHub release, the u59
@@ -41,6 +46,8 @@ PLATFORMS = {"windows-x64": ".zip", "linux-x64": ".tar.gz"}
 TAG = re.compile(r"v([0-9]{4}\.[0-9]{2}\.[0-9]{2}\.[0-9]{2})")
 COMPONENT = re.compile(r"[A-Za-z0-9._+-]+")
 LOADER = "MoonoLoader.dll"  # the loader mod (src/MoonoLoader), the root's one DLL
+NOTES = "release-notes.json"
+NOTES_KEPT = 30
 
 
 def fail(message):
@@ -143,18 +150,52 @@ def version_folder(assets, tag, out):
     return version
 
 
+def release_notes(path, version):
+    """The releases list's newest NOTES_KEPT releases up to `version`, in GitHub's form."""
+    with open(path, encoding="utf-8") as f:
+        releases = json.load(f)
+    if not isinstance(releases, list):
+        fail(f"{path} is not a releases list")
+    kept = []
+    for r in releases:
+        if not isinstance(r, dict) or r.get("draft"):
+            continue
+        tag, url = r.get("tag_name"), r.get("html_url")
+        m = TAG.fullmatch(tag) if isinstance(tag, str) else None
+        if not m or not isinstance(url, str) or m.group(1) > version:
+            continue
+        kept.append(
+            {
+                "tag_name": tag,
+                "name": str(r.get("name") or tag),
+                "prerelease": bool(r.get("prerelease")),
+                "html_url": url,
+                "body": str(r.get("body") or ""),
+            }
+        )
+    kept.sort(key=lambda r: r["tag_name"], reverse=True)
+    return kept[:NOTES_KEPT]
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--assets", required=True, help="the release's archives and manifests")
     parser.add_argument("--tag", required=True, help="the release's tag")
     parser.add_argument("--loader", required=True, help="the loader mod's MoonoLoader.dll, put at the root")
+    parser.add_argument("--notes", help="GitHub's releases list, for the root's release-notes.json")
     parser.add_argument("out")
     args = parser.parse_args()
     if os.path.exists(args.out):
         fail(f"{args.out} exists already")
     final, args.out = args.out, args.out + ".partial"
     shutil.rmtree(args.out, ignore_errors=True)
-    version_folder(args.assets, args.tag, args.out)
+    version = version_folder(args.assets, args.tag, args.out)
+    if args.notes:
+        notes = release_notes(args.notes, version)
+        with open(os.path.join(args.out, NOTES), "w", encoding="utf-8", newline="\n") as f:
+            json.dump(notes, f, indent=1, ensure_ascii=False)
+            f.write("\n")
+        print(f"{NOTES}: {len(notes)} releases, newest {notes[0]['tag_name'] if notes else 'none'}")
     shutil.copyfile(os.path.join(args.out, "windows-x64", "player", "OniMoono.exe"), os.path.join(args.out, "OniMoono.exe"))
     for name in ("OniMoono.sh", "verify.sh", "verify.ps1", "README.md"):
         shutil.copyfile(os.path.join(STATIC, name), os.path.join(args.out, name))
