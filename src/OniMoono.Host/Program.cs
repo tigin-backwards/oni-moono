@@ -196,6 +196,8 @@ namespace OniMoono.Host
                 try
                 {
                     PatchedFilters.Install();
+                    // After PatchedFilters: MonoMod reads its DMD switch when it first builds a replacement.
+                    MonoModLog.Install();
                     ModVersionStamp.Install();
                     MonoValueTypeHashes.Install();
                     ModAccess.Install();
