@@ -2456,7 +2456,14 @@ PERFORMANCE.md (whose integrated-GPU line still described the replaced detection
 - The monitor move of criterion 5 (monitor 1) approved: `--input FRAME:monitor:N` moves the
   window in process (glfwSetWindowPos, SWP_NOACTIVATE), and both swap chains log the output they
   are on with its refresh period when the lookup finds a new one (944b4bece); the run is
-  submitted by the coordinator (`scratchpad/m8/monitor-move.sh`).
+  submitted by the coordinator (`scratchpad/m8/monitor-move.sh`). **Observed (j0009774,** the
+  RTX 3090, 3 monitors, windowed, unfocused): on Direct3D 11 (debug layer) and on Vulkan through
+  DXGI the window started on monitor 2, moved to monitor 1 at frame 900 and back at 1800; each
+  swap chain logged `\\.\DISPLAY1` and then `\\.\DISPLAY2` again with the refresh period looked up
+  for each (16.6802 ms on both, the two monitors' rates being equal here), the device-thread
+  totals went on every 600 frames to the end, both launches exited 0, the debug layer 0
+  messages above INFO. A monitor of another refresh rate was not available to tell the periods
+  apart.
 
 **The final review** (criterion 8): five fresh agents, each given the code of one area and the
 plan's Rules, not these conclusions, each finding classed documented, observed or invented. No
