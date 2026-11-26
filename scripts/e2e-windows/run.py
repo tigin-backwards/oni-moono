@@ -14,7 +14,8 @@ for over half a second. One player at a time, on lane WIN_LANE (default 25).
 E2eDriver and OniMcp listen on the Windows loopback, which WSL cannot reach: each connection goes
 through a Windows Python bridge (bridge.py) on a relay port here (the lane's + 1000). Input is
 E2eDriver's synthetic input (input.*, tools/E2eDriver/README.md), never the desktop's pointer or
-keyboard; so these runs check what the game and the UI do with input, not how either player
+keyboard, from the load on: the pointer starts at the window's centre, as a fresh lane display's
+does on Linux. So these runs check what the game and the UI do with input, not how either player
 reads Windows input. The exception is the side buttons (X11's 8 and 9 in specs): xbutton.ps1
 posts WM_XBUTTONDOWN/UP for XBUTTON1, XBUTTON2 to the player's own window, which both players
 read. `type` sets the field's text whole; steps that need real input (keyboard
@@ -395,6 +396,23 @@ def pointer_away(self):
 
 
 e2e.Run.pointer_away = pointer_away
+_dismiss_load_dialogs = e2e.Run.dismiss_load_dialogs
+
+
+def dismiss_load_dialogs(self):
+    """The pointer taken at the window's centre once the colony has loaded, where a fresh lane
+    display's pointer is on Linux, before the dialogs and the first step. Until the first input.*
+    request the game reads the desktop's pointer, the user's, relative to the window, and the
+    two players' windows open in different places (the original's at monitor 2's corner, ours
+    centred on it). The research screen zooms around the pointer as it opens: a desktop pointer
+    on monitor 1 read (-1281, 30) in the original and (-1920, 359) in ours, which left the tree
+    297 units further left in ours, too near its edge for research-pan's drag (j0009782)."""
+    self.need_input().move(e2e.WIDTH // 2, e2e.HEIGHT // 2)
+    self.frames(2)
+    return _dismiss_load_dialogs(self)
+
+
+e2e.Run.dismiss_load_dialogs = dismiss_load_dialogs
 
 
 def menu_grab(self, name):
