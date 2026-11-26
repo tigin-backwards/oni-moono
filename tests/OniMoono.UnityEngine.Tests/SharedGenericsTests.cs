@@ -53,6 +53,17 @@ namespace OniMoono.Tests
             // Box<string>'s replacement casts an item typed as a sealed class that is no Exception,
             // which CoreCLR compiles to null: run for Box<ArgumentException>, it throws.
             var result = SharedGenericsOrderCheck.Run();
+            Assert.StartsWith("every call ran the replacement patched last, after", result);
+        }
+
+        /// Patched before its first compile, the shared code is kept off tier-up (PatchedTiering),
+        /// and the replacement detoured last still runs for every call.
+        [NeedsGameAssembly("0Harmony")]
+        [Fact]
+        public void TheReplacementDetouredLastRunsWhenPatchedBeforeTheFirstCompile()
+        {
+            PatchedTiering.Install();
+            var result = SharedGenericsOrderCheck.Run(compiledFirst: false);
             Assert.StartsWith("every call ran the replacement patched last", result);
         }
     }

@@ -29,8 +29,12 @@ namespace OniMoono.Host
             lock (gate) ran[argument] = ran.TryGetValue(argument, out var n) ? n + 1 : 1;
         }
 
-        /// What the calls ran, or an exception naming what went wrong.
-        public static string Run()
+        /// What the calls ran, or an exception naming what went wrong. `compiledFirst`: the shared
+        /// code runs once before the patches, so it keeps tiering (PatchedTiering keeps code
+        /// patched before its first compile off tier-up) and must be recompiled; else it may not be.
+        public static string Run() => Run(compiledFirst: true);
+
+        public static string Run(bool compiledFirst)
         {
             SharedGenerics.Install();
             var module = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName("OniMoono.Host.SharedOrderCheck"), AssemblyBuilderAccess.Run)
@@ -64,15 +68,16 @@ namespace OniMoono.Host
             il.Emit(OpCodes.Ret);
             var run = caller.CreateType().GetMethod("Run")!.CreateDelegate<Func<object, int>>();
 
+            var instance = Activator.CreateInstance(called)!;
+            var exception = new ArgumentException();
+            called.GetField("items")!.SetValue(instance, new List<ArgumentException> { exception });
+            if (compiledFirst) run(instance);
             var harmony = new Harmony("OniMoono.Host.SharedOrderCheck");
             var postfix = new HarmonyMethod(typeof(SharedGenericsOrderCheck), nameof(Ran));
             Type[] order = [typeof(string), typeof(object), typeof(Uri), typeof(System.IO.Stream), typeof(System.Text.Encoding), typeof(Exception), typeof(ArgumentException)];
             foreach (var argument in order)
                 harmony.Patch(boxType.MakeGenericType(argument).GetMethod("World"), postfix: postfix);
 
-            var instance = Activator.CreateInstance(called)!;
-            var exception = new ArgumentException();
-            called.GetField("items")!.SetValue(instance, new List<ArgumentException> { exception });
             lock (gate) ran.Clear();
             int recompiles = SharedGenerics.recompiles, calls = 0, threw = 0, wrong = 0;
             // Tier 1 compiles a method after 30 calls once a 100 ms delay without new tier-0
@@ -102,10 +107,11 @@ namespace OniMoono.Host
             }
             int last;
             lock (gate) last = ran.TryGetValue(typeof(ArgumentException), out var n) ? n : 0;
-            if (recompiled == 0) throw new InvalidOperationException($"the shared code was not recompiled in {calls} calls");
+            if (recompiled == 0 && compiledFirst) throw new InvalidOperationException($"the shared code was not recompiled in {calls} calls");
             if (threw > 0 || wrong > 0 || last != calls)
                 throw new InvalidOperationException($"of {calls} calls of Box<ArgumentException>.World, {threw} threw NullReferenceException and {wrong} returned another value; replacements run: {Report()}");
-            return $"every call ran the replacement patched last, after the shared code was recompiled {recompiled} time(s)";
+            return recompiled > 0 ? $"every call ran the replacement patched last, after the shared code was recompiled {recompiled} time(s)"
+                : "every call ran the replacement patched last; the shared code was not recompiled";
         }
     }
 }

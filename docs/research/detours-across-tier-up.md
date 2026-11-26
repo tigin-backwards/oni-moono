@@ -135,6 +135,11 @@ Results (2026-11-26, Linux):
   patch, as a late patch): an empty virtual method and a loop patched before their first call
   are never compiled again while a method compiled before its patch tiers up beside them; every
   call runs its prefix.
+- SharedGenerics' order check (D18) now runs its shared code once before the patches, so it
+  keeps tiering and the check still covers the recompile; a second unit test patches it before
+  its first compile, where it stays off tier-up, and the replacement detoured last runs on every
+  call too. The shared code of a generic class's method is an ordinary IL MethodDesc, so
+  PatchedTiering covers it.
 - `--check-types`: a new last check, the same three shapes in the host (5,000 calls each).
 - Specs `late-patch`, `issue-52-automation-overlay`, `issue-52-click-cycle-patched` pass;
   `issue-52-fast-track-no-tiering` is skipped by the mod gate on U60 (Fast Track runs on U59 only).
