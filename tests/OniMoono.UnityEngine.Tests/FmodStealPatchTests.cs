@@ -245,9 +245,10 @@ namespace OniMoono.Tests
                 var name = Path.GetFileName(dir);
                 var platform = name.StartsWith("oni-win-") ? "windows" : name.StartsWith("oni-linux-") ? "linux" : null;
                 if (platform == null) continue;
-                var m = FmodStealPatch.Known.First(k => k.Platform == platform && k.File == Path.GetFileName(path));
                 var file = File.ReadAllBytes(path);
-                Assert.Equal(m.Sha256, Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(file)));
+                var sha = Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(file));
+                var m = FmodStealPatch.Known.FirstOrDefault(k => k.Platform == platform && k.File == Path.GetFileName(path) && k.Sha256 == sha);
+                Assert.True(m != null, $"{path}: SHA-256 {sha} is not listed");
                 Assert.Equal(m.Old, file.AsSpan(FileOffset(file, m.Platform, m.Site), m.Old.Length).ToArray());
                 foreach (var (offset, bytes) in m.Checks ?? [])
                     Assert.Equal(bytes, file.AsSpan(FileOffset(file, m.Platform, offset), bytes.Length).ToArray());

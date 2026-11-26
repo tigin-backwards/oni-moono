@@ -1126,6 +1126,12 @@ the game's `SpeechMonitor` and `MainMenu` already do after a release:
 Each install checks the two bodies against fingerprints reviewed for U59 and every U60 build;
 a game update that changes either turns the tweak off for that build.
 
+U60 764961 ships the fix sent to Klei: `Layer.Stop` clears the handle, and `StopAllSounds` takes
+each loop off the parameter updaters, clears its handle and its playing flag (with
+`RenderEveryTick`, `StopSound` and the sandbox tools' sounds clearing theirs too). The tweak
+still replaces both methods there, so on 764961 `StopAllSounds` keeps the flag as on earlier
+builds (docs/research/u60-764961.md).
+
 With `ONI_TWEAK_VERIFY=1` (or `ONI_VERIFY_RELEASED_SOUNDS=1`) the handles released at the two
 places are kept, and any later call on one through the `EventInstance` methods the game uses is
 counted and logged with its caller (`VerifyStaleCalls`, which must stay 0). After each
@@ -1198,7 +1204,8 @@ FMOD Studio runs, before the game has made any instance, and only when all three
 - FMOD's version (2.03.12 build 160365, as the core library reports it to the core system's
   getVersion).
 - The SHA-256 of the loaded Studio library's file (U59's `fmodstudio.dll` and
-  `libfmodstudio.so`, which U60 763796 and 764025 ship too, and the U60 betas'
+  `libfmodstudio.so`, which U60 763796, 764025 and 764961 ship too (764961's `fmodstudio.dll` with
+  an Authenticode signature appended, listed by its own SHA-256), and the U60 betas'
   `fmodstudioL.dll` and `libfmodstudioL.so`, the same from 761015 to 763612).
 - Every byte the patch relies on: the site and what follows it to the epilogue, and the
   destroy's code (on Windows also the slack still empty).

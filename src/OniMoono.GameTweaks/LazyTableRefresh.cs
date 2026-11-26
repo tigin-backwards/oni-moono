@@ -44,7 +44,7 @@ namespace OniMoono.GameTweaks
     [GameMember(GameUse.Prefix, "System.Void TableScreen::ScreenUpdate(System.Boolean)")]
     [GameMember(GameUse.Prefix, "System.Void TableScreen::SortRows()")]
     [GameMember(GameUse.Prefix | GameUse.Finalizer, "System.Void TableScreen::RefreshRows()")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void TableRow::RefreshColumns(System.Collections.Generic.Dictionary`2<System.String,TableColumn>)", "00cf5fd6b516d147 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "d0017f1f19e5d339 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void TableRow::RefreshColumns(System.Collections.Generic.Dictionary`2<System.String,TableColumn>)", "00cf5fd6b516d147 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025 linux-764961 win-764961", "d0017f1f19e5d339 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     [GameMember(GameUse.Uses, "System.Collections.Generic.List`1<TableRow> TableScreen::rows")]
     [GameMember(GameUse.Uses, "System.Boolean TableScreen::rows_dirty")]
     [GameMember(GameUse.Uses, "System.Boolean TableScreen::incubating")]

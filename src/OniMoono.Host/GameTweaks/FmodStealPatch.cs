@@ -73,9 +73,10 @@ namespace OniMoono.Host.GameTweaks
     {
         public const uint Version = 0x00020312, Build = 160365;
 
-        /// The known modules, by game build.
-        public static readonly FmodStealModule[] Known =
-        [
+        /// U59's and U60 763796-764025's `fmodstudio.dll`. U60 764961 ships the same file with an
+        /// Authenticode signature appended (its header's checksum and certificate entry changed, the
+        /// mapped sections the same bytes), so the same patch applies there by another hash.
+        static readonly FmodStealModule FmodStudioWindows =
             new("windows", "fmodstudio.dll", "635b1f4836e8709a939245881020b31ef9aa91f93321bc0ef7917d63ee09eddb", "U59 744825, U60 763796 and 764025",
                 Site: 0x68A64,
                 // +0x68A64..+0x68A8A: the released test, the helper's call, the store, the epilogue.
@@ -102,8 +103,14 @@ namespace OniMoono.Host.GameTweaks
                     0xF0, 0xFF, 0x05, 0xAC, 0x1B, 0x0E, 0x00,           // lock inc dword [+0x336FF0]        destroyed: counted
                     0xE9, 0x3C, 0x36, 0xE1, 0xFF,                       // jmp +0x68A85                      eax is 0: returned
                 ],
-                CaveSpace: 0x80, Counter: 0x336FF0, Return: 0x68A71, OldReturn: 0x68A79, Function: 0x6894E),
-            new("linux", "libfmodstudio.so", "a4eebdd6171fea7b308db6ecedd4e6db0db3840aed59b5dfbdc59570b58169db", "U59 744825, U60 763796 and 764025",
+                CaveSpace: 0x80, Counter: 0x336FF0, Return: 0x68A71, OldReturn: 0x68A79, Function: 0x6894E);
+
+        /// The known modules, by game build.
+        public static readonly FmodStealModule[] Known =
+        [
+            FmodStudioWindows,
+            FmodStudioWindows with { Sha256 = "1986816ce6baf2ad330a150855e86c16b756ab3236d4c6ec0a2620d47c115608", Game = "U60 764961 (signed)" },
+            new("linux", "libfmodstudio.so", "a4eebdd6171fea7b308db6ecedd4e6db0db3840aed59b5dfbdc59570b58169db", "U59 744825, U60 763796, 764025 and 764961",
                 Site: 0x1303A5,
                 // test eax, eax; jne epilogue; the store; xor eax, eax; jmp epilogue
                 Old: [0x85, 0xC0, 0x0F, 0x85, 0xBA, 0xFE, 0xFF, 0xFF, 0xC7, 0x83, 0xB0, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x31, 0xC0, 0xE9, 0xA9, 0xFE, 0xFF, 0xFF],

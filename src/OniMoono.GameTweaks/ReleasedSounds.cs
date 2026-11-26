@@ -38,14 +38,19 @@ namespace OniMoono.GameTweaks
     /// Nothing audible changes: every call that no longer reaches FMOD is one FMOD refused before
     /// the wrap.
     ///
+    /// U60 764961 fixes both in the game: Layer.Stop clears the handle as this does, and
+    /// StopAllSounds takes each loop off the parameter updaters, clears its handle and also its
+    /// PLAYING flag. On 764961 the tweak still replaces both, so StopAllSounds keeps the flag as on
+    /// the builds before (docs/research/u60-764961.md).
+    ///
     /// ONI_TWEAK_VERIFY=1 (or ONI_VERIFY_RELEASED_SOUNDS=1): the handles released here are kept,
     /// and any later call on one through the EventInstance methods the game uses is counted and
     /// logged with its caller (VerifyStaleCalls must stay 0), until FMOD hands that handle out
     /// again. After each StopAllSounds its loops are followed for 300 frames: one that gets a new
     /// instance before the game stopped it is logged (VerifyRestarted, 0 when the game's timing
     /// holds).
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AmbienceManager/Layer::Stop()", "2f74965174a7ee20 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "15c1f2ba0af14d7b linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void LoopingSoundManager::StopAllSounds()", "db3b86cb9239e9a2 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "a1ba518f98eb9619 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void AmbienceManager/Layer::Stop()", "2f74965174a7ee20 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "7345132928a8ba90 linux-764961 win-764961", "15c1f2ba0af14d7b linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void LoopingSoundManager::StopAllSounds()", "db3b86cb9239e9a2 linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "f2019ddecea6fd01 linux-764961 win-764961", "a1ba518f98eb9619 linux-761015 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761015 win-761211 win-761211-nosim win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     [GameMember(GameUse.Postfix, "System.Void LoopingSoundManager::RenderEveryTick(System.Single)", Conditional = true)]
     [GameMember(GameUse.Postfix, "FMOD.RESULT FMOD.Studio.EventDescription::createInstance(FMOD.Studio.EventInstance&)", Conditional = true)]
     [GameMember(GameUse.Prefix, "System.Boolean FMOD.Studio.EventInstance::isValid()", Conditional = true)]

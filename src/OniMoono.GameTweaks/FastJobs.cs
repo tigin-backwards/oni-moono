@@ -23,7 +23,7 @@ namespace OniMoono.GameTweaks
     /// the caller.
     ///
     /// With ONI_TWEAK_VERIFY=1 every run checks that each item index ran exactly once.
-    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void JobManager::Run(IWorkItemCollection)", "dd3f5277f6a47c7f linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025", "355b5baec1f1de62 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
+    [GameMember(GameUse.Prefix | GameUse.Replaces, "System.Void JobManager::Run(IWorkItemCollection)", "dd3f5277f6a47c7f linux-744825 win-744825 linux-763796 win-763796 linux-764025 win-764025 linux-764961 win-764961", "355b5baec1f1de62 linux-761211 linux-761654 linux-762107 linux-762230 linux-763023 linux-763325 linux-763612 win-761211 win-761654 win-762107 win-762230 win-763023 win-763325 win-763612")]
     public static class FastJobs
     {
         public const string Name = "fast-jobs";
