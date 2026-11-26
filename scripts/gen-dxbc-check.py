@@ -24,8 +24,16 @@ STATEMENT = re.compile(r"public const (?:int|uint) (.*?);[ \t]*(?://[ \t]*=[ \t]
 DECLARATOR = re.compile(r"^\s*(\w+)\s*=\s*(0x[0-9A-Fa-f]+|\d+)\s*$")
 
 
+ANY_CONST = re.compile(r"\bconst\b")
+
+
 def constants(text):
-    """(name, value, header expression) of every constant of the C# file."""
+    """(name, value, header expression) of every constant of the C# file. A `const` the pattern
+    does not read (another type or visibility) is refused, so none is left unchecked."""
+    read = sum(1 for _ in STATEMENT.finditer(text))
+    code = "\n".join(line.split("//", 1)[0] for line in text.splitlines())
+    if len(ANY_CONST.findall(code)) != read:
+        raise ValueError(f"{len(ANY_CONST.findall(code))} `const` declarations, {read} of them `public const int|uint`: every one must be")
     found = []
     for statement in STATEMENT.finditer(text):
         body, expression = statement.group(1), statement.group(2)

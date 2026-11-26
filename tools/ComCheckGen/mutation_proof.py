@@ -138,16 +138,39 @@ MUTATIONS = [
         "[FieldOffset(40 * 8)] public delegate* unmanaged<ID3D11Device*, ID3D11DeviceContext**, void> GetImmediateContext;",
         '[FieldOffset(40 * 8), As(1, "ID3D11DeviceContext**", Opaque = true)] public delegate* unmanaged<ID3D11Device*, void*, void> GetImmediateContext;',
     ),
-    # M4 (exclusive full screen): one per new declaration.
+    # M4 (exclusive full screen): one per new declaration. The three whose C# call sites would
+    # no longer compile carry those call sites along (the final review: before, they failed only
+    # on C# errors, which proved nothing about the check).
     ("M4 slot", d + "DxgiInterfaces.cs", '[FieldOffset(10 * 8), As(1, "BOOL")]', '[FieldOffset(12 * 8), As(1, "BOOL")]'),
     (
         "M4 BOOL* signedness",
-        d + "DxgiInterfaces.cs",
-        'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, int*,',
-        'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, uint*,',
+        [
+            (
+                d + "DxgiInterfaces.cs",
+                'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, int*,',
+                'As(1, "BOOL*")] public delegate* unmanaged<IDXGISwapChain*, uint*,',
+            ),
+            (d + "D3d11SwapChain.cs", "            int state = 0;\n", "            uint state = 0;\n"),
+        ],
     ),
-    ("M4 pointee", d + "DxgiInterfaces.cs", "Dxgi.ModeDesc*, int> ResizeTarget", "Dxgi.SwapChainDesc1*, int> ResizeTarget"),
-    ("M4 struct field", g, "            public Rational RefreshRate;\n", "            public uint RefreshRate;\n"),
+    (
+        "M4 pointee",
+        [
+            (d + "DxgiInterfaces.cs", "Dxgi.ModeDesc*, int> ResizeTarget", "Dxgi.SwapChainDesc1*, int> ResizeTarget"),
+            (d + "D3d11SwapChain.cs", "ResizeTarget(sc, &mode);", "ResizeTarget(sc, (Dxgi.SwapChainDesc1*)&mode);"),
+        ],
+    ),
+    (
+        "M4 struct field",
+        [
+            (g, "            public Rational RefreshRate;\n", "            public uint RefreshRate;\n"),
+            (
+                d + "D3d11SwapChain.cs",
+                "RefreshRate = new Dxgi.Rational { Numerator = refreshNumerator, Denominator = refreshDenominator } };",
+                "RefreshRate = refreshNumerator + refreshDenominator };",
+            ),
+        ],
+    ),
     ("M4 rational field", g, "            public uint Numerator, Denominator;\n", "            public uint Denominator, Numerator;\n"),
     ("M4 enum width", g, '[As("DXGI_MODE_SCALING")] public uint Scaling;', '[As("DXGI_MODE_SCALING")] public ushort Scaling;'),
     ("M4 constant", g, "public const uint SwapEffectDiscard = 0;", "public const uint SwapEffectDiscard = 1;"),
@@ -176,9 +199,18 @@ ONLY = sys.argv[2] if len(sys.argv) > 2 else None  # a label prefix: only those 
 
 
 def check(name):
+    """com-check.sh's exit code and its lines that say why. A failure counts only when the check
+    itself fails it (an MSVC static_assert or other compiler error in com_check.cpp, the export
+    lookup, or the generator): a C# compile error (`error CS`) breaks the C# build before the
+    check runs, so it proves nothing and is returned as 'broken'."""
     r = subprocess.run([str(root / "scripts/com-check.sh")], capture_output=True, text=True)
     out = (r.stdout + r.stderr).strip().splitlines()
     detail = [l for l in out if "error" in l or "ComCheckGen: " in l and "interfaces" not in l or l.startswith("com-check:")]
+    if r.returncode != 0:
+        if any("error CS" in l for l in out):
+            return "broken", detail
+        if not any("com_check.cpp" in l and "error" in l or "ComCheckGen: " in l or "com_check.cmd" in l and "error" in l or "MSVC found" in l for l in out):
+            return "broken", detail
     return r.returncode, detail
 
 
@@ -202,8 +234,9 @@ for item in MUTATIONS:
     finally:
         for p, text in saved.items():
             p.write_text(text)
-    print(f"===== {name}: exit {code} ({'fails, as it must' if code else 'PASSED: a hole'})", *detail[:4], sep="\n  ")
-    failures += code == 0
+    verdict = "BROKEN: a C# error, not the check" if code == "broken" else "fails, as it must" if code else "PASSED: a hole"
+    print(f"===== {name}: exit {code} ({verdict})", *detail[:4], sep="\n  ")
+    failures += code == 0 or code == "broken"
 code, detail = check("control")
 print(f"===== control again (restored): exit {code}", *detail, sep="\n  ")
 failures += code != 0

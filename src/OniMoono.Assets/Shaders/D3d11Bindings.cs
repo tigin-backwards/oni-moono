@@ -58,12 +58,12 @@ namespace OniMoono.Assets.Shaders
         /// for a dimension DxbcShader does not accept (cube arrays: none in the data).
         public static int ResourceDimensionOf(int textureDimension, bool multiSampled) => (textureDimension, multiSampled) switch
         {
-            (2, false) => 3, // TEXTURE2D
-            (2, true) => 4, // TEXTURE2DMS
-            (3, false) => 5, // TEXTURE3D
-            (4, false) => 6, // TEXTURECUBE
-            (5, false) => 8, // TEXTURE2DARRAY
-            (5, true) => 9, // TEXTURE2DMSARRAY
+            (2, false) => DxbcTokenFormat.D3D10_SB_RESOURCE_DIMENSION_TEXTURE2D,
+            (2, true) => DxbcTokenFormat.D3D10_SB_RESOURCE_DIMENSION_TEXTURE2DMS,
+            (3, false) => DxbcTokenFormat.D3D10_SB_RESOURCE_DIMENSION_TEXTURE3D,
+            (4, false) => DxbcTokenFormat.D3D10_SB_RESOURCE_DIMENSION_TEXTURECUBE,
+            (5, false) => DxbcTokenFormat.D3D10_SB_RESOURCE_DIMENSION_TEXTURE2DARRAY,
+            (5, true) => DxbcTokenFormat.D3D10_SB_RESOURCE_DIMENSION_TEXTURE2DMSARRAY,
             _ => 0,
         };
 
