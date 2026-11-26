@@ -329,8 +329,11 @@ namespace OniMoono.Desktop.Vulkan
                 var p = pd.GetProperties();
                 candidates.Add(new VkCandidate(Utf8(p.DeviceName, 256), p.DeviceType, p.ApiVersion, MissingRequirements(pd, p), OperatingSystem.IsWindows() ? LuidOf(pd, p) : 0, (uint)p.VendorID, (uint)p.DeviceID));
             }
+            // With its Windows LUID, which DXGI's adapter lines (d3d11: adapters) also give: one
+            // log then tells which GPU each API takes and whether it is integrated (the D3D11
+            // plan's M8: the GPU choice on a hybrid laptop is settled by the first such log).
             foreach (var c in candidates)
-                EngineLog.Engine($"vulkan: device {c.Name} ({TypeName(c.Type)}, Vulkan {Version(c.ApiVersion)}){(c.Missing != null ? ": " + c.Missing : "")}");
+                EngineLog.Engine($"vulkan: device {c.Name} ({TypeName(c.Type)}, Vulkan {Version(c.ApiVersion)}{(c.Luid != 0 ? $", luid {c.Luid:x}" : "")}){(c.Missing != null ? ": " + c.Missing : "")}");
             if (OperatingSystem.IsWindows())
                 foreach (var name in UnlistedByVulkan(OniMoono.Desktop.Gl.Dxgi.Adapters(), candidates))
                     EngineLog.Engine($"vulkan: Windows lists the GPU {name}, which Vulkan does not; its Vulkan driver may be missing or broken");

@@ -77,7 +77,10 @@ namespace OniMoono.Desktop.D3d11
                 Adapter = desc;
                 bool software = (desc.Flags & Dxgi.AdapterFlagSoftware) != 0;
                 Identity = new D3d11GpuIdentity(desc.VendorId, desc.DeviceId, DriverVersion(adapter), desc.Name, software);
-                EngineLog.Engine($"d3d11: gpu option {gpu ?? "default"}: {desc.Name} (vendor 0x{desc.VendorId:x4}, device 0x{desc.DeviceId:x4}, "
+                // The adapter D3D11CreateDevice is given, by LUID beside the adapters' lines
+                // (LogAdapters: EnumAdapters1's order, high performance's and minimum power's
+                // first) and Vulkan's device lines, which name each GPU's type.
+                EngineLog.Engine($"d3d11: gpu option {gpu ?? "default"}: the device is made on {desc.Name} (vendor 0x{desc.VendorId:x4}, device 0x{desc.DeviceId:x4}, "
                                  + $"luid {desc.Luid:x}, driver {Identity.Driver}{(software ? ", software" : "")})");
                 D3d11Fault.FailAt("adapter");
                 if (software && !allowSoftware) throw new D3d11UnavailableException($"{desc.Name} is a software adapter (only used with --renderer d3d11)");

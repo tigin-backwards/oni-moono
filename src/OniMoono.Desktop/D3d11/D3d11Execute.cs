@@ -438,76 +438,113 @@ namespace OniMoono.Desktop.D3d11
             return (sbyte*)p;
         }
 
-        /// The program's input layout for a mesh layout (made on first use): an element for each
-        /// input of the vertex stage's signature, as CreateInputLayout validates the elements
-        /// against it. A channel the mesh has: slot = the channel, its format, per vertex. One it
-        /// lacks: a slot of its own after the channels', per instance with InstanceDataStepRate 0,
-        /// which "takes special meaning, that the instance data should never be stepped at all"
-        /// (Direct3D 11.3 Functional Specification §8.1.3, Input Layout), reading the constant
-        /// (ConstantOffset). Components a format lacks read 0, and alpha 1 (§19.1.3.3, Defaults
-        /// for Missing Components), as OpenGL's. The original always declares 14 elements
-        /// (d3d11-captures.md §3), what its extra ones read is UNVERIFIED there (7); this layout
-        /// names only what the program reads. Null when the layout cannot be made (logged).
+        /// The original's input layout elements, in its order (d3d11-captures.md §3, j0008159 and
+        /// j0008168: every one of its 55 layouts holds these 14, per vertex), and the mesh channel
+        /// each reads (-1: none of ours, BLENDWEIGHTS and BLENDINDICES).
+        static readonly (string Semantic, uint Index, int Channel)[] OriginalElements =
+        [
+            ("POSITION", 0, (int)Channel.Position), ("NORMAL", 0, (int)Channel.Normal), ("TANGENT", 0, (int)Channel.Tangent), ("COLOR", 0, (int)Channel.Color),
+            ("TEXCOORD", 0, (int)Channel.Uv0), ("TEXCOORD", 1, (int)Channel.Uv1), ("TEXCOORD", 2, (int)Channel.Uv2), ("TEXCOORD", 3, (int)Channel.Uv3),
+            ("TEXCOORD", 4, (int)Channel.Uv4), ("TEXCOORD", 5, (int)Channel.Uv5), ("TEXCOORD", 6, (int)Channel.Uv6), ("TEXCOORD", 7, (int)Channel.Uv7),
+            ("BLENDWEIGHTS", 0, -1), ("BLENDINDICES", 0, -1),
+        ];
+
+        /// The program's input layout for a mesh layout (made on first use), as the original's
+        /// (d3d11-captures.md §3, item 7 settled in M8): the 14 elements it always declares, in
+        /// its order. A channel the mesh has: slot = the channel, its format, per vertex. One it
+        /// lacks, read or not: R8_UNORM at slot 0, offset 0, per vertex, as the original's layouts
+        /// give every such element; slot 0 is the position channel, which starts each vertex
+        /// there as the original's interleaved slot 0 does, so a program reading it gets the same
+        /// bytes (CreateInputLayout validates only the elements the signature names; "the input
+        /// layout can contain elements that are not used by the shader", Remarks). A mesh without
+        /// positions has no slot 0: then an input it lacks reads a constant (below) and an unread
+        /// element is left out. An input the signature names outside the 14: a slot of its own
+        /// after the channels', per instance with InstanceDataStepRate 0, which "takes special
+        /// meaning, that the instance data should never be stepped at all" (Direct3D 11.3
+        /// Functional Specification §8.1.3), reading OpenGL's constant (ConstantOffset);
+        /// components a format lacks read 0, and alpha 1 (§19.1.3.3). Null when the layout cannot
+        /// be made (logged).
         D3d11Layout Layout(D3d11Shaders program, long key, MeshLayout layout)
         {
             if (program.Layouts.TryGetValue(key, out var known)) return known.Layout == null ? null : known;
             var made = new D3d11Layout();
             var inputs = program.Inputs;
-            if (inputs.Length > D3D11.D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT)
-            {
-                EngineLog.Engine($"d3d11: shader '{program.Name}' reads {inputs.Length} vertex inputs, more than an input layout holds; it is left out");
-                program.Layouts[key] = made;
-                return null;
-            }
-            var elements = stackalloc D3D11_INPUT_ELEMENT_DESC[Math.Max(1, inputs.Length)];
-            var constantOffsets = new List<int>();
             bool immediate = key == Vulkan.VkPipelines.ImmediateLayout;
-            for (int i = 0; i < inputs.Length; i++)
+            bool slot0 = immediate || layout.Components[(int)Channel.Position] != 0;
+            int capacity = OriginalElements.Length + inputs.Length;
+            var elements = stackalloc D3D11_INPUT_ELEMENT_DESC[capacity];
+            int count = 0;
+            var constantOffsets = new List<int>();
+            var covered = new bool[inputs.Length];
+            bool Fed(int c) => immediate ? c >= 0 && c != (int)Channel.Normal && c != (int)Channel.Tangent : c >= 0 && layout.Components[c] != 0;
+            D3D11_INPUT_ELEMENT_DESC FedElement(string semantic, uint index, int c)
             {
-                var input = inputs[i];
-                int c = input.Channel;
-                bool fed = immediate ? c >= 0 && c != (int)Channel.Normal && c != (int)Channel.Tangent : c >= 0 && layout.Components[c] != 0;
-                var e = new D3D11_INPUT_ELEMENT_DESC { SemanticName = SemanticName(input.Semantic), SemanticIndex = input.Index };
-                if (fed && immediate)
+                var e = new D3D11_INPUT_ELEMENT_DESC { SemanticName = SemanticName(semantic), SemanticIndex = index };
+                if (immediate)
                 {
                     e.Format = c == (int)Channel.Position ? DXGI_FORMAT.DXGI_FORMAT_R32G32B32_FLOAT : DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT;
                     e.InputSlot = 0;
                     e.AlignedByteOffset = (uint)(c == (int)Channel.Position ? 0 : c == (int)Channel.Color ? 12 : 28 + (c - (int)Channel.Uv0) * 16);
                 }
-                else if (fed)
+                else
                 {
                     e.Format = ChannelFormat(layout, c).Format;
                     e.InputSlot = (uint)c;
                 }
-                else
+                return e;
+            }
+            bool Constant(D3d11Input input)
+            {
+                var e = new D3D11_INPUT_ELEMENT_DESC { SemanticName = SemanticName(input.Semantic), SemanticIndex = input.Index };
+                e.Format = input.ComponentType switch
                 {
-                    e.Format = input.ComponentType switch
+                    D3D_REGISTER_COMPONENT_TYPE.D3D_REGISTER_COMPONENT_UINT32 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_UINT,
+                    D3D_REGISTER_COMPONENT_TYPE.D3D_REGISTER_COMPONENT_SINT32 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_SINT,
+                    _ => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT,
+                };
+                e.InputSlot = (uint)((immediate ? 1 : (int)Channel.Count) + constantOffsets.Count);
+                // Input slots are 0 to D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT - 1 (32:
+                // d3d11.h, and the Functional Specification's IA arrays and constant table).
+                if (e.InputSlot >= D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT) return false;
+                e.InputSlotClass = D3D11_INPUT_CLASSIFICATION.D3D11_INPUT_PER_INSTANCE_DATA;
+                e.InstanceDataStepRate = 0;
+                constantOffsets.Add(ConstantOffset(input.Channel, input.ComponentType));
+                elements[count++] = e;
+                return true;
+            }
+            foreach (var (semantic, index, c) in OriginalElements)
+            {
+                int read = Array.FindIndex(inputs, x => x.Index == index && string.Equals(x.Semantic, semantic, StringComparison.OrdinalIgnoreCase));
+                if (read >= 0) covered[read] = true;
+                if (Fed(c)) elements[count++] = FedElement(read >= 0 ? inputs[read].Semantic : semantic, index, c);
+                else if (slot0)
+                    elements[count++] = new D3D11_INPUT_ELEMENT_DESC
                     {
-                        D3D_REGISTER_COMPONENT_TYPE.D3D_REGISTER_COMPONENT_UINT32 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_UINT,
-                        D3D_REGISTER_COMPONENT_TYPE.D3D_REGISTER_COMPONENT_SINT32 => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_SINT,
-                        _ => DXGI_FORMAT.DXGI_FORMAT_R32G32B32A32_FLOAT,
+                        SemanticName = SemanticName(read >= 0 ? inputs[read].Semantic : semantic), SemanticIndex = index,
+                        Format = DXGI_FORMAT.DXGI_FORMAT_R8_UNORM, InputSlot = 0, AlignedByteOffset = 0,
                     };
-                    e.InputSlot = (uint)((immediate ? 1 : (int)Channel.Count) + constantOffsets.Count);
-                    // Input slots are 0 to D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT - 1 (32:
-                    // d3d11.h, and the Functional Specification's IA arrays and constant table).
-                    if (e.InputSlot >= D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT)
-                    {
-                        EngineLog.Engine($"d3d11: shader '{program.Name}' reads {inputs.Length} vertex inputs, more constant ones than the input slots left; its draws with that mesh layout are left out");
-                        program.Layouts[key] = made;
-                        return null;
-                    }
-                    e.InputSlotClass = D3D11_INPUT_CLASSIFICATION.D3D11_INPUT_PER_INSTANCE_DATA;
-                    e.InstanceDataStepRate = 0;
-                    constantOffsets.Add(ConstantOffset(c, input.ComponentType));
-                }
-                elements[i] = e;
+                else if (read >= 0 && !Constant(inputs[read])) return TooMany();
+            }
+            for (int i = 0; i < inputs.Length; i++)
+                if (!covered[i] && !Constant(inputs[i])) return TooMany();
+            D3d11Layout TooMany()
+            {
+                EngineLog.Engine($"d3d11: shader '{program.Name}' reads {inputs.Length} vertex inputs, more constant ones than the input slots left; its draws with that mesh layout are left out");
+                program.Layouts[key] = made;
+                return null;
+            }
+            if (count > D3D11.D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT)
+            {
+                EngineLog.Engine($"d3d11: shader '{program.Name}' needs {count} input elements, more than an input layout holds; it is left out");
+                program.Layouts[key] = made;
+                return null;
             }
             made.Constants = constantOffsets.ToArray();
             try
             {
                 ID3D11InputLayout* l;
                 fixed (byte* code = program.VertexBytecode)
-                    D3d11Context.Check(Dev->lpVtbl->CreateInputLayout(Dev, elements, (uint)inputs.Length, code, (nuint)program.VertexBytecode.Length, &l),
+                    D3d11Context.Check(Dev->lpVtbl->CreateInputLayout(Dev, elements, (uint)count, code, (nuint)program.VertexBytecode.Length, &l),
                         $"CreateInputLayout ({program.Name})");
                 made.Layout = l;
             }
