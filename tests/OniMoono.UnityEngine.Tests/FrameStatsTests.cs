@@ -82,7 +82,8 @@ namespace OniMoono.Tests
             }
             var lines = GameFrameStats.Take(1, 2, 0);
             Assert.StartsWith("game speed (over 2 frames, 1.0 s): 0.05 game s a real s (asked 0.05); 200 ms sim steps 0.50 a frame, sim calls 1.00 a frame; frames at the game's 200 ms a frame limit 0%; paused 50%", lines[0]);
-            Assert.Contains(", sim 200ms 0.00 (6.00),", lines[2]);
+            // 6 calls a frame; the empty spans' time can round to 0.01 ms on a slow runner.
+            Assert.Matches(@", sim 200ms 0\.0[0-9] \(6\.00\),", lines[2]);
         }
 
         [Fact]
