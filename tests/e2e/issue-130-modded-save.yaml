@@ -1,0 +1,25 @@
+# Issue #130 fixture step: a colony as a mod's element leaves it once the mod is gone. A Critter
+# Drop-Off built of sandstone carries food germs, and its PrimaryElement's ElementID is set to
+# the hash of SolidZinc, an element of Ronivan's Legacy - Industrial Revolution (3557584850):
+# the save then records the building as made of SolidZinc, and a load without the mod finds no
+# such element. (The mod itself does not load on 764961: its Assets.OnPrefabInit postfix reads
+# TUNING.CROPS.CROP_TYPES, gone in U60, and the original quits.) The Element the building
+# looked up when it was built stays cached, so the colony runs as before until the save.
+#
+# An algae chunk (DissolvingAlgae) lies on the floor beside it, spawned first, so its prefab
+# comes before the drop-off's in the save and is in the scene when the drop-off fails to load.
+# Saved as the issue-130-modded checkpoint for issue-130-missing-mod-element.yaml.
+from: early-base
+setup:
+  - driver: {setup.call: {target: "ElementLoader.FindElementByName(\"Algae\").substance", method: SpawnResource, args: [[114.5, 207.5, -12], 200, 300, 255, 0]}}
+  - driver: {setup.call: {target: "Assets.GetBuildingDef(\"CritterDropOff\")", method: Build, args: [{"$": "Grid.XYToCell(116, 207)"}, Neutral, null, [SandStone], 293.15, DEFAULT_FACADE]}}
+  - driver: {setup.call: {target: "last:GetComponent<PrimaryElement>", method: AddDisease, args: [0, 100000, "e2e"]}}
+  # SolidZinc's SimHashes value: Hash.SDBMLower("SolidZinc").
+  - driver: {setup.set: {target: "last:GetComponent<PrimaryElement>", member: ElementID, value: -465306545}}
+steps:
+  - run: {seconds: 5}
+  - expect: {buildings: {CritterDropOff: 1}}
+  - expect_state:
+      "Components.BuildingCompletes.Items[-1].name": {contains: CritterDropOff}
+      "Components.BuildingCompletes.Items[-1].GetComponent<PrimaryElement>.DiseaseCount": "> 0"
+  - save: issue-130-modded

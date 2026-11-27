@@ -226,6 +226,25 @@ class LogSignatures(unittest.TestCase):
         )
         self.assertEqual(signatures(log, None), signatures(log, ''))
 
+    def test_runtime_wordings_of_the_same_error(self):
+        # Issue #130's load, in the original and in ours.
+        pairs = [
+            (
+                'ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection. (Parameter "index") @ BackwallManager+BackwallIndexer.get_Element',
+                'ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection @ BackwallManager+BackwallIndexer.get_Element',
+            ),
+            (
+                'System.NullReferenceException: Object reference not set to an instance of an object @ RocketUsageRestriction.<>c.<InitializeStates>b__N_N',
+                'System.NullReferenceException: Object reference not set to an instance of an object @ RocketUsageRestriction+<>c.<InitializeStates>b__N_N',
+            ),
+            (
+                'at KSerialization.Deserializer.DeserializeTypeless(Object obj, IReader reader) ---> System.NullReferenceException: Object reference not set to an instance of an object @ DiseaseContainers.Add',
+                'at KSerialization.Deserializer.DeserializeTypeless (System.Object obj, IReader reader) [N] in <NfNddcaNbdNbeaNbfdfaNaceNcc>:N  ---> System.NullReferenceException: Object reference not set to an instance of an object @ DiseaseContainers.Add',
+            ),
+        ]
+        for ours, original in pairs:
+            self.assertEqual(qa_tools.unknown([ours], [original]), [])
+
     def test_a_different_frame_is_new(self):
         self.assertEqual(qa_tools.unknown(['X: msg @ Mod.G'], ['X: msg @ Mod.F']), ['X: msg @ Mod.G'])
 

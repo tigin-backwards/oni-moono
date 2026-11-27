@@ -1,0 +1,29 @@
+# Issue #130: a colony saved with a mod, loaded without it. A Critter Drop-Off built of one of
+# the mod's elements has no element then, and with germs on it PrimaryElement.OnDeserialized
+# reaches DiseaseContainers.Add, which reads the element and throws. SaveManager.Load logs
+# "Error deserializing prefabs" and rethrows; SaveLoader shuts the sim down and asks App for the
+# frontend scene, and KCrashReporter opens its error dialog. The objects loaded so far spawn in
+# the same frame (the loaded starmap inventories find the ones the cluster made first and destroy
+# themselves), and App.LateUpdate calls Game.StopBE, which reads each SaveLoadRoot's gameObject,
+# before it loads the frontend. In the original the inventories are still there then: the
+# frontend loads, the error dialog goes with the game scene, and its OnDestroy quits the game
+# with exit code 1 (terminateOnError). Ours used to have destroyed them already (ARCHITECTURE
+# D67): StopBE threw every frame, the frontend never loaded, and the game scene ran on over the
+# freed sim grid (an algae chunk's DissolvingAlgae.Update read it; on the reporter's machine an
+# AccessViolationException ended the process).
+#
+# issue-130-modded (issue-130-modded-save.yaml) is opened from the main menu's Load screen with
+# no mods but OniMcp and E2eDriver.
+from: main-menu
+extra_saves: [issue-130-modded]
+steps:
+  - ui_wait: {path: "**/VideoScreen/CloseButton", cond: stable, frames: 3000}
+  - click: {ui: "**/VideoScreen/CloseButton"}
+  - ui_wait: {path: "**/VideoScreen", cond: gone, frames: 600}
+  - ui_wait: {path: "**/MainMenu_SpacedOut/MainMenuMenubar/MainMenuButtons", cond: stable, frames: 3000}
+  - click: {text: "LOAD GAME", under: "**/MainMenuButtons"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton", cond: stable, frames: 3000}
+  - click: {ui: "**/LoadScreen/Panel/ColonyList/ListView/Files/Viewport/Content/Prefab_ColonyButton"}
+  - ui_wait: {path: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton", cond: stable, frames: 3000}
+  - click: {ui: "**/LoadScreen/Panel/ColonyView/ListView/Files/Viewport/Content/SaveTemplate(Clone)/LoadButton"}
+  - expect_exit: {seconds: 90, code: 1}

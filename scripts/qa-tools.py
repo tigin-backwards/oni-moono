@@ -57,7 +57,13 @@ def canonical(signature):
         first = clean_frame(inline.group(1))
         if not RUNTIME_FRAME.search(first):
             frame = first
-    message = re.sub(r'\.$', '', message.replace("'", '"').rstrip())
+    # .NET ends an ArgumentException's message with ' (Parameter "name")'; Mono puts "Parameter
+    # name: name" on a line of its own.
+    message = re.sub(r' \(Parameter "[^"]*"\)$', '', message.replace("'", '"').rstrip())
+    message = re.sub(r'\.$', '', message)
+    # A message that is an inner exception's trace line ("at T.M (args) [N] in <mvid>:N  ---> …"
+    # in Mono, "at T.M(args) ---> …" in .NET) keeps the method alone.
+    message = re.sub(r'^at (\S+?) ?\([^)]*\)(?: \[N\] in <[^>]*>:N)?\s+(?=---> )', r'at \1 ', message)
     # Mono says only "Specified cast is not valid." of a failed unbox or cast; .NET names both
     # types ("Unable to cast object of type "A" to type "B"."): the frame tells them apart.
     message = re.sub(r'(InvalidCastException: )Unable to cast object of type ".*" to type ".*"$', r'\1Specified cast is not valid', message)
@@ -83,7 +89,9 @@ def clean_frame(frame):
     # Mono's location: "[0x…] in <mvid>:0", or the source file with symbols (ours has the
     # engine's).
     frame = re.sub(r' (\[N\] in .*|in <[^>]*>(:N)?)$', '', frame)
-    frame = re.sub(r'\s*\(.*\)$', '', frame).replace(':', '.')
+    # Mono names a nested type "Outer+Inner"; .NET writes a compiler-generated one ("<>c") as
+    # "Outer.<>c".
+    frame = re.sub(r'\s*\(.*\)$', '', frame).replace(':', '.').replace('+', '.')
     # Mono names a generic type's parameters ("Dictionary`2[TKey,TValue]"), .NET does not.
     return re.sub(r"(`(?:N|\d+))\[[^\]]*\]", r"\1", frame)
 

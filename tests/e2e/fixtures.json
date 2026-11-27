@@ -254,6 +254,16 @@
       "size": 772077,
       "tag": "saves/86c2a8c9919e3c04",
       "asset": "vanilla-base.sav"
+    },
+    "issue-130-modded.sav": {
+      "description": "early-base with a Critter Drop-Off recorded as made of SolidZinc (an element of Ronivan's Legacy - Industrial Revolution) carrying germs, and an algae chunk beside it",
+      "game": "Spaced Out, with the Frosty Planet, Bionic Booster, Prehistoric and Aquatic packs",
+      "build": "764961 (U60)",
+      "mods": "none (the drop-off names the mod's element)",
+      "used_by": [
+        "issue-130-missing-mod-element"
+      ],
+      "not_stored": "scripts/e2e.py --player original --bless issue-130-modded-save"
     }
   }
 }
