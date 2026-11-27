@@ -2645,7 +2645,7 @@ each needs the user's acceptance (the three M7 closed are accepted).
 | The Graphics Tools feature's state | probes 8 | settled: installed 2026-11-22, the debug layer runs (M2) |
 | The repeat's waitable pairing when a picture is discarded | plan M4 review fixes 2 | closed by design (b728e6e7c: the waitable is resynced after repeats and timeouts) |
 | The original's adapter on a desktop whose display is on the iGPU, or on a hybrid laptop | plan M5 | not observable on this machine; ours takes what D3D11CreateDevice's default takes. **Accepted for the merge** (the user, 2026-11-25), to be confirmed from the first laptop report: one Player.log now names the adapter the device is made on (name, LUID), DXGI's adapters in EnumAdapters1's order with high performance's and minimum power's first, and each Vulkan device with its type (integrated or discrete) and LUID (08fcc477a) |
-| CI's `windows-2025` runner's Windows SDK for the COM check | plan M2 part A | known only when CI runs the branch (never pushed). **Open: for the user to accept, or settled by CI's first run after the merge** |
+| CI's `windows-2025` runner's Windows SDK for the COM check | plan M2 part A | **settled** by CI after the merge: the Windows release job on master (run 45932588432, 93d362f59) compiled the check with Windows SDK 10.0.26100.0 and MSVC 14.52.37025, every declaration matching |
 
 **QA (criterion 9)**, runq user (the user raised Direct3D 11's priority, 2026-11-25: "Move dx11 higher in priority"; the burndown chain j0009726-j0009736 cancelled before it ran; j0009745-j0009752 stopped at a build error of the review fixes, fixed in 759d754d3), owner `d3d11-m8` (results below when they land): check.sh
 j0009766; the Windows build j0009767; `--check-shaders` with the mods' bundles j0009769; the
@@ -2705,8 +2705,8 @@ With them Hidden/Dither's two inline-sampler programs, whose mod fails to load i
 
 **Remaining UNVERIFIED notes** (the table above): the duplicate RTX 3090, captures 11-14 and probes
 1, 4 and 5 still await the user; the hybrid laptop's adapter is accepted for the merge, to be
-confirmed from the first laptop report; CI's Windows SDK for the COM check is settled by CI's
-first run after the merge.
+confirmed from the first laptop report; CI's Windows SDK for the COM check is settled (CI's
+Windows release job on master, 2026-11-27).
 
 **Done criteria at M8:**
 
