@@ -1,0 +1,8 @@
+# UnityProbe's particle geometry probe (tools/UnityProbe/ParticleStreams.cs): custom vertex
+# streams, the custom data module, flipping and mesh particles as BakeMesh gives them. Run with
+# E2E_ONIMCP at a copy of OniMcp's mod folder with SemanticsProbe.dll added and
+# PROBE_SCENARIO=particlestreams in the original's environment (tools/UnityProbe/README.md,
+# "particlestreams").
+from: main-menu
+steps:
+  - ui_wait: {path: "**/ParticleStreamsProbeDone", cond: exists, frames: 20000}

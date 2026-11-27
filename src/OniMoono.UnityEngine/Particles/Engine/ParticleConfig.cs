@@ -26,6 +26,17 @@ namespace OniMoono.Engine.Particles
         public float Probability = 1f;
     }
 
+    /// One stream of the custom data module (Custom1 or Custom2): ParticleSystemCustomDataMode
+    /// 0 Disabled, 1 Vector (Components curves, the rest 0), 2 Color (a gradient), each over the
+    /// particle's normalized age (measured: UnityProbe particlestreams, j0010421).
+    internal sealed class CustomDataStream
+    {
+        public int Mode;
+        public int Components = 4;
+        public MinMaxCurveData[] Vector = [MinMaxCurveData.Const(0f), MinMaxCurveData.Const(0f), MinMaxCurveData.Const(0f), MinMaxCurveData.Const(0f)];
+        public MinMaxGradientData Color = MinMaxGradientData.White();
+    }
+
     internal sealed class SubEmitterData
     {
         public ParticleSystem Emitter;
@@ -171,6 +182,10 @@ namespace OniMoono.Engine.Particles
         public MinMaxCurveData TrailWidthOverTrail = MinMaxCurveData.Const(1f);
         public MinMaxGradientData TrailColorOverTrail = MinMaxGradientData.White();
 
+        // Custom data (Custom1, Custom2), fed to the shaders by custom vertex streams.
+        public bool CustomDataEnabled;
+        public CustomDataStream[] CustomData = [new(), new()];
+
         // Sub emitters (listed for the API; the module itself is never enabled in the data).
         public SubEmitterData[] SubEmitters = Array.Empty<SubEmitterData>();
 
@@ -186,6 +201,7 @@ namespace OniMoono.Engine.Particles
             var c = (ParticleConfig)MemberwiseClone();
             c.Shape = Shape.Clone();
             c.Bursts = (BurstData[])Bursts.Clone();
+            c.CustomData = (CustomDataStream[])CustomData.Clone();
             c.SubEmitters = SubEmitters.Select(s => new SubEmitterData { Emitter = s.Emitter, Type = s.Type, Properties = s.Properties, EmitProbability = s.EmitProbability }).ToArray();
             return c;
         }
@@ -381,6 +397,24 @@ namespace OniMoono.Engine.Particles
                 else if (B(trail, "generateLightingData")) Unsupported("trail lighting data");
             }
 
+            var custom = f.Struct("CustomDataModule");
+            c.CustomDataEnabled = B(custom, "enabled");
+            for (int i = 0; i < 2; i++)
+            {
+                var stream = c.CustomData[i] = new CustomDataStream
+                {
+                    Mode = I(custom, $"mode{i}"),
+                    Components = Math.Clamp(I(custom, $"vectorComponentCount{i}"), 0, 4),
+                    Color = MinMaxGradientData.Read(custom.Struct($"color{i}")),
+                };
+                for (int k = 0; k < 4; k++) stream.Vector[k] = MinMaxCurveData.Read(custom.Struct($"vector{i}_{k}"));
+                if (c.CustomDataEnabled && stream.Mode is not (0 or 1 or 2))
+                {
+                    Unsupported($"custom data mode {stream.Mode} (zeros)");
+                    stream.Mode = 0;
+                }
+            }
+
             var sub = f.Struct("SubModule");
             c.SubEmitters = sub.Array("subEmitters").Cast<Fields>().Select(e => new SubEmitterData
             {
@@ -399,7 +433,7 @@ namespace OniMoono.Engine.Particles
             {
                 "RotationModule", "VelocityModule", "InheritVelocityModule", "LifetimeByEmitterSpeedModule",
                 "ExternalForcesModule", "ClampVelocityModule", "NoiseModule", "SizeBySpeedModule",
-                "RotationBySpeedModule", "CollisionModule", "TriggerModule", "LightsModule", "CustomDataModule",
+                "RotationBySpeedModule", "CollisionModule", "TriggerModule", "LightsModule",
             })
                 if (B(f.Struct(module), "enabled")) Unsupported(module);
             c.NoiseEnabled = B(f.Struct("NoiseModule"), "enabled");

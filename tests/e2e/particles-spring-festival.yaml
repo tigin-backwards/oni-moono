@@ -2,8 +2,9 @@
 # researched with Luxury) is placed complete from copper (BuildingDef.Build, as the forcefield
 # spec places its battery: the build tool found no valid cell in the corridor); its own state
 # machine then starts on and plays the falling petals (LeavesPack.PlayFallingEffect: the bundle's
-# Cartoon FX petals, mesh particles). Whether the original draws them in play, and ours
-# (docs/research/d3d11-plan.md, M7).
+# Cartoon FX petals, mesh particles). The original draws them in play (j0009708); the shots are
+# compared by eye, as the petals are a few percent of their pixels (docs/ARCHITECTURE.md,
+# particles).
 from: early-base
 mods: [3152316922]
 setup:

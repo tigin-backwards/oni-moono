@@ -2420,7 +2420,9 @@ no mod can select them, as M3 part C found for the game).
 - **In normal play too** (the coordinator's question: MOD_COMPATIBILITY lists the three as
   broken in the original). The specs above put the effects in view with the same
   `GameUtil.KInstantiate` calls the mods make; `d3d11-mods-spring-play.yaml` and
-  `d3d11-mods-portal-play.yaml` / `-portal-plus-play.yaml` let the mods' own code do it: a Falling
+  `d3d11-mods-portal-play.yaml` / `-portal-plus-play.yaml` (since renamed
+  `particles-spring-festival.yaml`, `particles-portal-network.yaml` and
+  `particles-portal-network-plus.yaml`) let the mods' own code do it: a Falling
   Leaves Pack placed from copper starts on and plays its petals (LeavesPack.PlayFallingEffect); a
   Temperature Cube placed from steel beside a charged battery, its slider at 80 °C, heats and
   plays its fire thrower (TemperatureStateMachine's do_fire_boom). The original **draws both**:
@@ -2516,6 +2518,10 @@ after dx11"). M7 is done with these carried out of it:
   custom vertex streams are not drawn, and the billboard systems draw nothing for a reason not
   yet traced. This is separate effect-parity work, queued at low priority after the D3D11
   merge. Criterion 6 counts these three as the user's exception until then.
+  Done after the merge (particle effect parity): the Cartoon FX materials drew nothing because
+  their shaders' first subshader has no forward pass (ARCHITECTURE D68); mesh particles, custom
+  vertex streams, the custom data module and flipping are drawn as the original's BakeMesh gives
+  them (ARCHITECTURE, `ParticleSystemRenderer`).
 - MAGNET!!!: its field cannot be turned on in this harness (its key reads take `Input.GetKey`,
   which the runner's synthetic input does not reach); its programs build clean. UNVERIFIED.
 - The original on the AMD iGPU (its SystemInfo strings there) needs Windows' per-app GPU

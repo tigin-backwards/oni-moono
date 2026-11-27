@@ -3589,9 +3589,7 @@ side is the Vulkan device's (`GlDrawRecorder`, `GlTextures.Prepare`, `GlMeshes.P
   assembly, which MSVC compiles in the Windows build and `scripts/com-check.sh` (check.sh). Every
   other native import of `OniMoono.Desktop` must say why it is outside the check.
 - *Not done.* No compute shaders, tiled resources or the texture formats the engine cannot upload
-  (`supportsComputeShaders` false, as on the other devices); mods' particle effects drawn as mesh
-  particles or through custom vertex streams are the engine's particle renderer's gap on every
-  device.
+  (`supportsComputeShaders` false, as on the other devices).
 
 **Super-sized captures.** `ScreenCapture.CaptureScreenshot(path, superSize)` renders the frame
 again as a screen `superSize` times larger would show it (`FrameRenderer.Capture`), the cameras
@@ -3942,6 +3940,35 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
   clamp velocity, rotation, collision, lights, sub emitters, other shapes and texture-sheet or
   trail variants…) are not simulated. The system loads without each and logs it once
   (`[engine] particles: … is not simulated`).
+- `ParticleSystemRenderer`: billboards, stretched particles and mesh particles, with the custom
+  vertex streams, the custom data module and flipping that Cartoon FX effects use (Portal
+  Network, PortalNetwork+ and Spring Festival Pack), as `BakeMesh` gives them in the original
+  (`tools/UnityProbe`, `particlestreams`, j0010421, j0010424, j0010426, j0010438; `ParticleGeometryTests`):
+  - *Custom vertex streams.* Position, Normal, Tangent and Color go to their own attributes;
+    the other streams are packed in order into TEXCOORD0.xyzw, TEXCOORD1.xyzw, …, a stream
+    running on into the next register when it does not fit, the last register as wide as the
+    components it holds. UV2 is UV without a texture sheet and the next frame with one;
+    AnimBlend is the frame's fraction. Stable random numbers are the particle's own (Unity's
+    generator is not reproduced). Streams the geometry does not fill (varying random, noise,
+    rotation, vertex id…) read 0 and are logged.
+  - *Custom data.* Custom1 and Custom2 are the module's curves (vector mode, components past its
+    count 0) or gradient (colour mode) at the particle's normalized age; 0 with the module off.
+    `SetCustomParticleData` is not implemented.
+  - *Flipping.* That proportion of the particles, picked at random, mirrors its texture
+    coordinates (x the u, y the v) on billboards and stretched particles, and its mesh's x on
+    mesh particles.
+  - *Stretched particles.* The quad trails the particle: u runs from the head (0) to the tail
+    (1), v across (1 on the side `cross(toward the camera, velocity)`); the particle's rotation
+    is not applied; the pivot moves it by pivot.x widths across and pivot.y lengths along.
+  - *Mesh particles.* Each vertex of the renderer's mesh is scaled by the particle's 3D size,
+    moved by the pivot (in units of the mesh's bounds, z toward -z), turned by
+    `Quaternion.Euler` of the particle's rotation and then by the alignment (View: the camera,
+    Local: the emitter, World: none), and placed at the particle. Normals and tangents turn
+    with it; colours are the mesh's times the particle's; UV and UV2 are the mesh's first two,
+    mapped into the texture sheet's frame and next frame; what the mesh lacks reads 0. Facing and Velocity alignments draw world-aligned, and flips on
+    y or z are not drawn (logged).
+  - A shader whose active subshader has no forward pass draws the forward pass of the first
+    later subshader that has one (D68).
 - `UnityWebRequest` → `HttpClient`; `ImageConversion` → stb_image / stb_image_write
   (`Ahwoo.BRUTAL.Stb`); `JsonUtility` → the shared layout builder; `Physics.Raycast` → the
   colliders present in data; IMGUI → clipboard and the event/GUI surface the code paths touch.

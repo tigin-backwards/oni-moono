@@ -43,6 +43,106 @@ namespace OniMoono.Engine.Particles
         }
     }
 
+    /// A renderer's custom vertex streams (ParticleSystemVertexStream values, as m_VertexStreams
+    /// stores them): which vertex attributes the geometry has, and where each stream that goes
+    /// to a TEXCOORD lands. Measured (UnityProbe particlestreams, BakeMesh, j0010421 and
+    /// j0010426): the streams other than Position, Normal, Tangent and Color are packed one after
+    /// the other into TEXCOORD0.xyzw, TEXCOORD1.xyzw, …, a stream running on into the next
+    /// register when it does not fit (UV, StableRandomXYZW and Custom1XYZ: TEXCOORD0.xy,
+    /// TEXCOORD0.zw and TEXCOORD1.xy, TEXCOORD1.zw and TEXCOORD2.x); the last register has the
+    /// components used (TEXCOORD1 one float for UV, StableRandomXY, Custom1X). Unity's manual
+    /// gives the same for UV, UV2 and AnimBlend (Particle System vertex streams).
+    internal sealed class VertexStreams
+    {
+        public const int Position = 0, Normal = 1, Tangent = 2, Color = 3, UV = 4, UV2 = 5, AnimBlend = 8, AnimFrame = 9,
+            Center = 10, SizeX = 12, SizeXY = 13, SizeXYZ = 14, Velocity = 19, Speed = 20, AgePercent = 21, InvStartLifetime = 22,
+            StableRandomX = 23, StableRandomXYZW = 26, Custom1X = 31, Custom1XYZW = 34, Custom2X = 35, Custom2XYZW = 38;
+
+        public bool HasNormal, HasTangent, HasColor;
+        /// The TEXCOORD streams in order: the stream, its first component (TEXCOORD n's x is 4n)
+        /// and its component count.
+        public (int Stream, int Offset, int Count)[] Texcoords = [];
+        public int Components;
+        /// Where the UV stream starts (-1: none).
+        public int UvOffset = -1;
+        public bool NeedsStableRandom, NeedsCustom1, NeedsCustom2;
+
+        public int Channels => (Components + 3) / 4;
+        public int Dimension(int channel) => Math.Min(4, Components - channel * 4);
+
+        /// Components of a stream packed into the TEXCOORDs, by its name (X, XY, XYZ, XYZW; UVs
+        /// two, 3D values three; the probe's: UV2 2, Center 3, SizeX 1, SizeXYZ 3, Velocity 3,
+        /// Rotation 1, AgePercent 1, AnimBlend 1, AnimFrame 1, StableRandomXY 2, StableRandomXYZW 4,
+        /// Custom1X 1, Custom1XYZ 3, Custom1XYZW 4, Custom2XYZ 3); 0 for Position, Normal, Tangent
+        /// and Color; -1 for streams whose count is not known.
+        static int Count(int stream) => stream switch
+        {
+            Position or Normal or Tangent or Color => 0,
+            UV or UV2 or 6 or 7 => 2,
+            AnimBlend or AnimFrame or 11 or SizeX or 15 or 17 or Speed or AgePercent or InvStartLifetime => 1,
+            Center or SizeXYZ or 16 or 18 or Velocity => 3,
+            SizeXY => 2,
+            >= StableRandomX and <= Custom2XYZW => (stream - StableRandomX) % 4 + 1,
+            >= 39 and <= 44 => (stream - 39) % 3 + 1,
+            _ => -1,
+        };
+
+        /// Streams whose values the geometry fills; the others read 0.
+        static bool Filled(int stream) => stream is UV or UV2 or AnimBlend or AnimFrame or Center or SizeX or SizeXY or SizeXYZ
+            or Velocity or Speed or AgePercent or InvStartLifetime or (>= StableRandomX and <= Custom2XYZW and not (>= 27 and <= 30));
+
+        /// ParticleSystemVertexStream's names (Unity 6000.3, j0010421), for the log.
+        static readonly string[] names =
+        [
+            "Position", "Normal", "Tangent", "Color", "UV", "UV2", "UV3", "UV4", "AnimBlend", "AnimFrame", "Center", "VertexID",
+            "SizeX", "SizeXY", "SizeXYZ", "Rotation", "Rotation3D", "RotationSpeed", "RotationSpeed3D", "Velocity", "Speed",
+            "AgePercent", "InvStartLifetime", "StableRandomX", "StableRandomXY", "StableRandomXYZ", "StableRandomXYZW",
+            "VaryingRandomX", "VaryingRandomXY", "VaryingRandomXYZ", "VaryingRandomXYZW", "Custom1X", "Custom1XY", "Custom1XYZ",
+            "Custom1XYZW", "Custom2X", "Custom2XY", "Custom2XYZ", "Custom2XYZW", "NoiseSumX", "NoiseSumXY", "NoiseSumXYZ",
+            "NoiseImpulseX", "NoiseImpulseXY", "NoiseImpulseXYZ", "MeshIndex", "ParticleIndex", "ColorPackedAsTwoFloats",
+            "MeshAxisOfRotation", "NextTrailCenter", "PreviousTrailCenter", "PercentageAlongTrail", "TrailWidth",
+        ];
+
+        static string Name(int stream) => stream >= 0 && stream < names.Length ? names[stream] : stream.ToString();
+
+        /// The layout of a stream list, or null (logged) when a stream's size is not known.
+        public static VertexStreams Of(IReadOnlyList<int> streams, Action<string> unsupported)
+        {
+            var v = new VertexStreams();
+            var texcoords = new List<(int, int, int)>();
+            foreach (int s in streams)
+            {
+                int n = Count(s);
+                if (n < 0)
+                {
+                    unsupported($"custom vertex stream {Name(s)} (default streams drawn)");
+                    return null;
+                }
+                switch (s)
+                {
+                    case Normal: v.HasNormal = true; continue;
+                    case Tangent: v.HasTangent = true; continue;
+                    case Color: v.HasColor = true; continue;
+                    case Position: continue;
+                }
+                if (!Filled(s)) unsupported($"custom vertex stream {Name(s)} (zeros)");
+                if (s == UV && v.UvOffset < 0) v.UvOffset = v.Components;
+                v.NeedsStableRandom |= s is >= StableRandomX and <= StableRandomXYZW;
+                v.NeedsCustom1 |= s is >= Custom1X and <= Custom1XYZW;
+                v.NeedsCustom2 |= s is >= Custom2X and <= Custom2XYZW;
+                texcoords.Add((s, v.Components, n));
+                v.Components += n;
+            }
+            if (v.Components > MeshNative.UvChannels * 4)
+            {
+                unsupported("custom vertex streams past TEXCOORD7 (default streams drawn)");
+                return null;
+            }
+            v.Texcoords = texcoords.ToArray();
+            return v;
+        }
+    }
+
     /// Engine side of a ParticleSystemRenderer (class 199): how the sibling ParticleSystem's
     /// particles are drawn.
     internal sealed class ParticleSystemRendererNative : RendererNative
@@ -62,6 +162,13 @@ namespace OniMoono.Engine.Particles
         public float NormalDirection = 1f;
         public float SortingFudge;
         public Vector3 Pivot;
+        /// The proportion of particles mirrored on each axis (renderer.flip).
+        public Vector3 Flip;
+        /// The mesh of mesh particles (m_Mesh).
+        public Mesh Mesh;
+        /// The custom vertex streams, or null for the default ones (Position, Normal, Color, UV:
+        /// GetActiveVertexStreams of a new renderer, j0010421).
+        public VertexStreams Streams;
 
         /// Installed by the camera module: a camera's projection matrix, so geometry built for a
         /// Camera can apply the min/max particle size limits. Without it the limits are skipped.
@@ -82,6 +189,9 @@ namespace OniMoono.Engine.Particles
             NormalDirection = r.NormalDirection;
             SortingFudge = r.SortingFudge;
             Pivot = r.Pivot;
+            Flip = r.Flip;
+            Mesh = r.Mesh;
+            Streams = r.Streams;
         }
 
         public override void Bind(Fields f, IReferenceResolver resolver)
@@ -102,10 +212,24 @@ namespace OniMoono.Engine.Particles
             SortingFudge = F(f, "m_SortingFudge");
             NormalDirection = F(f, "m_NormalDirection");
             Pivot = V3(f, "m_Pivot");
-            if (RenderMode is 4 or < 0 or > 5)
+            Flip = V3(f, "m_Flip");
+            Mesh = f.Contains("m_Mesh") ? resolver.Resolve(f.PPtr("m_Mesh")) as Mesh : null;
+            if (RenderMode is < 0 or > 5)
             {
-                Unsupported(RenderMode == 4 ? "mesh particles (not drawn)" : $"render mode {RenderMode} (not drawn)");
+                Unsupported($"render mode {RenderMode} (not drawn)");
                 RenderMode = 5;
+            }
+            if (RenderMode == 4)
+            {
+                if (!Mesh) Unsupported("mesh particles without a mesh (not drawn)");
+                foreach (var other in new[] { "m_Mesh1", "m_Mesh2", "m_Mesh3" })
+                    if (f.Contains(other) && !f.PPtr(other).IsNull) Unsupported("mesh particles of several meshes (the first drawn)");
+                if (Alignment is 3 or 4)
+                {
+                    Unsupported($"mesh particles aligned to {(Alignment == 3 ? "Facing" : "Velocity")} (world-aligned)");
+                    Alignment = 1;
+                }
+                if (Flip.y != 0f || Flip.z != 0f) Unsupported("mesh particles flipped on y or z (x only)");
             }
             if (SortMode is < 0 or > 4)
             {
@@ -117,10 +241,20 @@ namespace OniMoono.Engine.Particles
                 Unsupported("velocity-aligned billboards (view-aligned)");
                 Alignment = 0;
             }
-            if (V3(f, "m_Flip") != Vector3.zero) Unsupported("particle flipping");
             if (CameraVelocityScale != 0f) Unsupported("camera velocity stretching");
             if (B(f, "m_FreeformStretching")) Unsupported("freeform stretching");
-            if (B(f, "m_UseCustomVertexStreams")) Unsupported("custom vertex streams");
+            Streams = null;
+            if (B(f, "m_UseCustomVertexStreams"))
+            {
+                var list = new List<int>();
+                switch (f["m_VertexStreams"])
+                {
+                    case byte[] bytes: foreach (var b in bytes) list.Add(b); break;
+                    case object[] items: foreach (var item in items) list.Add(Convert.ToInt32(item)); break;
+                }
+                Streams = VertexStreams.Of(list, Unsupported);
+                if (Streams != null && Streams.HasTangent && RenderMode == 1) Unsupported("tangents of stretched particles (along their texture's u)");
+            }
         }
 
         ParticleSystemNative System
@@ -135,13 +269,38 @@ namespace OniMoono.Engine.Particles
 
         bool Stretched => RenderMode == 1;
 
+        /// The mesh of mesh particles, readable, or null.
+        MeshNative ParticleMesh => RenderMode == 4 && Mesh && Mesh.NativeOrThrow is MeshNative m && m.Positions != null && m.SubMeshes.Count > 0
+            && m.SubMeshes[0].Topology == MeshTopology.Triangles ? m : null;
+
+        /// A mesh particle's pivot offset at size 1, in the mesh's space: the pivot in units of
+        /// the mesh's bounds, z turned toward -z (measured: UnityProbe particlestreams, j0010424,
+        /// a mesh whose bounds start away from its origin).
+        static Vector3 MeshPivot(Vector3 pivot, MeshNative mesh)
+        {
+            var size = mesh.Bounds.size;
+            return new Vector3(pivot.x * size.x, pivot.y * size.y, -pivot.z * size.z);
+        }
+
         /// Local-space bounds (Renderer.localBounds) of the particles' world AABB.
         protected override Bounds GeometryBounds
         {
             get
             {
                 var ps = System;
-                if (ps is null || !ps.WorldBounds(Stretched ? LengthScale : 0f, Stretched ? VelocityScale : 0f, out var world)) return default;
+                float meshRadius = 0f;
+                if (ParticleMesh is { } mesh)
+                {
+                    var b = mesh.Bounds;
+                    var pivot = MeshPivot(Pivot, mesh);
+                    for (int i = 0; i < 8; i++)
+                    {
+                        var corner = new Vector3((i & 1) != 0 ? b.max.x : b.min.x, (i & 2) != 0 ? b.max.y : b.min.y, (i & 4) != 0 ? b.max.z : b.min.z);
+                        meshRadius = Math.Max(meshRadius, (corner + pivot).magnitude);
+                    }
+                    meshRadius = Math.Max(meshRadius, 1e-6f);
+                }
+                if (ps is null || !ps.WorldBounds(Stretched ? LengthScale : 0f, Stretched ? VelocityScale : 0f, Pivot.magnitude, meshRadius, out var world)) return default;
                 return Transform(world, GameObject.Transform.LocalToWorld.inverse);
             }
         }
@@ -157,10 +316,12 @@ namespace OniMoono.Engine.Particles
         /// Fills target with this frame's particle geometry as seen from view, for the frame
         /// renderer. Contract:
         /// - Returns false (target untouched) when there is nothing to draw: render mode None,
-        ///   no ParticleSystem, or no live particles or trails.
+        ///   mesh particles without a readable mesh, no ParticleSystem, or no live particles or
+        ///   trails.
         /// - Vertices are in world space and objectToWorld is identity (Unity builds particle
         ///   geometry in world space). Streams: positions, normals, colors (Color32-quantized,
-        ///   ColorsAreBytes) and uv0 (2D). Quads are clockwise as seen from the camera.
+        ///   ColorsAreBytes) and uv0 (2D); with custom vertex streams, the ones they name
+        ///   (VertexStreams). Quads are clockwise as seen from the camera.
         /// - Submesh 0 holds the particles (drawn with material 0); when the trail module is
         ///   enabled submesh 1 holds the trail ribbons (material 1, Unity's trail material
         ///   slot). Particles are ordered for back-to-front blending per the sort mode.
@@ -169,7 +330,9 @@ namespace OniMoono.Engine.Particles
         {
             objectToWorld = Matrix4x4.identity;
             var ps = System;
-            if (ps is null || RenderMode is 4 or 5) return false;
+            if (ps is null || RenderMode == 5) return false;
+            var mesh = ParticleMesh;
+            if (RenderMode == 4 && mesh == null) return false;
             var particles = ps.Particles;
             bool trails = ps.Config.TrailsEnabled || ps.OrphanTrails.Count > 0;
             if (particles.Length == 0 && ps.OrphanTrails.Count == 0) return false;
@@ -177,7 +340,7 @@ namespace OniMoono.Engine.Particles
             // The builder and the per-particle scratch are reused from system to system (main
             // thread: the frame renderer's culling); the mesh gets arrays of its own (Fill).
             var b = builder;
-            b.Reset();
+            b.Reset(Streams);
             var emitter = ps.CaptureEmitter();
             int n = particles.Length;
             var looks = Grow(ref b.Looks, n);
@@ -185,7 +348,18 @@ namespace OniMoono.Engine.Particles
             var order = SortOrder(particles, looks, view, b);
 
             var quads = b.Quads;
-            foreach (int i in order) AddParticle(b, quads, looks[i], view);
+            if (mesh != null)
+            {
+                var meshRotation = Alignment switch
+                {
+                    0 => view.Rotation,
+                    2 => emitter.Rotation,
+                    _ => Quaternion.identity,
+                };
+                foreach (int i in order) AddMeshParticle(b, quads, looks[i], mesh, meshRotation, ps);
+            }
+            else
+                foreach (int i in order) AddParticle(b, quads, looks[i], view, ps);
 
             List<int> ribbons = null;
             if (trails)
@@ -251,24 +425,41 @@ namespace OniMoono.Engine.Particles
             return new Vector2(Math.Clamp(size.x, min, Math.Max(min, max)), Math.Clamp(size.y, min, Math.Max(min, max)));
         }
 
-        void AddParticle(GeometryBuilder b, List<int> indices, in ParticleSystemNative.ParticleLook p, in ParticleView view)
+        /// Whether a particle is mirrored on x and on y: each axis for that proportion of the
+        /// particles, picked at random per particle (measured: UnityProbe particlestreams,
+        /// j0010421: flip 0.5 mirrored some of eight particles, 1 all of them, 0 none).
+        void Flips(uint seed, out bool x, out bool y)
+        {
+            x = Flip.x > 0f && ParticleRandom.Hash01(seed, Salt.FlipX) < Flip.x;
+            y = Flip.y > 0f && ParticleRandom.Hash01(seed, Salt.FlipY) < Flip.y;
+        }
+
+        void AddParticle(GeometryBuilder b, List<int> indices, in ParticleSystemNative.ParticleLook p, in ParticleView view, ParticleSystemNative ps)
         {
             var size = Clamped(new Vector2(p.Size.x, p.Size.y), p.Position, view);
             var toCamera = view.IsPerspective ? (view.Position - p.Position).normalized : -view.Forward;
             Vector3 right, up, normal, center;
+            // Corners in order: (-right, -up), (-right, +up), (+right, +up), (+right, -up); u runs
+            // along right and v along up.
+            var uv = p.Uv;
+            var uv2 = p.Uv2;
 
             if (Stretched)
             {
-                // The quad trails the particle: its head is at the particle, its length is
-                // lengthScale × size plus velocityScale × speed, its width the particle size.
+                // Measured (UnityProbe particlestreams, j0010424): the quad trails the particle,
+                // its head at the particle; its length is lengthScale × size plus velocityScale ×
+                // speed, its width the particle size. u runs from the head (0) to the tail (1)
+                // and v across, 1 on the side cross(toCamera, velocity); the rotation is not
+                // applied. The pivot moves it by pivot.x widths across and pivot.y lengths along.
                 float speed = p.Velocity.magnitude;
                 var axis = speed > 0f ? p.Velocity / speed : view.Up;
                 float length = size.x * LengthScale + speed * VelocityScale;
-                var side = Vector3.Cross(axis, toCamera);
+                var side = Vector3.Cross(toCamera, axis);
                 side = side.sqrMagnitude > 0f ? side.normalized : view.Right;
-                right = side * (size.y * 0.5f);
-                up = axis * (length * 0.5f);
-                center = p.Position - up + up * (2f * Pivot.y) + right * (2f * Pivot.x);
+                // right runs from the head to the tail (u), up across (v).
+                right = -axis * (length * 0.5f);
+                up = side * (size.y * 0.5f);
+                center = p.Position + axis * (length * (Pivot.y - 0.5f)) + side * (size.y * Pivot.x);
                 normal = toCamera;
             }
             else
@@ -329,18 +520,102 @@ namespace OniMoono.Engine.Particles
                 center = p.Position + right * (2f * Pivot.x) + up * (2f * Pivot.y) + normal * (Pivot.z * size.x);
             }
 
+            // A flipped particle mirrors its texture coordinates, not its corners (measured:
+            // UnityProbe particlestreams, j0010421, billboards and stretched particles).
+            if (Flip != Vector3.zero)
+            {
+                Flips(p.Seed, out bool flipX, out bool flipY);
+                if (flipX)
+                {
+                    uv = new Rect(uv.xMax, uv.y, -uv.width, uv.height);
+                    uv2 = new Rect(uv2.xMax, uv2.y, -uv2.width, uv2.height);
+                }
+                if (flipY)
+                {
+                    uv = new Rect(uv.x, uv.yMax, uv.width, -uv.height);
+                    uv2 = new Rect(uv2.x, uv2.yMax, uv2.width, -uv2.height);
+                }
+            }
+
             // Normals bend from the face normal toward the corners as normalDirection drops
             // below 1 (spherical lighting).
             Vector3 CornerNormal(Vector3 offset) => Vector3.LerpUnclamped(offset.normalized, normal, NormalDirection).normalized;
             var c32 = (Color)(Color32)p.Color;
-            var uv = p.Uv;
             int v = b.Count;
-            b.Add(center - right - up, CornerNormal(-right - up), c32, new Vector2(uv.xMin, uv.yMin));
-            b.Add(center - right + up, CornerNormal(-right + up), c32, new Vector2(uv.xMin, uv.yMax));
-            b.Add(center + right + up, CornerNormal(right + up), c32, new Vector2(uv.xMax, uv.yMax));
-            b.Add(center + right - up, CornerNormal(right - up), c32, new Vector2(uv.xMax, uv.yMin));
+            if (b.Streams is { } streams)
+            {
+                // The tangent is the quad's right (its u axis unflipped), w -1 (measured:
+                // j0010421, (1, 0, 0, -1) on a view-aligned billboard).
+                var tangentAxis = right.sqrMagnitude > 0f ? right.normalized : view.Right;
+                var tangent = new Vector4(tangentAxis.x, tangentAxis.y, tangentAxis.z, -1f);
+                var values = ParticleValues.Of(streams, p, ps);
+                b.AddCustom(center - right - up, CornerNormal(-right - up), tangent, c32, new Vector2(uv.xMin, uv.yMin), new Vector2(uv2.xMin, uv2.yMin), p, values);
+                b.AddCustom(center - right + up, CornerNormal(-right + up), tangent, c32, new Vector2(uv.xMin, uv.yMax), new Vector2(uv2.xMin, uv2.yMax), p, values);
+                b.AddCustom(center + right + up, CornerNormal(right + up), tangent, c32, new Vector2(uv.xMax, uv.yMax), new Vector2(uv2.xMax, uv2.yMax), p, values);
+                b.AddCustom(center + right - up, CornerNormal(right - up), tangent, c32, new Vector2(uv.xMax, uv.yMin), new Vector2(uv2.xMax, uv2.yMin), p, values);
+            }
+            else
+            {
+                b.Add(center - right - up, CornerNormal(-right - up), c32, new Vector2(uv.xMin, uv.yMin));
+                b.Add(center - right + up, CornerNormal(-right + up), c32, new Vector2(uv.xMin, uv.yMax));
+                b.Add(center + right + up, CornerNormal(right + up), c32, new Vector2(uv.xMax, uv.yMax));
+                b.Add(center + right - up, CornerNormal(right - up), c32, new Vector2(uv.xMax, uv.yMin));
+            }
             indices.Add(v); indices.Add(v + 1); indices.Add(v + 2);
             indices.Add(v); indices.Add(v + 2); indices.Add(v + 3);
+        }
+
+        /// A mesh particle, as measured (UnityProbe particlestreams, j0010421, j0010424, j0010426):
+        /// each mesh vertex scaled by the particle's 3D size, moved by the pivot (MeshPivot),
+        /// turned by the particle's rotation (Quaternion.Euler of its 3D rotation; its z rotation
+        /// alone without 3D rotation) and then by the alignment's (View: the camera's, Local: the
+        /// emitter's, World: none), and placed at the particle. Normals and tangents turn with it
+        /// (tangents keep w); a particle flipped on x mirrors the mesh's x. Colours are the mesh's
+        /// times the particle's, or the particle's; UV is the mesh's uv, UV2 its second; channels
+        /// the mesh lacks read 0. A texture sheet maps UV into the frame's tile and UV2 into the
+        /// next frame's (j0010438).
+        void AddMeshParticle(GeometryBuilder b, List<int> indices, in ParticleSystemNative.ParticleLook p, MeshNative mesh, Quaternion alignment, ParticleSystemNative ps)
+        {
+            var rotation = alignment * Quaternion.Euler(p.Rotation3 * Mathf.Rad2Deg);
+            var size = p.Size;
+            var pivot = MeshPivot(Pivot, mesh);
+            bool flipX = false;
+            if (Flip.x > 0f) Flips(p.Seed, out flipX, out _);
+            var mirror = new Vector3(flipX ? -1f : 1f, 1f, 1f);
+            var positions = mesh.Positions;
+            var normals = mesh.Normals;
+            var tangents = mesh.Tangents;
+            // Colours given as bytes are read as bytes: reading Colors would keep a float copy
+            // on the mesh.
+            var bytes = mesh.Colors32;
+            var colors = bytes == null ? mesh.Colors : null;
+            var uvs = mesh.Uvs[0];
+            var uvs2 = mesh.Uvs[1];
+            var streams = b.Streams;
+            var values = streams != null ? ParticleValues.Of(streams, p, ps) : default;
+            int v = b.Count;
+            for (int i = 0; i < mesh.VertexCount; i++)
+            {
+                var local = Vector3.Scale(Vector3.Scale(positions[i], mirror), size) + Vector3.Scale(pivot, size);
+                var position = p.Position + rotation * local;
+                var normal = normals != null ? rotation * Vector3.Scale(normals[i], mirror) : Vector3.zero;
+                var color = (Color)(Color32)(bytes != null ? (Color)bytes[i] * p.Color : colors != null ? colors[i] * p.Color : p.Color);
+                var uv = uvs != null ? new Vector2(p.Uv.x + uvs[i].x * p.Uv.width, p.Uv.y + uvs[i].y * p.Uv.height) : Vector2.zero;
+                if (streams != null)
+                {
+                    var tangent = Vector4.zero;
+                    if (tangents != null)
+                    {
+                        var t = rotation * Vector3.Scale(tangents[i], mirror);
+                        tangent = new Vector4(t.x, t.y, t.z, tangents[i].w);
+                    }
+                    var uv2 = uvs2 != null ? new Vector2(p.Uv2.x + uvs2[i].x * p.Uv2.width, p.Uv2.y + uvs2[i].y * p.Uv2.height) : Vector2.zero;
+                    b.AddCustom(position, normal, tangent, color, uv, uv2, p, values);
+                }
+                else b.Add(position, normal, color, uv);
+            }
+            var triangles = mesh.SubMeshes[0];
+            foreach (int index in triangles.Indices) indices.Add(v + triangles.BaseVertex + index);
         }
 
         /// A camera-facing ribbon through the trail's points (newest at the head). Width is the
@@ -390,6 +665,32 @@ namespace OniMoono.Engine.Particles
             }
         }
 
+        /// A particle's values for the custom streams that are the same at each of its vertices.
+        readonly struct ParticleValues
+        {
+            public readonly Vector4 StableRandom, Custom1, Custom2;
+
+            ParticleValues(Vector4 stableRandom, Vector4 custom1, Vector4 custom2)
+            {
+                StableRandom = stableRandom;
+                Custom1 = custom1;
+                Custom2 = custom2;
+            }
+
+            /// Stable random numbers are the particle's own, fixed for its life, in [0, 1) (Unity's
+            /// generator is not reproduced: its values are other numbers).
+            public static ParticleValues Of(VertexStreams streams, in ParticleSystemNative.ParticleLook p, ParticleSystemNative ps)
+            {
+                var random = streams.NeedsStableRandom
+                    ? new Vector4(ParticleRandom.Hash01(p.Seed, Salt.StableRandom), ParticleRandom.Hash01(p.Seed, Salt.StableRandom + 1),
+                        ParticleRandom.Hash01(p.Seed, Salt.StableRandom + 2), ParticleRandom.Hash01(p.Seed, Salt.StableRandom + 3))
+                    : default;
+                return new ParticleValues(random,
+                    streams.NeedsCustom1 ? ps.CustomData(0, p.Seed, p.AgeNormalized) : default,
+                    streams.NeedsCustom2 ? ps.CustomData(1, p.Seed, p.AgeNormalized) : default);
+            }
+        }
+
         /// One system's geometry as it is built, and the scratch for building it: one builder,
         /// reused for every system (main thread). Fill copies it into arrays of the mesh's own,
         /// taken from the mesh's spares (MeshNative.NewChannelAtLeast): the device's upload holds
@@ -398,8 +699,11 @@ namespace OniMoono.Engine.Particles
         {
             readonly List<Vector3> positions = new();
             readonly List<Vector3> normals = new();
+            readonly List<Vector4> tangents = new();
             readonly List<Color32> colors = new();
             readonly List<Vector4> uvs = new();
+            readonly List<Vector4>[] channels = new List<Vector4>[MeshNative.UvChannels];
+            readonly float[] components = new float[MeshNative.UvChannels * 4];
             public readonly List<int> Quads = new(), Ribbons = new();
             public readonly List<Vector3> Points = new();
             public ParticleSystemNative.ParticleLook[] Looks = [];
@@ -407,42 +711,102 @@ namespace OniMoono.Engine.Particles
             public float[] Keys = [];
             public (float Key, int Index)[] IndexKeys = [];
             public float[] Along = [];
+            /// The custom vertex streams of the system being built, or null.
+            public VertexStreams Streams;
 
             public int Count => positions.Count;
 
-            public void Reset()
+            public void Reset(VertexStreams streams)
             {
+                Streams = streams;
                 positions.Clear();
                 normals.Clear();
+                tangents.Clear();
                 colors.Clear();
                 uvs.Clear();
+                foreach (var c in channels) c?.Clear();
                 Quads.Clear();
                 Ribbons.Clear();
             }
 
             /// Colours are given quantized to bytes (Color)(Color32), and uploaded as the bytes
-            /// they convert back to, as the device converted them before.
+            /// they convert back to, as the device converted them before. With custom streams a
+            /// vertex (a trail's) gets its uv in the UV stream and 0 in the others.
             public void Add(Vector3 position, Vector3 normal, Color color, Vector2 uv)
             {
+                if (Streams != null)
+                {
+                    AddCustom(position, normal, Vector4.zero, color, uv, uv, default, default, onlyUv: true);
+                    return;
+                }
                 positions.Add(position);
                 normals.Add(normal);
                 colors.Add(color);
                 uvs.Add(new Vector4(uv.x, uv.y, 0f, 0f));
             }
 
+            /// A vertex with the custom streams' values: uv and uv2 are the vertex's (UV, UV2), the
+            /// rest the particle's (look) or its stream values.
+            public void AddCustom(Vector3 position, Vector3 normal, Vector4 tangent, Color color, Vector2 uv, Vector2 uv2,
+                in ParticleSystemNative.ParticleLook p, in ParticleValues values, bool onlyUv = false)
+            {
+                var s = Streams;
+                positions.Add(position);
+                if (s.HasNormal) normals.Add(normal);
+                if (s.HasTangent) tangents.Add(tangent);
+                if (s.HasColor) colors.Add(color);
+                var c = components;
+                Array.Clear(c, 0, s.Channels * 4);
+                foreach (var (stream, offset, count) in s.Texcoords)
+                {
+                    if (onlyUv && stream != VertexStreams.UV) continue;
+                    Vector4 value = stream switch
+                    {
+                        VertexStreams.UV => uv,
+                        VertexStreams.UV2 => uv2,
+                        VertexStreams.AnimBlend => new Vector4(p.Frame - MathF.Floor(p.Frame), 0f),
+                        VertexStreams.AnimFrame => new Vector4(p.Frame, 0f),
+                        VertexStreams.Center => p.Position,
+                        VertexStreams.SizeX or VertexStreams.SizeXY or VertexStreams.SizeXYZ => p.Size,
+                        VertexStreams.Velocity => p.Velocity,
+                        VertexStreams.Speed => new Vector4(p.Velocity.magnitude, 0f),
+                        VertexStreams.AgePercent => new Vector4(p.AgeNormalized, 0f),
+                        VertexStreams.InvStartLifetime => new Vector4(p.Lifetime > 0f ? 1f / p.Lifetime : 0f, 0f),
+                        >= VertexStreams.StableRandomX and <= VertexStreams.StableRandomXYZW => values.StableRandom,
+                        >= VertexStreams.Custom1X and <= VertexStreams.Custom1XYZW => values.Custom1,
+                        >= VertexStreams.Custom2X and <= VertexStreams.Custom2XYZW => values.Custom2,
+                        _ => Vector4.zero,
+                    };
+                    for (int k = 0; k < count; k++) c[offset + k] = value[k];
+                }
+                for (int ch = 0; ch < s.Channels; ch++)
+                    (channels[ch] ??= new()).Add(new Vector4(c[ch * 4], c[ch * 4 + 1], c[ch * 4 + 2], c[ch * 4 + 3]));
+            }
+
             public void Fill(MeshNative mesh, bool ribbons)
             {
                 mesh.Clear();
                 int n = positions.Count;
+                var s = Streams;
                 mesh.VertexCount = n;
                 mesh.Positions = Channel(mesh, positions, MeshNative.SlotPositions);
-                mesh.Normals = Channel(mesh, normals, MeshNative.SlotNormals);
-                var colors32 = Copy(mesh, colors);
+                mesh.Normals = s == null || s.HasNormal ? Channel(mesh, normals, MeshNative.SlotNormals) : null;
+                if (s != null && s.HasTangent) mesh.Tangents = Channel(mesh, tangents, MeshNative.SlotTangents);
+                var colors32 = s == null || s.HasColor ? Copy(mesh, colors) : null;
                 mesh.SetColors32(colors32);
                 if (colors32 != null) mesh.Give(MeshNative.SlotColors32, colors32);
                 mesh.ColorsAreBytes = true;
-                mesh.Uvs[0] = Channel(mesh, uvs, MeshNative.SlotUv0);
-                mesh.UvDimensions[0] = 2;
+                if (s == null)
+                {
+                    mesh.Uvs[0] = Channel(mesh, uvs, MeshNative.SlotUv0);
+                    mesh.UvDimensions[0] = 2;
+                }
+                else
+                    for (int ch = 0; ch < s.Channels; ch++)
+                    {
+                        mesh.Uvs[ch] = Channel(mesh, channels[ch], MeshNative.SlotUv0 + ch);
+                        mesh.UvDimensions[ch] = s.Dimension(ch);
+                    }
                 mesh.IndexFormat = n > ushort.MaxValue ? 1 : 0;
                 mesh.Dynamic = true;
                 Indices(mesh, mesh.SubMeshes[0], Quads);

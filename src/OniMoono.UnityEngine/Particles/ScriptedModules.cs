@@ -205,7 +205,7 @@ namespace UnityEngine
 
     public partial class ParticleSystemRenderer
     {
-        /// Mesh particles are not drawn (as a bundle's are read: ParticleSystemRendererNative).
+        /// Mesh particles draw the bundle's mesh (m_Mesh): set to Mesh by script, a renderer without one draws nothing.
         public ParticleSystemRenderMode renderMode
         {
             get => (ParticleSystemRenderMode)((ParticleSystemRendererNative)EngineStateOrThrow).RenderMode;

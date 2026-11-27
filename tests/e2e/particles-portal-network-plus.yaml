@@ -3,8 +3,8 @@
 # (TemperatureCore.PlayFireEffect, PlayIceEffect: Cartoon FX). setup grants HVAC and places a
 # cube from steel beside a charged battery, wired (as the forcefield spec places its battery), and
 # sets the cube's slider to 80 °C, as its side screen would; the game then runs and the cube's own
-# code decides to heat. Whether the original draws the fire in play, and ours
-# (docs/research/d3d11-plan.md, M7).
+# code decides to heat. The original draws the fire in play (j0009708); the shots are compared by
+# eye, as the fire is 1-2.5% of their pixels (docs/ARCHITECTURE.md, particles).
 from: early-base
 mods: [3790434066]
 setup:

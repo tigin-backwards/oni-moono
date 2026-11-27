@@ -580,6 +580,17 @@ mod folder as above and a spec `from: main-menu` that waits for `**/ParticleEmit
 `ParticleTests` (`EmitParamsOverrideTheModules`, `LimitVelocityDampensTheExcessSpeed` and
 others) encodes the results.
 
+With `PROBE_SCENARIO=particlestreams` only the particle geometry probe runs (`ParticleStreams.cs`,
+lines `PS …`, 10 s into the main menu, about a second): particles emitted by script and baked with
+`ParticleSystemRenderer.BakeMesh` from a camera at (0, 0, -10), for the features Cartoon FX
+effects use (Portal Network, Spring Festival Pack). It logs `ParticleSystemVertexStream`'s values,
+the vertex attributes and first vertices for each custom stream set those mods' renderers use, the
+custom data module's values over a particle's life, flipped billboard and stretched quads,
+stretched quads under the length and velocity scales and a pivot, a texture sheet's UV2,
+AnimBlend and AnimFrame, and mesh particles under each alignment, rotation, 3D size, pivot and
+flip. It runs through `scripts/e2e.py` with OniMcp's mod folder as above and
+`tests/e2e/probe-particlestreams.yaml`. `ParticleGeometryTests` encodes the results.
+
 With `PROBE_SCENARIO=destroyflags` only the destroy-flags probe runs (`DestroyFlags.cs`, lines
 `DF …`, at the main menu): the active flags each component sees in its OnDisable and OnDestroy
 when a GameObject is destroyed (with Destroy and DestroyImmediate; active, inactive, under an

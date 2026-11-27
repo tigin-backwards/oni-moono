@@ -44,7 +44,8 @@ namespace OniMoono.Engine.Particles
             RotFlip = 9, Color = 10, ShapeA = 11, ShapeB = 12, ShapeC = 13, ShapeD = 14, ShapeE = 15, ShapeF = 16,
             Gravity = 17, ForceX = 18, ForceY = 19, ForceZ = 20, SizeOverLifetime = 21, ColorOverLifetime = 22,
             ColorBySpeed = 23, FrameOverTime = 24, StartFrame = 25, Trail = 26, TrailLifetime = 27, TrailColor = 28,
-            TrailWidth = 29, Limit = 30, RotationOverLifetime = 31;
+            TrailWidth = 29, Limit = 30, RotationOverLifetime = 31, Custom = 32 /* to 39: stream × 4 + component */,
+            CustomColor = 40 /* and 41 */, StableRandom = 42 /* to 45 */, FlipX = 46, FlipY = 47;
     }
 
     /// What ParticleSystem.Emit(EmitParams, count) sets of its particles; null takes the modules'.
@@ -745,13 +746,49 @@ namespace OniMoono.Engine.Particles
             public float Rotation;
             public Rect Uv;
             public float AgeNormalized;
+            /// Euler angles in radians: the start rotation's x and y, and z with its rotation
+            /// over lifetime (Rotation).
+            public Vector3 Rotation3;
+            /// The texture sheet's next frame (the UV2 stream) and the frame, fraction included
+            /// (AnimFrame; AnimBlend is its fraction): measured, UnityProbe particlestreams
+            /// (j0010426). Without the module, Uv2 is Uv and Frame 0.
+            public Rect Uv2;
+            public float Frame;
+            public uint Seed;
+            public float Lifetime;
+        }
+
+        /// A particle's Custom1 (stream 0) or Custom2 (1) values from the custom data module at
+        /// normalized age t; zeros while the module is off (measured: UnityProbe particlestreams,
+        /// j0010421: a vector stream's components past its count are 0, as are a disabled one's).
+        internal Vector4 CustomData(int stream, uint seed, float t)
+        {
+            var c = Config;
+            if (!c.CustomDataEnabled) return default;
+            var s = c.CustomData[stream];
+            switch (s.Mode)
+            {
+                case 1:
+                {
+                    var v = default(Vector4);
+                    for (int k = 0; k < s.Components; k++) v[k] = s.Vector[k].Evaluate(t, ParticleRandom.Hash01(seed, Salt.Custom + (uint)(stream * 4 + k)));
+                    return v;
+                }
+                case 2:
+                {
+                    var color = s.Color.Evaluate(t, ParticleRandom.Hash01(seed, Salt.CustomColor + (uint)stream));
+                    return new Vector4(color.r, color.g, color.b, color.a);
+                }
+                default:
+                    return default;
+            }
         }
 
         internal ParticleLook Look(in Particle p, EmitterPose emitter)
         {
             var c = Config;
             float t = Mathf.Clamp01(p.Age / p.Lifetime);
-            var look = new ParticleLook { Rotation = p.Rotation.z, AgeNormalized = t };
+            var look = new ParticleLook { Rotation = p.Rotation.z, AgeNormalized = t, Seed = p.Seed, Lifetime = p.Lifetime };
 
             var size = p.StartSize;
             if (c.SizeEnabled)
@@ -785,7 +822,9 @@ namespace OniMoono.Engine.Particles
             }
             look.Color = color;
 
+            look.Rotation3 = new Vector3(p.Rotation.x, p.Rotation.y, look.Rotation);
             look.Uv = new Rect(0f, 0f, 1f, 1f);
+            look.Uv2 = look.Uv;
             if (c.UvEnabled)
             {
                 int tiles = c.TilesX * c.TilesY;
@@ -799,16 +838,27 @@ namespace OniMoono.Engine.Particles
                 }
                 int index = (int)MathF.Floor(frame) % tiles;
                 if (index < 0) index += tiles;
-                int column = index % c.TilesX, row = index / c.TilesX;
-                float w = 1f / c.TilesX, hgt = 1f / c.TilesY;
-                // Row 0 is the top of the texture.
-                look.Uv = new Rect(column * w, 1f - (row + 1) * hgt, w, hgt);
+                look.Uv = Tile(index);
+                look.Uv2 = Tile((index + 1) % tiles);
+                look.Frame = index + (frame - MathF.Floor(frame));
             }
             return look;
         }
 
-        /// World-space AABB of the particles (and trails), each grown by its drawn extent.
-        internal bool WorldBounds(float stretchLength, float stretchVelocity, out Bounds bounds)
+        /// A texture sheet tile's rectangle; row 0 is the top of the texture.
+        Rect Tile(int index)
+        {
+            var c = Config;
+            int column = index % c.TilesX, row = index / c.TilesX;
+            float w = 1f / c.TilesX, h = 1f / c.TilesY;
+            return new Rect(column * w, 1f - (row + 1) * h, w, h);
+        }
+
+        /// World-space AABB of the particles (and trails), each grown by its drawn extent: a quad's,
+        /// moved by up to pivot (the renderer's pivot's length) times its size, or for mesh
+        /// particles (meshRadius > 0) the mesh's farthest point from the particle at size 1, pivot
+        /// included, times the particle's largest size.
+        internal bool WorldBounds(float stretchLength, float stretchVelocity, float pivot, float meshRadius, out Bounds bounds)
         {
             bounds = default;
             bool any = false;
@@ -824,8 +874,10 @@ namespace OniMoono.Engine.Particles
             {
                 var look = Look(particles[i], emitter);
                 // Half the quad's diagonal covers it at any roll and orientation.
-                float radius = 0.5f * new Vector2(look.Size.x, look.Size.y).magnitude
-                    + stretchLength * Math.Max(look.Size.x, look.Size.y) + stretchVelocity * look.Velocity.magnitude;
+                float radius = meshRadius > 0f
+                    ? meshRadius * Math.Max(Math.Abs(look.Size.x), Math.Max(Math.Abs(look.Size.y), Math.Abs(look.Size.z)))
+                    : (1f + 2f * pivot) * (0.5f * new Vector2(look.Size.x, look.Size.y).magnitude
+                        + stretchLength * Math.Max(look.Size.x, look.Size.y) + stretchVelocity * look.Velocity.magnitude);
                 Add(look.Position, radius, ref bounds);
                 if (particles[i].Trail is { } trail)
                     foreach (var point in trail.Points) Add(toWorld.MultiplyPoint3x4(point.Position), 0.5f * look.Size.x, ref bounds);
