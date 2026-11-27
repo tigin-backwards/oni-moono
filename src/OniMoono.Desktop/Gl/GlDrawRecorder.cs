@@ -139,31 +139,20 @@ namespace OniMoono.Desktop.Gl
 
         // ----- Serial recording -----
 
-        /// Forward rendering draws the passes for unlit and base lighting; others serve other
-        /// rendering paths, shadows or lightmapping (ShadowCaster, Deferred, and ForwardAdd,
-        /// which only additional lights would need). Values compare without case: the build
-        /// stores the passes' LightMode upper-case ("FORWARDBASE").
-        static bool IsForwardPass(ShaderPass pass, SubShader sub)
-        {
-            if (!pass.Tags.TryGetValue("LightMode", out var mode) && !sub.Tags.TryGetValue("LightMode", out mode)) return true;
-            foreach (var forward in ForwardLightModes)
-                if (string.Equals(mode, forward, StringComparison.OrdinalIgnoreCase)) return true;
-            return false;
-        }
-
-        static readonly string[] ForwardLightModes = ["", "Always", "ForwardBase", "Vertex", "SRPDefaultUnlit"];
-
         /// Adds the passes a draw runs to `passes`; false (and none added) when one is a UsePass,
         /// which `resolveUsePasses` false leaves unresolved (resolving can load a shader).
         internal static bool Passes(List<(ShaderNative Shader, ShaderPass Pass)> passes, ShaderNative shader, MaterialNative material, int pass, bool allPasses, bool resolveUsePasses = true)
         {
-            var sub = shader.ActiveSubShader;
+            // Forward rendering (pass -1) draws the forward subshader's forward passes; a pass
+            // index and every pass go by the active subshader.
+            bool forward = pass < 0 && !allPasses;
+            var sub = forward ? shader.ForwardSubShader : shader.ActiveSubShader;
             if (sub == null) return true;
             for (int i = 0; i < sub.Passes.Length; i++)
             {
                 if (pass >= 0 && i != pass) continue;
                 var p = sub.Passes[i];
-                if (pass < 0 && !allPasses && !IsForwardPass(p, sub)) continue;
+                if (forward && !SubShader.IsForward(p, sub)) continue;
                 if (p.Tags.TryGetValue("LightMode", out var lm) && material.DisabledPasses.Contains(lm)) continue;
                 if (p.Type == 1)
                 {

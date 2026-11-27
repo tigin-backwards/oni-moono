@@ -122,6 +122,34 @@ namespace OniMoono.Engine.Rendering
         /// not change after load, and renderers ask for every draw.
         public int Queue => queue ??= Tags != null && Tags.TryGetValue("Queue", out var q) ? ShaderNative.ParseQueue(q) : 2000;
         int? queue;
+
+        /// Whether a renderer's forward rendering draws any of its passes (IsForward).
+        public bool HasForwardPass
+        {
+            get
+            {
+                if (hasForwardPass is { } known) return known;
+                bool any = false;
+                foreach (var p in Passes) any |= IsForward(p, this);
+                hasForwardPass = any;
+                return any;
+            }
+        }
+        bool? hasForwardPass;
+
+        /// Forward rendering draws the passes for unlit and base lighting; others serve other
+        /// rendering paths, shadows or lightmapping (ShadowCaster, Deferred, and ForwardAdd,
+        /// which only additional lights would need). Values compare without case: the build
+        /// stores the passes' LightMode upper-case ("FORWARDBASE").
+        public static bool IsForward(ShaderPass pass, SubShader sub)
+        {
+            if (!pass.Tags.TryGetValue("LightMode", out var mode) && !sub.Tags.TryGetValue("LightMode", out mode)) return true;
+            foreach (var forward in ForwardLightModes)
+                if (string.Equals(mode, forward, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        static readonly string[] ForwardLightModes = ["", "Always", "ForwardBase", "Vertex", "SRPDefaultUnlit"];
     }
 
     /// A shader: its parsed ShaderLab form plus the compiled program data.
@@ -344,6 +372,26 @@ namespace OniMoono.Engine.Rendering
                 foreach (var s in SubShaders)
                     if (s.Lod <= max) return s;
                 return SubShaders.Length > 0 ? SubShaders[^1] : null;
+            }
+        }
+
+        /// The subshader a renderer's forward rendering draws: the active one when it has a forward
+        /// pass, else the first one after it (within the LOD) that has. Cartoon FX's shaders (Portal
+        /// Network, Spring Festival Pack) hold a ShadowCaster pass alone in their first subshader and
+        /// the forward pass in their second: the original reports the first through the material
+        /// (passCount 1, pass 0 "ShadowCaster") and draws the second's (j0010427, the effects drawn
+        /// in j0010422). Unity's manual has a shader cast shadows from a ShadowCaster pass "in any
+        /// of its subshaders or any fallback" (built-in shader examples, shadow casting).
+        public SubShader ForwardSubShader
+        {
+            get
+            {
+                var active = ActiveSubShader;
+                if (active == null || active.HasForwardPass) return active;
+                int max = Math.Min(MaximumLOD < 0 ? int.MaxValue : MaximumLOD, ShaderGlobals.MaximumLOD);
+                for (int i = Array.IndexOf(SubShaders, active) + 1; i < SubShaders.Length; i++)
+                    if (SubShaders[i].Lod <= max && SubShaders[i].HasForwardPass) return SubShaders[i];
+                return active;
             }
         }
 

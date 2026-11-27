@@ -1,0 +1,15 @@
+# Portal Network (2968184715): which subshader of its Cartoon FX shaders the fire thrower's and
+# the ice hit's materials report. The shaders' first subshader holds a ShadowCaster pass alone,
+# their second the forward pass (BASE) and a ShadowCaster. The original reports the first (one
+# pass, named ShadowCaster; the shader's passCount 1 of subshaderCount 2: j0010427, which also
+# read GetPassName, Shader.passCount and subshaderCount, members ours does not have) and draws
+# the second's forward pass (particles-portal-network; docs/ARCHITECTURE.md, D68).
+from: early-base
+mods: [2968184715]
+steps:
+  - expect_state:
+      "type:Portal_Cube_2.LoadAssets::FireThrower.GetComponent<ParticleSystemRenderer>.sharedMaterial.shader.name": "== original"
+      "type:Portal_Cube_2.LoadAssets::FireThrower.GetComponent<ParticleSystemRenderer>.sharedMaterial.passCount": "== original"
+      "type:Portal_Cube_2.LoadAssets::FireThrower.GetComponent<ParticleSystemRenderer>.sharedMaterial.renderQueue": "== original"
+      "type:Portal_Cube_2.LoadAssets::HitIce.GetComponent<ParticleSystemRenderer>.sharedMaterial.passCount": "== original"
+      "type:Portal_Cube_2.LoadAssets::HitIce.GetComponentsInChildren<ParticleSystemRenderer>.Length": "== original"

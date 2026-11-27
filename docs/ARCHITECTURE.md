@@ -1868,6 +1868,19 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   AccessViolationException ended the process (issue #130). **Resolved in** `PlayerLoop.RunFrame`
   and `Lifecycle.ProcessDestroyQueueBefore`: the requests made before that pass are carried out
   where they were; those its Starts make wait for the point after LateUpdate.
+- **D68 Forward rendering draws the first subshader with a forward pass.** Cartoon FX's
+  shaders (Portal Network, PortalNetwork+, Spring Festival Pack, The Capsules 2.0) hold a
+  ShadowCaster pass alone in their first subshader and the forward pass (BASE) with a
+  ShadowCaster in their second. In the original on Direct3D 11 their materials report the first
+  (`passCount` 1, pass 0 `ShadowCaster`, the shader's `passCount` 1 of 2 subshaders:
+  `particles-portal-shaders`, j0010427), and the effects draw with the second's forward pass
+  (`particles-portal-network`, j0010422); Unity's manual has a shader cast shadows from a
+  ShadowCaster pass "in any of its subshaders or any fallback". So the material API keeps the
+  active subshader, and a renderer's forward rendering (`GlDrawRecorder.Passes`, every device)
+  draws `ShaderNative.ForwardSubShader`: the active subshader when it has a forward pass, else
+  the first later one within the LOD that has. Ours drew nothing for these effects (no forward
+  pass). No other shader in the game's data or the downloaded Workshop bundles has a first
+  subshader without a forward pass.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
