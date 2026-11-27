@@ -1854,6 +1854,20 @@ game or mod code can notice. Each says how it is resolved, or why it is kept.
   of the 38 Workshop mods with shaders uses them. This supersedes "No Direct3D renderer, by
   choice" (docs/research/unity-vs-moono.md). A device lost in play ends the game with an error,
   as on Vulkan.
+- **D67 Destroy from the Starts after Update.** Unity's player runs pending Starts again after
+  the Update pass, before LateUpdate. A Destroy one of those Starts makes is carried out after
+  LateUpdate, not at the destruction point that ends the Update pass: UnityProbe's
+  startpassdestroy creates, in a Start, objects without Update whose Starts destroy themselves
+  or another object, and both are still there in that frame's LateUpdate and gone the next
+  frame; an object with Update, started by the Update pass itself, is gone by LateUpdate. A save
+  that fails to load (a building of a mod's element, the mod gone) spawns its loaded starmap
+  inventories in that pass, and each destroys itself on finding the one the cluster made first.
+  App.LateUpdate then runs `Game.StopBE`, which reads every SaveLoadRoot's `gameObject`, and
+  loads the frontend. With them already destroyed it threw every frame, the frontend never
+  loaded, and the game scene ran on over the sim grid `Sim.Shutdown` had freed until an
+  AccessViolationException ended the process (issue #130). **Resolved in** `PlayerLoop.RunFrame`
+  and `Lifecycle.ProcessDestroyQueueBefore`: the requests made before that pass are carried out
+  where they were; those its Starts make wait for the point after LateUpdate.
 - **ZEROs (2337612362) patches a method only Mono's class library has.** Its OnLoad patches
   `System.Number.FormatSingle(float, string, NumberFormatInfo)` with a prefix that widens custom
   formats with a '.' ("0.0" becomes "0.0##"), and `StringBuilder.AppendFormat(string, object)`.
@@ -2005,7 +2019,8 @@ citing why.
     their own flag, and a component destroyed alone leaves its object active (UnityProbe's
     destroyflags): `KMonoBehaviour.OnDestroy` releases the object's `KObject` event system only
     on `!activeSelf`. A `Destroy` made by an `OnDestroy` while requests are carried out waits for
-    the next destruction point (UnityProbe's destroycascade).
+    the next destruction point (UnityProbe's destroycascade), and one made by a Start of the pass
+    after Update waits for the point after LateUpdate (D67).
   - Exceptions in a message are logged through `Debug.LogException` and do not stop the frame,
     as in Unity.
 - **Script execution order** comes from `MonoScript.m_ExecutionOrder` in

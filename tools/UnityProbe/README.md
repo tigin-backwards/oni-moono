@@ -595,6 +595,14 @@ with none and with one every frame) and with DestroyImmediate; each phase logs w
 objects are gone. A Destroy made by an OnDestroy that a destruction point runs waits for the
 next destruction point. `DestroyCascadeTests` encodes the results.
 
+With `PROBE_SCENARIO=startpassdestroy` only the start-pass destroy probe runs (`StartPassDestroy.cs`,
+lines `SP …`, at the main menu, `tests/e2e/probe-startpassdestroy.yaml`; give the original the
+setting through `E2E_ORIGINAL_ENV`): a Start creates objects; those without Update start in
+the pass after Update and destroy themselves or another object, one with Update starts in the
+Update pass and destroys itself. In the original the first two are still there in that
+frame's LateUpdate and gone after it, the third is gone by LateUpdate (issue #130,
+ARCHITECTURE D67). `StartPassDestroyTests` encodes the results.
+
 With `PROBE_SCENARIO=cellchangecrash` only the cell-change probe runs (`CellChangeCrash.cs`, lines
 `CC …`, at the main menu, U60 or later): Klei's own `CellChangeMonitor` (given a grid) with that
 cascade, a moved child carrying a `KObject` destroyed after `RenderEveryTick` read it, with and

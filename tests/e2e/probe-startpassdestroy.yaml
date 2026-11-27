@@ -1,0 +1,9 @@
+# UnityProbe's `startpassdestroy` scenario (tools/UnityProbe/StartPassDestroy.cs, issue #130):
+# Destroy called from Starts that run in a pass of pending Starts after the Update pass, and
+# whether the objects are still there in that frame's LateUpdate, on the main menu. Needs
+# SemanticsProbe.dll (built against the game's Managed) in a copy of OniMcp's mod folder,
+# E2E_ONIMCP pointing at the copy. Read the "SP" lines.
+from: main-menu
+env: {PROBE_SCENARIO: startpassdestroy}
+steps:
+  - ui_wait: {path: "**/StartPassDestroyProbeDone", cond: exists, frames: 20000}

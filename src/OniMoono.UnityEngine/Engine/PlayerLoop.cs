@@ -250,12 +250,15 @@ namespace OniMoono.Engine
             // and MinionSelectScreen in a Start; Game's Start, just before its first Update,
             // destroys the screen, whose CharacterContainers start (and register) before their
             // OnDestroy unregisters them.
+            int destroyMark = Lifecycle.DestroyMark;
             BehaviourManager.RunStarts();
-            // Destroy called in Start or Update is carried out when the Update pass ends, before
-            // the coroutines resumed after it, as observed in Unity's player: LateUpdate already
-            // finds the parts gone (Better Automation Overlay strips a template in Update and
-            // clones it in LateUpdate).
-            Lifecycle.ProcessDestroyQueue();
+            // Destroy called in Update (and in the Starts the Update pass ran) is carried out
+            // when the Update pass ends, before the coroutines resumed after it, as observed in
+            // Unity's player: LateUpdate already finds the parts gone (Better Automation Overlay
+            // strips a template in Update and clones it in LateUpdate). Destroy called by a Start
+            // of the pass just above waits for the point after LateUpdate (UnityProbe
+            // startpassdestroy; #130).
+            Lifecycle.ProcessDestroyQueueBefore(destroyMark);
             DelayedCalls.Run();
             Coroutines.RunUpdatePhase();
             RunPhase(DirectorUpdate);

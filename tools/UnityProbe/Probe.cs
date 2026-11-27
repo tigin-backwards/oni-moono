@@ -452,6 +452,11 @@ namespace SemanticsProbe
                 go.AddComponent<DestroyFlags>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "startpassdestroy")
+            {
+                go.AddComponent<StartPassDestroy>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "destroycascade")
             {
                 go.AddComponent<DestroyCascade>();

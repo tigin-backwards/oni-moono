@@ -588,6 +588,42 @@ namespace OniMoono.Engine
             while (drain);
         }
 
+        /// How many Destroy requests wait now: a mark for ProcessDestroyQueueBefore.
+        public static int DestroyMark => pendingDestroy.Count;
+
+        /// The destruction point after the Update pass, which follows the pass of pending Starts
+        /// after Update: carries out the requests made before MARK (in Update and in the Starts
+        /// the Update pass ran) and the timed ones due, as ProcessDestroyQueue does. A request a
+        /// Start of that pass made waits for the point after LateUpdate, as in Unity's player
+        /// (UnityProbe startpassdestroy, ARCHITECTURE D67, "Destroy from the Starts after
+        /// Update"): a save that fails to load spawns its loaded starmap inventories there, they
+        /// destroy themselves, and App.LateUpdate's Game.StopBE must still find them (#130).
+        public static void ProcessDestroyQueueBefore(int mark)
+        {
+            if (mark >= pendingDestroy.Count)
+            {
+                ProcessDestroyQueue();
+                return;
+            }
+            int made = pendingDestroy.Count;
+            float now = Time.time;
+            for (int i = timedDestroy.Count - 1; i >= 0; i--)
+            {
+                if (timedDestroy[i].time > now) continue;
+                var obj = timedDestroy[i].obj;
+                timedDestroy.RemoveAt(i);
+                ScheduleDestroy(obj, 0f);
+            }
+            int due = pendingDestroy.Count - made;
+            if (mark == 0 && due == 0) return;
+            var batch = new Object[mark + due];
+            pendingDestroy.CopyTo(0, batch, 0, mark);
+            pendingDestroy.CopyTo(made, batch, mark, due);
+            pendingDestroy.RemoveRange(made, due);
+            pendingDestroy.RemoveRange(0, mark);
+            foreach (var obj in batch) DestroyNow(obj);
+        }
+
         /// Destroys OBJ now. A scene's unload passes `unloading`: its roots keep their active flag
         /// (not measured there), where Destroy and DestroyImmediate clear it.
         public static void DestroyNow(Object obj, bool unloading = false)

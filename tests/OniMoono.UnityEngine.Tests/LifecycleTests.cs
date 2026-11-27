@@ -992,6 +992,75 @@ namespace OniMoono.Tests
                 Run("LateUpdate", true).GetRange(0, 6));
     }
 
+    public class StartPassDestroyTests : EngineTest
+    {
+        public static readonly List<string> Log = new();
+        static GameObject a, b, bOther, c;
+
+        public class Victim : MonoBehaviour
+        {
+            public string Tag;
+            public GameObject Target;
+            void Start() => Object.Destroy(Target != null ? Target : gameObject);
+            void OnDestroy() => Log.Add(Tag + " OnDestroy");
+        }
+
+        public class VictimWithUpdate : Victim
+        {
+            void Update() { }
+        }
+
+        public class Host : MonoBehaviour
+        {
+            void Start()
+            {
+                a = new GameObject("A");
+                a.AddComponent<Victim>().Tag = "A";
+                bOther = new GameObject("B-other");
+                b = new GameObject("B");
+                var v = b.AddComponent<Victim>();
+                v.Tag = "B";
+                v.Target = bOther;
+                c = new GameObject("C");
+                c.AddComponent<VictimWithUpdate>().Tag = "C";
+            }
+        }
+
+        public class Watcher : MonoBehaviour
+        {
+            static string Live(GameObject g) => g == null ? "null" : "alive";
+            static string State() => "A=" + Live(a) + " B-other=" + Live(bOther) + " C=" + Live(c);
+            void Update() => Log.Add("Update " + State());
+            void LateUpdate() => Log.Add("LateUpdate " + State());
+        }
+
+        // As measured in the original player (UnityProbe startpassdestroy, ARCHITECTURE D67):
+        // objects a Start creates start in the pass after Update when they have no Update, and a
+        // Destroy those Starts make is carried out after LateUpdate; one started by the Update
+        // pass itself is destroyed when the pass ends.
+        [Fact]
+        public void ADestroyFromAStartOfThePassAfterUpdateIsCarriedOutAfterLateUpdate()
+        {
+            Log.Clear();
+            new GameObject("Watcher").AddComponent<Watcher>();
+            new GameObject("Host").AddComponent<Host>();
+            // No fixed steps: a pass of pending Starts follows each.
+            float step = Time.fixedDeltaTime;
+            Time.fixedDeltaTime = 100f;
+            try
+            {
+                Frame();
+                Frame();
+            }
+            finally
+            {
+                Time.fixedDeltaTime = step;
+            }
+            Assert.Equal(["Update A=alive B-other=alive C=alive", "C OnDestroy", "LateUpdate A=alive B-other=alive C=null", "A OnDestroy", "Update A=null B-other=null C=null"],
+                Log.GetRange(0, 5));
+        }
+    }
+
     public class CloneTests : EngineTest
     {
         [System.Serializable]
