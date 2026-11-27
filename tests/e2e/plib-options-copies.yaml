@@ -5,13 +5,15 @@
 # mod's options open through its own copy. Harmony's MonoMod built Ultimate Power Tweaks'
 # replacement, the second, with Advanced Mopping's IEnumerable<IOptionsEntry>.GetEnumerator
 # (ARCHITECTURE D33): Mono's dispatch falls back to the instantiation the list implements, and
-# CoreCLR's threw EntryPointNotFoundException, so its options dialog did not open. Better
-# Farming Effects and Tweaks (2778941969) and Mod Updater (2018291283) bring older copies.
+# CoreCLR's threw EntryPointNotFoundException, so its options dialog did not open. No Manual
+# Delivery (2047308624, PLib 4.22) and Mod Updater (2018291283) bring older copies. (Better
+# Farming Effects and Tweaks, of issue #14, broke in U60: it uses the removed
+# PlantAttributes.YieldAmount.)
 #
 # From a colony to the main menu's Mods screen: each mod's Options opens its dialog, with its
 # title, and Cancel closes it.
 from: early-base
-mods: [3793108683, 3792767193, 2778941969, 2018291283]
+mods: [3793108683, 3792767193, 2047308624, 2018291283]
 steps:
   - key: {code: Escape}
   - ui_wait: {path: "**/PauseScreen/**/Main MenuButton", cond: stable}
@@ -34,11 +36,11 @@ steps:
       "**/ModOptions/Title/Text": {text: "~Advanced Mopping"}
   - click: {text: "CANCEL", under: "**/ModOptions"}
   - ui_wait: {path: "**/ModOptions", cond: gone}
-  - click: {ui: "**/ModsScreen/**/Content/Better Farming Effects and Tweaks/ModSettingsButton"}
+  - click: {ui: "**/ModsScreen/**/Content/No Manual Delivery/ModSettingsButton"}
   - ui_wait: {path: "**/ModOptions", cond: stable}
   - expect_ui:
-      "**/ModOptions/Title/Text": {text: "~Better Farming Effects and Tweaks"}
-      "**/ModOptions/Body/**/Entries/Label/Text": {any_text: "~Farmer's Touch"}
+      "**/ModOptions/Title/Text": {text: "~No Manual Delivery"}
+      "**/ModOptions/Body/**/Entries/Label/Text": {any_text: "~Duplicants can always pick up Food and Medicine"}
   - click: {text: "CANCEL", under: "**/ModOptions"}
   - ui_wait: {path: "**/ModOptions", cond: gone}
   - click: {ui: "**/ModsScreen/**/Content/Mod Updater/ModSettingsButton"}
