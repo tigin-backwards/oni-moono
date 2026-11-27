@@ -117,7 +117,6 @@ namespace OniMoono.Host
             var quitClock = Stopwatch.StartNew();
             EngineLog.Engine(PatchedTiering.Summary());
             QuitStats.Start();
-            GameTweaks.GameTweaks.Quitting();
             PlayerLoop.SendApplicationQuit();
             QuitStats.Mark("OnApplicationQuit");
             // The window answers the system while a save is written (PumpEvents).

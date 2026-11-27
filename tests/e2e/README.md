@@ -216,7 +216,7 @@ tweaks_menu: true                # ours keeps the main menu's Moono Tweaks butto
 game_tweaks: [brain-rate]        # ours runs with these `--game-tweak` values after E2E_GAME_TWEAKS's
 env: {ONI_TWEAK_VERIFY: "1"}     # ours runs with these in its environment (ONI_TWEAK_SETTINGS: "1":
                                  # no --game-tweak at all, the tweaks as a player has them)
-ours_needs: {"OniMoono:moono_fmod_alloc": "FMOD's quarantine allocator"}   # ours is skipped, with
+ours_needs: {"OniMoono:moono_crash_install": "Moono's own executable"}   # ours is skipped, with
                                  # this reason, when the file is not beside our release host
                                  # (FILE:TEXT: or does not hold TEXT)
 scaled_screen: true              # the game may render smaller than the display (below)

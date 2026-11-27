@@ -151,9 +151,8 @@ C only), so a crash in native code can be recorded and shown (§7, "Native crash
 - **GC option.** It sets `System.GC.Server` from `--gc` or the settings file, as `OniMoono.exe`
   does, so the player no longer starts itself again to apply it (`GcMode` still does under the
   SDK's apphost).
-- **Exports.** FMOD's quarantine allocator (`fmod_heap.c`, game tweak fmod-quarantine) and the
-  crash records' functions, in its dynamic symbol table (`exports_linux.list`), which the player
-  finds through `NativeLibrary.GetMainProgramHandle`.
+- **Exports.** The crash records' functions, in its dynamic symbol table (`exports_linux.list`),
+  which the player finds through `NativeLibrary.GetMainProgramHandle`.
 - **Failures.** A failure to start goes to stderr and as a line to the game's `Player.log`
   (test runs, `ONI_HOST_NO_DIALOG=1`: to `ONI_HOST_MESSAGES`' file instead).
 - **Versioned install.** With no `OniMoono.dll` beside it and a `player/` folder, it is the
@@ -161,10 +160,10 @@ C only), so a crash in native code can be recorded and shown (§7, "Native crash
 - **Build.** `build-linux.sh` builds it with gcc or clang, no C++ runtime. Releases and
   `check.sh` build it in the Steam Runtime's sniper SDK container (Docker, the image pinned by
   its digest; glibc 2.31) through `scripts/build-native-host-linux.sh`, which also checks
-  `sdl_min.h` (the crash window's SDL declarations) against SDL's own headers and runs
-  `fmod_heap_test`. The host's build copies `out/native/linux/OniMoono` over the apphost when it
-  is there. `setup.sh` builds it with the machine's `cc`; without one the apphost stays, with a
-  line saying so: that player plays the same but records no native crash.
+  `sdl_min.h` (the crash window's SDL declarations) against SDL's own headers. The host's build
+  copies `out/native/linux/OniMoono` over the apphost when it is there. `setup.sh` builds it
+  with the machine's `cc`; without one the apphost stays, with a line saying so: that player
+  plays the same but records no native crash.
 - **Check.** `scripts/check-linux-host.py` checks the ELF file: x86-64 PIE for
   `/lib64/ld-linux-x86-64.so.2`, newest glibc symbol version at most 2.31 (2.27 now), only libc's
   own libraries needed, no RPATH or RUNPATH, no C++ runtime or libgcc_s, immediate binding, a
@@ -3887,22 +3886,15 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
 ### 3.8 Audio, video, other modules
 
 - Audio: FMOD through the game's own `FMODUnity` + native `libfmodstudio.so`. The engine
-  supplies what FMODUnity needs (paths, Transform, components, Timeline/Playables types). Two
-  game tweaks guard it:
-  - **`fmod-quarantine`** (on by default). On Windows FMOD allocates through OniMoono.exe's
-    `fmod_heap.c`: size-class slabs in reserved address space, with every block's state, size
-    and free list in side tables away from the blocks, and a quarantine for freed blocks. It
-    guards against the write to freed memory FMOD's staff acknowledged
-    (qa.fmod.com/t/hard-crash-in-fmodstudiol/24589), the heap corruption of issues #72, #73,
-    #58 and #78. A late write can change only FMOD's data or a freed block's fill, never
-    bookkeeping that the allocator or Windows trusts. It is native, since FMOD calls it on its
-    own threads. Its `fmod heap:` lines in Player.log report each late write it catches
-    (docs/TWEAKS.md, "The sound memory guard").
+  supplies what FMODUnity needs (paths, Transform, components, Timeline/Playables types). One
+  game tweak guards it:
   - **`fmod-steal-fix`** patches FMOD's own write to a freed instance (a bus steal of an
     instance still loading) in memory, after `RuntimeManager.Initialize`, only for the FMOD
     version, file hash and bytes it was written for (docs/TWEAKS.md, "The FMOD steal fix").
   - `fix-released-sounds`, which cleared the handles of instances the game had released, was
-    retired with U60 764961: the game clears them itself.
+    retired with U60 764961: the game clears them itself. `fmod-quarantine`, FMOD's allocations
+    from a heap in Moono's executable that held freed blocks back and checked them (the heap
+    corruption of issues #72, #73, #58 and #78), left with it.
 - Video: `VideoPlayer` decodes VP8 WebM from `resources.resource` with our own EBML demuxer and
   our own VP8 decoder (`Video/Engine/Vp8`, a port of RFC 6386's reference decoder) on a decode
   thread per player, so no codec library is needed on either platform.

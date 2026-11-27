@@ -62,7 +62,7 @@ namespace OniMoono.Host.GameTweaks
             FastSerialization = "fast-serialization", FastParticleCollision = "fast-particle-collision", CompactNavLinks = "compact-nav-links",
             PagedPathGrids = "paged-path-grids", FetchByCell = "fetch-by-cell", InstantReachability = "instant-reachability", SoundPiles = "fix-sound-piles", TimelapseSnapshots = "fix-timelapse-snapshots", TableScroll = "fix-table-scroll", LazyTableRefresh = "lazy-table-refresh",
             ExactWorldgen = "exact-worldgen", FastPipeRebuilds = "fast-pipe-rebuilds", SharedDuplicates = "shared-duplicates", CompactReports = "compact-report-history", CompactReportEntries = "compact-report-entries",
-            SimStepPace = "sim-step-pace", LowFpsTiming = "low-fps-timing", FmodQuarantine = "fmod-quarantine", FmodStealFix = "fmod-steal-fix",
+            SimStepPace = "sim-step-pace", LowFpsTiming = "low-fps-timing", FmodStealFix = "fmod-steal-fix",
             LoadingAnimation = "loading-animation";
 
         // The gains shown in the screen's tooltips. Measured on Linux under WSL2, where the game's
@@ -154,10 +154,6 @@ namespace OniMoono.Host.GameTweaks
                 "While a save loads, the game shows no new picture, for half a minute on a large colony. "
                 + "Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. "
                 + "Loading takes as long as before."),
-            new(FmodQuarantine, General, "Sound memory guard", "Guards against a bug in the game's sound engine that can crash the game.",
-                "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. "
-                + "This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. "
-                + "Uses about 90 MB more memory on a large colony."),
             new(FmodStealFix, General, "Stolen sound crash guard", "Fixes a bug in the game's sound engine that can crash the game when many sounds play at once.",
                 "When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. "
                 + "This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes."),
@@ -343,7 +339,11 @@ namespace OniMoono.Host.GameTweaks
         /// (every call on a destroyed FMOD instance skipped) gave way to fix-released-sounds,
         /// which cleared the handles where the game kept them, and that one left with U60 764961,
         /// whose AmbienceManager.Layer.Stop and LoopingSoundManager.StopAllSounds clear them.
-        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("fix-disease-overlay-crash", null), ("slow-reachability", InstantReachability), ("fmod-stale-handles", null), ("fix-released-sounds", null)];
+        /// fmod-quarantine (FMOD allocating from a heap of Moono's that held freed blocks back and
+        /// checked them) guarded against the writes in freed memory those stale handles caused,
+        /// which 764961 no longer makes; it caught no real write in 188 logged test runs and cost
+        /// about 90 MB on a large colony.
+        public static readonly (string Old, string? New)[] Retired = [("fix-endless-sounds", null), ("fix-disease-overlay-crash", null), ("slow-reachability", InstantReachability), ("fmod-stale-handles", null), ("fix-released-sounds", null), ("fmod-quarantine", null)];
 
         /// Whether a `--game-tweak` value names a retired tweak, with the value naming its
         /// replacement (with its `-` when the name has one), or null when none took its place.

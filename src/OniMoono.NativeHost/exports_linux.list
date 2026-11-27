@@ -1,16 +1,8 @@
-/* What OniMoono exports to the player (NativeCrashes.cs, FmodQuarantine.cs), found through
+/* What OniMoono exports to the player (NativeCrashes.cs), found through
  * NativeLibrary.GetMainProgramHandle; nothing else of it is in its dynamic symbol table. */
 {
     moono_crash_install;
     moono_crash_describe;
     moono_crash_exiting;
     moono_crash_test;
-    moono_fmod_heap_init;
-    moono_fmod_alloc;
-    moono_fmod_realloc;
-    moono_fmod_free;
-    moono_fmod_heap_stats;
-    moono_fmod_heap_events;
-    moono_fmod_heap_flush;
-    moono_fmod_heap_leave;
 };

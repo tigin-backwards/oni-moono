@@ -22,8 +22,8 @@ namespace OniMoono.Host.GameTweaks
     /// ones it was written for, and on Windows the system's unwind lookup must find the
     /// function's own entry for the helper call's return address; any difference (a game update
     /// shipping another FMOD, a modified file), and nothing is written, with one line saying
-    /// what did not match. fmod-quarantine stays the only guard then. A postfix that runs the
-    /// method as it is: no fingerprint.
+    /// what did not match, and FMOD runs as shipped. A postfix that runs the method as it is: no
+    /// fingerprint.
     ///
     /// On Windows the cave counts each store it skipped (`Skipped`, and the line at quit); on
     /// Linux the patch is a jump alone and counts nothing.

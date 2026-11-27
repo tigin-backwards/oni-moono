@@ -380,21 +380,6 @@ msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.DETAIL"
 msgid "While a save loads, the game shows no new picture, for half a minute on a large colony. Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. Loading takes as long as before."
 msgstr ""
 
-#. Row title (fmod-quarantine)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.TITLE"
-msgid "Sound memory guard"
-msgstr ""
-
-#. The line under the title (fmod-quarantine)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.EFFECT"
-msgid "Guards against a bug in the game's sound engine that can crash the game."
-msgstr ""
-
-#. Tooltip: how it works (fmod-quarantine)
-msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_QUARANTINE.DETAIL"
-msgid "FMOD, the sound engine, can write to memory it has freed, a bug its makers confirmed and the cause of some \"heap corruption\" crashes. This gives FMOD separate memory and delays reuse of what it frees, so a late write harms nothing. Player.log notes each one found. Uses about 90 MB more memory on a large colony."
-msgstr ""
-
 #. Row title (fmod-steal-fix)
 msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.TITLE"
 msgid "Stolen sound crash guard"

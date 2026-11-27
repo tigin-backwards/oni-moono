@@ -4,7 +4,7 @@ from its ELF file alone: an x86-64 position-independent executable for /lib64/ld
 its newest glibc symbol version at most 2.31 (the Steam Runtime's sniper, so it can always say
 why something else fails), no C++ runtime, no RPATH or RUNPATH, only libc's own libraries needed,
 immediate binding and a non-executable stack; and the exports the player looks up
-(NativeCrashes.cs, FmodQuarantine.cs) in its dynamic symbol table, and nothing else exported.
+(NativeCrashes.cs) in its dynamic symbol table, and nothing else exported.
 
     scripts/check-linux-host.py OniMoono
 
@@ -19,14 +19,6 @@ EXPORTS = (
     "moono_crash_describe",
     "moono_crash_exiting",
     "moono_crash_test",
-    "moono_fmod_heap_init",
-    "moono_fmod_alloc",
-    "moono_fmod_realloc",
-    "moono_fmod_free",
-    "moono_fmod_heap_stats",
-    "moono_fmod_heap_events",
-    "moono_fmod_heap_flush",
-    "moono_fmod_heap_leave",
 )
 NEWEST_GLIBC = (2, 31)
 ALLOWED_NEEDED = {"libc.so.6", "libdl.so.2", "libpthread.so.0", "libm.so.6", "ld-linux-x86-64.so.2"}

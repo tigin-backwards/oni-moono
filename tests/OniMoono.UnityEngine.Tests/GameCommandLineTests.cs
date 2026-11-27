@@ -49,10 +49,12 @@ namespace OniMoono.Tests
             // and fix-disease-overlay-crash with 762230, whose CellChangeMonitor drops destroyed
             // objects itself, and fix-released-sounds with 764961, whose ambience layers and
             // StopAllSounds clear released handles themselves (fmod-stale-handles, which gave way
-            // to it, with it): a launch option naming one still starts the player, without it.
+            // to it, with it), and fmod-quarantine, which guarded against those handles' writes
+            // in freed memory: a launch option naming one still starts the player, without it.
             var o = Options.Parse(["--game-tweak", "fix-endless-sounds", "--game-tweak", "-fix-endless-sounds",
                 "--game-tweak", "fix-disease-overlay-crash", "--game-tweak", "fix-released-sounds",
-                "--game-tweak", "-fix-released-sounds", "--game-tweak", "-fmod-stale-handles", "--", Exe])!;
+                "--game-tweak", "-fix-released-sounds", "--game-tweak", "-fmod-stale-handles",
+                "--game-tweak", "fmod-quarantine", "--game-tweak", "-fmod-quarantine", "--", Exe])!;
             Assert.NotNull(o);
             Assert.Empty(o.GameTweaks);
             Assert.Null(Options.Parse(["--game-tweak", "no-such-tweak", "--", Exe]));

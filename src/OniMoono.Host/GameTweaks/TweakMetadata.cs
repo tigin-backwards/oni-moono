@@ -406,7 +406,7 @@ namespace OniMoono.Host.GameTweaks
         public GameFiles(string managed) => this.managed = managed;
 
         /// Where declared members are looked up: the game's Assembly-CSharp and
-        /// Assembly-CSharp-firstpass, its FMOD wrapper (fmod-quarantine's), and the uGUI package
+        /// Assembly-CSharp-firstpass, its FMOD wrapper (fmod-steal-fix's), and the uGUI package
         /// the game was built with (fix-table-scroll patches a layout group's placing, which
         /// Moono's own UnityEngine.UI keeps with the same signature).
         public static readonly string[] Primary = ["Assembly-CSharp", "Assembly-CSharp-firstpass", "FMODUnity", "UnityEngine.UI"];

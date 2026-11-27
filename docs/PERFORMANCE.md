@@ -171,8 +171,7 @@ start-up; none is needed to play):
 - `ONI_PIPE_REBUILD_STATS=1`: `fast-pipe-rebuilds` logs its counts every 200 rebuilds.
   `ONI_VERIFY_PIPE_NETWORK_STATUS=1` turns on its verify mode alone.
 - `ONI_SOUND_PILE_LIMIT=N`: `fix-sound-piles`' copies of a sound a tile a frame (3).
-- `ONI_FMOD_QUARANTINE_MB`, `ONI_MOD_OVERLAPS_IGNORE`, `ONI_TWEAK_TEST_*` and
-  `ONI_TWEAK_DESCRIBE` are described in TWEAKS.md, `scripts/e2e.py` and ARCHITECTURE.md.
+- `ONI_MOD_OVERLAPS_IGNORE`, `ONI_TWEAK_TEST_*` and `ONI_TWEAK_DESCRIBE` are described in TWEAKS.md, `scripts/e2e.py` and ARCHITECTURE.md.
 
 ## Perf spread on CI's runners
 

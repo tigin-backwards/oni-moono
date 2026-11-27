@@ -63,7 +63,6 @@ namespace OniMoono.Host.GameTweaks
                     BackgroundSave.Install(h, fastCompression);
                     SummaryWriter(h);
                 }, true);
-            if (on(FmodQuarantine.Name)) yield return (FmodQuarantine.Name, FmodQuarantine.Install, true);
             if (on(FmodStealFix.Name)) yield return (FmodStealFix.Name, FmodStealFix.Install, true);
             if (on(NoSaveGc.Name)) yield return (NoSaveGc.Name, NoSaveGc.Install, true);
             if (on(PostLoadGc.Name)) yield return (PostLoadGc.Name, PostLoadGc.Install, true);
@@ -178,9 +177,6 @@ namespace OniMoono.Host.GameTweaks
             EngineLog.Engine("fetch stats on");
         }
 
-        /// The quit begins: it cannot be called off any more.
-        public static void Quitting() => FmodQuarantine.Leaving();
-
         /// The quit, before the window goes: saves still being written are finished, with
         /// `whileWaiting` called every 100 ms meanwhile.
         public static void FinishSaves(Action? whileWaiting)
@@ -195,7 +191,6 @@ namespace OniMoono.Host.GameTweaks
         {
             if (backgroundSave) BackgroundSave.WaitAll();
             QuitStats.Mark("saves after unloading");
-            FmodQuarantine.Shutdown();
             FmodStealFix.Shutdown();
         }
     }

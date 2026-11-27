@@ -78,14 +78,14 @@ steps:
         self.assertIsNone(e2e.ours_missing(spec('from: landing\n')))
 
     def test_ours_needs_a_file_holding_text(self):
-        s = spec('from: landing\nours_needs: {"OniMoono:moono_fmod_alloc": "the allocator"}\nsteps:\n  - run: {seconds: 1}\n')
+        s = spec('from: landing\nours_needs: {"OniMoono:moono_crash_install": "the crash records"}\nsteps:\n  - run: {seconds: 1}\n')
         self.assertEqual(e2e.check_spec(s), [])
         with tempfile.TemporaryDirectory() as host:
             with open(os.path.join(host, 'OniMoono'), 'wb') as f:
                 f.write(b'\x7fELF apphost')
-            self.assertTrue(e2e.ours_missing(s, host).startswith('needs OniMoono holding moono_fmod_alloc (the allocator)'))
+            self.assertTrue(e2e.ours_missing(s, host).startswith('needs OniMoono holding moono_crash_install (the crash records)'))
             with open(os.path.join(host, 'OniMoono'), 'wb') as f:
-                f.write(b'\x7fELF moono_fmod_alloc')
+                f.write(b'\x7fELF moono_crash_install')
             self.assertIsNone(e2e.ours_missing(s, host))
 
     def test_setup_call_only_in_setup(self):
