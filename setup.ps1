@@ -61,13 +61,10 @@ function Build-NativeHost($dotnet, $built) {
         Copy-Item (Join-Path $here 'src\OniMoono.NativeHost\fonts\*.ttf') $stage
         Copy-Item (Join-Path $here 'src\OniMoono.Host\Moo.ico') $stage
         foreach ($file in 'nethost.h', 'hostfxr.h', 'libnethost.lib') { Copy-Item (Join-Path $pack $file) $stage }
-        # The commit, as the SDK stamps it into OniMoono.dll.
-        $product = [Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $built 'OniMoono.dll')).ProductVersion
-        $commit = if ($product -match '\+(.+)$') { $Matches[1] } else { 'unknown' }
         Push-Location $stage
         $env:VCVARS64 = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
         # (stderr joined inside cmd: Windows PowerShell stops on a native command's stderr here)
-        $output = & cmd /c "build.cmd $commit 2>&1"
+        $output = & cmd /c "build.cmd 2>&1"
         Pop-Location
         if (-not (Test-Path (Join-Path $stage 'OniMoono.exe'))) { $output | Write-Host; Die 'building OniMoono.exe failed' }
         Copy-Item -Force (Join-Path $stage 'OniMoono.exe') $built

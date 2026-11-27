@@ -35,8 +35,7 @@ cp "$root/src/OniMoono.NativeHost/"{host.c,crash.c,crash.h,crash_common.c,crash_
 # which build.cmd compiles first: a difference fails the build.
 "$root/scripts/com-check.sh" --emit "$stage/com_check.cpp"
 cp "$root/src/OniMoono.NativeHost/com_check.cmd" "$stage/"
-commit="$(git -C "$root" rev-parse HEAD 2>/dev/null || echo unknown)"
 # (MSYS2_ARG_CONV_EXCL: Git Bash passes /c to cmd.exe as it is.)
-(cd "$stage" && MSYS2_ARG_CONV_EXCL='*' cmd.exe /c build.cmd "$commit" 2>&1 | tr -d '\r') || true
+(cd "$stage" && MSYS2_ARG_CONV_EXCL='*' cmd.exe /c build.cmd 2>&1 | tr -d '\r') || true
 [ -f "$stage/OniMoono.exe" ] || { echo "build-native-host: the build failed" >&2; exit 1; }
 cp "$stage/OniMoono.exe" "$dest"

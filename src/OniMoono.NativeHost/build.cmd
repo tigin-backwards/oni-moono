@@ -5,11 +5,8 @@ rem (fonts\*.ttf, copied flat), and from the .NET SDK's
 rem Microsoft.NETCore.App.Host.win-x64 pack nethost.h, hostfxr.h and libnethost.lib
 rem (scripts/build-windows.sh and setup.ps1 copy them there), and com_check.cpp with com_check.cmd
 rem (scripts/build-native-host.sh).
-rem   build.cmd COMMIT
 rem The Visual Studio C++ build tools: %VCVARS64% when set, else the newest install vswhere finds.
 setlocal
-set "commit=%~1"
-if "%commit%"=="" set "commit=unknown"
 if not defined VCVARS64 (
     for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do set "VCVARS64=%%i\VC\Auxiliary\Build\vcvars64.bat"
 )
@@ -21,7 +18,6 @@ call "%VCVARS64%" >nul || exit /b 1
 rem com_check.cpp (scripts/com-check.sh): the COM and DLL declarations against the SDK headers,
 rem when scripts/build-native-host.sh staged it (setup.ps1, building a player from source, does not).
 if exist com_check.cpp ( call com_check.cmd || exit /b 1 )
-echo #define MOONO_PRODUCT_VERSION "1.0.0+%commit%"> version.h
 rem /MT: the static C runtime, so the exe needs no Visual C++ redistributable. /guard:cf, as the
 rem SDK's apphost has (DllCharacteristics GUARD_CF).
 rem /utf-8: the crash window's Chinese strings. /Brepro: no timestamps in the objects and the exe

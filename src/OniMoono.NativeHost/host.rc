@@ -1,9 +1,9 @@
 // OniMoono.exe's resources, as the .NET SDK's apphost had them: the icon as resource 32512
 // (GlfwPlatform.SetClassIcon loads it for the taskbar), the SDK's manifest, and the version
-// information the SDK copied from OniMoono.dll. version.h (build.cmd) has the commit. Then the
+// information the SDK copied from OniMoono.dll, without its commit: the exe stays the same
+// between releases that leave its sources alone (scanners judge a new hash afresh). Then the
 // crash window's manifest and fonts.
 #include <winres.h>
-#include "version.h"
 
 32512 ICON "Moo.ico"
 
@@ -37,7 +37,7 @@ BEGIN
             VALUE "LegalCopyright", " "
             VALUE "OriginalFilename", "OniMoono.dll"
             VALUE "ProductName", "OniMoono"
-            VALUE "ProductVersion", MOONO_PRODUCT_VERSION
+            VALUE "ProductVersion", "1.0.0"
         END
     END
     BLOCK "VarFileInfo"
