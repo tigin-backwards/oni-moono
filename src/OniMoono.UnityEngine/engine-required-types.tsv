@@ -94,3 +94,4 @@ UnityEngine.VideoModule	UnityEngine.Video.VideoPlayer+FrameReadyEventHandler	# a
 UnityEngine.VideoModule	UnityEngine.Video.VideoSource	# the same mods' VideoPlayer settings
 UnityEngine.VideoModule	UnityEngine.Video.VideoRenderMode	# as above
 UnityEngine.VideoModule	UnityEngine.Video.VideoTimeUpdateMode	# as above
+UnityEngine.CoreModule	UnityEngine.AudioType	# mods (Jlib, the PLib fork OniMcp loads beside it): a field of ModAssets.LoadAudio's iterator, without which its types do not load
