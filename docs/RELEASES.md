@@ -51,6 +51,21 @@ it is published, and the workflow checks that none is left. Dry runs do sign pro
 their attestations stay in the repository's attestation list and in the public Sigstore log.
 Keep them few.
 
+### VirusTotal
+
+`release.yml`'s VirusTotal job (`scripts/virustotal.py`) has VirusTotal scan the Windows
+archive's own executables, so their new digests are known (and gain reputation) right away:
+
+- Runs after the digests job, beside attest and draft, dry runs included. It never fails or
+  holds up the release, and skips with a notice when the `VT_API_KEY` secret is empty.
+- Scans every `.exe` and `.dll` under `player/` except the files the `deps.json` files give to the
+  .NET runtime pack or to Microsoft's packages (`Microsoft.*`, `System.*`).
+- Skips files whose digest matches the last published release's Windows manifest.
+- Looks up the rest by SHA-256, uploads the unknown ones and waits for their analyses. Requests
+  are 15 s apart (the free API's 4 a minute), all within 15 minutes.
+- Writes a table to the run's summary: each file's digest (linked to VirusTotal), its malicious
+  and suspicious counts, and the engines that flagged it. Each hit is also a warning.
+
 ### SLSA Build Level 3
 
 - The build runs on GitHub-hosted runners, from a pinned commit, with no caches written by other
