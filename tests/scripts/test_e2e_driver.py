@@ -20,6 +20,7 @@ class FakeGame:
         self.camera = {'pos': [0, 0], 'ortho': 20}
         self.canvases_hidden = False
         self.build_menu = {'settled': True, 'open': False, 'reasons': []}  # buildmenu.settled's check
+        self.on_input = None  # what an input.* request does
         self.lock = threading.Lock()
 
     def add(self, path, rect, hit=None, as_name=None, **fields):
@@ -169,6 +170,10 @@ class FakeGame:
             return {'value': None, 'type': 'System.Void'}
         if cmd == 'ui.action':
             return {'action': args['action']}
+        if cmd in ('input.move', 'input.button'):
+            if self.on_input:
+                self.on_input(cmd, args)
+            return {'queued': True}
         raise Failure(f'unknown command {cmd}')
 
 
@@ -270,6 +275,7 @@ class DriverTests(unittest.TestCase):
 
         class StubPlayer:
             display, xauthority, profile = ':88', None, self.temp.name
+            player_args = []
 
         run.player = StubPlayer()
         return run
@@ -389,6 +395,32 @@ class DriverTests(unittest.TestCase):
         self.assertEqual(run.input.events, [('click', 640, 624, 'left', ())])
         self.assertIn('  closed; pause count 2 -> 1', logs)
         self.assertEqual(self.game.state['SpeedControlScreen.Instance.pauseCount'], 1)
+
+    def test_headless_load_dialog_is_closed_through_synthetic_input(self):
+        # A headless player has no window for the display's input: E2eDriver's input.* press it.
+        self.mod_differences()
+        presses = []
+
+        def on_input(cmd, args):
+            presses.append((cmd, args))
+            if cmd == 'input.button' and not args['down']:
+                self.close_dialog()
+
+        self.game.on_input = on_input
+        run = self.run_for()
+        run.player.player_args = ['--headless']
+        run.log = lambda line: None
+        run.dismiss_load_dialogs()
+        self.assertEqual(run.input.events, [])
+        self.assertEqual(
+            presses,
+            [
+                ('input.move', {'x': 640, 'y': 624}),
+                ('input.button', {'button': 'left', 'down': True}),
+                ('input.button', {'button': 'left', 'down': False}),
+            ],
+        )
+        self.assertIsNone(run.open_load_dialog())
 
     def test_load_dialog_with_its_ok_button_off_screen_is_closed_with_escape(self):
         # U57's 20 mods put the button at y 834 on a 720-pixel screen on U60, in the original as in ours.

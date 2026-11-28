@@ -4555,8 +4555,9 @@ class Run:
     # spec's opens "MOD DIFFERENCES" in both players (in a spec's `language:`, the game's own
     # translation of it). Most fixtures do: a save records the mods it was made with (U57's
     # player had 20, decrew's 7, 2minnow's 15), and one made by e2e.py records OniMcp and
-    # E2eDriver, so a spec with a test mod or Workshop mods differs too. Its OK button is pressed
-    # like a player would, or Escape when the button is off screen.
+    # E2eDriver but not Jlib, which OniMcp loads beside it since its 2026-11-27 pin, so every
+    # spec with a fixture differs. Its OK button is pressed like a player would, or Escape
+    # when the button is off screen; in a headless player, through E2eDriver's synthetic input.
     LOAD_DIALOGS = ('MOD DIFFERENCES', '模组差异', '모드 차이', 'РАЗЛИЧИЯ МОДОВ')
 
     def open_load_dialog(self):
@@ -4613,7 +4614,17 @@ class Run:
                 self.frames(10)
                 continue
             paused = self.pause_count()
-            if ok[top].onscreen is False:
+            if self.player and '--headless' in self.player.player_args:
+                # A headless player has no window for the display's input: the press goes in
+                # through E2eDriver's synthetic input, at the button as the event system sees it.
+                self.log(f'  pressing its OK button through synthetic input, headless (rect {ok[top].rect})')
+                x, y = ok[top].center
+                self.driver.request('input.move', x=x, y=y)
+                self.frames(2)
+                self.driver.request('input.button', button='left', down=True)
+                self.frames(2)
+                self.driver.request('input.button', button='left', down=False)
+            elif ok[top].onscreen is False:
                 # A long list (U57's 20 mods on U60) pushes the OK button below a 720-pixel
                 # screen, in the original as in ours (the game's ConfirmDialog grows with its
                 # text and does not scroll): a player presses
