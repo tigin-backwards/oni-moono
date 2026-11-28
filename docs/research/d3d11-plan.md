@@ -2439,8 +2439,9 @@ no mod can select them, as M3 part C found for the game).
   Festival's NullReferenceException at the main menu is from the U59 sweep (`s2000`, Linux, a batch
   of 22 mods), and on U60 Windows it loads alone; Portal Network's "animations fail to load" is a
   hand note of the U59 sweep era, and on U60 Windows its cube animates (the boom state that plays
-  the fire completes). So on Windows the three load and draw in the original; the table, which
-  records Linux sweeps, is left as it is.
+  the fire completes). So on Windows the three load and draw in the original. Since the
+  particle work, MOD_COMPATIBILITY lists the three as played on U60 Windows by these specs
+  (`scripts/modtable.py`'s hand-written `played` set) in place of the Linux sweeps' notes.
 - So item 1 stands as an engine gap: the particle renderer draws no mesh-mode particles and does
   not honour custom vertex streams, and its billboard Cartoon FX systems draw nothing either. Not
   started: the user decides.

@@ -193,6 +193,12 @@ played = {
     '2958243747': "issue #2's set",
     '2977728791': "issue #2's set",
     '3381262702': "issue #2's set",
+    # Played on U60 Windows on Direct3D 11 by their particle specs (tests/e2e/particles-*.yaml,
+    # compared with the original's shots): their Linux sweep failures do not happen there
+    # (docs/research/d3d11-plan.md, "Why the sweep's notes differ").
+    '2968184715': 'on U60 Windows: spec tests/e2e/particles-portal-network.yaml: a Temperature Cube beside a charged battery heats the gas and plays its Cartoon FX fire thrower, drawn as in the original; the effects ship for Windows only',
+    '3790434066': 'on U60 Windows: spec tests/e2e/particles-portal-network-plus.yaml: its Temperature Cube plays the fire thrower, drawn as in the original; on Linux it asks for assets/linux/temperatureeffects, which it does not ship, and fails to load in the original too',
+    '3152316922': 'on U60 Windows: spec tests/e2e/particles-spring-festival.yaml: a Falling Leaves Pack plays its falling petals (mesh particles), drawn as in the original',
     # Played by their specs (tests/e2e/mods, scripts/e2e.py): passed once in the original and
     # twice in ours, with no new log signature and screens matching the original's.
     '1717463209': 'spec tests/e2e/mods/1717463209-bigger-camera-zoom-out.yaml: the mouse wheel zooms out past the game\'s 20, to 200; world shots at three zoom levels within 3.1 % of the original',
@@ -234,7 +240,6 @@ broken = {
     '1871382174': 'broken upstream: Harmony patch targets now have overloads',
     '1758223146': 'broken upstream: a Harmony patch whose target is gone',
     '2271373459': 'broken upstream: `OverlayModes.Mode.CreateDefaultFilters` returns another type now',
-    '2968184715': 'broken upstream: its animations fail to load',
     '2542160819': 'broken upstream: calls `SimMessages.SetCellProperties(int, byte)`, which is gone',
     '3231839363': 'broken upstream: calls `SimMessages.SetCellProperties(int, byte)`, which is gone',
     '2119648603': "broken upstream: uses TextMeshPro's `FaceInfo`, which the game's TextMeshPro lacks",
