@@ -89,7 +89,9 @@ is in the surface report's `MOD STRINGS` section and its JSON's `modReflection`.
 
 ## Mod-referenced gaps
 
-Count is the mods referencing the member from a loadable DLL (the game itself uses none). After
+Count is the mods referencing the member from a loadable DLL (the game itself uses none). For the
+particle renderer and custom data rows dated 2026-11-27, it is the mods whose asset bundles use
+the feature (the corpus's bundles read with UnityPy; no DLL references them). After
 this work 42 of the 62 references (10 types) remain, from 13 of the 24 mods. These reference
 none: Mod Manager, bottle emptier extend, telescope auto research, generic fabricator, starship,
 Support Package+, UpgradeConduits, Lightning fast Menus, Futur's Timelapser, Clean Memory &
@@ -116,6 +118,14 @@ Performance Capture and God Tools.
 | `AudioSource` playback, `AudioClip.Create` | 1 | Alert Voice | open: Unity's own audio output does not exist here (the game plays through FMOD) |
 | `Rigidbody2D.AddForce`, `AddTorque`, `angularVelocity` | 2 | Extra Twitch Events, Chaos Events for Twitch Integration (#1817) | open: no 2D physics simulation |
 | `TrailRenderer`, `ParticleSystem.Particle` triggers | 1 | Extra Twitch Events | open: no trail rendering, no particle collision |
+| `ParticleSystemRenderer` custom vertex streams (set in a bundle) | 8 | The Capsules 2.0 (#81), Decor Pack I (#137), Portal Network (#220), Bio-Inks (#258), Spring Festival Pack (#1468), Extra Twitch Events (#1812), WannaPrint: Bio-Inks (#2137), Portal Network+ (#2367) | fixed (2026-11-27): streams pack in order into TEXCOORD0.xyzw, TEXCOORD1.xyzw, …, as `BakeMesh` gives them in the original (UnityProbe `particlestreams`); varying random, noise, rotation and vertex id streams read 0 |
+| `ParticleSystem.customData` (the custom data module, set in a bundle) | 4 | The Capsules 2.0, Portal Network, Spring Festival Pack, Portal Network+ | fixed (2026-11-27): Custom1 and Custom2 are the module's curves or gradient at the particle's normalized age |
+| `ParticleSystemRenderer.flip` | 3 | The Capsules 2.0, Portal Network, Portal Network+ | fixed (2026-11-27): that proportion of the particles mirrors its texture coordinates, or its mesh's x |
+| `ParticleSystemRenderer` mesh particles (`renderMode` Mesh, `mesh`) | 4 | The Capsules 2.0, Portal Network, Spring Festival Pack, Portal Network+ | fixed (2026-11-27): the mesh scaled, pivoted and turned per particle, View, Local and World alignment |
+| `ParticleSystem.SetCustomParticleData` | 0 | none | open: custom data comes from the module only |
+| Mesh particles aligned to Facing or Velocity | 1 | The Capsules 2.0 (Velocity) | open: drawn world-aligned |
+| Mesh particles flipped on y or z | 0 | none | open: not drawn (logged) |
+| Billboard normals with a pivot z | 1 | The Capsules 2.0 | open: not measured in the original |
 
 Smaller differences the probe showed and that were left:
 
