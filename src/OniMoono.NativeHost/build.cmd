@@ -22,7 +22,7 @@ rem /MT: the static C runtime, so the exe needs no Visual C++ redistributable. /
 rem SDK's apphost has (DllCharacteristics GUARD_CF).
 rem /utf-8: the crash window's Chinese strings. /Brepro: no timestamps in the objects and the exe
 rem (its PE timestamp is a hash of its contents), so a build of the same sources is the same.
-cl /nologo /Brepro /O2 /W4 /WX /MT /GS /guard:cf /utf-8 /DUNICODE /D_UNICODE /c host.c crash.c crash_common.c crash_window.c crash_dialog.cpp || exit /b 1
+cl /nologo /Brepro /O2 /W4 /WX /MT /GS /GR- /guard:cf /utf-8 /DUNICODE /D_UNICODE /c host.c crash.c crash_common.c crash_window.c crash_dialog.cpp || exit /b 1
 rem The DXBC reader's token-format values against DirectX-Headers and the SDK (dxbc_check.cpp,
 rem scripts/gen-dxbc-check.py): compiled, never linked; a difference fails the build.
 cl /nologo /W4 /WX /EHsc /c /Fodxbc_check.obj dxbc_check.cpp || exit /b 1
