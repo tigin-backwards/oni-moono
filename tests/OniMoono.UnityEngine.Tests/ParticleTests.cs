@@ -246,6 +246,95 @@ namespace OniMoono.Tests
             Assert.True(ps.isPlaying);
         }
 
+        /// Play on a playing system, stopping or still emitting, starts its loop over: time 0 and
+        /// the start delay again, its live particles kept. Measured with UnityProbe particleplay
+        /// (j0010510: loop 1 s, delay 0.5 s, 10/s, lifetime 5 s; played 1.2 s, stopped 0.3 s,
+        /// played again): 7 particles at the Stop, time 0 and still 7 for 0.5 s after the Play,
+        /// 12 a second after it, and the same pause after a Play while emitting. Portal
+        /// Network's fire thrower replays its smoke so at each boom.
+        [Theory]
+        [InlineData(0.5f)]
+        [InlineData(0f)]
+        public void PlayOnAPlayingSystemStartsItsLoopOver(float delay)
+        {
+            var ps = Make(c =>
+            {
+                c.Duration = 1f;
+                c.StartDelay = MinMaxCurveData.Const(delay);
+            });
+            Frames(72);
+            int atStop = ps.particleCount;
+            Assert.InRange(atStop, delay > 0f ? 6 : 11, delay > 0f ? 8 : 13);
+            ps.Stop();
+            Frames(18);
+            Assert.False(ps.isEmitting);
+            Assert.Equal(atStop, ps.particleCount);
+
+            ps.Play();
+            Assert.Equal(0f, ps.time);
+            Assert.True(ps.isPlaying);
+            Assert.True(ps.isEmitting);
+            Frames(27);
+            if (delay > 0f)
+            {
+                Assert.Equal(0f, ps.time);
+                Assert.Equal(atStop, ps.particleCount);
+            }
+            else Assert.InRange(ps.time, 0.44f, 0.46f);
+            Frames(33);
+            Assert.InRange(ps.particleCount, atStop + (delay > 0f ? 4 : 9), atStop + (delay > 0f ? 6 : 11));
+
+            // While emitting too.
+            int before = ps.particleCount;
+            ps.Play();
+            Assert.Equal(0f, ps.time);
+            Frames(18);
+            if (delay > 0f) Assert.Equal(before, ps.particleCount);
+            else Assert.InRange(ps.particleCount, before + 2, before + 4);
+        }
+
+        /// A non-looping system restarts the same way: Play while emitting, after Stop with
+        /// particles alive, or after its duration ended with particles alive sets time 0 and
+        /// waits out the start delay again, its particles kept (j0010533: delay 0.5 s, 10/s,
+        /// lifetime 5 s; duration 2 s for the first two, 1 s for the third, which reads time 1
+        /// and not emitting before the Play).
+        [Theory]
+        [InlineData("emitting")]
+        [InlineData("stopped")]
+        [InlineData("ended")]
+        public void PlayRestartsANonLoopingSystem(string state)
+        {
+            var ps = Make(c =>
+            {
+                c.Looping = false;
+                c.Duration = state == "ended" ? 1f : 2f;
+                c.StartDelay = MinMaxCurveData.Const(0.5f);
+            });
+            Frames(state == "ended" ? 108 : 60);
+            if (state == "stopped")
+            {
+                ps.Stop();
+                Frames(18);
+            }
+            if (state == "ended")
+            {
+                Assert.Equal(1f, ps.time);
+                Assert.False(ps.isEmitting);
+            }
+            Assert.True(ps.isPlaying);
+            int before = ps.particleCount;
+            Assert.True(before > 0);
+
+            ps.Play();
+            Assert.Equal(0f, ps.time);
+            Assert.True(ps.isEmitting);
+            Frames(27);
+            Assert.Equal(0f, ps.time);
+            Assert.Equal(before, ps.particleCount);
+            Frames(15);
+            Assert.InRange(ps.particleCount, before + 1, before + 3);
+        }
+
         [Fact]
         public void WithChildrenReachesChildSystems()
         {

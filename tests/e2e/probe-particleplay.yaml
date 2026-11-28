@@ -1,0 +1,8 @@
+# UnityProbe's Play-after-Stop probe (tools/UnityProbe/ParticlePlay.cs): what Play does to a
+# looping system that Stop left with live particles (its time, start delay and emission). Run
+# with E2E_ONIMCP at a copy of OniMcp's mod folder with SemanticsProbe.dll added and
+# PROBE_SCENARIO=particleplay in the original's environment (tools/UnityProbe/README.md,
+# "particleplay").
+from: main-menu
+steps:
+  - ui_wait: {path: "**/ParticlePlayProbeDone", cond: exists, frames: 20000}

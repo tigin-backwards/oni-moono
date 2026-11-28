@@ -477,6 +477,11 @@ namespace SemanticsProbe
                 go.AddComponent<ParticleStreams>();
                 return;
             }
+            if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "particleplay")
+            {
+                go.AddComponent<ParticlePlay>();
+                return;
+            }
             if (System.Environment.GetEnvironmentVariable("PROBE_SCENARIO") == "haschanged")
             {
                 go.AddComponent<HasChanged>();

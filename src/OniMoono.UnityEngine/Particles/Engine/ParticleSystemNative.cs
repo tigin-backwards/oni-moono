@@ -118,7 +118,10 @@ namespace OniMoono.Engine.Particles
 
         // ---- Control ----
 
-        /// Starts a stopped system, resumes a paused one, or resumes emission of a stopping one.
+        /// Starts a stopped system or resumes a paused one. A playing system, looping or not,
+        /// emitting, stopping or past its duration, starts over: time 0, the start delay again,
+        /// its live particles kept (measured: UnityProbe particleplay; Portal Network's fire
+        /// thrower replays its smoke so at each boom).
         public void Play()
         {
             if (Paused)
@@ -128,11 +131,10 @@ namespace OniMoono.Engine.Particles
             }
             if (Playing)
             {
-                if (StopEmitting)
-                {
-                    StopEmitting = false;
-                    if (!Config.Looping && Time >= Config.Duration) RestartLoop();
-                }
+                StopEmitting = false;
+                StopActionPending = false;
+                RestartLoop();
+                DelayRemaining = Math.Max(0f, Config.StartDelay.Evaluate(0f, random.NextFloat()));
                 return;
             }
             Start();

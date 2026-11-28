@@ -591,6 +591,14 @@ AnimBlend and AnimFrame, and mesh particles under each alignment, rotation, 3D s
 flip. It runs through `scripts/e2e.py` with OniMcp's mod folder as above and
 `tests/e2e/probe-particlestreams.yaml`. `ParticleGeometryTests` encodes the results.
 
+With `PROBE_SCENARIO=particleplay` only the Play-after-Stop probe runs (`ParticlePlay.cs`, lines
+`PP …`, 10 s into the main menu, about 6 seconds): two looping systems (start delay 0.5 s and 0)
+play, stop with particles alive and play again, then play once more while emitting; three
+non-looping ones play again while emitting, after Stop, and after their duration ended; it logs
+time, isPlaying, isEmitting and particleCount every frame. It runs with
+`tests/e2e/probe-particleplay.yaml`. `ParticleTests.PlayOnAPlayingSystemStartsItsLoopOver` and
+`PlayRestartsANonLoopingSystem` encode the results.
+
 With `PROBE_SCENARIO=destroyflags` only the destroy-flags probe runs (`DestroyFlags.cs`, lines
 `DF …`, at the main menu): the active flags each component sees in its OnDisable and OnDestroy
 when a GameObject is destroyed (with Destroy and DestroyImmediate; active, inactive, under an

@@ -3940,6 +3940,10 @@ TMP runs as shipped. The engine provides what it needs: `Font`, `TextCore` data 
   clamp velocity, rotation, collision, lights, sub emitters, other shapes and texture-sheet or
   trail variants…) are not simulated. The system loads without each and logs it once
   (`[engine] particles: … is not simulated`).
+  Play on a playing system, looping or not, emitting, stopping or past its duration, starts it
+  over: time 0 and the start delay again, its live particles kept (`particleplay`, j0010510,
+  j0010533; Portal Network's fire thrower replays its smoke so at each boom, and without the
+  delay its smoke rose dark above the fire).
 - `ParticleSystemRenderer`: billboards, stretched particles and mesh particles, with the custom
   vertex streams, the custom data module and flipping that Cartoon FX effects use (Portal
   Network, PortalNetwork+ and Spring Festival Pack), as `BakeMesh` gives them in the original
