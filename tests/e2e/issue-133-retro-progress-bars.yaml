@@ -1,0 +1,20 @@
+# Issue #133: ONI: Retro Edition (3655492674) 1.1.0 postfixes ProgressBarsConfig.Initialize and
+# restyles the config's three bar prefabs, which are assets loaded from Resources: it
+# instantiates each prefab's RawImage (a scene object) and parents the copy back under the
+# prefab, beside the RawImage it came from. Ours refused that SetParent with Unity's "resides in
+# a Prefab Asset" error, which a crash-reporting mod turned into a crash while a new world
+# spawned its Duplicants.
+#
+# The config is first read when the first Health registers with NameDisplayScreen, so loading
+# the colony reaches the same code as generating a world. The prefabs' child counts are the
+# original's, and ours logs no signature the original does not.
+from: early-base
+mods: [3655492674]
+options:
+  "3655492674": {IronOreTexture: 1, TileTopsMerge: true, manualSlimemachine: true, gassensorpower: true, GammaRayOvenRadbolts: true, liquidsensorpower: true, endlessRotting: true, oldPipeIcons: true, oldDupeSuits: true}
+steps:
+  - run: {seconds: 2}
+  - expect_state:
+      "ProgressBarsConfig.Instance.progressBarPrefab.transform.childCount": "== original"
+      "ProgressBarsConfig.Instance.progressBarUIPrefab.transform.childCount": "== original"
+      "ProgressBarsConfig.Instance.healthBarPrefab.transform.childCount": "== original"

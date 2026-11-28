@@ -67,7 +67,12 @@ namespace OniMoono.Engine
                 Debug.LogError("Cannot set the parent of the GameObject '" + go.Name + "' to itself or one of its children.", go.Managed);
                 return;
             }
-            if (newParent is not null && newParent.GameObject.IsPersistent != go.IsPersistent)
+            // Only an asset's own transform is refused a scene parent. A scene object parented
+            // under an asset's transform moves there without a message: ONI: Retro Edition
+            // instantiates a RawImage of each ProgressBarsConfig bar prefab and parents the copy
+            // back under the prefab, and the original logs nothing and holds the copy among the
+            // prefab's children (spec tests/e2e/issue-133-retro-progress-bars.yaml, #133).
+            if (newParent is not null && go.IsPersistent && !newParent.GameObject.IsPersistent)
             {
                 Debug.LogError("Setting the parent of a transform which resides in a Prefab Asset is disabled to prevent data corruption (GameObject: '" + go.Name + "').", go.Managed);
                 return;

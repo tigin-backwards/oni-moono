@@ -1,0 +1,55 @@
+{
+ "spec": "issue-133-retro-progress-bars.yaml",
+ "mods": [
+  "3655492674"
+ ],
+ "verdict": "played",
+ "why": "passed once in the original and twice in ours",
+ "findings": [],
+ "note": "loads a colony with Retro Edition 1.1.0; the restyled bar prefabs hold the original's children, no new log signature",
+ "updated": "2026-11-27",
+ "commit": "afe33b1fb",
+ "mod_dlls": {
+  "3655492674": {
+   "OniRetroEdition.dll": "3dbcbbaaed47660b083a116c44bc3bd6d8445c3a18afcbec45792e46cb4ca397"
+  }
+ },
+ "runs": {
+  "original": [
+   {
+    "run": "20261127-223927-ba7554f4",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-27T22:39:27",
+    "lane": 1,
+    "signatures": 0
+   }
+  ],
+  "ours": [
+   {
+    "run": "20261127-225947-4a8a2e7d",
+    "index": 1,
+    "verdict": "pass",
+    "date": "2026-11-27T22:59:47",
+    "lane": 1,
+    "reference_run": "20261127-223927-ba7554f4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   },
+   {
+    "run": "20261127-225947-4a8a2e7d",
+    "index": 2,
+    "verdict": "pass",
+    "date": "2026-11-27T23:00:19",
+    "lane": 1,
+    "reference_run": "20261127-223927-ba7554f4",
+    "new_signatures": 0,
+    "findings": [],
+    "ui_dump": {},
+    "shots": {}
+   }
+  ]
+ }
+}
