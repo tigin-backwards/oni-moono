@@ -4625,8 +4625,8 @@ Linux lays the page out the same way.
 Where the details come from: the game gives the watcher what only it knows through
 `moono_crash_describe` (`NativeCrashes.Describe`): its release, its window (the crash window opens
 centred on that monitor), the GPU's renderer string, and from the main menu the game's build, its
-language (English, or Simplified Chinese for `zh`; before the main menu, Windows' display language or
-the Linux locale) and the mods' count. The watcher adds Windows'
+language (English, or Simplified Chinese, Korean or Russian for a code starting `zh`, `ko` or `ru`;
+before the main menu, Windows' display language or the Linux locale) and the mods' count. The watcher adds Windows'
 version, the driver version (DXGI) and the memory itself; on Linux the distribution (the host's
 `os-release`, inside Steam's container too) and the kernel, NVIDIA's driver version from its
 kernel module, and the memory.
@@ -4688,7 +4688,10 @@ fonts, strings and measures):
 - **Drawing.** Into memory, with no GPU: a small coverage-accumulating rasterizer of ours for
   the shapes (antialiased as Direct2D's are) and SDL3_ttf's text (FreeType and HarfBuzz,
   unhinted as DirectWrite's natural rendering is) in the embedded Gabarito and Red Hat Mono, with
-  fontconfig's Chinese and symbol fonts after them (no Chinese font: the English strings). The
+  fontconfig's fonts for what they lack after them: CJK (looked up for the window's language,
+Chinese or Korean, `lang=zh-cn` or `lang=ko`), Cyrillic (`lang=ru`; Gabarito has Latin only) and
+symbols. Without a font for the language's text, the English strings. On Windows DirectWrite's
+fallback finds them by the text's locale. The
   image is copied to an SDL 3 window surface (`SDL_FRAMEBUFFER_ACCELERATION=0`: X11's XShm; on
   Wayland through XWayland, else Mesa's software OpenGL). SDL 3 and SDL3_ttf load from beside the
   player only here; `sdl_min.h` declares what of them it uses.

@@ -15,12 +15,17 @@
 extern "C" {
 #endif
 
-enum { CW_ENGLISH, CW_CHINESE };
+/* The window's languages: English and the game's own others (Localization.PreinstalledLanguages). */
+enum { CW_ENGLISH, CW_CHINESE, CW_KOREAN, CW_RUSSIAN, CW_LANGUAGES };
+
+/* The language for a language code: the game's ("zh", "ko_klei", ...) or a locale's ("ru_RU.UTF-8"),
+ * by its first two letters; English for any other. */
+int cw_language_of(const char *code);
 
 /* What the watcher knows of a crash, for the window. */
 typedef struct
 {
-    int language;                /* CW_ENGLISH or CW_CHINESE: the game's language */
+    int language;                /* CW_ENGLISH, ...: the game's language */
     char error[1024];            /* the error line, from the record; empty: exit_code alone */
     uint32_t exit_code;
     char version[64];            /* OniMoono's release (or commit), as the game gave it */
@@ -48,8 +53,9 @@ enum
     S_COUNT
 };
 
-/* Every string the window shows, in English and Simplified Chinese (the game's language). */
-extern const char *const cw_strings[2][S_COUNT];
+/* Every string the window shows, in each language (the game's): English, Simplified Chinese,
+ * Korean and Russian. */
+extern const char *const cw_strings[CW_LANGUAGES][S_COUNT];
 extern const char *const cw_title;
 extern const char *const cw_issue_base;
 /* The README's "Unsigned releases" section, which the blocked window's button opens. */
@@ -252,7 +258,7 @@ typedef struct
 } cw_render_options;
 
 /* `--crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--sample gpu|managed|fastfail|blocked]
- * [--language en|zh] [--text-size 1-2.25] [--details-open] [--reported] [--zip OUT.zip --log FILE
+ * [--language en|zh|ko|ru] [--text-size 1-2.25] [--details-open] [--reported] [--zip OUT.zip --log FILE
  * [--dump FILE]] [--url OUT.txt --note TEXT]` (UTF-8 arguments): the options and the sample
  * report (paths as `windows`' or Linux's), 0 when they are wrong. */
 int cw_render_args(int argc, char **argv, int windows, cw_render_options *o, cw_report *r);

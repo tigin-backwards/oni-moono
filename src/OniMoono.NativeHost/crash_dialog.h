@@ -7,21 +7,30 @@
 extern "C" {
 #endif
 
-enum { CRASH_ENGLISH, CRASH_CHINESE };
+/* crash_window.h's CW_ENGLISH, ... in the same order. */
+enum { CRASH_ENGLISH, CRASH_CHINESE, CRASH_KOREAN, CRASH_RUSSIAN };
 
-/* The window's language from the game's language code ("zh", "en", ...), or, before the game
- * gave one (a crash or a blocked file before its main menu, #135), from Windows' display
+/* The window's language from the game's language code ("zh", "ko", "ru", "en", ...), or, before
+ * the game gave one (a crash or a blocked file before its main menu, #135), from Windows' display
  * language. */
 static inline int crash_language(const wchar_t *code)
 {
-    if (code && code[0]) return _wcsnicmp(code, L"zh", 2) == 0 ? CRASH_CHINESE : CRASH_ENGLISH;
-    return PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_CHINESE ? CRASH_CHINESE : CRASH_ENGLISH;
+    if (code && code[0])
+        return _wcsnicmp(code, L"zh", 2) == 0 ? CRASH_CHINESE : _wcsnicmp(code, L"ko", 2) == 0 ? CRASH_KOREAN
+             : _wcsnicmp(code, L"ru", 2) == 0 ? CRASH_RUSSIAN : CRASH_ENGLISH;
+    switch (PRIMARYLANGID(GetUserDefaultUILanguage()))
+    {
+    case LANG_CHINESE: return CRASH_CHINESE;
+    case LANG_KOREAN: return CRASH_KOREAN;
+    case LANG_RUSSIAN: return CRASH_RUSSIAN;
+    default: return CRASH_ENGLISH;
+    }
 }
 
 /* What the watcher knows of a crash, for the window. */
 typedef struct
 {
-    int language;                /* CRASH_ENGLISH or CRASH_CHINESE: the game's language */
+    int language;                /* CRASH_ENGLISH, ...: the game's language */
     wchar_t error[1024];         /* the error line, from the record; empty: exit_code alone */
     DWORD exit_code;
     wchar_t version[64];         /* OniMoono's release (or commit), as the game gave it */

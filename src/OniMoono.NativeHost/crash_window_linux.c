@@ -125,8 +125,10 @@ static void font_metrics(const unsigned char *data, size_t size, float *ascent, 
 static MS_Font *fonts[CW_F_COUNT];
 static float font_ascent[CW_F_COUNT], font_descent[CW_F_COUNT];
 static float sans_ascent, sans_descent, mono_ascent, mono_descent;
-/* Fonts for what ours lack, from fontconfig: Simplified Chinese, then symbols (the check mark). */
-enum { FALLBACK_CJK, FALLBACK_SYMBOLS, FALLBACK_COUNT };
+/* Fonts for what ours lack, from fontconfig: CJK (the window's language's: Simplified Chinese,
+ * Korean or Japanese glyph forms), Cyrillic (Gabarito has Latin only), then symbols (the check
+ * mark). */
+enum { FALLBACK_CJK, FALLBACK_CYRILLIC, FALLBACK_SYMBOLS, FALLBACK_COUNT };
 static char fallback_path[FALLBACK_COUNT][PATH_MAX];
 static MS_Font *fallbacks[CW_F_COUNT][FALLBACK_COUNT];
 
@@ -170,10 +172,27 @@ static int find_font(const char *pattern_text, uint32_t a, uint32_t b, char *out
     return ok;
 }
 
+/* Whether the window's language has a font for its text. */
 static int find_fallbacks(void)
 {
+    int language = cw.report.language;
     find_font("sans-serif:charset=2713", 0x2713, 0x00B7, fallback_path[FALLBACK_SYMBOLS], PATH_MAX);
-    return find_font("sans-serif:lang=zh-cn", 0x6E38, 0x620F, fallback_path[FALLBACK_CJK], PATH_MAX);   /* 游戏 */
+    int cyrillic = find_font("sans-serif:lang=ru", 0x0418, 0x0436, fallback_path[FALLBACK_CYRILLIC], PATH_MAX);   /* Иж */
+    int cjk = language == CW_KOREAN ? find_font("sans-serif:lang=ko", 0xAC8C, 0xC784, fallback_path[FALLBACK_CJK], PATH_MAX)   /* 게임 */
+            : find_font("sans-serif:lang=zh-cn", 0x6E38, 0x620F, fallback_path[FALLBACK_CJK], PATH_MAX);   /* 游戏 */
+    return language == CW_RUSSIAN ? cyrillic : language == CW_CHINESE || language == CW_KOREAN ? cjk : 1;
+}
+
+/* The text's language for shaping (the CJK fonts' glyph forms). */
+static const char *font_language(void)
+{
+    switch (cw.report.language)
+    {
+    case CW_CHINESE: return "zh-hans";
+    case CW_KOREAN: return "ko";
+    case CW_RUSSIAN: return "ru";
+    default: return NULL;
+    }
 }
 
 static void close_fonts(void)
@@ -206,16 +225,20 @@ static int open_fonts(void)
         font_metrics(data, size, &a, &d);
         font_ascent[i] = a;
         font_descent[i] = d;
-        for (int k = 0; k < FALLBACK_COUNT; k++)
+        /* Russian takes its Cyrillic from the Cyrillic font first, not from a CJK font's. */
+        static const int usual[FALLBACK_COUNT] = { FALLBACK_CJK, FALLBACK_CYRILLIC, FALLBACK_SYMBOLS };
+        static const int russian[FALLBACK_COUNT] = { FALLBACK_CYRILLIC, FALLBACK_CJK, FALLBACK_SYMBOLS };
+        for (int n = 0; n < FALLBACK_COUNT; n++)
         {
+            int k = (cw.report.language == CW_RUSSIAN ? russian : usual)[n];
             if (!fallback_path[k][0]) continue;
             fallbacks[i][k] = TTF_OpenFont(fallback_path[k], f.size);
             if (!fallbacks[i][k]) continue;
             TTF_SetFontHinting(fallbacks[i][k], MS_TTF_HINTING_NONE);
-            if (f.weight == CW_SEMIBOLD && k == FALLBACK_CJK) TTF_SetFontStyle(fallbacks[i][k], MS_TTF_STYLE_BOLD);
+            if (f.weight == CW_SEMIBOLD && k != FALLBACK_SYMBOLS) TTF_SetFontStyle(fallbacks[i][k], MS_TTF_STYLE_BOLD);
             TTF_AddFallbackFont(fonts[i], fallbacks[i][k]);
         }
-        if (cw.report.language == CW_CHINESE) TTF_SetFontLanguage(fonts[i], "zh-hans");
+        if (font_language()) TTF_SetFontLanguage(fonts[i], font_language());
     }
     font_metrics(moono_font_regular, (size_t)moono_font_regular_size, &sans_ascent, &sans_descent);
     font_metrics(moono_font_mono, (size_t)moono_font_mono_size, &mono_ascent, &mono_descent);
@@ -267,7 +290,8 @@ static uint32_t utf8_at(const char *s, int at)
     return (uint32_t)(p[0] & 0x07) << 18 | (uint32_t)(p[1] & 0x3F) << 12 | (uint32_t)(p[2] & 0x3F) << 6 | (p[3] & 0x3F);
 }
 
-static int is_cjk(uint32_t c) { return (c >= 0x2E80 && c <= 0x9FFF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) || (c >= 0x20000 && c <= 0x3FFFF); }
+/* CJK, kana and Hangul: DirectWrite breaks a line between any two of these. */
+static int is_cjk(uint32_t c) { return (c >= 0x1100 && c <= 0x11FF) || (c >= 0x2E80 && c <= 0x9FFF) || (c >= 0xA960 && c <= 0xA97F) || (c >= 0xAC00 && c <= 0xD7FF) || (c >= 0xF900 && c <= 0xFAFF) || (c >= 0xFF00 && c <= 0xFFEF) || (c >= 0x20000 && c <= 0x3FFFF); }
 
 /* Closing punctuation, which no line starts with; opening, which none ends with. */
 static int is_closing(uint32_t c) { return c == 0xFF0C || c == 0x3002 || c == 0x3001 || c == 0xFF1B || c == 0xFF1A || c == 0xFF1F || c == 0xFF01 || c == 0xFF09 || c == 0x300D || c == 0x300F || c == 0x3011 || c == 0x3009 || c == 0x300B || c == ')' || c == ',' || c == '.'; }
@@ -1012,9 +1036,9 @@ static int save_png(const char *path)
 static int start_text(void)
 {
     if (!load_sdl() || !TTF_Init()) return 0;
-    if (!find_fallbacks() && cw.report.language == CW_CHINESE)
+    if (!find_fallbacks())
     {
-        /* No font for Chinese: the English strings rather than boxes. */
+        /* No font for the language's text: the English strings rather than boxes. */
         cw.report.language = CW_ENGLISH;
         cw.t = cw_strings[0];
     }

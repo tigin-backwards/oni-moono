@@ -1378,7 +1378,8 @@ file's bytes are the same.
 
 The screen shows the game's language when the player has a translation for it, and English
 otherwise. Translations are `.po` files in the game's format, in `translations/` (beside the
-player in a release): `zh.po` is Simplified Chinese. The player picks the file named after the
+player in a release): `zh.po` is Simplified Chinese, `ko.po` Korean and `ru.po` Russian, the
+game's own languages besides English. The player picks the file named after the
 game's language code (`Localization.GetLocale().Code`), then that code's part before `_` or `-`.
 The code is `zh`, `ko` or `ru` for the game's own Chinese, Korean and Russian, and also `zh` for
 a translation mod whose language contains it (Traditional Chinese packs too). For other
@@ -1398,9 +1399,9 @@ To add a language:
    not match the English, and list the strings that are missing or were translated from older
    English (stale).
 
-`zh.po` covers the whole catalog: a string added without its Chinese fails
-`TweakTranslationTests.CompleteTranslationsCoverTheCatalog`, which names it, as
-`moono-tweaks-search-zh.yaml` expects every row in Chinese.
+`zh.po`, `ko.po` and `ru.po` cover the whole catalog: a string added without its translation in
+each fails `TweakTranslationTests.CompleteTranslationsCoverTheCatalog`, which names it
+(`moono-tweaks-search-zh.yaml` expects every row in Chinese).
 
 The same files translate the Workshop loader mod's dialog (`STRINGS.MOONO.LOADER.*`,
 `src/MoonoLoader/LoaderStrings.cs`; docs/INSTALL-MODES.md), which reads them from the item.

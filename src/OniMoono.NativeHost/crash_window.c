@@ -19,7 +19,7 @@ static float maxf(float a, float b) { return a > b ? a : b; }
 
 /* ---- strings -------------------------------------------------------------------------------- */
 
-const char *const cw_strings[2][S_COUNT] = {
+const char *const cw_strings[CW_LANGUAGES][S_COUNT] = {
     {
         "The game closed unexpectedly", "Show details", "Hide details", "What were you doing? (optional)",
         "Include the crash dump (%s)", "Close", "Report on GitHub", "Opened in browser \xE2\x9C\x93",
@@ -44,7 +44,39 @@ const char *const cw_strings[2][S_COUNT] = {
         "你可以在“Windows 安全中心 > 应用和浏览器控制 > 智能应用控制”中将其关闭。",
         "在 GitHub 上了解详情",
     },
+    {
+        "게임이 예기치 않게 종료되었습니다", "자세히 보기", "자세히 숨기기", "무엇을 하고 있었나요? (선택)",
+        "크래시 덤프 포함 (%s)", "닫기", "GitHub에 보고", "브라우저에서 열림 \xE2\x9C\x93",
+        "이 파일을 GitHub 페이지로 끌어다 놓으세요", "종료 코드 %lu", ", 게임 빌드 %s", "플레이 시간 %s", "모드 %ld개",
+        "파일: %s", ", ", "%llu시간 %llu분", "%llu분", "%llu초",
+        "GitHub 페이지에 이 파일을 첨부하세요 (다운로드 폴더에 사본이 있습니다)", "폴더에서 보기", "경로 복사", "경로 복사됨 \xE2\x9C\x93",
+        "다운로드 폴더에 저장됨: 데스크톱 모드나 다른 기기에서 첨부하세요",
+        "Windows가 Moono의 파일 하나를 차단했습니다",
+        "스마트 앱 컨트롤 또는 다른 앱 제어 정책이 Moono의 파일 하나를 차단했습니다. "
+        "Windows 보안 > 앱 및 브라우저 컨트롤 > 스마트 앱 컨트롤에서 스마트 앱 컨트롤을 끌 수 있습니다.",
+        "GitHub에서 자세히 보기",
+    },
+    {
+        "Игра неожиданно закрылась", "Показать подробности", "Скрыть подробности", "Что вы делали? (необязательно)",
+        "Приложить дамп сбоя (%s)", "Закрыть", "Сообщить на GitHub", "Открыто в браузере \xE2\x9C\x93",
+        "Перетащите это на страницу GitHub", "Код выхода %lu", ", сборка игры %s", "Время игры %s", "Моды: %ld",
+        "Файлы: %s", ", ", "%llu ч %llu мин", "%llu мин", "%llu с",
+        "Приложите это на странице GitHub (копия лежит в «Загрузках»)", "Показать в папке", "Копировать путь", "Путь скопирован \xE2\x9C\x93",
+        "Сохранено в «Загрузки»: приложите из режима рабочего стола или с другого устройства",
+        "Windows заблокировала один из файлов Moono",
+        "Интеллектуальное управление приложениями или другая политика управления приложениями заблокировала один из файлов Moono. "
+        "Его можно отключить в «Безопасность Windows > Управление приложениями/браузером > Интеллектуальное управление приложениями».",
+        "Подробнее на GitHub",
+    },
 };
+
+int cw_language_of(const char *code)
+{
+    static const char codes[CW_LANGUAGES][3] = { "en", "zh", "ko", "ru" };
+    for (int i = 1; code && i < CW_LANGUAGES; i++)
+        if ((code[0] | 0x20) == codes[i][0] && (code[1] | 0x20) == codes[i][1]) return i;
+    return CW_ENGLISH;
+}
 
 const char *const cw_title = "OniMoono";
 const char *const cw_issue_base = "https://github.com/tigin-backwards/oni-moono/issues/new";
@@ -355,7 +387,7 @@ void cw_details_text(const cw_report *r, const cw_system *sys, int language, cha
 void cw_prepare(const cw_report *r)
 {
     cw.report = *r;
-    cw.t = cw_strings[r->language == CW_CHINESE ? 1 : 0];
+    cw.t = cw_strings[r->language];
     if (r->error[0]) snprintf(cw.error, sizeof cw.error, "%s", r->error);
     else snprintf(cw.error, sizeof cw.error, cw.t[S_EXIT_CODE], (unsigned long)r->exit_code);
     cw.blocked = cw_blocked_file(cw.error, cw.blocked_file, sizeof cw.blocked_file);
@@ -1133,7 +1165,7 @@ int cw_render_args(int argc, char **argv, int windows, cw_render_options *o, cw_
         else if (strcmp(a, "--scale") == 0) { o->scale = (float)atof(v); i++; }
         else if (strcmp(a, "--text-size") == 0) { o->text = (float)atof(v); i++; }
         else if (strcmp(a, "--sample") == 0) { sample = v; i++; }
-        else if (strcmp(a, "--language") == 0) { r->language = strcmp(v, "zh") == 0 ? CW_CHINESE : CW_ENGLISH; i++; }
+        else if (strcmp(a, "--language") == 0) { r->language = cw_language_of(v); i++; }
         else if (strcmp(a, "--zip") == 0) { o->zip_out = v; i++; }
         else if (strcmp(a, "--log") == 0) { o->log = v; i++; }
         else if (strcmp(a, "--dump") == 0) { o->dump = v; i++; }

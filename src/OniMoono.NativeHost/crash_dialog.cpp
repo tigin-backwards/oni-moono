@@ -466,13 +466,20 @@ IDWriteFontCollection *load_fonts()
 }
 
 const wchar_t *sans() { return g.fonts ? L"Gabarito" : L"Segoe UI"; }
+/* The text's locale, which DirectWrite's fallback picks its fonts for what ours lack by: CJK and
+ * Hangul (Microsoft YaHei, Malgun Gothic), Cyrillic (Segoe UI; Gabarito has Latin only). */
+const wchar_t *locale()
+{
+    static const wchar_t *const locales[CW_LANGUAGES] = { L"en-us", L"zh-cn", L"ko-kr", L"ru-ru" };
+    return locales[cw.report.language];
+}
 const wchar_t *mono() { return g.fonts ? L"Red Hat Mono" : L"Consolas"; }
 
 IDWriteTextFormat *text_format(const wchar_t *family, IDWriteFontCollection *collection, DWRITE_FONT_WEIGHT weight, float size)
 {
     IDWriteTextFormat *format = nullptr;
     g.dw->CreateTextFormat(family, collection, weight, DWRITE_FONT_STYLE_NORMAL, DWRITE_FONT_STRETCH_NORMAL, size,
-                           cw.report.language == CW_CHINESE ? L"zh-cn" : L"en-us", &format);
+                           locale(), &format);
     if (format) format->SetWordWrapping(DWRITE_WORD_WRAPPING_EMERGENCY_BREAK);
     return format;
 }
@@ -764,7 +771,8 @@ void make_note_font()
     if (g.note_font) DeleteObject(g.note_font);
     if (g.cause_font) DeleteObject(g.cause_font);
     if (g.mono_font) DeleteObject(g.mono_font);
-    const wchar_t *face = cw.report.language == CW_CHINESE ? L"Microsoft YaHei UI" : g.gdi_font ? L"Gabarito" : L"Segoe UI";
+    const wchar_t *face = cw.report.language == CW_CHINESE ? L"Microsoft YaHei UI" : cw.report.language == CW_KOREAN ? L"Malgun Gothic"
+                        : cw.report.language == CW_RUSSIAN || !g.gdi_font ? L"Segoe UI" : L"Gabarito";
     g.note_font = gdi_font(face, tdip(13));
     g.cause_font = gdi_font(g.gdi_font ? L"Gabarito" : L"Segoe UI", tdip(13));
     g.mono_font = gdi_font(g.gdi_mono ? L"Red Hat Mono" : L"Consolas", tdip(12));
@@ -1317,7 +1325,7 @@ void prepare(const crash_report_t *r)
     g.report = *r;
     static cw_report c;
     memset(&c, 0, sizeof c);
-    c.language = r->language == CRASH_CHINESE ? CW_CHINESE : CW_ENGLISH;
+    c.language = r->language >= CRASH_ENGLISH && r->language < CW_LANGUAGES ? r->language : CW_ENGLISH;
     to_utf8(r->error, c.error, sizeof c.error);
     c.exit_code = r->exit_code;
     to_utf8(r->version, c.version, sizeof c.version);

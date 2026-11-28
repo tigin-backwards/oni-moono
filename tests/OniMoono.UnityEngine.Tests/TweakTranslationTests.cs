@@ -141,9 +141,10 @@ namespace OniMoono.Tests
 
         /// The translations that cover the whole catalog: a string added to TweakStrings (a new
         /// row's title, one-liner, tooltip, gain or choices, a new label) needs its translation in
-        /// each of these before it lands. moono-tweaks-search-zh.yaml counts on it: it expects
-        /// every row of the screen in Chinese.
-        static readonly string[] Complete = ["zh"];
+        /// each of these before it lands: the game's own languages, Simplified Chinese, Korean
+        /// and Russian. moono-tweaks-search-zh.yaml counts on it: it expects every row of the
+        /// screen in Chinese.
+        static readonly string[] Complete = ["zh", "ko", "ru"];
 
         [Fact]
         public void CompleteTranslationsCoverTheCatalog()
@@ -173,10 +174,10 @@ namespace OniMoono.Tests
                     {
                         var key = TweakStrings.RowKey(row, part);
                         if (po.TryGetValue(key, out var str) && str == TweakStrings.All.First(s => s.Key == key).English)
-                            problems.Add($"translations/{name} gives {key} the English text, which the Chinese specs count as untranslated");
+                            problems.Add($"translations/{name} gives {key} the English text, which the screen counts as untranslated");
                     }
             }
-            Assert.True(problems.Count == 0, $"{problems.Count} strings lack a translation that tests/e2e/moono-tweaks-search-{Complete[0]}.yaml expects:\n" + string.Join("\n", problems));
+            Assert.True(problems.Count == 0, $"{problems.Count} strings lack a translation (each of {string.Join(", ", Complete)} covers the catalog; tests/e2e/moono-tweaks-search-zh.yaml expects it):\n" + string.Join("\n", problems));
         }
 
         static string Show(string[] markup) => markup.Length == 0 ? "no placeholders" : string.Join(" ", markup);

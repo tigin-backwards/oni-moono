@@ -1312,7 +1312,7 @@ static void show_dialog(const char *exe, int status, int sig, int used_fault, in
         if (!lang || !lang[0]) lang = getenv("LANG");
         if (!lang) lang = "";
     }
-    r.language = strncmp(lang, "zh", 2) == 0 ? CW_CHINESE : CW_ENGLISH;
+    r.language = cw_language_of(lang);
     error_line(sig, used_fault, oom, r.error, sizeof r.error);
     r.exit_code = (uint32_t)status;
     snprintf(r.version, sizeof r.version, "%s", shared->version);

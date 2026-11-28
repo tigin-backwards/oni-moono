@@ -281,6 +281,9 @@ PY
 # where it opens): a crash with the window on, a note typed, Enter (Report on GitHub: the zip, its
 # copy in Downloads, the link opened, recorded through ONI_MOONO_CRASH_OPEN), Esc (the watcher
 # ends with the game's status).
+# The crash window's languages besides English and Chinese (crash_window.c's cw_strings), each
+# rendered on both platforms.
+crash_languages="ko ru"
 linux_crash_window() {
     local platform=linux lstage="$tmp/window"
     mkdir -p "$lstage"
@@ -290,6 +293,14 @@ linux_crash_window() {
         || fail "linux crash window: dark render"
     lrender "$lstage/light.png" --theme light --scale 1.25 --sample managed --language zh --reported && png_check "light, 125%, Chinese" "$lstage/light.png" 550 F7F4ED FFFCF6 F7F4ED \
         || fail "linux crash window: light render"
+    # The game's other languages, both pages (their glyphs from fontconfig's fonts for them).
+    local lang
+    for lang in $crash_languages; do
+        lrender "$lstage/$lang.png" --theme dark --scale 1 --sample managed --language "$lang" --details-open \
+            && png_check "dark, 100%, $lang, details" "$lstage/$lang.png" 440 100C0A 191512 1D1A17 || fail "linux crash window: $lang render"
+        lrender "$lstage/blocked-$lang.png" --theme light --scale 1 --sample blocked --language "$lang" \
+            && png_check "blocked file, light, $lang" "$lstage/blocked-$lang.png" 440 F7F4ED FFFCF6 F7F4ED 20,52,108,108 || fail "linux crash window: blocked $lang render"
+    done
     lrender "$lstage/text.png" --theme dark --scale 1 --text-size 2.25 --sample managed --details-open && png_check "dark, 100%, text size 225%" "$lstage/text.png" 715 100C0A 191512 1D1A17 \
         || fail "linux crash window: text size render"
     zip_input "$lstage/zip-in"
@@ -336,6 +347,13 @@ crash_window() {
         || fail "windows crash window: dark render"
     render "$wstage\\light.png" --theme light --scale 1.25 --sample managed --language zh --reported && png_check "light, 125%, Chinese" "$stage/light.png" 550 F7F4ED FFFCF6 F7F4ED \
         || fail "windows crash window: light render"
+    local lang
+    for lang in $crash_languages; do
+        render "$wstage\\$lang.png" --theme dark --scale 1 --sample managed --language "$lang" --details-open \
+            && png_check "dark, 100%, $lang, details" "$stage/$lang.png" 440 100C0A 191512 1D1A17 || fail "windows crash window: $lang render"
+        render "$wstage\\blocked-$lang.png" --theme light --scale 1 --sample blocked --language "$lang" \
+            && png_check "blocked file, light, $lang" "$stage/blocked-$lang.png" 440 F7F4ED FFFCF6 F7F4ED 20,52,108,108 || fail "windows crash window: blocked $lang render"
+    done
     # Windows' text size at its largest: the window widens by half as much (440 x 1.625).
     render "$wstage\\text.png" --theme dark --scale 1 --text-size 2.25 --sample managed --details-open && png_check "dark, 100%, text size 225%" "$stage/text.png" 715 100C0A 191512 1D1A17 \
         || fail "windows crash window: text size render"
