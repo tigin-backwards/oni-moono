@@ -2,7 +2,7 @@
 // (GlfwPlatform.SetClassIcon loads it for the taskbar), the SDK's manifest, and the version
 // information the SDK copied from OniMoono.dll, without its commit: the exe stays the same
 // between releases that leave its sources alone (scanners judge a new hash afresh). Then the
-// crash window's manifest and fonts.
+// crash window's manifest, fonts and picture.
 #include <winres.h>
 
 32512 ICON "Moo.ico"
@@ -16,6 +16,8 @@
 102 RCDATA "Gabarito-Medium.ttf"
 103 RCDATA "Gabarito-SemiBold.ttf"
 104 RCDATA "RedHatMono-Regular.ttf"
+// The crash window's sad Gassy Moo (Klei's art: the game's gassy_moo kanim, death frame 24).
+105 RCDATA "crash-moo.png"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 1,0,0,0

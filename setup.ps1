@@ -60,6 +60,7 @@ function Build-NativeHost($dotnet, $built) {
         Copy-Item (Join-Path $here 'src\ThirdParty\DirectX-Headers\D3D12TokenizedProgramFormat.hpp') $stage
         Copy-Item (Join-Path $here 'src\OniMoono.NativeHost\fonts\*.ttf') $stage
         Copy-Item (Join-Path $here 'src\OniMoono.Host\Moo.ico') $stage
+        Copy-Item (Join-Path $here 'src\OniMoono.NativeHost\crash-moo.png') $stage
         foreach ($file in 'nethost.h', 'hostfxr.h', 'libnethost.lib') { Copy-Item (Join-Path $pack $file) $stage }
         Push-Location $stage
         $env:VCVARS64 = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'

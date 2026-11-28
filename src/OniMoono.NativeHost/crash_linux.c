@@ -1303,7 +1303,16 @@ static void show_dialog(const char *exe, int status, int sig, int used_fault, in
 {
     static cw_report r;
     memset(&r, 0, sizeof r);
-    r.language = strncmp(shared->language, "zh", 2) == 0 ? CW_CHINESE : CW_ENGLISH;
+    /* Before the game gave its language (a crash before its main menu), the locale's. */
+    const char *lang = shared->language;
+    if (!lang[0])
+    {
+        lang = getenv("LC_ALL");
+        if (!lang || !lang[0]) lang = getenv("LC_MESSAGES");
+        if (!lang || !lang[0]) lang = getenv("LANG");
+        if (!lang) lang = "";
+    }
+    r.language = strncmp(lang, "zh", 2) == 0 ? CW_CHINESE : CW_ENGLISH;
     error_line(sig, used_fault, oom, r.error, sizeof r.error);
     r.exit_code = (uint32_t)status;
     snprintf(r.version, sizeof r.version, "%s", shared->version);

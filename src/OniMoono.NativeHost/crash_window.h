@@ -43,6 +43,8 @@ enum
     /* Linux: no drag and drop; the zip is shown in its folder, its path copied, a copy put in
      * Downloads. Gaming Mode on a Steam Deck has neither a file manager nor a desktop browser. */
     S_ATTACH, S_SHOW_FOLDER, S_COPY_PATH, S_COPIED, S_DECK,
+    /* Windows' application control blocked a file (cw_blocked_file): the headline, what to do, the link. */
+    S_BLOCKED_HEADLINE, S_BLOCKED_TEXT, S_BLOCKED_LINK,
     S_COUNT
 };
 
@@ -50,6 +52,17 @@ enum
 extern const char *const cw_strings[2][S_COUNT];
 extern const char *const cw_title;
 extern const char *const cw_issue_base;
+/* The README's "Unsigned releases" section, which the blocked window's button opens. */
+extern const char *const cw_blocked_url;
+
+/* Whether the error line is a file Windows' application control refused (#135): it holds HRESULT
+ * 0x800711C7 (ERROR_SYSTEM_INTEGRITY_POLICY_VIOLATION, 4551: Smart App Control on a consumer
+ * machine, or a WDAC policy), as .NET's FileLoadException, BadImageFormatException and
+ * DllNotFoundException, hostfxr's reasons and the host's failures (LoadLibrary,
+ * CreateProcess) give it. The file's name (the last .dll or .exe named before the code) in
+ * `file`, empty when none is named. Read after a crash: nothing is checked on a normal
+ * start. */
+int cw_blocked_file(const char *error, char *file, size_t most);
 
 /* Colours as Direct2D has them: 0 to 1 per channel. */
 typedef struct { float r, g, b, a; } cw_color;
@@ -122,6 +135,8 @@ typedef struct
     void (*mark)(void *context, float x, float y, float k, cw_color c);
     /* The application's icon, size x size px at x, y (the PNG's title bar). */
     void (*icon)(void *context, float x, float y, int size);
+    /* The window's picture (a sad Gassy Moo), fitted into the box and centred; null: none. */
+    void (*picture)(void *context, cw_box b);
 } cw_canvas;
 
 /* The parts of the window, in the order Tab goes through them. */
@@ -139,8 +154,10 @@ typedef struct
     int width, height;            /* the client area, px */
     float line;                   /* a 1-DIP line in whole pixels */
     cw_box head, cause, toggle, details, note, check, chip, links, folder, copy, footer, close, report;
+    cw_box picture;               /* the Gassy Moo; empty: none */
+    cw_box file;                  /* the blocked window's */
     cw_text *t_head, *t_cause, *t_toggle, *t_details, *t_note, *t_check, *t_chip_name, *t_chip_hint, *t_zip,
-        *t_folder, *t_copy, *t_close, *t_report, *t_caption;
+        *t_folder, *t_copy, *t_close, *t_report, *t_caption, *t_file;
 } cw_layout;
 
 /* Facts of this machine the platform finds itself: the system, the GPU's driver, the memory. */
@@ -163,6 +180,10 @@ typedef struct
     float extra_cause, extra_details;   /* px the selectable text needs beyond the drawn lines */
     cw_palette pal;
     int details_open, reported, include_dump, can_include_dump, render_only;
+    /* Windows blocked a file (cw_blocked_file): no report, the note or the dump; what to do and a
+     * link to the README instead. */
+    int blocked;
+    char blocked_file[260];
     int links;                    /* Linux: Show in folder and Copy path below the zip */
     int copied;                   /* Linux: the path was copied */
     int chip_hint;                /* the zip's hint (S_DRAG, S_ATTACH or S_DECK) */
@@ -178,8 +199,10 @@ static inline float cw_dip(float v) { return v * cw.scale; }
 static inline float cw_tdip(float v) { return v * cw.scale * cw.text; }
 
 /* The report's own parts: the strings, the error line (the record's, else the exit code), the
- * dump's check box. */
+ * dump's check box, whether Windows blocked a file. */
 void cw_prepare(const cw_report *r);
+/* The text under the headline: the error line, or for a blocked file what to do. */
+const char *cw_cause_text(void);
 
 void cw_format_size(uint64_t bytes, char *out, size_t most);
 const char *cw_file_name(const char *path);
@@ -228,7 +251,7 @@ typedef struct
     float scale, text;
 } cw_render_options;
 
-/* `--crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--sample gpu|managed|fastfail]
+/* `--crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--sample gpu|managed|fastfail|blocked]
  * [--language en|zh] [--text-size 1-2.25] [--details-open] [--reported] [--zip OUT.zip --log FILE
  * [--dump FILE]] [--url OUT.txt --note TEXT]` (UTF-8 arguments): the options and the sample
  * report (paths as `windows`' or Linux's), 0 when they are wrong. */

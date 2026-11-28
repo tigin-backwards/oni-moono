@@ -4,7 +4,9 @@
  * the error line from the record, details on request, a box for what the player was doing, the
  * dump to include or not, and "Report on GitHub", which packs Player.log (and the dump) into a zip
  * beside them, opens a new issue in the browser with the error and the details filled in, and then
- * shows the zip so it can be dragged into the page. Nothing is sent by the window itself.
+ * shows the zip so it can be dragged into the page. Nothing is sent by the window itself. For a
+ * file Windows' application control blocked (#135) it shows what to do and the README's link in
+ * place of the report. Both show a sad Gassy Moo beside the headline.
  *
  * What both players' windows share is crash_window.c: the strings, the palette, the layout and
  * the drawing, the details, the zip and the issue link. This is Windows' canvas for it and
@@ -234,8 +236,8 @@ ID2D1PathGeometry *svg_path(ID2D1Factory *factory, const char *text)
 
 /* ---- fonts ---------------------------------------------------------------------------------- */
 
-/* The embedded fonts' resource numbers (host.rc). */
-enum { FONT_REGULAR = 101, FONT_MEDIUM = 102, FONT_SEMIBOLD = 103, FONT_MONO = 104 };
+/* The embedded fonts' resource numbers (host.rc), and the window's picture (a PNG). */
+enum { FONT_REGULAR = 101, FONT_MEDIUM = 102, FONT_SEMIBOLD = 103, FONT_MONO = 104, PICTURE = 105 };
 
 bool resource_data(int id, const void **data, DWORD *size)
 {
@@ -622,9 +624,44 @@ void c_icon(void *, float x, float y, int size)
     if (icon) DestroyIcon(icon);
 }
 
+/* The window's picture (resource 105, a PNG with alpha): scaled by WIC (Fant) to fit the box,
+ * centred. */
+void c_picture(void *, cw_box b)
+{
+    const void *data;
+    DWORD size;
+    if (!resource_data(PICTURE, &data, &size)) return;
+    IWICStream *stream = nullptr;
+    IWICBitmapDecoder *decoder = nullptr;
+    IWICBitmapFrameDecode *frame = nullptr;
+    IWICBitmapScaler *scaler = nullptr;
+    IWICFormatConverter *converter = nullptr;
+    ID2D1Bitmap *bitmap = nullptr;
+    UINT w = 0, h = 0;
+    if (SUCCEEDED(g.wic->CreateStream(&stream)) && SUCCEEDED(stream->InitializeFromMemory((BYTE *)data, size))
+        && SUCCEEDED(g.wic->CreateDecoderFromStream(stream, NULL, WICDecodeMetadataCacheOnDemand, &decoder))
+        && SUCCEEDED(decoder->GetFrame(0, &frame)) && SUCCEEDED(frame->GetSize(&w, &h)) && w && h)
+    {
+        float k = (float)fmin(cw_w(b) / w, cw_h(b) / h);
+        UINT sw = (UINT)maxf(1, snap(w * k)), sh = (UINT)maxf(1, snap(h * k));
+        float x = snap(b.l + (cw_w(b) - sw) / 2), y = snap(b.t + (cw_h(b) - sh) / 2);
+        if (SUCCEEDED(g.wic->CreateBitmapScaler(&scaler)) && SUCCEEDED(scaler->Initialize(frame, sw, sh, WICBitmapInterpolationModeFant))
+            && SUCCEEDED(g.wic->CreateFormatConverter(&converter))
+            && SUCCEEDED(converter->Initialize(scaler, GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, NULL, 0, WICBitmapPaletteTypeCustom))
+            && SUCCEEDED(g.rt->CreateBitmapFromWicBitmap(converter, NULL, &bitmap)))
+            g.rt->DrawBitmap(bitmap, D2D1::RectF(x, y, x + sw, y + sh));
+    }
+    release(bitmap);
+    release(converter);
+    release(scaler);
+    release(frame);
+    release(decoder);
+    release(stream);
+}
+
 const cw_canvas canvas = {
     nullptr, c_make_text, c_set_spacing, c_set_align, c_metrics, c_free_text, c_set_offset, c_fill, c_fill_round, c_stroke_round,
-    c_draw_text, c_line, c_dot, c_mark, c_icon,
+    c_draw_text, c_line, c_dot, c_mark, c_icon, c_picture,
 };
 
 cw_metrics metrics(cw_text *t)
@@ -833,8 +870,8 @@ void place_children()
     if (g.child[C_CAUSE]) style_field(g.child[C_CAUSE], g.cause_font, cw.pal.fg2, cw.pal.bg, cause_line);
     if (g.child[C_DETAILS]) style_field(g.child[C_DETAILS], g.mono_font, cw.pal.fg2, cw.pal.panel, details_line);
     cw_box note = { l.note.l + l.line + snap(dip(10)), l.note.t + l.line + snap(dip(8)), l.note.r - l.line - snap(dip(10)), l.note.b - l.line - snap(dip(8)) };
-    place(C_NOTE, note, 0, true);
-    place(C_CHECK, l.check, ring, cw.report.dump_path[0] != 0);
+    place(C_NOTE, note, 0, !cw.blocked);
+    place(C_CHECK, l.check, ring, cw.report.dump_path[0] != 0 && !cw.blocked);
     place(C_CHIP, l.chip, ring, cw.reported != 0);
     place(C_CLOSE, l.close, ring, true);
     place(C_REPORT, l.report, ring, true);
@@ -1174,6 +1211,11 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT m, WPARAM w, LPARAM l)
     {
         int id = LOWORD(w), code = HIWORD(w);
         if (id == IDCANCEL || (id == ID_CLOSE && code == BN_CLICKED)) { DestroyWindow(hwnd); return 0; }
+        if ((id == IDOK || id == ID_REPORT) && code == BN_CLICKED && cw.blocked)
+        {
+            ShellExecuteW(hwnd, L"open", W(cw_blocked_url), NULL, NULL, SW_SHOWNORMAL);
+            return 0;
+        }
         if ((id == IDOK || id == ID_REPORT) && code == BN_CLICKED && !cw.reported) { report_crash(); return 0; }
         if (id == ID_TOGGLE && code == BN_CLICKED) { toggle_details(); return 0; }
         if (id == ID_CHIP && code == BN_CLICKED) { open_folder(); return 0; }
@@ -1351,9 +1393,12 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
 
     /* In the order Tab goes through them. */
     static wchar_t error[1024], details[2048];
-    wcscpy_s(error, W(cw.error));
+    wcscpy_s(error, W(cw_cause_text()));
     wcscpy_s(details, W(cw.details));
-    g.child[C_HEAD] = make_child(L"STATIC", W(cw.t[S_HEADLINE]), WS_VISIBLE | SS_OWNERDRAW, ID_HEAD);
+    /* A blocked file's headline names the file for screen readers, as the drawn line under it does. */
+    char head[600];
+    snprintf(head, sizeof head, cw.blocked && cw.blocked_file[0] ? "%s: %s" : "%s", cw.t[cw.blocked ? S_BLOCKED_HEADLINE : S_HEADLINE], cw.blocked_file);
+    g.child[C_HEAD] = make_child(L"STATIC", W(head), WS_VISIBLE | SS_OWNERDRAW, ID_HEAD);
     const DWORD field = WS_TABSTOP | ES_MULTILINE | ES_READONLY;
     g.child[C_CAUSE] = rich ? make_child(MSFTEDIT_CLASS, error, WS_VISIBLE | field, ID_CAUSE) : make_child(L"STATIC", error, WS_VISIBLE | SS_OWNERDRAW, ID_CAUSE);
     g.child[C_TOGGLE] = make_child(L"BUTTON", W(cw.t[S_SHOW_DETAILS]), WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_TOGGLE);
@@ -1362,7 +1407,7 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     g.child[C_CHECK] = make_child(L"BUTTON", L"", WS_TABSTOP | BS_AUTOCHECKBOX | BS_NOTIFY, ID_CHECK);
     g.child[C_CHIP] = make_child(L"BUTTON", L"", WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_CHIP);
     g.child[C_CLOSE] = make_child(L"BUTTON", W(cw.t[S_CLOSE]), WS_VISIBLE | WS_TABSTOP | BS_PUSHBUTTON | BS_NOTIFY, ID_CLOSE);
-    g.child[C_REPORT] = make_child(L"BUTTON", W(cw.t[S_REPORT]), WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON | BS_NOTIFY, ID_REPORT);
+    g.child[C_REPORT] = make_child(L"BUTTON", W(cw.t[cw.blocked ? S_BLOCKED_LINK : S_REPORT]), WS_VISIBLE | WS_TABSTOP | BS_DEFPUSHBUTTON | BS_NOTIFY, ID_REPORT);
     g.note_proc = (WNDPROC)SetWindowLongPtrW(g.child[C_NOTE], GWLP_WNDPROC, (LONG_PTR)note_proc);
     g.chip_proc = (WNDPROC)SetWindowLongPtrW(g.child[C_CHIP], GWLP_WNDPROC, (LONG_PTR)chip_proc);
     if (rich)
@@ -1376,7 +1421,7 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     }
     SendMessageW(g.child[C_NOTE], EM_LIMITTEXT, 3000, 0);
     set_name(g.child[C_NOTE], W(cw.t[S_NOTE]));
-    if (cw.report.dump_path[0])
+    if (cw.report.dump_path[0] && !cw.blocked)
     {
         char size[32], label[200];
         cw_format_size(cw.report.dump_size, size, sizeof size);
@@ -1394,8 +1439,10 @@ extern "C" void crash_dialog_show(const crash_report_t *r)
     place_children();
     if (fit_fields()) relayout(NULL);
     SendMessageW(g.hwnd, WM_CHANGEUISTATE, MAKEWPARAM(UIS_INITIALIZE, 0), 0);
-    SetFocus(g.child[C_NOTE]);
-    g.restore_focus = g.child[C_NOTE];
+    /* A blocked file's window has no note: the README's link takes the focus. */
+    HWND first = g.child[cw.blocked ? C_REPORT : C_NOTE];
+    SetFocus(first);
+    g.restore_focus = first;
     refresh(NULL);
     if (r->activate)
     {
@@ -1457,7 +1504,8 @@ extern "C" int crash_dialog_render(int argc, wchar_t **argv)
     if (o.url_out)
     {
         static char url[8192];
-        cw_issue_url(o.note, url, sizeof url);
+        if (cw.blocked) snprintf(url, sizeof url, "%s", cw_blocked_url);   /* no issue: the README's link */
+        else cw_issue_url(o.note, url, sizeof url);
         FILE *f = cw_open(o.url_out, "wb");
         bool ok = f && fwrite(url, 1, strlen(url), f) == strlen(url);
         if (f && fclose(f) != 0) ok = false;

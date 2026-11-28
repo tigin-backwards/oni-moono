@@ -1,7 +1,7 @@
 @echo off
 rem Builds OniMoono.exe (host.c, crash.c, crash_common.c, crash_window.c, crash_dialog.cpp) with MSVC, in the current folder, which
 rem holds the sources (*.c, *.cpp, *.h, and DirectX-Headers' D3D12TokenizedProgramFormat.hpp for dxbc_check.cpp), host.rc, the manifests, Moo.ico, the crash window's fonts
-rem (fonts\*.ttf, copied flat), and from the .NET SDK's
+rem (fonts\*.ttf, copied flat) and picture (crash-moo.png), and from the .NET SDK's
 rem Microsoft.NETCore.App.Host.win-x64 pack nethost.h, hostfxr.h and libnethost.lib
 rem (scripts/build-windows.sh and setup.ps1 copy them there), and com_check.cpp with com_check.cmd
 rem (scripts/build-native-host.sh).

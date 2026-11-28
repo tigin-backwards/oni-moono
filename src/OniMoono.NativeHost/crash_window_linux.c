@@ -38,9 +38,10 @@
 
 extern char **environ;
 
-/* The embedded fonts and icon (fonts_linux.S). */
-extern const unsigned char moono_font_regular[], moono_font_medium[], moono_font_semibold[], moono_font_mono[], moono_icon[];
-extern const unsigned long long moono_font_regular_size, moono_font_medium_size, moono_font_semibold_size, moono_font_mono_size, moono_icon_size;
+/* The embedded fonts, icon and picture (fonts_linux.S). */
+extern const unsigned char moono_font_regular[], moono_font_medium[], moono_font_semibold[], moono_font_mono[], moono_icon[], moono_picture[];
+extern const unsigned long long moono_font_regular_size, moono_font_medium_size, moono_font_semibold_size, moono_font_mono_size, moono_icon_size,
+    moono_picture_size;
 
 /* ---- SDL, loaded ----------------------------------------------------------------------------- */
 
@@ -799,6 +800,50 @@ static void icon(void *context, float x, float y, int size)
     SDL_DestroySurface(s);
 }
 
+/* The window's picture (crash-moo.png, a sad Gassy Moo), fitted into the box and centred: SDL's
+ * PNG loader, as for the icon, then halved with linear filtering down to twice the size and scaled
+ * linearly from there, which comes close to WIC's Fant scaling on Windows. */
+static void picture(void *context, cw_box b)
+{
+    (void)context;
+    static MS_Surface *source;
+    if (!source)
+    {
+        MS_Surface *png = SDL_LoadPNG_IO(SDL_IOFromConstMem(moono_picture, (size_t)moono_picture_size), true);
+        if (!png) return;
+        source = SDL_ConvertSurface(png, MS_SDL_PIXELFORMAT_ARGB8888);
+        SDL_DestroySurface(png);
+        if (!source) return;
+    }
+    float k = fminf(cw_w(b) / (float)source->w, cw_h(b) / (float)source->h);
+    int w = (int)fmaxf(1, cw_snap((float)source->w * k)), h = (int)fmaxf(1, cw_snap((float)source->h * k));
+    MS_Surface *s = source;
+    while (s->w >= 2 * w * 2 && s->h >= 2 * h * 2)
+    {
+        MS_Surface *half = SDL_CreateSurface(s->w / 2, s->h / 2, MS_SDL_PIXELFORMAT_ARGB8888);
+        if (!half) break;
+        SDL_BlitSurfaceScaled(s, NULL, half, NULL, MS_SDL_SCALEMODE_LINEAR);
+        if (s != source) SDL_DestroySurface(s);
+        s = half;
+    }
+    MS_Surface *scaled = SDL_CreateSurface(w, h, MS_SDL_PIXELFORMAT_ARGB8888);
+    if (scaled) SDL_BlitSurfaceScaled(s, NULL, scaled, NULL, MS_SDL_SCALEMODE_LINEAR);
+    if (s != source) SDL_DestroySurface(s);
+    if (!scaled) return;
+    int ox = (int)cw_snap(b.l + (cw_w(b) - (float)w) / 2), oy = (int)cw_snap(b.t + (cw_h(b) - (float)h) / 2 + offset_y);
+    for (int j = 0; j < h; j++)
+        for (int i = 0; i < w; i++)
+        {
+            int px = ox + i, py = oy + j;
+            if (px < clip_l || px >= clip_r || py < clip_t || py >= clip_b) continue;
+            uint32_t v = ((const uint32_t *)((const unsigned char *)scaled->pixels + (size_t)j * (size_t)scaled->pitch))[i];
+            if (!(v >> 24)) continue;
+            cw_color c = { (float)((v >> 16) & 255) / 255, (float)((v >> 8) & 255) / 255, (float)(v & 255) / 255, 1 };
+            image[(size_t)py * (size_t)image_w + (size_t)px] = blend(image[(size_t)py * (size_t)image_w + (size_t)px], c, (float)(v >> 24) / 255);
+        }
+    SDL_DestroySurface(scaled);
+}
+
 /* Text coverage as it is: unhinted (as DirectWrite's natural rendering is), FreeType's coverage
  * blended plainly comes closest to DirectWrite's grayscale text (compared on the renders). */
 static float text_alpha(float a) { return a; }
@@ -872,7 +917,7 @@ static void draw_text(void *context, cw_text *t, float x, float y, cw_color c)
 }
 
 static const cw_canvas canvas = {
-    NULL, make_text, set_spacing, set_align, text_metrics, free_text, set_offset, fill, fill_round, stroke_round, draw_text, draw_line, dot, mark, icon,
+    NULL, make_text, set_spacing, set_align, text_metrics, free_text, set_offset, fill, fill_round, stroke_round, draw_text, draw_line, dot, mark, icon, picture,
 };
 
 /* ---- this machine ---------------------------------------------------------------------------- */
@@ -995,7 +1040,8 @@ int crash_dialog_render(int argc, char **argv)
     if (o.url_out)
     {
         static char url[8192];
-        cw_issue_url(o.note, url, sizeof url);
+        if (cw.blocked) snprintf(url, sizeof url, "%s", cw_blocked_url);   /* no issue: the README's link */
+        else cw_issue_url(o.note, url, sizeof url);
         FILE *f = fopen(o.url_out, "wb");
         int ok = f && fwrite(url, 1, strlen(url), f) == strlen(url);
         if (f && fclose(f) != 0) ok = 0;
@@ -1466,7 +1512,7 @@ static void activate(int part)
         relayout();
         break;
     case C_CLOSE: closing = 1; break;
-    case C_REPORT: if (!cw.reported) report_crash(); break;
+    case C_REPORT: if (cw.blocked) open_url(cw_blocked_url); else if (!cw.reported) report_crash(); break;
     default: break;
     }
 }
@@ -1771,7 +1817,7 @@ int crash_window_main(int argc, char **argv)
     SDL_ShowWindow(window);
     if (r.activate) SDL_RaiseWindow(window);
     focus = -1;
-    set_focus(C_NOTE);
+    set_focus(cw.blocked ? C_REPORT : C_NOTE);
     present();
 
     while (!closing)

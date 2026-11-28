@@ -1,7 +1,7 @@
 #!/bin/sh
 # Builds OniMoono, the Linux player's executable (host_linux.c, crash_linux.c, crash_common.c,
 # crash_window.c, crash_window_linux.c), in the current folder, which holds the
-# sources, the crash window's fonts (fonts/*.ttf, copied flat) and Moo.ico
+# sources, the crash window's fonts (fonts/*.ttf, copied flat), its picture (crash-moo.png) and Moo.ico
 # (scripts/build-native-host-linux.sh stages them). C only: no C++ runtime to ship.
 #   build-linux.sh
 # CC: the C compiler (cc). SDL_CHECK=1: sdl_min.h checked against SDL's own headers too (the

@@ -1,12 +1,22 @@
 /* The crash window of the Windows player (crash_dialog.cpp; ARCHITECTURE §7, "Native crashes"). */
 #pragma once
 #include <windows.h>
+#include <wchar.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 enum { CRASH_ENGLISH, CRASH_CHINESE };
+
+/* The window's language from the game's language code ("zh", "en", ...), or, before the game
+ * gave one (a crash or a blocked file before its main menu, #135), from Windows' display
+ * language. */
+static inline int crash_language(const wchar_t *code)
+{
+    if (code && code[0]) return _wcsnicmp(code, L"zh", 2) == 0 ? CRASH_CHINESE : CRASH_ENGLISH;
+    return PRIMARYLANGID(GetUserDefaultUILanguage()) == LANG_CHINESE ? CRASH_CHINESE : CRASH_ENGLISH;
+}
 
 /* What the watcher knows of a crash, for the window. */
 typedef struct

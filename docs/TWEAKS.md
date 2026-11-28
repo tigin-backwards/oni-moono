@@ -225,6 +225,11 @@ When the game closes unexpectedly, a small window says so, with the error from t
 - **On Linux** the zip can't be dragged: **Show in folder** opens its folder, **Copy path**
   copies its path, and a copy goes into your Downloads folder, where the form's file picker
   finds it.
+- **A file Windows blocked.** The releases are unsigned, and Smart App Control or another app
+  control policy may block one of their files. The window then says so, names the file and shows
+  where to turn Smart App Control off: Windows Security > App & browser control > Smart App
+  Control. **Read more on GitHub** opens the README's "Unsigned releases" section. There's
+  nothing to report.
 - **The window.** The error and the details can be selected and copied. The window follows the
   system's dark or light mode and its text size.
 - **Turning it off.** `--crash-dialog off` turns the window off. `Player.log` still records the

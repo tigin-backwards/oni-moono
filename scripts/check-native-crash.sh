@@ -167,10 +167,11 @@ fi
 # palette's colours where the title bar, the body and the footer are; then the zip "Report on
 # GitHub" writes (deflate, checked by Python's zipfile) and the issue link (under 7,500 characters
 # with a long note, the error in its title).
-png_check() { # png_check NAME FILE WIDTH CAPTION BODY FOOTER (colours as RRGGBB)
+png_check() { # png_check NAME FILE WIDTH CAPTION BODY FOOTER [X0,Y0,X1,Y1: a box drawn in, not the body's colour] (colours as RRGGBB)
     local out; out=$(python3 -I - "$@" <<'PY'
 import struct, sys, zlib
 name, path, width, caption, body, footer = sys.argv[1:7]
+drawn = [int(v) for v in sys.argv[7].split(',')] if len(sys.argv) > 7 else None
 d = open(path, 'rb').read()
 if d[:8] != b'\x89PNG\r\n\x1a\n': print('not a PNG'); sys.exit()
 at, idat, w = 8, b'', 0
@@ -197,6 +198,9 @@ for what, (x, y), want in (('title bar', (w // 2, 3), caption), ('body', (3, h /
     if px(x, y) != want: problems.append('%s %s, not %s' % (what, px(x, y), want))
 ink = sum(1 for y in range(h // 8, h - h // 8) for x in range(0, w, 2) if abs(rows[y][x * bpp] - int(body[4:6], 16)) > 96)
 if ink < w: problems.append('almost no text (%d)' % ink)
+if drawn:
+    x0, y0, x1, y1 = drawn
+    if sum(1 for y in range(y0, y1) for x in range(x0, x1) if px(x, y) != body) < (x1 - x0) * (y1 - y0) // 8: problems.append('nothing drawn in %s' % sys.argv[7])
 print('; '.join(problems) if problems else 'ok %dx%d' % (w, h))
 PY
 )
@@ -281,7 +285,8 @@ linux_crash_window() {
     local platform=linux lstage="$tmp/window"
     mkdir -p "$lstage"
     lrender() { timeout 60 "$player" --crash-dialog-render "$@" > /dev/null 2>&1 < /dev/null; }
-    lrender "$lstage/dark.png" --theme dark --scale 1.5 --sample gpu --details-open && png_check "dark, 150%, details" "$lstage/dark.png" 660 100C0A 191512 1D1A17 \
+    # The Gassy Moo left of the headline, as on Windows: 88 x 56 DIPs under the 32-DIP title bar.
+    lrender "$lstage/dark.png" --theme dark --scale 1.5 --sample gpu --details-open && png_check "dark, 150%, details" "$lstage/dark.png" 660 100C0A 191512 1D1A17 30,78,162,162 \
         || fail "linux crash window: dark render"
     lrender "$lstage/light.png" --theme light --scale 1.25 --sample managed --language zh --reported && png_check "light, 125%, Chinese" "$lstage/light.png" 550 F7F4ED FFFCF6 F7F4ED \
         || fail "linux crash window: light render"
@@ -291,6 +296,12 @@ linux_crash_window() {
     lrender "$lstage/zip.png" --zip "$lstage/crash.zip" --log "$lstage/zip-in/Player.log" --dump "$lstage/zip-in/crash-20261107-141502.dmp" \
         --url "$lstage/url.txt" --note "$(printf 'what I was doing %.0s' $(seq 600))" || fail "linux crash window: zip and link"
     zip_checks "$lstage" 'Crash: SIGSEGV (invalid memory access) in libnvidia-glcore.so.580.95.05' 'SIGSEGV (invalid memory access) in libnvidia-glcore.so.580.95.05'
+    # The page for a file Windows blocked lays out the same here (#135): the Gassy Moo, the README's link.
+    lrender "$lstage/blocked.png" --theme light --scale 1 --sample blocked --url "$lstage/blocked-url.txt" \
+        && png_check "blocked file, light" "$lstage/blocked.png" 440 F7F4ED FFFCF6 F7F4ED 20,52,108,108 || fail "linux crash window: blocked render"
+    local link; link=$(cat "$lstage/blocked-url.txt" 2> /dev/null) || true
+    [ "$link" = 'https://github.com/tigin-backwards/oni-moono#unsigned-releases' ] && pass "linux crash window: a blocked file's button opens the README, no issue" \
+        || fail "linux crash window: a blocked file's link: ${link:-none}"
     if ! command -v Xvfb > /dev/null; then echo "linux crash window live: skipped, no Xvfb"; return; fi
     local lane="${RUNQ_LANES%%,*}" display xpid gpid status=0 shown=no
     display=":$((300 + ${lane:-9}))"
@@ -320,7 +331,8 @@ linux_crash_window() {
 crash_window() {
     local exe="$stage/host/OniMoono.exe"
     render() { (cd /mnt/c && timeout 60 "$exe" --crash-dialog-render "$@" > /dev/null 2>&1) || return 1; }
-    render "$wstage\\dark.png" --theme dark --scale 1.5 --sample gpu --details-open && png_check "dark, 150%, details" "$stage/dark.png" 660 100C0A 191512 1D1A17 \
+    # The Gassy Moo left of the headline: 88 x 56 DIPs under the 32-DIP title bar.
+    render "$wstage\\dark.png" --theme dark --scale 1.5 --sample gpu --details-open && png_check "dark, 150%, details" "$stage/dark.png" 660 100C0A 191512 1D1A17 30,78,162,162 \
         || fail "windows crash window: dark render"
     render "$wstage\\light.png" --theme light --scale 1.25 --sample managed --language zh --reported && png_check "light, 125%, Chinese" "$stage/light.png" 550 F7F4ED FFFCF6 F7F4ED \
         || fail "windows crash window: light render"
@@ -332,6 +344,15 @@ crash_window() {
     render "$wstage\\zip.png" --zip "$wstage\\crash.zip" --log "$wstage\\zip-in\\Player.log" --dump "$wstage\\zip-in\\crash-20261107-141502.dmp" \
         --url "$wstage\\url.txt" --note "$(printf 'what I was doing %.0s' $(seq 600))" || fail "windows crash window: zip and link"
     zip_checks "$stage" 'Crash: 0xC0000005 (access violation) in nvoglv64.dll' '0xC0000005 (access violation) in nvoglv64.dll'
+    # A file Windows' application control blocked (#135): a different page, with the Gassy Moo, and its
+    # button the README's link, not an issue.
+    render "$wstage\\blocked.png" --theme light --scale 1 --sample blocked --url "$wstage\\blocked-url.txt" \
+        && png_check "blocked file, light" "$stage/blocked.png" 440 F7F4ED FFFCF6 F7F4ED 20,52,108,108 || fail "windows crash window: blocked render"
+    render "$wstage\\blocked-dark.png" --theme dark --scale 2 --sample blocked --details-open \
+        && png_check "blocked file, dark, 200%, details" "$stage/blocked-dark.png" 880 100C0A 191512 1D1A17 40,104,216,216 || fail "windows crash window: blocked dark render"
+    local link; link=$(cat "$stage/blocked-url.txt" 2> /dev/null) || true
+    [ "$link" = 'https://github.com/tigin-backwards/oni-moono#unsigned-releases' ] && pass "windows crash window: a blocked file's button opens the README, no issue" \
+        || fail "windows crash window: a blocked file's link: ${link:-none}"
 
 }
 
@@ -422,6 +443,10 @@ if [ "$which" != linux ]; then
             [ -z "$dump" ] && pass "windows earlier-fault: no dump" || fail "windows earlier-fault: a dump"; }
         run failfast && { expect "windows failfast: runtime text" "$log" 'native crash: runtime: Process terminated\.'
             expect "windows failfast: end" "$log" 'native crash: the process ended with 0x80131623'; dumped failfast none; }
+        # Windows' application control refusing a player assembly (#135): the runtime's text, and
+        # the record saying so plainly (the window shows its page for it: see crash_window).
+        run blocked && { expect "windows blocked: runtime text" "$log" 'native crash: runtime: Unhandled exception\. System\.IO\.FileLoadException: .*Brutal\.Vulkan\.dll.*\(0x800711C7\)'
+            expect "windows blocked: said plainly" "$log" 'native crash: Windows blocked Brutal\.Vulkan\.dll \(an application control policy'; }
         run managed-null && { expect "windows managed-null: caught" "$log" 'test native crash: the null reference was caught'
             refuse "windows managed-null: no crash line" "$log" '\[engine\] native crash:'; [ -z "$dump" ] && pass "windows managed-null: no dump" || fail "windows managed-null: a dump"; }
         # The watcher keeps the two newest dumps: three crashes in one run home after three old

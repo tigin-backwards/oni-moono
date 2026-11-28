@@ -27,6 +27,10 @@ const char *const cw_strings[2][S_COUNT] = {
         "Files: %s", ", ", "%llu h %llu min", "%llu min", "%llu s",
         "Attach this in the GitHub page (a copy is in Downloads)", "Show in folder", "Copy path", "Path copied \xE2\x9C\x93",
         "Saved to Downloads: attach it from Desktop Mode or another device",
+        "Windows blocked one of Moono\xE2\x80\x99s files",
+        "Smart App Control or another app control policy has blocked one of Moono\xE2\x80\x99s files. "
+        "You can turn Smart App Control off in Windows Security > App & browser control > Smart App Control.",
+        "Read more on GitHub",
     },
     {
         "游戏意外关闭", "显示详细信息", "隐藏详细信息", "你当时在做什么？（可选）",
@@ -35,11 +39,16 @@ const char *const cw_strings[2][S_COUNT] = {
         "文件：%s", "、", "%llu 小时 %llu 分钟", "%llu 分钟", "%llu 秒",
         "在 GitHub 页面中附上此文件（下载文件夹中也有一份）", "在文件夹中显示", "复制路径", "已复制路径 \xE2\x9C\x93",
         "已保存到下载文件夹：请在桌面模式或其他设备上附上它",
+        "Windows 阻止了 Moono 的一个文件",
+        "智能应用控制或其他应用控制策略阻止了 Moono 的一个文件。"
+        "你可以在“Windows 安全中心 > 应用和浏览器控制 > 智能应用控制”中将其关闭。",
+        "在 GitHub 上了解详情",
     },
 };
 
 const char *const cw_title = "OniMoono";
 const char *const cw_issue_base = "https://github.com/tigin-backwards/oni-moono/issues/new";
+const char *const cw_blocked_url = "https://github.com/tigin-backwards/oni-moono#unsigned-releases";
 
 /* ---- colours -------------------------------------------------------------------------------- */
 
@@ -254,11 +263,61 @@ static void append(char *out, size_t most, const char *text)
     out[n + k] = 0;
 }
 
+static char lower(char c) { return c >= 'A' && c <= 'Z' ? (char)(c + 32) : c; }
+
+/* Whether `text` starts with `word`, ignoring ASCII case. */
+static int starts_with(const char *text, const char *word)
+{
+    size_t i = 0;
+    while (word[i] && lower(text[i]) == lower(word[i])) i++;
+    return !word[i];
+}
+
+/* `word` in `text`, ignoring ASCII case; null when it is not there. */
+static const char *find_word(const char *text, const char *word)
+{
+    for (; *text; text++)
+        if (starts_with(text, word)) return text;
+    return NULL;
+}
+
+int cw_blocked_file(const char *error, char *file, size_t most)
+{
+    if (file && most) file[0] = 0;
+    const char *code = find_word(error, "0x800711C7");
+    if (!code) return 0;
+    /* The last ".dll" or ".exe" ending a word before the code, back to the path's last separator
+     * or the quote or bracket before it. */
+    const char *end = NULL;
+    for (const char *at = error; at + 4 <= code; at++)
+    {
+        char next = at[4];
+        int word_end = !((next >= 'a' && next <= 'z') || (next >= 'A' && next <= 'Z') || (next >= '0' && next <= '9') || next == '_');
+        if (word_end && (starts_with(at, ".dll") || starts_with(at, ".exe"))) end = at + 4;
+    }
+    if (end && file && most)
+    {
+        const char *start = end - 4;
+        while (start > error && !strchr("\\/'\"[( ", start[-1])) start--;
+        size_t n = (size_t)(end - start);
+        if (n >= most) n = most - 1;
+        memcpy(file, start, n);
+        file[n] = 0;
+    }
+    return 1;
+}
+
 void cw_details_text(const cw_report *r, const cw_system *sys, int language, char *out, size_t most)
 {
     const char *const *t = cw_strings[language];
     char part[512];
     out[0] = 0;
+    /* A blocked file's window shows what to do in place of the error: the error heads the details. */
+    if (r->error[0] && cw_blocked_file(r->error, NULL, 0))
+    {
+        append(out, most, r->error);
+        append(out, most, "\n");
+    }
     snprintf(part, sizeof part, "OniMoono %s", r->version[0] ? r->version : "?");
     append(out, most, part);
     if (r->game_build[0]) { snprintf(part, sizeof part, t[S_GAME_BUILD], r->game_build); append(out, most, part); }
@@ -299,10 +358,13 @@ void cw_prepare(const cw_report *r)
     cw.t = cw_strings[r->language == CW_CHINESE ? 1 : 0];
     if (r->error[0]) snprintf(cw.error, sizeof cw.error, "%s", r->error);
     else snprintf(cw.error, sizeof cw.error, cw.t[S_EXIT_CODE], (unsigned long)r->exit_code);
-    cw.can_include_dump = r->dump_path[0] && r->dump_size <= cw_dump_most;
+    cw.blocked = cw_blocked_file(cw.error, cw.blocked_file, sizeof cw.blocked_file);
+    cw.can_include_dump = !cw.blocked && r->dump_path[0] && r->dump_size <= cw_dump_most;
     cw.include_dump = cw.can_include_dump;
     if (!cw.chip_hint) cw.chip_hint = S_DRAG;
 }
+
+const char *cw_cause_text(void) { return cw.blocked ? cw.t[S_BLOCKED_TEXT] : cw.error; }
 
 /* ---- layout --------------------------------------------------------------------------------- */
 
@@ -321,7 +383,7 @@ void cw_release_layout(const cw_canvas *c)
 {
     cw_layout *l = &cw.lay;
     cw_text **all[] = { &l->t_head, &l->t_cause, &l->t_toggle, &l->t_details, &l->t_note, &l->t_check, &l->t_chip_name, &l->t_chip_hint,
-                        &l->t_zip, &l->t_folder, &l->t_copy, &l->t_close, &l->t_report, &l->t_caption };
+                        &l->t_zip, &l->t_folder, &l->t_copy, &l->t_close, &l->t_report, &l->t_caption, &l->t_file };
     for (size_t i = 0; i < sizeof all / sizeof all[0]; i++)
     {
         if (*all[i]) c->free_text(c->context, *all[i]);
@@ -329,31 +391,61 @@ void cw_release_layout(const cw_canvas *c)
     }
 }
 
-/* The approved mockup's measures (CSS px = DIPs): 440 wide, 20 of padding, 4 between the
- * headline and the error, 12 to the details and the check box, 16 around the note and the zip.
- * What holds text grows with the system's text size, and the window widens by half as much. */
-void cw_lay_out(const cw_canvas *c)
+static void lay_out_footer(const cw_canvas *c, float y, const char *primary);
+static void lay_out_details(const cw_canvas *c, float *y, float pad, float inner);
+
+/* The sad Gassy Moo left of the headline (88 x 56 DIPs, the picture's proportions), and where
+ * the text beside it starts and how wide it is. No picture (Linux): no column. */
+static void picture_column(const cw_canvas *c, float pad, float inner, float y, float *x, float *text_w)
 {
-    cw_release_layout(c);
+    float side = c->picture ? cw_dip(88) : 0, gap = c->picture ? cw_dip(16) : 0;
+    cw.lay.picture = c->picture ? cw_pixel_box(pad, y, pad + side, y + cw_dip(56)) : cw_pixel_box(0, 0, 0, 0);
+    *x = pad + side + gap;
+    *text_w = inner - side - gap;
+}
+
+/* Windows blocked a file (#135): the picture on the left as in the crash window; the headline, the file and what to do
+ * beside it; Show details under them; Close and the README's link. */
+static void lay_out_blocked(const cw_canvas *c)
+{
     cw_layout *l = &cw.lay;
     const char *const *t = cw.t;
-    float s = cw.scale;
-    l->line = maxf(1.0f, floorf(s));
-    l->width = (int)cw_snap(cw_dip(440 * (1 + (cw.text - 1) / 2)));
     float pad = cw_dip(20), inner = l->width - 2 * pad, y = cw_dip(20);
+    float x, text_w;
+    picture_column(c, pad, inner, y, &x, &text_w);
 
-    l->t_head = text_of(c, t[S_HEADLINE], CW_F_HEAD, inner, cw_tdip(16 * 1.3f), 1);
-    if (l->t_head) c->set_spacing(c->context, l->t_head, cw_tdip(-0.2f));   /* letter-spacing: -0.2px */
+    l->t_head = text_of(c, t[S_BLOCKED_HEADLINE], CW_F_HEAD, text_w, cw_tdip(16 * 1.3f), 1);
+    if (l->t_head) c->set_spacing(c->context, l->t_head, cw_tdip(-0.2f));
     float h = metrics(c, l->t_head).height;
-    l->head = cw_pixel_box(pad, y, pad + inner, y + h);
+    l->head = cw_pixel_box(x, y, x + text_w, y + h);
     y += h + cw_dip(4);
 
-    l->t_cause = text_of(c, cw.error, CW_F_BODY, inner, cw_tdip(13 * 1.45f), 1);
-    h = metrics(c, l->t_cause).height + cw.extra_cause;
-    l->cause = cw_pixel_box(pad, y, pad + inner, y + h);
-    y += h + cw_dip(12);
+    l->file = cw_pixel_box(0, 0, 0, 0);
+    if (cw.blocked_file[0])
+    {
+        l->t_file = text_of(c, cw.blocked_file, CW_F_MONO, text_w, cw_tdip(12 * 1.55f), 1);
+        h = metrics(c, l->t_file).height;
+        l->file = cw_pixel_box(x, y, x + text_w, y + h);
+        y += h;
+    }
+    y += cw_dip(10);
 
-    l->t_toggle = text_of(c, t[S_SHOW_DETAILS], CW_F_SMALL, inner, cw_tdip(18), 0);
+    l->t_cause = text_of(c, cw_cause_text(), CW_F_BODY, text_w, cw_tdip(13 * 1.45f), 1);
+    h = metrics(c, l->t_cause).height + cw.extra_cause;
+    l->cause = cw_pixel_box(x, y, x + text_w, y + h);
+    y = maxf(y + h, l->picture.b) + cw_dip(16);
+
+    lay_out_details(c, &y, pad, inner);
+    l->note = l->check = l->chip = l->links = l->folder = l->copy = cw_pixel_box(0, 0, 0, 0);
+    lay_out_footer(c, y + cw_dip(16), t[S_BLOCKED_LINK]);
+}
+
+/* Show details and, when open, the details, from `y` on. */
+static void lay_out_details(const cw_canvas *c, float *at, float pad, float inner)
+{
+    cw_layout *l = &cw.lay;
+    float y = *at, h;
+    l->t_toggle = text_of(c, cw.t[S_SHOW_DETAILS], CW_F_SMALL, inner, cw_tdip(18), 0);
     l->toggle = cw_pixel_box(pad, y, pad + cw_tdip(12) + metrics(c, l->t_toggle).width, y + cw_tdip(18));
     y += cw_tdip(18);
 
@@ -367,6 +459,37 @@ void cw_lay_out(const cw_canvas *c)
         y += h;
     }
     else l->details = cw_pixel_box(0, 0, 0, 0);
+    *at = y;
+}
+
+/* The approved mockup's measures (CSS px = DIPs): 440 wide, 20 of padding, 4 between the
+ * headline and the error, 12 to the details and the check box, 16 around the note and the zip.
+ * What holds text grows with the system's text size, and the window widens by half as much. */
+void cw_lay_out(const cw_canvas *c)
+{
+    cw_release_layout(c);
+    cw_layout *l = &cw.lay;
+    const char *const *t = cw.t;
+    float s = cw.scale;
+    l->line = maxf(1.0f, floorf(s));
+    l->width = (int)cw_snap(cw_dip(440 * (1 + (cw.text - 1) / 2)));
+    l->file = cw_pixel_box(0, 0, 0, 0);
+    if (cw.blocked) { lay_out_blocked(c); return; }
+    float pad = cw_dip(20), inner = l->width - 2 * pad, y = cw_dip(20), head_x, head_w;
+    picture_column(c, pad, inner, y, &head_x, &head_w);
+
+    l->t_head = text_of(c, t[S_HEADLINE], CW_F_HEAD, head_w, cw_tdip(16 * 1.3f), 1);
+    if (l->t_head) c->set_spacing(c->context, l->t_head, cw_tdip(-0.2f));   /* letter-spacing: -0.2px */
+    float h = metrics(c, l->t_head).height;
+    l->head = cw_pixel_box(head_x, y, head_x + head_w, y + h);
+    y += h + cw_dip(4);
+
+    l->t_cause = text_of(c, cw.error, CW_F_BODY, head_w, cw_tdip(13 * 1.45f), 1);
+    h = metrics(c, l->t_cause).height + cw.extra_cause;
+    l->cause = cw_pixel_box(head_x, y, head_x + head_w, y + h);
+    y = maxf(y + h, l->picture.b) + cw_dip(12);
+
+    lay_out_details(c, &y, pad, inner);
 
     y += cw_dip(16);
     l->t_note = text_of(c, t[S_NOTE], CW_F_BODY, inner - 2 * cw_dip(10) - 2 * l->line, cw_tdip(13 * 1.5f), 1);
@@ -417,14 +540,22 @@ void cw_lay_out(const cw_canvas *c)
     }
     else l->chip = cw_pixel_box(0, 0, 0, 0);
 
-    y += cw_dip(16);
+    lay_out_footer(c, y + cw_dip(16), cw.reported ? t[S_REPORTED] : t[S_REPORT]);
+}
+
+/* The footer from `y` down (the window's height), its buttons, and the title bar's text. */
+static void lay_out_footer(const cw_canvas *c, float y, const char *primary)
+{
+    cw_layout *l = &cw.lay;
+    const char *const *t = cw.t;
+    float pad = cw_dip(20);
     float top = cw_snap(y);
     l->footer = cw_pixel_box(0, top, (float)l->width, top + l->line + cw_dip(24) + cw_tdip(30));
     l->height = (int)l->footer.b;
 
     /* The site's order: Close (outlined), then Report on GitHub (filled), on the right. */
     l->t_close = text_of(c, t[S_CLOSE], CW_F_BUTTON, 10000, cw_tdip(12.5f * 1.5f), 0);
-    l->t_report = text_of(c, cw.reported ? t[S_REPORTED] : t[S_REPORT], CW_F_BUTTON, 10000, cw_tdip(12.5f * 1.5f), 0);
+    l->t_report = text_of(c, primary, CW_F_BUTTON, 10000, cw_tdip(12.5f * 1.5f), 0);
     float bt = l->footer.t + l->line + cw_dip(12), bb = bt + cw_tdip(30);
     float report_w = 2 * l->line + cw_dip(24) + (cw.reported ? 0 : cw_tdip(15) + cw_dip(6)) + metrics(c, l->t_report).width;
     float close_w = 2 * l->line + cw_dip(24) + metrics(c, l->t_close).width;
@@ -557,6 +688,8 @@ void cw_draw(const cw_canvas *c, const cw_look *look, float offset)
     fill(c, all, p->bg);
 
     draw_text(c, l->t_head, l->head.l, l->head.t, p->fg);
+    if (c->picture) c->picture(c->context, l->picture);
+    if (cw.blocked) draw_text(c, l->t_file, l->file.l, l->file.t, p->fg);
     draw_text(c, l->t_cause, l->cause.l, l->cause.t, p->fg2);
     overlay(c, C_CAUSE, l->cause);
     if (look->focus[C_CAUSE] && look->cues) cw_focus_ring(c, l->cause, cw_dip(4));
@@ -576,17 +709,20 @@ void cw_draw(const cw_canvas *c, const cw_look *look, float offset)
     }
 
     /* The note box: Windows' edit control sits inside it in the window; here, its placeholder. */
-    c->fill_round(c->context, l->note, cw_dip(8), p->panel);
-    if (look->focus[C_NOTE])
+    if (!cw.blocked)
     {
-        cw_box ring = { l->note.l - l->line, l->note.t - l->line, l->note.r + l->line, l->note.b + l->line };
-        stroke_round(c, ring, cw_dip(8) + l->line, 2 * l->line, p->ring, 0);   /* focus:ring-1 ring-ring, with the border */
+        c->fill_round(c->context, l->note, cw_dip(8), p->panel);
+        if (look->focus[C_NOTE])
+        {
+            cw_box ring = { l->note.l - l->line, l->note.t - l->line, l->note.r + l->line, l->note.b + l->line };
+            stroke_round(c, ring, cw_dip(8) + l->line, 2 * l->line, p->ring, 0);   /* focus:ring-1 ring-ring, with the border */
+        }
+        else stroke_round(c, l->note, cw_dip(8), l->line, p->border, 0);
+        if (look->note_empty) draw_text(c, l->t_note, l->note.l + l->line + cw_dip(10), l->note.t + l->line + cw_dip(8), p->mut);
+        overlay(c, C_NOTE, l->note);
     }
-    else stroke_round(c, l->note, cw_dip(8), l->line, p->border, 0);
-    if (look->note_empty) draw_text(c, l->t_note, l->note.l + l->line + cw_dip(10), l->note.t + l->line + cw_dip(8), p->mut);
-    overlay(c, C_NOTE, l->note);
 
-    if (cw.report.dump_path[0])
+    if (cw.report.dump_path[0] && !cw.blocked)
     {
         int disabled = !cw.can_include_dump;
         draw_check_box(c, l->check.l, l->check.t + cw_tdip(9), look->checked, look->hot[C_CHECK], disabled);
@@ -1025,6 +1161,11 @@ int cw_render_args(int argc, char **argv, int windows, cw_render_options *o, cw_
     }
     else if (strcmp(sample, "managed") == 0)
         snprintf(r->error, sizeof r->error, "System.NullReferenceException in BetterInfoCards.InfoCardWidgets.Update: Object reference not set to an instance of an object.");
+    else if (strcmp(sample, "blocked") == 0)
+        /* #135's: Smart App Control refused a player assembly the JIT loads */
+        snprintf(r->error, sizeof r->error, "System.IO.FileLoadException in OniMoono.Host.Player.Run: Could not load file or assembly '%s'. "
+                 "An Application Control policy has blocked this file. (0x800711C7)",
+                 windows ? "C:\\Users\\Player\\AppData\\Local\\oni-moono\\player\\Brutal.Vulkan.dll" : "/home/player/.local/share/oni-moono/player/Brutal.Vulkan.dll");
     else if (strcmp(sample, "fastfail") == 0)
         snprintf(r->error, sizeof r->error, windows ? "0xC0000409 (fast fail)" : "SIGABRT (abort): free(): double free detected in tcache 2");
     else return 0;

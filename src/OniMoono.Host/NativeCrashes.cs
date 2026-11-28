@@ -157,7 +157,9 @@ namespace OniMoono.Host
         /// (`fastfail-reported` with Windows Error Reporting on, as in play), `earlier-fault` a
         /// stack overflow a native thread handles, then TerminateProcess with 0xC0000005,
         /// `failfast` is Environment.FailFast; `managed-null` is a null reference the runtime turns
-        /// into a NullReferenceException that is caught, and the run goes on. On Linux `main` and
+        /// into a NullReferenceException that is caught, and the run goes on; `blocked` is the
+        /// FileLoadException .NET throws when Windows' application control (Smart App Control)
+        /// refuses a player assembly (#135), uncaught, as the crash window tells apart. On Linux `main` and
         /// `worker` fault in libc (strlen of address 1), `heap` is a double free glibc finds, and
         /// `exit` (_exit(3) in native code) and `kill9` (SIGKILL) are Linux's; `fastfail`, `gs` and
         /// `terminate` are Windows'.
@@ -176,6 +178,9 @@ namespace OniMoono.Host
                 case "failfast":
                     Environment.FailFast("test native crash");
                     return;
+                case "blocked":
+                    throw new System.IO.FileLoadException($"Could not load file or assembly '{System.IO.Path.Combine(AppContext.BaseDirectory, "Brutal.Vulkan.dll")}'. "
+                        + "An Application Control policy has blocked this file. (0x800711C7)");
                 case "main":
                     Fault("access-violation");
                     return;

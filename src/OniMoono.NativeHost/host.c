@@ -30,6 +30,7 @@ which `--crash-dialog-render` also draws to a PNG without showing it. A self-con
 #include "hostfxr.h"
 #include "crash.h"
 #include "crash_dialog.h"
+#include "crash_window.h"
 
 /* NVIDIA Optimus and AMD PowerXpress: nonzero asks for the high-performance GPU, as the original
  * game's exe exports them. Nothing changes them at run time (GpuChoice). */
@@ -71,10 +72,43 @@ static void write_utf8(HANDLE file, const wchar_t *text)
     if (length > 1) WriteFile(file, buffer, (DWORD)(length - 1), &written, NULL);
 }
 
+/* Windows' application control (Smart App Control) refused a file the host loads: LoadLibrary's
+ * ERROR_SYSTEM_INTEGRITY_POLICY_VIOLATION (4551), or HRESULT 0x800711C7 in hostfxr's reasons
+ * (#135). Then the crash window's page for a blocked file, not a message box; 0 when it was
+ * something else. */
+static int show_blocked(int status, const wchar_t *what, const wchar_t *detail, const wchar_t *log)
+{
+    static crash_report_t r;
+    static char utf8[4096];
+    const wchar_t *code = wcsstr(hostfxr_messages, L"0x800711C7");
+    if (status == 4551 || (unsigned)status == 0x800711C7u)
+        swprintf_s(r.error, _countof(r.error), L"%ls%ls%ls (0x800711C7)", what, detail ? L": " : L"", detail ? detail : L"");
+    else if (code)
+    {
+        /* hostfxr's line that names it: "Failed to load the dll from [PATH], HRESULT: 0x800711C7" */
+        const wchar_t *start = code, *end = code;
+        while (start > hostfxr_messages && start[-1] != L'\n') start--;
+        while (*end && *end != L'\r' && *end != L'\n') end++;
+        wcsncpy_s(r.error, _countof(r.error), start, (size_t)(end - start) < _countof(r.error) ? (size_t)(end - start) : _TRUNCATE);
+    }
+    else return 0;
+    WideCharToMultiByte(CP_UTF8, 0, r.error, -1, utf8, sizeof utf8, NULL, NULL);
+    if (!cw_blocked_file(utf8, NULL, 0)) return 0;
+    r.language = crash_language(NULL);
+    r.exit_code = (DWORD)status;
+    r.mods = -1;
+    r.play_seconds = ~0ull;
+    if (log) wcsncpy_s(r.log_path, _countof(r.log_path), log, _TRUNCATE);
+    GetLocalTime(&r.crashed);
+    r.activate = 1;
+    crash_dialog_show(&r);
+    return 1;
+}
+
 /* The failure, where it is seen: stderr when the parent redirected it (scripts and test runs,
  * whose run homes keep the user's own files out of reach); otherwise, as Steam or Explorer
- * start it, a message box and a line appended to the game's Player.log (the player keeps that
- * as Player-prev.log on its next start). */
+ * start it, a message box (the crash window for a file Windows blocked) and a line appended to
+ * the game's Player.log (the player keeps that as Player-prev.log on its next start). */
 static int fail(int status, const wchar_t *what, const wchar_t *detail)
 {
     wchar_t message[8192];
@@ -110,9 +144,9 @@ static int fail(int status, const wchar_t *what, const wchar_t *detail)
         return status != 0 ? status : 1;
     }
     PWSTR low = NULL;
+    static wchar_t log[MAX_PATH * 2];
     if (SUCCEEDED(SHGetKnownFolderPath(&FOLDERID_LocalAppDataLow, 0, NULL, &low)))
     {
-        wchar_t log[MAX_PATH * 2];
         swprintf_s(log, _countof(log), L"%ls\\Klei\\Oxygen Not Included\\Player.log", low);
         HANDLE file = CreateFileW(log, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
         if (file != INVALID_HANDLE_VALUE)
@@ -123,7 +157,7 @@ static int fail(int status, const wchar_t *what, const wchar_t *detail)
         CoTaskMemFree(low);
     }
 
-    MessageBoxW(NULL, message, L"Moono", MB_OK | MB_ICONERROR);
+    if (!show_blocked(status, what, detail, log[0] ? log : NULL)) MessageBoxW(NULL, message, L"Moono", MB_OK | MB_ICONERROR);
     return status != 0 ? status : 1;
 }
 

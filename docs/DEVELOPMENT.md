@@ -175,7 +175,8 @@ scripts/run-windows.sh         # from WSL: a test run on the Windows install
   (ARCHITECTURE §7, "Native crashes"). It runs on Linux, and on Windows with `out/win/host`, in
   run homes under `%TEMP%`, before any window opens (`ONI_WIN_GAME_DIR` names the game, as for
   `run-windows.sh`). On Windows it also checks the crash window offscreen
-  (`--crash-dialog-render` PNGs, its zip and issue link) and that no crash case leaves one open.
+  (`--crash-dialog-render` PNGs, its zip and issue link, the page for a file Windows blocked)
+  and that no crash case leaves one open.
 - **Restart check.** `scripts/check-restart.sh linux|windows` (not in `check.sh`: it starts the
   game four times) calls the game's `App.Restart` in a temporary versioned install and in a
   player folder made from the build output, and checks that the Restarter started the entry

@@ -99,7 +99,7 @@ else
         native=$(mktemp -d)
         cp "$here/src/OniMoono.NativeHost/"*.c "$here/src/OniMoono.NativeHost/"*.h "$here/src/OniMoono.NativeHost/fonts_linux.S" \
            "$here/src/OniMoono.NativeHost/exports_linux.list" "$here/src/OniMoono.NativeHost/build-linux.sh" \
-           "$here/src/OniMoono.NativeHost/fonts/"*.ttf "$here/src/OniMoono.Host/Moo.ico" "$native/"
+           "$here/src/OniMoono.NativeHost/fonts/"*.ttf "$here/src/OniMoono.NativeHost/crash-moo.png" "$here/src/OniMoono.Host/Moo.ico" "$native/"
         if output=$(cd "$native" && CC=cc sh ./build-linux.sh 2>&1); then
             cp "$native/OniMoono" "$player/OniMoono"
         else

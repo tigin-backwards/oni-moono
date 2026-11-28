@@ -43,6 +43,7 @@
 #include "crash.h"
 #include "crash_common.h"
 #include "crash_dialog.h"
+#include "crash_window.h"
 
 #define TEXT_MOST 12288
 #define RUNTIME_TEXT_MOST CRASH_RUNTIME_TEXT_MOST
@@ -1234,7 +1235,7 @@ static void error_line(DWORD code, int used_fault, wchar_t *out, size_t most)
 static void show_dialog(DWORD code, int used_fault, const RECT *monitor, int activate)
 {
     static crash_report_t r;
-    r.language = _wcsnicmp(shared->language, L"zh", 2) == 0 ? CRASH_CHINESE : CRASH_ENGLISH;
+    r.language = crash_language(shared->language);
     error_line(code, used_fault, r.error, _countof(r.error));
     r.exit_code = code;
     wcscpy_s(r.version, _countof(r.version), shared->version);
@@ -1374,6 +1375,17 @@ int crash_watch(int argc, wchar_t **argv)
                 : code < 0x10000 ? " without the player's own exit (ExitProcess or TerminateProcess from native code, or from outside)"
                 : is_fault(code) ? "; no handler saw it" : "");
     put(&o, "\r\n");
+    {
+        /* Windows' application control refused a file (#135): said plainly, as the window does. */
+        static char managed[1600], file[260];
+        crash_out m = { managed, 0, (uint32_t)sizeof managed };
+        if (crash_managed_error(&runtime, &m) && cw_blocked_file(managed, file, sizeof file))
+        {
+            put(&o, "[engine] native crash: Windows blocked ");
+            put(&o, file[0] ? file : "a file");
+            put(&o, " (an application control policy, such as Smart App Control, blocks unsigned files)\r\n");
+        }
+    }
     if (dump_path[0])
     {
         put(&o, "[engine] native crash dump: ");

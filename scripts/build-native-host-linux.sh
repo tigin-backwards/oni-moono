@@ -12,7 +12,7 @@ image="registry.gitlab.steamos.cloud/steamrt/sniper/sdk@sha256:bb30053d3cd19d35c
 src="$root/src/OniMoono.NativeHost"
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
-cp "$src/"*.c "$src/"*.h "$src/fonts_linux.S" "$src/exports_linux.list" "$src/build-linux.sh" "$src/fonts/"*.ttf \
+cp "$src/"*.c "$src/"*.h "$src/fonts_linux.S" "$src/exports_linux.list" "$src/build-linux.sh" "$src/fonts/"*.ttf "$src/crash-moo.png" \
    "$root/src/OniMoono.Host/Moo.ico" "$stage/"
 if [ -z "${CC:-}" ] && command -v docker > /dev/null; then
     docker run --rm --network none --user "$(id -u):$(id -g)" -v "$stage:/build" -w /build -e SDL_CHECK=1 "$image" sh ./build-linux.sh

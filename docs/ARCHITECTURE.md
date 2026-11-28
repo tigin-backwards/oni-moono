@@ -168,9 +168,9 @@ C only), so a crash in native code can be recorded and shown (§7, "Native crash
   `/lib64/ld-linux-x86-64.so.2`, newest glibc symbol version at most 2.31 (2.27 now), only libc's
   own libraries needed, no RPATH or RUNPATH, no C++ runtime or libgcc_s, immediate binding, a
   non-executable stack, and exactly the exports the player looks up.
-- **Size.** About 480 KB, 300 KB of it the crash window's fonts and icon. SDL 3 and SDL3_ttf
-  (BRUTAL's `Ahwoo.BRUTAL.Sdl.Native` and `Sdl.Ttf.Native`, 4.2 and 2.4 MB) go beside it, loaded
-  only by the crash window.
+- **Size.** About 510 KB, 330 KB of it the crash window's fonts, icon and picture. SDL 3 and
+  SDL3_ttf (BRUTAL's `Ahwoo.BRUTAL.Sdl.Native` and `Sdl.Ttf.Native`, 4.2 and 2.4 MB) go beside
+  it, loaded only by the crash window.
 
 **The GPU option** (`GpuChoice`; Moono Tweaks' "Graphics card", settings.json `"gpu"`, `--gpu
 default|discrete|integrated`) is applied in `Program.Main` before the window opens, so before
@@ -4394,6 +4394,7 @@ with .NET 10 (`--test-native-crash`):
 | `TerminateProcess` by another module | nothing | the exit code alone |
 | A fault noted at first chance (a native stack overflow its thread handles), then an end with another code that no handler saw: a second fault on a thread with no stack left to run handlers on, or `TerminateProcess` (#117) | our vectored handler, for the first fault only | the first fault's line and stack as an earlier fault, with how long before the end it was; then as when nothing saw the end (Windows Error Reporting's record, if it has one; the exit code with `; no handler saw it`); no dump, as nothing asked for one before the process was gone (`--test-native-crash earlier-fault`) |
 | `Environment.FailFast`; a stack overflow on a managed thread (in managed code or native code it called) | the runtime's text (`Process terminated.`, `Stack overflow.`), which it handles first | that text with the managed stack, the exit code, a dump |
+| A file Windows' application control refuses (Smart App Control, #135): .NET's FileLoadException for a player assembly, uncaught | the runtime's text (`Unhandled exception.`) | that text, `Windows blocked NAME (...)`, the exit code; the crash window's page for a blocked file (`--test-native-crash blocked`) |
 | A managed null reference, caught or not; the mods' stack probes | the runtime's vectored handler, which is first, handles it | nothing (the managed exception is logged as before) |
 
 NVIDIA's OpenGL driver ends a process it cannot go on with (a TDR, more GPU memory asked for than
@@ -4563,6 +4564,10 @@ launcher sets it up before the runtime starts, through `DOTNET_DbgEnableMiniDump
 crash record it shows a window, the onimaxxing site's dialog in its light or dark palette. It
 has:
 
+- A sad Gassy Moo left of the heading: the game's `gassy_moo` kanim, `death` frame 24, as a PNG
+  in the exe's resources (`crash-moo.png`, resource 105), scaled by WIC (Fant) into an 88 x 56
+  DIP box (on Linux SDL's PNG loader, as for the icon, and its scaling). The heading and the
+  error line wrap beside it.
 - The heading "The game closed unexpectedly".
 - The error line taken from the record: the fault's code, its name and module, as
   `0xC0000005 (access violation) in nvoglv64.dll`, a fast fail's module from Windows Error
@@ -4590,10 +4595,38 @@ Reporting:
 
 Nothing is sent by the window: the player submits the issue, or not.
 
+**A file Windows blocked** (#135). An error line that holds HRESULT 0x800711C7
+(ERROR_SYSTEM_INTEGRITY_POLICY_VIOLATION, 4551) means Windows' application control refused one of
+Moono's unsigned files: Smart App Control on a consumer machine, or another app control policy.
+That isn't a bug, so the window shows a different page in place of the report:
+
+- The Gassy Moo, as in the crash window.
+- The heading "Windows blocked one of Moono's files" and the file's name: the last `.dll` or
+  `.exe` the error names before the code.
+- What happened and what to do: "Smart App Control or another app control policy has blocked
+  one of Moono's files. You can turn Smart App Control off in Windows Security > App & browser
+  control > Smart App Control."
+- **Show details**, with the error line first.
+- **Close** and **Read more on GitHub**, which opens the README's "Unsigned releases" section. No
+  note, dump, zip or issue.
+
+`cw_blocked_file` tells it apart from the error line alone, once the game has crashed: nothing is
+checked on a normal start. The code reaches it three ways:
+
+- .NET's FileLoadException, BadImageFormatException or DllNotFoundException for a player
+  assembly or native library, uncaught (the runtime's `Unhandled exception.` line, as any
+  managed error line). The record then adds `[engine] native crash: Windows blocked NAME (...)`.
+- hostfxr's reasons, when the runtime's files are refused.
+- The host's LoadLibrary or CreateProcess failing with 4551. The host then shows this page in
+  place of its message box.
+
+Linux lays the page out the same way.
+
 Where the details come from: the game gives the watcher what only it knows through
 `moono_crash_describe` (`NativeCrashes.Describe`): its release, its window (the crash window opens
 centred on that monitor), the GPU's renderer string, and from the main menu the game's build, its
-language (English, or Simplified Chinese for `zh`) and the mods' count. The watcher adds Windows'
+language (English, or Simplified Chinese for `zh`; before the main menu, Windows' display language or
+the Linux locale) and the mods' count. The watcher adds Windows'
 version, the driver version (DXGI) and the memory itself; on Linux the distribution (the host's
 `os-release`, inside Steam's container too) and the kernel, NVIDIA's driver version from its
 kernel module, and the memory.
@@ -4641,11 +4674,11 @@ When it shows:
   ran out of memory). Test players (`run.sh`, e2e) set `ONI_MOONO_CRASH_DIALOG=off`.
 
 `OniMoono.exe --crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--text-size T]
-[--sample gpu|managed|fastfail] [--language zh] [--details-open] [--reported]` draws it to a PNG from sample
+[--sample gpu|managed|fastfail|blocked] [--language zh] [--details-open] [--reported]` draws it to a PNG from sample
 facts, with a drawn title bar, showing nothing (on Linux `OniMoono --crash-dialog-render`, the
-same, its samples' errors and paths Linux's; its title bar in Gabarito, as Segoe UI is Windows'). `check-native-crash.sh` checks such renders, the
-zip (with Python's `zipfile`) and the issue link, and that no crash case leaves a watcher
-running.
+same, its samples' errors and paths Linux's; its title bar in Gabarito, as Segoe UI is Windows'). `check-native-crash.sh` checks such renders (on Windows the blocked file's page too, with its
+README link), the zip (with Python's `zipfile`) and the issue link, and that no
+crash case leaves a watcher running.
 
 **The Linux crash window.** The watcher starts itself again in place as
 `OniMoono --crash-window FD` with the report in a memfd: a fresh image, no game libraries,

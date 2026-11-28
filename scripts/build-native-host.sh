@@ -29,7 +29,7 @@ rm -rf "$stage"; mkdir -p "$stage"
 trap 'rm -rf "$stage"' EXIT
 cp "$root/src/OniMoono.NativeHost/"{host.c,crash.c,crash.h,crash_common.c,crash_common.h,crash_window.c,crash_window.h,crash_dialog.cpp,crash_dialog.h,dxbc_check.cpp,host.rc,OniMoono.exe.manifest,crash_dialog.manifest,build.cmd} \
    "$root/src/ThirdParty/DirectX-Headers/D3D12TokenizedProgramFormat.hpp" \
-   "$root/src/OniMoono.NativeHost/fonts/"*.ttf "$root/src/OniMoono.Host/Moo.ico" \
+   "$root/src/OniMoono.NativeHost/fonts/"*.ttf "$root/src/OniMoono.NativeHost/crash-moo.png" "$root/src/OniMoono.Host/Moo.ico" \
    "$pack/"{nethost.h,hostfxr.h,libnethost.lib} "$stage/"
 # The check of the player's COM and DLL declarations against the SDK headers (scripts/com-check.sh),
 # which build.cmd compiles first: a difference fails the build.
