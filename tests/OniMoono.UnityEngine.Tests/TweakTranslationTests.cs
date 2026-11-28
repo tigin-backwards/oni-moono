@@ -141,10 +141,11 @@ namespace OniMoono.Tests
 
         /// The translations that cover the whole catalog: a string added to TweakStrings (a new
         /// row's title, one-liner, tooltip, gain or choices, a new label) needs its translation in
-        /// each of these before it lands: the game's own languages, Simplified Chinese, Korean
-        /// and Russian. moono-tweaks-search-zh.yaml counts on it: it expects every row of the
-        /// screen in Chinese.
-        static readonly string[] Complete = ["zh", "ko", "ru"];
+        /// each of these before it lands: the game's own languages (Simplified Chinese, Korean,
+        /// Russian) and the most-used translation mods' (German, Brazilian Portuguese, Japanese,
+        /// French, Spanish). moono-tweaks-search-zh.yaml counts on it: it expects every row of
+        /// the screen in Chinese.
+        static readonly string[] Complete = ["zh", "ko", "ru", "de", "pt", "ja", "fr", "es"];
 
         [Fact]
         public void CompleteTranslationsCoverTheCatalog()

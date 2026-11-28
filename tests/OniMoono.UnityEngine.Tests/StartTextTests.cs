@@ -107,10 +107,14 @@ namespace OniMoono.Tests
             Assert.Null(choice.Strings);
             Assert.Equal("", PlayerLanguage.Choose(folder, CultureInfo.InvariantCulture, Translations()).Code);
             // A language with no translation is English, string by string.
-            var german = PlayerLanguage.Choose(folder, CultureInfo.GetCultureInfo("de-DE"), Translations());
-            Assert.Equal("de-de", german.Code);
-            Assert.Null(german.Strings);
-            Assert.Contains("no translation", german.Why);
+            var italian = PlayerLanguage.Choose(folder, CultureInfo.GetCultureInfo("it-IT"), Translations());
+            Assert.Equal("it-it", italian.Code);
+            Assert.Null(italian.Strings);
+            Assert.Contains("no translation", italian.Why);
+            // A translation for the language's part: pt_BR and pt-PT are pt.po.
+            var brazilian = PlayerLanguage.Choose(folder, CultureInfo.GetCultureInfo("pt-BR"), Translations());
+            Assert.Equal(Path.Combine(Translations(), "pt.po"), brazilian.PoPath);
+            Assert.NotNull(brazilian.Strings);
         }
 
         [Fact]

@@ -466,11 +466,12 @@ IDWriteFontCollection *load_fonts()
 }
 
 const wchar_t *sans() { return g.fonts ? L"Gabarito" : L"Segoe UI"; }
-/* The text's locale, which DirectWrite's fallback picks its fonts for what ours lack by: CJK and
- * Hangul (Microsoft YaHei, Malgun Gothic), Cyrillic (Segoe UI; Gabarito has Latin only). */
+/* The text's locale, which DirectWrite's fallback picks its fonts for what ours lack by: CJK with
+ * the language's glyph forms, Hangul and kana (Microsoft YaHei, Malgun Gothic, Yu Gothic),
+ * Cyrillic (Segoe UI; Gabarito has Latin only). */
 const wchar_t *locale()
 {
-    static const wchar_t *const locales[CW_LANGUAGES] = { L"en-us", L"zh-cn", L"ko-kr", L"ru-ru" };
+    static const wchar_t *const locales[CW_LANGUAGES] = { L"en-us", L"zh-cn", L"ko-kr", L"ru-ru", L"de-de", L"pt-br", L"ja-jp", L"fr-fr", L"es-es" };
     return locales[cw.report.language];
 }
 const wchar_t *mono() { return g.fonts ? L"Red Hat Mono" : L"Consolas"; }
@@ -772,6 +773,7 @@ void make_note_font()
     if (g.cause_font) DeleteObject(g.cause_font);
     if (g.mono_font) DeleteObject(g.mono_font);
     const wchar_t *face = cw.report.language == CW_CHINESE ? L"Microsoft YaHei UI" : cw.report.language == CW_KOREAN ? L"Malgun Gothic"
+                        : cw.report.language == CW_JAPANESE ? L"Yu Gothic UI"
                         : cw.report.language == CW_RUSSIAN || !g.gdi_font ? L"Segoe UI" : L"Gabarito";
     g.note_font = gdi_font(face, tdip(13));
     g.cause_font = gdi_font(g.gdi_font ? L"Gabarito" : L"Segoe UI", tdip(13));

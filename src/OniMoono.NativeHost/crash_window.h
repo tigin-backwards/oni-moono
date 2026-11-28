@@ -15,8 +15,9 @@
 extern "C" {
 #endif
 
-/* The window's languages: English and the game's own others (Localization.PreinstalledLanguages). */
-enum { CW_ENGLISH, CW_CHINESE, CW_KOREAN, CW_RUSSIAN, CW_LANGUAGES };
+/* The window's languages: English, the game's own others (Localization.PreinstalledLanguages),
+ * then those of the most-used translation mods (Brazilian Portuguese for any Portuguese). */
+enum { CW_ENGLISH, CW_CHINESE, CW_KOREAN, CW_RUSSIAN, CW_GERMAN, CW_PORTUGUESE, CW_JAPANESE, CW_FRENCH, CW_SPANISH, CW_LANGUAGES };
 
 /* The language for a language code: the game's ("zh", "ko_klei", ...) or a locale's ("ru_RU.UTF-8"),
  * by its first two letters; English for any other. */
@@ -53,8 +54,7 @@ enum
     S_COUNT
 };
 
-/* Every string the window shows, in each language (the game's): English, Simplified Chinese,
- * Korean and Russian. */
+/* Every string the window shows, in each language (the game's). */
 extern const char *const cw_strings[CW_LANGUAGES][S_COUNT];
 extern const char *const cw_title;
 extern const char *const cw_issue_base;
@@ -258,7 +258,7 @@ typedef struct
 } cw_render_options;
 
 /* `--crash-dialog-render OUT.png [--theme light|dark] [--scale S] [--sample gpu|managed|fastfail|blocked]
- * [--language en|zh|ko|ru] [--text-size 1-2.25] [--details-open] [--reported] [--zip OUT.zip --log FILE
+ * [--language en|zh|ko|ru|de|pt|ja|fr|es] [--text-size 1-2.25] [--details-open] [--reported] [--zip OUT.zip --log FILE
  * [--dump FILE]] [--url OUT.txt --note TEXT]` (UTF-8 arguments): the options and the sample
  * report (paths as `windows`' or Linux's), 0 when they are wrong. */
 int cw_render_args(int argc, char **argv, int windows, cw_render_options *o, cw_report *r);

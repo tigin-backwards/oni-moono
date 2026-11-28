@@ -71,7 +71,7 @@ check=$($py -I "$root/scripts/check-windows-host.py" "$win/player/OniMoono.exe")
 # packages', which need an MSVCP140.dll of 14.40 or later (#126).
 "$root/scripts/build-native-libs.sh" "$win/player"
 $py -I "$root/scripts/check-windows-natives.py" "$win/player"
-for po in zh ko ru; do [ -f "$win/player/translations/$po.po" ] || { echo "$win/player/translations/$po.po missing"; exit 1; }; done
+for po in zh ko ru de pt ja fr es; do [ -f "$win/player/translations/$po.po" ] || { echo "$win/player/translations/$po.po missing"; exit 1; }; done
 manifest "$win" "$out/oni-moono-$version-windows-x64.SHA256SUMS"
 # zip for Windows (the archive's paths with /, as from WSL); tar.gz for Linux, which keeps the
 # executable bits.
@@ -100,7 +100,7 @@ rm -f "$lin/player/"FacadeGen*
 "$root/scripts/build-native-host-linux.sh" "$lin/player/OniMoono"
 chmod +x "$lin/setup.sh" "$lin/oni-moono.desktop" "$lin/player/OniMoono" "$lin/player/Restarter"
 # The Moono Tweaks screen's translations (translations/*.po from the build).
-for po in zh ko ru; do [ -f "$lin/player/translations/$po.po" ] || { echo "$lin/player/translations/$po.po missing"; exit 1; }; done
+for po in zh ko ru de pt ja fr es; do [ -f "$lin/player/translations/$po.po" ] || { echo "$lin/player/translations/$po.po missing"; exit 1; }; done
 manifest "$lin" "$out/oni-moono-$version-linux-x64.SHA256SUMS"
 tar -C "$out/linux" -czf "$out/oni-moono-$version-linux-x64.tar.gz" oni-moono
 $py -I "$root/scripts/check-linux-archive.py" "$out/oni-moono-$version-linux-x64.tar.gz"

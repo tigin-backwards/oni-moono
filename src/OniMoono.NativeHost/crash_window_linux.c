@@ -179,8 +179,9 @@ static int find_fallbacks(void)
     find_font("sans-serif:charset=2713", 0x2713, 0x00B7, fallback_path[FALLBACK_SYMBOLS], PATH_MAX);
     int cyrillic = find_font("sans-serif:lang=ru", 0x0418, 0x0436, fallback_path[FALLBACK_CYRILLIC], PATH_MAX);   /* Иж */
     int cjk = language == CW_KOREAN ? find_font("sans-serif:lang=ko", 0xAC8C, 0xC784, fallback_path[FALLBACK_CJK], PATH_MAX)   /* 게임 */
+            : language == CW_JAPANESE ? find_font("sans-serif:lang=ja", 0x30B2, 0x7D42, fallback_path[FALLBACK_CJK], PATH_MAX)   /* ゲ終 */
             : find_font("sans-serif:lang=zh-cn", 0x6E38, 0x620F, fallback_path[FALLBACK_CJK], PATH_MAX);   /* 游戏 */
-    return language == CW_RUSSIAN ? cyrillic : language == CW_CHINESE || language == CW_KOREAN ? cjk : 1;
+    return language == CW_RUSSIAN ? cyrillic : language == CW_CHINESE || language == CW_KOREAN || language == CW_JAPANESE ? cjk : 1;
 }
 
 /* The text's language for shaping (the CJK fonts' glyph forms). */
@@ -191,6 +192,7 @@ static const char *font_language(void)
     case CW_CHINESE: return "zh-hans";
     case CW_KOREAN: return "ko";
     case CW_RUSSIAN: return "ru";
+    case CW_JAPANESE: return "ja";
     default: return NULL;
     }
 }

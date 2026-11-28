@@ -283,7 +283,7 @@ PY
 # ends with the game's status).
 # The crash window's languages besides English and Chinese (crash_window.c's cw_strings), each
 # rendered on both platforms.
-crash_languages="ko ru"
+crash_languages="ko ru de pt ja fr es"
 linux_crash_window() {
     local platform=linux lstage="$tmp/window"
     mkdir -p "$lstage"

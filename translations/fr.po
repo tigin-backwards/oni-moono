@@ -1,0 +1,1015 @@
+# Moono's strings in French: the Moono Tweaks screen, the Workshop loader mod and the messages before the game starts.
+# Game terms as the most-subscribed French translation mod has them (Steam Workshop item 928348692).
+# msgctxt: the string's key; msgid: the English it was translated from (translations/moono.pot).
+msgid ""
+msgstr ""
+"Language: fr\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.TITLE"
+msgid "MOONO TWEAKS"
+msgstr "MOONO TWEAKS"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_APPLY_ON_RESTART"
+msgid "Changes apply when the game restarts."
+msgstr "Les changements s'appliquent au redémarrage du jeu."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.RESET_TO_DEFAULTS"
+msgid "RESET TO DEFAULTS"
+msgstr "RÉTABLIR LES VALEURS PAR DÉFAUT"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.RESTART_TO_APPLY"
+msgid "RESTART TO APPLY"
+msgstr "REDÉMARRER POUR APPLIQUER"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.CHANGES_GAMEPLAY_NOTE"
+msgid "These trade a little exactness for speed. Most are off by default."
+msgstr "Ces options sacrifient un peu d'exactitude pour la vitesse. La plupart sont désactivées par défaut."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.BUG_FIXES_NOTE"
+msgid "These fix bugs in the game, so they change what the original does."
+msgstr "Ces options corrigent des bugs du jeu : elles changent donc le comportement de l'original."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NO_MATCHES"
+msgid "No tweaks match the search."
+msgstr "Aucune option ne correspond à la recherche."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.LAUNCH_OPTION"
+msgid "LAUNCH OPTION"
+msgstr "OPTION DE LANCEMENT"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.LAUNCH_OPTION_LINE"
+msgid "Launch option: {0}"
+msgstr "Option de lancement : {0}"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_ON"
+msgid "Set by the launch options (on)"
+msgstr "Défini par les options de lancement (activé)"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_OFF"
+msgid "Set by the launch options (off)"
+msgstr "Défini par les options de lancement (désactivé)"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NOT_AVAILABLE"
+msgid "NOT AVAILABLE"
+msgstr "INDISPONIBLE"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NOT_AVAILABLE_TIP"
+msgid "Not available on this game version."
+msgstr "Indisponible sur cette version du jeu."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.LOCKED_CHOICE"
+msgid "Set by the launch options ({0})"
+msgstr "Défini par les options de lancement ({0})"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.NEXT_CHOICE"
+msgid "Click for the next choice: {0}"
+msgstr "Cliquez pour passer au choix suivant : {0}"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.LIST_SEPARATOR"
+msgid ", "
+msgstr ", "
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.SAVE_FAILED"
+msgid "The settings could not be saved to {0}:\n{1}"
+msgstr "Impossible d'enregistrer les réglages dans {0} :\n{1}"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.SAVED_RESTART"
+msgid "Your changes are saved and apply when the game restarts."
+msgstr "Vos changements sont enregistrés et s'appliquent au redémarrage du jeu."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.LATER"
+msgid "LATER"
+msgstr "PLUS TARD"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_HEADLINE"
+msgid "Moo! An update is available"
+msgstr "Meuh ! Une mise à jour est disponible"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_MORE"
+msgid "…more on the release page"
+msgstr "…la suite sur la page de la version"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATE_NO_NOTES"
+msgid "Click to see what changed on the release page."
+msgstr "Cliquez pour voir les changements sur la page de la version."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.UPDATED_HEADLINE"
+msgid "Moo! Moono was updated"
+msgstr "Meuh ! Moono a été mis à jour"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_REWRITES"
+msgid "{0} also patches {1} (it rewrites the game's code)."
+msgstr "{0} modifie aussi {1} (il réécrit le code du jeu)."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_SKIPS"
+msgid "{0} also patches {1} (it can skip the game's code)."
+msgstr "{0} modifie aussi {1} (il peut sauter le code du jeu)."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_PATCHES"
+msgid "{0} also patches {1}."
+msgstr "{0} modifie aussi {1}."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_STEPS_ASIDE"
+msgid "Off while {0} is loaded, as it patches {1}."
+msgstr "Désactivée tant que {0} est chargé, car il modifie {1}."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_ADVICE"
+msgid "If something looks wrong, turn this tweak off."
+msgstr "Si quelque chose semble anormal, désactivez cette option."
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAP_MORE_METHODS"
+msgid "{0} and {1} more"
+msgstr "{0} et {1} de plus"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_ONE"
+msgid "1 overlap"
+msgstr "1 chevauchement"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_MANY"
+msgid "{0} overlaps"
+msgstr "Chevauchements : {0}"
+
+msgctxt "STRINGS.MOONO.TWEAKS.UI.OVERLAPS_TIP"
+msgid "Some mods patch the same code as Moono's tweaks. Open Moono Tweaks to see which."
+msgstr "Certains mods modifient le même code que les options de Moono. Ouvrez Moono Tweaks pour voir lesquels."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GENERAL"
+msgid "General"
+msgstr "Général"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SPLASH.TITLE"
+msgid "Gassy Moo loading splash"
+msgstr "Écran de démarrage Meumeuh"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SPLASH.EFFECT"
+msgid "Gassy Moos rain over the window while the game starts, with a progress bar."
+msgstr "Des Meumeuhs pleuvent sur la fenêtre pendant le démarrage du jeu, avec une barre de progression."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.TITLE"
+msgid "Update check"
+msgstr "Vérification des mises à jour"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.EFFECT"
+msgid "For installs from GitHub releases: the main menu shows when a newer Moono is out."
+msgstr "Pour les installations depuis les versions GitHub : le menu principal indique quand un Moono plus récent est sorti."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.UPDATE_CHECK.DETAIL"
+msgid "Asks GitHub (api.github.com) for Moono's releases at most once every 6 hours, in the background. Nothing about you or your game is sent. The answer is kept in the oni-moono data folder. Installs from the Steam Workshop ask nothing: Steam updates them. Off: Moono makes no network requests."
+msgstr "Interroge GitHub (api.github.com) sur les versions de Moono au plus une fois toutes les 6 heures, en arrière-plan. Rien sur vous ou votre partie n'est envoyé. La réponse est conservée dans le dossier de données oni-moono. Les installations depuis le Steam Workshop ne demandent rien : Steam les met à jour. Désactivée : Moono ne fait aucune requête réseau."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_STATS.TITLE"
+msgid "Frame stats in the log"
+msgstr "Statistiques d'images dans le journal"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_STATS.EFFECT"
+msgid "Notes where the frame time goes in Player.log, for reporting slowness."
+msgstr "Note dans Player.log où passe le temps de chaque image, pour signaler des lenteurs."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FRAME_STATS.DETAIL"
+msgid "Every 60 frames."
+msgstr "Toutes les 60 images."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOG_PATHS.TITLE"
+msgid "Hide personal paths in the log"
+msgstr "Masquer les chemins personnels dans le journal"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOG_PATHS.EFFECT"
+msgid "Player.log shows your user folder as %USERPROFILE% or ~ and hides your account IDs and name."
+msgstr "Player.log affiche votre dossier utilisateur sous la forme %USERPROFILE% ou ~ et masque vos identifiants et votre nom de compte."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOG_PATHS.DETAIL"
+msgid "Mods still get the full text."
+msgstr "Les mods reçoivent toujours le texte complet."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GPU.TITLE"
+msgid "Graphics card"
+msgstr "Carte graphique"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GPU.EFFECT"
+msgid "For laptops with two GPUs: which one the game draws with. Needs a restart."
+msgstr "Pour les portables à deux GPU : celui avec lequel le jeu dessine. Redémarrage nécessaire."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GPU.DETAIL"
+msgid "Default: as the original game (on Windows the faster, discrete GPU; on Linux the system's choice). Discrete: the faster GPU. Integrated: the power-saving one; on Windows with OpenGL, choose it in Windows' Graphics settings, which win over this. On Linux, on a desktop whose display is on the discrete card, discrete may pick the integrated GPU."
+msgstr "Par défaut : comme le jeu original (sous Windows le GPU dédié, plus rapide ; sous Linux le choix du système). Dédié : le GPU le plus rapide. Intégré : celui qui économise l'énergie ; sous Windows avec OpenGL, choisissez-le dans les paramètres Graphiques de Windows, qui l'emportent sur cette option. Sous Linux, sur un ordinateur de bureau dont l'écran est branché sur la carte dédiée, « dédié » peut choisir le GPU intégré."
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GPU.DEFAULT"
+msgid "default"
+msgstr "par défaut"
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GPU.DISCRETE"
+msgid "discrete"
+msgstr "dédié"
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GPU.INTEGRATED"
+msgid "integrated"
+msgstr "intégré"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.RENDERER.TITLE"
+msgid "Renderer"
+msgstr "Moteur de rendu"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.RENDERER.EFFECT"
+msgid "Which graphics API the game draws with. Needs a restart."
+msgstr "L'API graphique avec laquelle le jeu dessine. Redémarrage nécessaire."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.RENDERER.DETAIL"
+msgid "Auto: Vulkan, falling back to Direct3D 11 (Windows), then OpenGL, if one can't start on this PC; on integrated graphics Direct3D 11 comes first. Vulkan: Vulkan whenever it starts (also a software one). Direct3D 11 (Windows): the original game's API on Windows. OpenGL: its API on Linux. The picture is the same; Player.log names the one used and why."
+msgstr "Auto : Vulkan, puis Direct3D 11 (Windows), puis OpenGL, si l'une ne peut pas démarrer sur ce PC ; avec une puce graphique intégrée, Direct3D 11 passe en premier. Vulkan : Vulkan dès qu'il démarre (même logiciel). Direct3D 11 (Windows) : l'API du jeu original sous Windows. OpenGL : son API sous Linux. L'image est la même ; Player.log indique celle utilisée et pourquoi."
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.RENDERER.AUTO"
+msgid "auto"
+msgstr "auto"
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.RENDERER.VULKAN"
+msgid "vulkan"
+msgstr "vulkan"
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.RENDERER.D3D11"
+msgid "d3d11"
+msgstr "d3d11"
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.RENDERER.OPENGL"
+msgid "opengl"
+msgstr "opengl"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.TITLE"
+msgid "Present through Direct3D on Windows"
+msgstr "Affichage via Direct3D sous Windows"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.EFFECT"
+msgid "Windows shows the game as it shows the original: no forced HDR or brightness. Needs a restart."
+msgstr "Windows affiche le jeu comme l'original : ni HDR ni luminosité forcés. Redémarrage nécessaire."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DXGI.DETAIL"
+msgid "With Vulkan or OpenGL, frames reach the screen through a Direct3D 11 swap chain, as in the original. Off: the renderer presents them, and Auto HDR or RTX HDR can force HDR on the game. If Direct3D can't start, the renderer presents and Player.log says why. No effect on Linux."
+msgstr "Avec Vulkan ou OpenGL, les images arrivent à l'écran par une swap chain Direct3D 11, comme dans l'original. Désactivée : le moteur de rendu les affiche lui-même, et Auto HDR ou RTX HDR peuvent forcer le HDR sur le jeu. Si Direct3D ne peut pas démarrer, le moteur de rendu les affiche et Player.log indique pourquoi. Sans effet sous Linux."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.TITLE"
+msgid "Steady display during saves and loads"
+msgstr "Affichage stable pendant les sauvegardes et chargements"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.EFFECT"
+msgid "G-Sync and FreeSync monitors don't flicker while the game saves or loads."
+msgstr "Les écrans G-Sync et FreeSync ne scintillent plus pendant que le jeu sauvegarde ou charge."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.STALL_REPEATS.DETAIL"
+msgid "When no new frame arrives, the last one is shown again 30 to 60 times a second, so the monitor's refresh rate doesn't drop. Windows only, with Direct3D presentation on."
+msgstr "Quand aucune nouvelle image n'arrive, la dernière est réaffichée 30 à 60 fois par seconde, pour que la fréquence de l'écran ne chute pas. Windows uniquement, avec l'affichage via Direct3D activé."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.TITLE"
+msgid "Garbage collection"
+msgstr "Ramasse-miettes"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.EFFECT"
+msgid "How the game frees memory it no longer uses. Needs a restart."
+msgstr "Comment le jeu libère la mémoire qu'il n'utilise plus. Redémarrage nécessaire."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.GC.DETAIL"
+msgid "Fast (default): collects garbage on all cores, with rare, short pauses, but uses more memory. Low memory: uses less RAM (about 0.8 GB less on a large colony), but pauses more often and loads more slowly. Only worth changing if your PC is short on RAM."
+msgstr "Rapide (par défaut) : nettoie la mémoire sur tous les cœurs, avec des pauses rares et courtes, mais utilise plus de mémoire. Mémoire réduite : utilise moins de RAM (environ 0,8 Go de moins sur une grande colonie), mais fait des pauses plus souvent et charge plus lentement. À changer seulement si votre PC manque de RAM."
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GC.FAST"
+msgid "fast"
+msgstr "rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.CHOICES.GC.LOW_MEMORY"
+msgid "low memory"
+msgstr "mémoire réduite"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.TITLE"
+msgid "Faster Load screen"
+msgstr "Écran Charger la partie plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.EFFECT"
+msgid "With many saves, the Load screen opens and loads more colonies sooner."
+msgstr "Avec beaucoup de sauvegardes, l'écran Charger la partie s'ouvre et affiche plus de colonies plus tôt."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_LOAD_SCREEN.DETAIL"
+msgid "Each save's details are read once per refresh instead of four times, several files at a time, and previews already shown are not made again. The colonies, their order, the previews and the log are the same."
+msgstr "Les détails de chaque sauvegarde sont lus une fois par actualisation au lieu de quatre, plusieurs fichiers à la fois, et les aperçus déjà affichés ne sont pas refaits. Les colonies, leur ordre, les aperçus et le journal sont les mêmes."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.LOAD_SCREEN"
+msgid "Load screen with 4,637 saves opens in ~0.6 s (was ~1.4 s)"
+msgstr "L'écran Charger la partie avec 4 637 sauvegardes s'ouvre en ~0,6 s (avant ~1,4 s)"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.TITLE"
+msgid "Moving loading screen"
+msgstr "Écran de chargement animé"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.EFFECT"
+msgid "The loading screen keeps moving while a colony loads."
+msgstr "L'écran de chargement reste animé pendant le chargement d'une colonie."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOADING_ANIMATION.DETAIL"
+msgid "While a save loads, the game shows no new picture, for half a minute on a large colony. Moono keeps the loading screen moving, with a progress bar, and plays animated loading art from mods such as Loading Pip. Loading takes as long as before."
+msgstr "Pendant le chargement d'une sauvegarde, le jeu n'affiche aucune nouvelle image, pendant une demi-minute sur une grande colonie. Moono garde l'écran de chargement animé, avec une barre de progression, et joue les illustrations de chargement animées de mods comme Loading Pip. Le chargement dure autant qu'avant."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.TITLE"
+msgid "Stolen sound crash guard"
+msgstr "Protection contre le plantage des sons volés"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.EFFECT"
+msgid "Fixes a bug in the game's sound engine that can crash the game when many sounds play at once."
+msgstr "Corrige un bug du moteur audio du jeu qui peut faire planter le jeu quand beaucoup de sons jouent en même temps."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FMOD_STEAL_FIX.DETAIL"
+msgid "When too many copies of a sound play, FMOD, the sound engine, stops the oldest. If that one is still loading, FMOD frees it and then writes to it. This skips that write by patching FMOD's code in memory, only for the exact FMOD files the game ships. Nothing you hear changes."
+msgstr "Quand trop de copies d'un son jouent, FMOD, le moteur audio, arrête la plus ancienne. Si elle est encore en cours de chargement, FMOD la libère puis écrit dedans. Cette option saute cette écriture en modifiant le code de FMOD en mémoire, seulement pour les fichiers FMOD exacts fournis avec le jeu. Rien ne change à ce que vous entendez."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.TITLE"
+msgid "Worldgen as in the original"
+msgstr "Génération du monde comme l'original"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.EFFECT"
+msgid "A seed makes the same map as in the original game, so shared seeds match."
+msgstr "Une graine donne la même carte que dans le jeu original : les graines partagées correspondent."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.EXACT_WORLDGEN.DETAIL"
+msgid "Worldgen does its decimal maths at the precision the original game uses, rounding only where a value is kept. Off: biome borders on a new map can come out slightly different. Maps already generated and saves are not affected."
+msgstr "La génération du monde fait ses calculs décimaux à la précision du jeu original et n'arrondit que là où une valeur est conservée. Désactivée : les frontières des biomes d'une nouvelle carte peuvent légèrement différer. Les cartes déjà générées et les sauvegardes ne sont pas concernées."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.SAVING"
+msgid "Saving"
+msgstr "Sauvegarde"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SERIALIZATION.TITLE"
+msgid "Faster save writing"
+msgstr "Écriture des sauvegardes plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SERIALIZATION.EFFECT"
+msgid "Autosaves take less time; the save file is the same."
+msgstr "Les sauvegardes automatiques prennent moins de temps ; le fichier est le même."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SERIALIZATION.DETAIL"
+msgid "Writes the colony's numbers without boxing each one in an object."
+msgstr "Écrit les nombres de la colonie sans emballer chacun dans un objet."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.SAVE"
+msgid "Saving together: autosave freeze ~12 s → ~5 s on a large colony"
+msgstr "Options de sauvegarde ensemble : gel de la sauvegarde automatique ~12 s → ~5 s sur une grande colonie"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_TYPE_CHECKS.TITLE"
+msgid "Faster save checks"
+msgstr "Vérifications de sauvegarde plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_TYPE_CHECKS.EFFECT"
+msgid "Autosaves skip repeating the same checks for every object."
+msgstr "Les sauvegardes automatiques ne refont plus les mêmes vérifications pour chaque objet."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_TYPE_CHECKS.DETAIL"
+msgid "Remembers what saving asks about each kind of component instead of asking again for every object."
+msgstr "Retient ce que la sauvegarde demande sur chaque type de composant au lieu de le redemander pour chaque objet."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_COMPRESSION.TITLE"
+msgid "Faster save compression"
+msgstr "Compression des sauvegardes plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_COMPRESSION.EFFECT"
+msgid "Saving and loading take seconds less; files stay compatible, a little larger."
+msgstr "Sauvegarder et charger prennent quelques secondes de moins ; les fichiers restent compatibles, un peu plus gros."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_COMPRESSION.DETAIL"
+msgid "Compresses with .NET's zlib instead of the game's; the files are about 14% larger."
+msgstr "Compresse avec le zlib de .NET au lieu de celui du jeu ; les fichiers sont environ 14 % plus gros."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BACKGROUND_SAVE.TITLE"
+msgid "Background saving"
+msgstr "Sauvegarde en arrière-plan"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BACKGROUND_SAVE.EFFECT"
+msgid "The save is compressed and written to disk while the game plays on."
+msgstr "La sauvegarde est compressée et écrite sur le disque pendant que la partie continue."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BACKGROUND_SAVE.DETAIL"
+msgid "Compression and the file write move to another thread; quitting waits for them."
+msgstr "La compression et l'écriture du fichier passent sur un autre thread ; quitter le jeu les attend."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.NO_SAVE_GC.TITLE"
+msgid "No cleanup pause when saving"
+msgstr "Pas de pause de nettoyage à la sauvegarde"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.NO_SAVE_GC.EFFECT"
+msgid "Skips the memory cleanup the game forces after each save, which pauses the game."
+msgstr "Saute le nettoyage de la mémoire que le jeu force après chaque sauvegarde et qui met le jeu en pause."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.NO_SAVE_GC.DETAIL"
+msgid "Skips the full garbage collection the game asks for after saving."
+msgstr "Saute le passage complet du ramasse-miettes que le jeu demande après la sauvegarde."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.TITLE"
+msgid "Memory cleanup during loading"
+msgstr "Nettoyage de la mémoire pendant le chargement"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.EFFECT"
+msgid "Collects garbage during the loading screen, avoiding a large hitch shortly after the game starts."
+msgstr "Nettoie la mémoire pendant l'écran de chargement, ce qui évite un gros à-coup peu après le début de la partie."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.POST_LOAD_GC.DETAIL"
+msgid "The memory cleanup that would pause the game about a minute into play runs at the end of the load instead, while the game is still paused. Only with Fast garbage collection (the default)."
+msgstr "Le nettoyage de la mémoire qui figerait le jeu environ une minute après le début de la partie se fait à la place à la fin du chargement, quand le jeu est encore en pause. Seulement avec le ramasse-miettes Rapide (par défaut)."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.POST_LOAD"
+msgid "No ~0.3 s freeze a minute after loading a large colony; loading ~0.2 s longer"
+msgstr "Plus de gel de ~0,3 s une minute après le chargement d'une grande colonie ; chargement ~0,2 s plus long"
+
+msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.SIMULATION"
+msgid "Simulation"
+msgstr "Simulation"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_JOBS.TITLE"
+msgid "Faster worker threads"
+msgstr "Threads de travail plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_JOBS.EFFECT"
+msgid "Less time lost waking idle worker threads every frame."
+msgstr "Moins de temps perdu à réveiller les threads de travail inactifs à chaque image."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_JOBS.DETAIL"
+msgid "Wakes only as many of the game's worker threads as a job has work for, instead of all of them for every job (about 14 a frame)."
+msgstr "Réveille seulement autant de threads de travail du jeu qu'une tâche en a besoin, au lieu de tous pour chaque tâche (environ 14 par image)."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.JOBS"
+msgid "+11% frame rate on a large colony"
+msgstr "+11 % d'images par seconde sur une grande colonie"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SUBLIMATION.TITLE"
+msgid "Faster sublimation"
+msgstr "Sublimation plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SUBLIMATION.EFFECT"
+msgid "Items that can't sublimate (polluted dirt in full gas) are skipped."
+msgstr "Les objets qui ne peuvent pas se sublimer (Boue Contaminée dans un gaz saturé) sont ignorés."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SUBLIMATION.DETAIL"
+msgid "Items already blocked by full gas cells are skipped in one batched update."
+msgstr "Les objets déjà bloqués par des cases de gaz saturées sont ignorés en une seule mise à jour groupée."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTICLE_COLLISION.TITLE"
+msgid "Faster radbolt collisions"
+msgstr "Collisions de Radbolts plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTICLE_COLLISION.EFFECT"
+msgid "Radbolts look for each other only where one can be."
+msgstr "Les Radbolts ne se cherchent entre eux que là où il peut y en avoir."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTICLE_COLLISION.DETAIL"
+msgid "A radbolt skips searching every stored item nearby when no other radbolt is close."
+msgstr "Un Radbolt ne fouille plus tous les objets stockés à proximité quand aucun autre Radbolt n'est proche."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OFFSET_TABLES.TITLE"
+msgid "Faster pickup checks"
+msgstr "Vérifications de ramassage plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OFFSET_TABLES.EFFECT"
+msgid "Where an item can be picked up from is rechecked only when its surroundings change."
+msgstr "Les endroits d'où un objet peut être ramassé ne sont revérifiés que quand ses alentours changent."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OFFSET_TABLES.DETAIL"
+msgid "Fetch updates recheck only the items whose work spots can have changed."
+msgstr "Les mises à jour de livraison ne revérifient que les objets dont les points de travail ont pu changer."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_CLEANUP.TITLE"
+msgid "Faster spatial index cleanup"
+msgstr "Nettoyage de l'index spatial plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_CLEANUP.EFFECT"
+msgid "The once-a-second tidy-up of what is where looks only at what was removed."
+msgstr "Le rangement de chaque seconde de ce qui se trouve où ne regarde que ce qui a été retiré."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_CLEANUP.DETAIL"
+msgid "The spatial index's cleanup visits only the entries that were removed."
+msgstr "Le nettoyage de l'index spatial ne parcourt que les entrées retirées."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.TITLE"
+msgid "Faster item moves on the map"
+msgstr "Déplacements d'objets sur la carte plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.EFFECT"
+msgid "An item changing tile no longer looks through every item near it."
+msgstr "Un objet qui change de case ne parcourt plus tous les objets proches."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PARTITIONER_EVENTS.DETAIL"
+msgid "When an item moves or is stored, the game looks through every item nearby for listeners on that tile. Items have no listeners, so this skips the search and keeps only its cleanup of removed entries."
+msgstr "Quand un objet bouge ou est stocké, le jeu parcourt tous les objets proches à la recherche d'écouteurs sur cette case. Les objets n'ont pas d'écouteurs : cette option saute donc la recherche et ne garde que son nettoyage des entrées retirées."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.TITLE"
+msgid "Faster pipe and rail updates"
+msgstr "Mises à jour des conduites et rails plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.EFFECT"
+msgid "Pipes and rails no longer re-sort every building's update each second."
+msgstr "Les conduites et les rails ne retrient plus la mise à jour de chaque équipement chaque seconde."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONDUIT_SORTS.DETAIL"
+msgid "Each second the game sorts the list of pipe and rail buildings by priority again; this repeats the reordering its last sort made while the priorities are the same, which gives the same order."
+msgstr "Chaque seconde, le jeu retrie par priorité la liste des équipements de conduites et de rails ; cette option répète le réordonnancement de son dernier tri tant que les priorités sont les mêmes, ce qui donne le même ordre."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONVEYOR_PATHS.TITLE"
+msgid "Faster conveyor rebuilds"
+msgstr "Reconstruction des convoyeurs plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONVEYOR_PATHS.EFFECT"
+msgid "Building or removing conveyor rails no longer stalls the game."
+msgstr "Construire ou retirer des Rails de Convoyeur ne fige plus le jeu."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_CONVEYOR_PATHS.DETAIL"
+msgid "The rails' network rebuild finds its routes from an index instead of searching every kept route again."
+msgstr "La reconstruction du réseau de rails trouve ses itinéraires grâce à un index au lieu de refouiller tous les itinéraires conservés."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.CONVEYOR"
+msgid "No hitch on rail edits (was 0.05–0.5 s)"
+msgstr "Plus d'à-coup lors des modifications de rails (avant 0,05–0,5 s)"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.TITLE"
+msgid "Faster pipe network rebuilds"
+msgstr "Reconstruction des réseaux de conduites plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.EFFECT"
+msgid "Building or removing pipes no longer makes every pipe in the colony check its network."
+msgstr "Construire ou retirer des conduites ne fait plus vérifier son réseau à chaque conduite de la colonie."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_PIPE_REBUILDS.DETAIL"
+msgid "After a gas or liquid network changes, only the pipes of that kind recheck whether their network has a building taking from it, all through one handler instead of one or two for every pipe. The status items and the Pipe Flow arrows come out the same."
+msgstr "Après le changement d'un réseau de gaz ou de liquide, seules les conduites de ce type revérifient si un équipement puise dans leur réseau, le tout via un seul gestionnaire au lieu d'un ou deux par conduite. Les statuts et les flèches du flux des conduites sont les mêmes."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PIPES"
+msgid "Each pipe network rebuild ~25 ms shorter on a colony with 27,000 pipes (~57 → ~32 ms)"
+msgstr "Chaque reconstruction de réseau de conduites ~25 ms plus courte sur une colonie de 27 000 conduites (~57 → ~32 ms)"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.TITLE"
+msgid "Compact navigation links"
+msgstr "Liens de navigation compacts"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.EFFECT"
+msgid "The map of where Duplicants and critters can move takes a fraction of the memory."
+msgstr "La carte des déplacements possibles des Duplicants et des créatures prend une fraction de la mémoire."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_NAV_LINKS.DETAIL"
+msgid "Each pathfinding grid keeps a cell's moves packed together instead of a fixed row of slots for every cell of the map; the pathfinder reads the same moves in the same order."
+msgstr "Chaque grille de recherche de chemin range les déplacements d'une cellule ensemble au lieu d'une rangée fixe d'emplacements pour chaque cellule de la carte ; le pathfinder lit les mêmes déplacements dans le même ordre."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.TITLE"
+msgid "Faster state machine lookups"
+msgstr "Recherches de machines à états plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.EFFECT"
+msgid "Finding one of an object's state machines no longer searches all of them each time."
+msgstr "Trouver une des machines à états d'un objet ne les parcourt plus toutes à chaque fois."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SMI_LOOKUPS.DETAIL"
+msgid "Each object remembers which of its state machines answered each lookup until its list of state machines changes."
+msgstr "Chaque objet retient laquelle de ses machines à états a répondu à chaque recherche, jusqu'à ce que sa liste de machines à états change."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.TITLE"
+msgid "Faster conveyor item moves"
+msgstr "Déplacements d'objets sur convoyeur plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.EFFECT"
+msgid "Items moving between rails and buildings no longer search every saved item of their kind."
+msgstr "Les objets qui passent entre rails et équipements ne parcourent plus tous les objets sauvegardés de leur type."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SAVE_ROOTS.DETAIL"
+msgid "When an item is stored, the game takes it out of its list of things to save by comparing it with every item of its kind; this compares references instead, which finds the same entry."
+msgstr "Quand un objet est stocké, le jeu le retire de sa liste d'éléments à sauvegarder en le comparant à chaque objet de son type ; cette option compare les références à la place, ce qui trouve la même entrée."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.TITLE"
+msgid "Paged path grids"
+msgstr "Grilles de chemins par pages"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.EFFECT"
+msgid "Each Duplicant's map of path costs takes memory only where it can walk."
+msgstr "La carte des coûts de chemin de chaque Duplicant n'occupe de la mémoire que là où il peut marcher."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PAGED_PATH_GRIDS.DETAIL"
+msgid "A Duplicant's path grid covers the whole map. This keeps it in small pages, each made the first time a path probe writes there. The pathfinder reads the same values."
+msgstr "La grille de chemins d'un Duplicant couvre toute la carte. Cette option la garde en petites pages, chacune créée la première fois qu'une sonde de chemin y écrit. Le pathfinder lit les mêmes valeurs."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.TITLE"
+msgid "Share identical data"
+msgstr "Partager les données identiques"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.EFFECT"
+msgid "Names repeated across a colony's reports and other identical data are kept once, using less memory."
+msgstr "Les noms répétés dans les rapports d'une colonie et d'autres données identiques ne sont gardés qu'une fois, avec moins de mémoire."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SHARED_DUPLICATES.DETAIL"
+msgid "While a save loads, copies of the same text (Duplicants' and critters' names in each day's report) become one. Buildings with the same footprint share one table of work spots, and work animations left at their defaults share one list. The game never writes to these, so it reads the same values."
+msgstr "Pendant le chargement d'une sauvegarde, les copies d'un même texte (noms des Duplicants et des créatures dans le rapport de chaque jour) n'en font plus qu'une. Les équipements de même emprise partagent une table de points de travail, et les animations de travail restées par défaut partagent une liste. Le jeu n'y écrit jamais, donc il lit les mêmes valeurs."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.SHARED"
+msgid "~0.3 GB less memory on a late-game colony"
+msgstr "~0,3 Go de mémoire en moins sur une colonie avancée"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.TITLE"
+msgid "Compact report history"
+msgstr "Historique des rapports compact"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.EFFECT"
+msgid "Past days' reports take a fraction of the memory."
+msgstr "Les rapports des jours passés prennent une fraction de la mémoire."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_HISTORY.DETAIL"
+msgid "The notes of every day's report but today's are kept in flat arrays instead of a table for each entry; the reports screen and saves read the same notes in the same order."
+msgstr "Les notes du rapport de chaque jour sauf aujourd'hui sont gardées dans des tableaux plats au lieu d'une table par entrée ; l'écran des rapports et les sauvegardes lisent les mêmes notes dans le même ordre."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.REPORTS"
+msgid "~0.9 GB less memory on a late-game colony; loading ~1 s faster"
+msgstr "~0,9 Go de mémoire en moins sur une colonie avancée ; chargement ~1 s plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_ENTRIES.TITLE"
+msgid "Compact report entries"
+msgstr "Entrées de rapport compactes"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_ENTRIES.EFFECT"
+msgid "Past days' report entries take less memory and fewer objects for the game's memory cleanups."
+msgstr "Les entrées des rapports des jours passés prennent moins de mémoire et laissent moins d'objets aux nettoyages de la mémoire du jeu."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.COMPACT_REPORT_ENTRIES.DETAIL"
+msgid "The entries of every day's report but today's are kept in flat arrays instead of an object each, and made again when something reads that day. The reports screen, the colony summary and saves read the same values in the same order. Off while a mod reads past days' entries itself."
+msgstr "Les entrées du rapport de chaque jour sauf aujourd'hui sont gardées dans des tableaux plats au lieu d'un objet chacune, et recréées quand quelque chose lit ce jour. L'écran des rapports, le Bilan de la colonie et les sauvegardes lisent les mêmes valeurs dans le même ordre. Désactivée tant qu'un mod lit lui-même les entrées des jours passés."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.ENTRIES"
+msgid "4.2 M fewer objects and 7.9 M fewer references for a full memory cleanup to trace on a late-game colony; its pause an estimated ~12% shorter (from a cost model, not timed)"
+msgstr "4,2 M d'objets et 7,9 M de références en moins à parcourir pour un nettoyage complet de la mémoire sur une colonie avancée ; sa pause est estimée ~12 % plus courte (d'après un modèle de coût, non chronométré)"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.TITLE"
+msgid "Fetch checks by pile"
+msgstr "Vérifications de livraison par tas"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.EFFECT"
+msgid "Duplicants looking for things to fetch check each pile of identical items once, not item by item."
+msgstr "Les Duplicants qui cherchent quoi livrer vérifient chaque tas d'objets identiques une seule fois, et non objet par objet."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FETCH_BY_CELL.DETAIL"
+msgid "Tracks the best item of each pile as items move, are reserved or spoil, and finds the path to each pile once. Items on worlds a Duplicant can't reach are skipped. Among items in a pile that the game ranks as equal, a Duplicant may take a different one than in the original. Off while a mod changes how Duplicants choose what to fetch."
+msgstr "Suit le meilleur objet de chaque tas quand les objets bougent, sont réservés ou se gâtent, et trouve le chemin vers chaque tas une seule fois. Les objets sur des mondes qu'un Duplicant ne peut pas atteindre sont ignorés. Parmi les objets d'un tas que le jeu classe à égalité, un Duplicant peut en prendre un autre que dans l'original. Désactivée tant qu'un mod change la façon dont les Duplicants choisissent quoi livrer."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.FETCH"
+msgid "Fetch updates ~8× shorter on a colony with big piles (3.1–3.4 → 0.4 ms each)"
+msgstr "Mises à jour de livraison ~8× plus courtes sur une colonie avec de gros tas (3,1–3,4 → 0,4 ms chacune)"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.TITLE"
+msgid "Direct conveyor bridge moves"
+msgstr "Passage direct sur les Ponts Convoyeurs"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.EFFECT"
+msgid "Conveyor bridges pass an item straight across instead of taking it off the rail and putting it back."
+msgstr "Les Ponts Convoyeurs font passer un objet directement au lieu de le retirer du rail et de l'y remettre."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.DIRECT_RAIL_BRIDGES.DETAIL"
+msgid "The item only changes rail tile. What the rails carry and when, heat, germs, freshness, egg state and Conveyor Meter counts are the same. Two things differ: the Conveyor overlay may draw two overlapping items in the other order, and an item is no longer listed as fetchable for the instant it crosses. Undiscovered kinds of item, critters and items a mod has added components to cross the game's way. Off while another mod changes how items are stored on rails."
+msgstr "L'objet change seulement de case de rail. Ce que les rails transportent et quand, la chaleur, les germes, la fraîcheur, l'état des œufs et les décomptes des Compteurs de Convoyeur sont les mêmes. Deux choses diffèrent : le calque Convoyeur peut dessiner deux objets superposés dans l'autre ordre, et un objet n'est plus listé comme livrable pendant l'instant où il traverse. Les types d'objets non découverts, les créatures et les objets auxquels un mod a ajouté des composants traversent à la manière du jeu. Désactivée tant qu'un autre mod change la façon dont les objets sont stockés sur les rails."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.GRAPHICS"
+msgid "Graphics & overlays"
+msgstr "Graphismes et calques"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.TITLE"
+msgid "Update only the table rows in sight"
+msgstr "Mettre à jour seulement les lignes visibles des tableaux"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.EFFECT"
+msgid "Consumables, Vitals, Priorities and the other tables update only the rows on screen."
+msgstr "Consommables, Santé, Priorités et les autres tableaux ne mettent à jour que les lignes à l'écran."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LAZY_TABLE_REFRESH.DETAIL"
+msgid "The game updates every row of a table in one frame, once a second and each time it opens, which stutters with many Duplicants. Rows out of sight are updated just before they scroll into view instead, so they show values read at that moment. Off while a mod changes how tables update."
+msgstr "Le jeu met à jour toutes les lignes d'un tableau en une image, une fois par seconde et à chaque ouverture, ce qui saccade avec beaucoup de Duplicants. Les lignes hors de vue sont mises à jour juste avant d'apparaître au défilement, et affichent donc les valeurs lues à ce moment. Désactivée tant qu'un mod change la façon dont les tableaux se mettent à jour."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.TITLE"
+msgid "Tables open sooner"
+msgstr "Tableaux ouverts plus vite"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.EFFECT"
+msgid "Consumables, Vitals and Priorities open much sooner on colonies with many Duplicants."
+msgstr "Consommables, Santé et Priorités s'ouvrent bien plus vite dans les colonies avec beaucoup de Duplicants."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_TABLE_ROWS.DETAIL"
+msgid "For each cell of a table, the game searches every row and column built so far, and Consumables also goes through every row's scroll bar. This notes a row's cells as the row is built and sets the scroll bars once a row. The table comes out the same."
+msgstr "Pour chaque cellule d'un tableau, le jeu parcourt toutes les lignes et colonnes déjà construites, et Consommables passe aussi par la barre de défilement de chaque ligne. Cette option note les cellules d'une ligne pendant sa construction et règle les barres de défilement une fois par ligne. Le tableau est le même."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_EVENTS.TITLE"
+msgid "Faster animation events"
+msgstr "Événements d'animation plus rapides"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_EVENTS.EFFECT"
+msgid "Animations check their sound and effect cues with less work."
+msgstr "Les animations vérifient leurs signaux de son et d'effet avec moins de travail."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_EVENTS.DETAIL"
+msgid "Keeps a compact copy of what each playing animation's per-frame event check reads."
+msgstr "Garde une copie compacte de ce que lit la vérification d'événements de chaque animation en cours, à chaque image."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_CLEANUP.TITLE"
+msgid "Faster animation cleanup"
+msgstr "Nettoyage des animations plus rapide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_CLEANUP.EFFECT"
+msgid "Removed animations are swept out only where one was removed."
+msgstr "Les animations retirées ne sont balayées que là où une a été retirée."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_CLEANUP.DETAIL"
+msgid "The sweep for destroyed animations skips grid chunks that can't hold any."
+msgstr "Le balayage des animations détruites saute les blocs de la grille qui ne peuvent pas en contenir."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_BATCHES.TITLE"
+msgid "Parallel animation uploads"
+msgstr "Envoi des animations en parallèle"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_BATCHES.EFFECT"
+msgid "Animation data for the graphics card is prepared on several threads."
+msgstr "Les données d'animation pour la carte graphique sont préparées sur plusieurs threads."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_ANIM_BATCHES.DETAIL"
+msgid "Animation batches write their instance and symbol data on worker threads, the rest in the game's order."
+msgstr "Les lots d'animations écrivent leurs données d'instances et de symboles sur des threads de travail, le reste dans l'ordre du jeu."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SYMBOL_OVERRIDES.TITLE"
+msgid "Fewer animation uploads"
+msgstr "Moins d'envois d'animations"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SYMBOL_OVERRIDES.EFFECT"
+msgid "Swapped animation parts are re-sent to the graphics card only when they change."
+msgstr "Les parties d'animation remplacées ne sont renvoyées à la carte graphique que quand elles changent."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_SYMBOL_OVERRIDES.DETAIL"
+msgid "Unchanged symbol-override blocks of Duplicants and buildings aren't uploaded again."
+msgstr "Les blocs de remplacement de symboles inchangés des Duplicants et des équipements ne sont pas renvoyés."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.TITLE"
+msgid "Trimmed animation lists"
+msgstr "Listes d'animations ajustées"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.EFFECT"
+msgid "The game's animation data takes about 65 MB less memory."
+msgstr "Les données d'animation du jeu prennent environ 65 Mo de mémoire en moins."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.TRIM_ANIM_LISTS.DETAIL"
+msgid "Once the animations are loaded, the lists of their frames and frame parts give back the room they grew into but don't use; the game reads the same data."
+msgstr "Une fois les animations chargées, les listes de leurs images et parties d'images rendent la place prise en grandissant mais inutilisée ; le jeu lit les mêmes données."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.TITLE"
+msgid "Smoother decor overlay"
+msgstr "Calque Décoration plus fluide"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.EFFECT"
+msgid "The Decor overlay no longer stutters when items are stored or used up."
+msgstr "Le calque Décoration ne saccade plus quand des objets sont stockés ou consommés."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FAST_OVERLAY_REMOVALS.DETAIL"
+msgid "While the Decor overlay is open, the game takes each stored or removed item out of the overlay's index by comparing it with every entry; this compares references instead, which finds the same entries."
+msgstr "Quand le calque Décoration est ouvert, le jeu retire chaque objet stocké ou supprimé de l'index du calque en le comparant à chaque entrée ; cette option compare les références à la place, ce qui trouve les mêmes entrées."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.CHANGES_GAMEPLAY"
+msgid "Changes gameplay"
+msgstr "Modifie le gameplay"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.TITLE"
+msgid "Incremental path probes"
+msgstr "Sondes de chemin incrémentales"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.EFFECT"
+msgid "Duplicants' path checks redo only what changed in the world, using less CPU."
+msgstr "Les vérifications de chemin des Duplicants ne refont que ce qui a changé dans le monde, avec moins de CPU."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.PATH_PROBE_REPAIR.DETAIL"
+msgid "Each Duplicant's last path probe is repaired around what changed (digging, building, doors, liquids) instead of redone from scratch. Costs and reachable cells stay the same, but where two routes cost the same a Duplicant may walk a different one than in the original. Uses about 0.9 MB per Duplicant. Off while another mod changes path probing (Fast Track's Cache Paths)."
+msgstr "La dernière sonde de chemin de chaque Duplicant est réparée autour de ce qui a changé (creusage, construction, portes, liquides) au lieu d'être refaite de zéro. Les coûts et les cellules accessibles restent les mêmes, mais quand deux itinéraires coûtent autant, un Duplicant peut prendre un autre chemin que dans l'original. Utilise environ 0,9 Mo par Duplicant. Désactivée tant qu'un autre mod change les sondes de chemin (Cache Paths de Fast Track)."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.INSTANT_REACHABILITY.TITLE"
+msgid "Instant reachability checks"
+msgstr "Vérifications d'accessibilité instantanées"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.INSTANT_REACHABILITY.EFFECT"
+msgid "Duplicants notice a newly opened or blocked path at once, using less CPU."
+msgstr "Les Duplicants remarquent tout de suite un chemin ouvert ou bloqué, avec moins de CPU."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.INSTANT_REACHABILITY.DETAIL"
+msgid "Errands and items are rechecked where and when a Duplicant's reach changes, instead of all of them once a second. The answers are the same, up to 1 s sooner. Items it can't track (from some mods) are still checked every second."
+msgstr "Les tâches et les objets sont revérifiés là où et quand la portée d'un Duplicant change, au lieu de tous une fois par seconde. Les réponses sont les mêmes, jusqu'à 1 s plus tôt. Les objets que cette option ne peut pas suivre (de certains mods) sont toujours vérifiés chaque seconde."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_SCREEN_CONVEYORS.TITLE"
+msgid "Lazy unseen conveyor items"
+msgstr "Objets de convoyeur hors écran différés"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_SCREEN_CONVEYORS.EFFECT"
+msgid "Items riding rails off screen are placed only when they stop or come into view."
+msgstr "Les objets sur les rails hors écran ne sont placés que quand ils s'arrêtent ou apparaissent à l'écran."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_SCREEN_CONVEYORS.DETAIL"
+msgid "The rails carry exactly the same things, but items' positions lag while off screen."
+msgstr "Les rails transportent exactement les mêmes choses, mais la position des objets est en retard tant qu'ils sont hors écran."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.TITLE"
+msgid "Simulation at its own pace"
+msgstr "Simulation à son propre rythme"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.EFFECT"
+msgid "Above 60 fps at normal speed, frames no longer wait for the simulation, and it uses less CPU."
+msgstr "Au-dessus de 60 fps en vitesse normale, les images n'attendent plus la simulation, qui utilise moins de CPU."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.SIM_STEP_PACE.DETAIL"
+msgid "Above 60 fps at normal speed, the game calls the simulation on every frame between its five steps a second, and each call waits for the step underway. This skips those calls, as the game does below 60 fps and at faster speeds. Dug tiles, built tiles and other changes the game asks of the simulation then show about 0.3 s later (up to 0.4 s), as below 60 fps. Off while paused, or while another mod changes these calls."
+msgstr "Au-dessus de 60 fps en vitesse normale, le jeu appelle la simulation à chaque image entre ses cinq pas par seconde, et chaque appel attend le pas en cours. Cette option saute ces appels, comme le fait le jeu sous 60 fps et aux vitesses supérieures. Les cases creusées, les cases construites et les autres changements que le jeu demande à la simulation apparaissent alors environ 0,3 s plus tard (jusqu'à 0,4 s), comme sous 60 fps. Désactivée en pause, ou tant qu'un autre mod change ces appels."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GAINS.PACE"
+msgid "112 → 220 fps at normal speed on a large modded colony"
+msgstr "112 → 220 fps en vitesse normale sur une grande colonie moddée"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOW_FPS_TIMING.TITLE"
+msgid "Accurate timing at low FPS"
+msgstr "Synchronisation précise à faible fps"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOW_FPS_TIMING.EFFECT"
+msgid "At low frame rates or high speeds, animations, timers and automation keep pace with the simulation."
+msgstr "À faible fréquence d'images ou à vitesse élevée, les animations, les minuteurs et l'automatisation suivent le rythme de la simulation."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.LOW_FPS_TIMING.DETAIL"
+msgid "On long frames and at high game speeds, some game timing drifts from the simulation: automation gates and one-tick signals, scalding and overheating damage, work that waits on an animation, and similar. This keeps it in step with the simulation, as at a high frame rate, while the camera and menus keep real time. Each part turns off if a mod changes the code it relies on."
+msgstr "Sur les images longues et aux vitesses de jeu élevées, une partie de la synchronisation du jeu dérive par rapport à la simulation : portes logiques d'automatisation et signaux d'un tick, dégâts de brûlure et de surchauffe, travaux qui attendent une animation, etc. Cette option la garde au pas de la simulation, comme à fréquence d'images élevée, tandis que la caméra et les menus restent en temps réel. Chaque partie se désactive si un mod change le code dont elle dépend."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.TITLE"
+msgid "Cap critter and dupe brain updates"
+msgstr "Limiter les mises à jour des cerveaux des créatures et Duplicants"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.EFFECT"
+msgid "Above 30 fps, critters and Duplicants decide what to do only as often as at 30 fps."
+msgstr "Au-dessus de 30 fps, les créatures et les Duplicants ne décident quoi faire qu'aussi souvent qu'à 30 fps."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.BRAIN_RATE.DETAIL"
+msgid "The game updates 1 Duplicant and 5 critter brains every frame; this caps them at 30 and 150 a second. One that just finished an errand or is under threat still gets the next update, and a critter ready to inhale food, excrete or attack goes ahead of the others, so critters act at other moments than without this. With many critters or Duplicants the cap rises with game speed, so each is updated within 15 seconds of game time."
+msgstr "Le jeu met à jour 1 cerveau de Duplicant et 5 cerveaux de créatures à chaque image ; cette option les limite à 30 et 150 par seconde. Celui qui vient de finir une tâche ou qui est menacé a quand même la mise à jour suivante, et une créature prête à inhaler de la nourriture, excréter ou attaquer passe avant les autres : les créatures agissent donc à d'autres moments que sans cette option. Avec beaucoup de créatures ou de Duplicants, la limite monte avec la vitesse du jeu, pour que chacun soit mis à jour dans les 15 secondes de temps de jeu."
+
+msgctxt "STRINGS.MOONO.TWEAKS.GROUPS.BUG_FIXES"
+msgid "Bug fixes"
+msgstr "Corrections de bugs"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.TITLE"
+msgid "Critters ready to eat, excrete or attack get the next turn"
+msgstr "Les créatures prêtes à manger, excréter ou attaquer jouent en premier"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.EFFECT"
+msgid "In big colonies at low frame rates, Slicksters and Pufts keep excreting and Beetas still attack."
+msgstr "Dans les grandes colonies à faible fréquence d'images, les Gluants et les Bouffettes continuent d'excréter et les Radbeilles attaquent toujours."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.CRITTER_NEEDS_FIRST.DETAIL"
+msgid "The game lets 5 critters decide what to do each frame, in a fixed order. With thousands of critters at a low frame rate, one that inhales its food gets too few turns to stay fed, so it never excretes: its stomach fills for cycles and empties all at once after a load. A critter also notices a target only on its turn, so at speed 3 Beetas and other critters that attack often miss what passes by. This gives a critter ready to inhale or excrete one of the frame's turns ahead of the others, and a critter with a target in reach a turn as often as at normal speed and 30 fps. No turns are added, so other critters wait slightly longer."
+msgstr "Le jeu laisse 5 créatures décider quoi faire à chaque image, dans un ordre fixe. Avec des milliers de créatures à faible fréquence d'images, une créature qui inhale sa nourriture a trop peu de tours pour rester nourrie et n'excrète donc jamais : son estomac se remplit pendant des cycles et se vide d'un coup après un chargement. Une créature ne remarque aussi une cible que pendant son tour : en vitesse 3, les Radbeilles et les autres créatures qui attaquent ratent souvent ce qui passe. Cette option donne à une créature prête à inhaler ou à excréter un des tours de l'image avant les autres, et à une créature avec une cible à portée un tour aussi souvent qu'en vitesse normale à 30 fps. Aucun tour n'est ajouté : les autres créatures attendent donc un peu plus."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.TITLE"
+msgid "Land items lost below a world"
+msgstr "Poser les objets perdus sous un monde"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.EFFECT"
+msgid "Items that fall out the bottom of a world (a rocket's chute) stop falling forever."
+msgstr "Les objets qui tombent par le bas d'un monde (la goulotte d'une fusée) arrêtent de tomber sans fin."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.OFF_WORLD_FALLERS.DETAIL"
+msgid "A bug in the game: they hang just below the world, stepped as falling every tick. This lands them where they hang."
+msgstr "Un bug du jeu : ils restent suspendus juste sous le monde, traités comme en chute à chaque tick. Cette option les pose là où ils sont suspendus."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.TITLE"
+msgid "Open a colony once on the Load screen"
+msgstr "Ouvrir une colonie une seule fois sur l'écran Charger la partie"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.EFFECT"
+msgid "After Load more, a click on a colony no longer builds its list of saves again for every refresh."
+msgstr "Après « Charger davantage... », un clic sur une colonie ne reconstruit plus sa liste de sauvegardes à chaque actualisation."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_LOAD_SCREEN_CLICKS.DETAIL"
+msgid "A bug in the game: each Load more adds another copy of the click to the colonies already shown, so one click builds the colony once for every refresh. This builds it once and logs once; the screen ends up the same."
+msgstr "Un bug du jeu : chaque « Charger davantage... » ajoute une copie du clic aux colonies déjà affichées, si bien qu'un clic construit la colonie une fois par actualisation. Cette option la construit une seule fois et écrit une seule fois dans le journal ; l'écran est le même au final."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_SOUND_PILES.TITLE"
+msgid "Cap repeated sounds in one tile"
+msgstr "Limiter les sons répétés sur une case"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_SOUND_PILES.EFFECT"
+msgid "Hundreds of critters in one tile no longer freeze the game with their sounds."
+msgstr "Des centaines de créatures sur une case ne figent plus le jeu avec leurs sons."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_SOUND_PILES.DETAIL"
+msgid "When more than 3 copies of the same sound start in the same tile in the same frame, the rest are skipped. A big pile of critters sounds quieter; anywhere else this almost never happens. UI and looping sounds are never skipped."
+msgstr "Quand plus de 3 copies du même son démarrent sur la même case dans la même image, les autres sont sautées. Un gros tas de créatures sonne moins fort ; ailleurs, cela n'arrive presque jamais. Les sons de l'interface et les sons en boucle ne sont jamais sautés."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.TITLE"
+msgid "Correct daily colony snapshots"
+msgstr "Instantanés quotidiens de la colonie corrects"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.EFFECT"
+msgid "Colony snapshots saved each cycle no longer get vertical stripes, squeezed lights or stray effects."
+msgstr "Les instantanés de la colonie enregistrés à chaque cycle n'ont plus de bandes verticales, de lumières écrasées ni d'effets parasites."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TIMELAPSE_SNAPSHOTS.DETAIL"
+msgid "A bug in the game: the build grid, the lights and the heat, cold and dust effects are set up for the screen's view, which is wider than a snapshot's. With a building picked for placement, the grid draws stripes over the left of the image. This sets them up for the snapshot's view."
+msgstr "Un bug du jeu : la grille de construction, les lumières et les effets de chaleur, de froid et de poussière sont réglés pour la vue de l'écran, plus large que celle d'un instantané. Avec un équipement choisi pour être placé, la grille dessine des bandes sur la gauche de l'image. Cette option les règle pour la vue de l'instantané."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TABLE_SCROLL.TITLE"
+msgid "Keep table columns where they were scrolled"
+msgstr "Garder le défilement des colonnes des tableaux"
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TABLE_SCROLL.EFFECT"
+msgid "Scrolled table columns no longer jump back to the first ones every second or so."
+msgstr "Les colonnes défilées d'un tableau ne reviennent plus aux premières environ chaque seconde."
+
+msgctxt "STRINGS.MOONO.TWEAKS.ROWS.FIX_TABLE_SCROLL.DETAIL"
+msgid "A bug in the game: each row of a table keeps its scroll position in step with the others. When the rows are laid out again (every second or so while the columns move), one row's columns go back to the start and the game moves every row there. This keeps the table's scroll position when a row is laid out."
+msgstr "Un bug du jeu : chaque ligne d'un tableau garde sa position de défilement alignée sur les autres. Quand les lignes sont remises en page (environ chaque seconde pendant que les colonnes bougent), les colonnes d'une ligne reviennent au début et le jeu y ramène toutes les lignes. Cette option garde la position de défilement du tableau quand une ligne est remise en page."
+
+msgctxt "STRINGS.MOONO.LOADER.TITLE"
+msgid "Play with Moono?"
+msgstr "Jouer avec Moono ?"
+
+msgctxt "STRINGS.MOONO.LOADER.INTRO"
+msgid "Moono makes Oxygen Not Included run faster. To play with it:"
+msgstr "Moono fait tourner Oxygen Not Included plus vite. Pour jouer avec :"
+
+msgctxt "STRINGS.MOONO.LOADER.STEP_COPY"
+msgid "Click Install & copy launch option to install Moono and copy:"
+msgstr "Cliquez sur « Installer et copier l'option de lancement » pour installer Moono et copier :"
+
+msgctxt "STRINGS.MOONO.LOADER.STEP_PASTE"
+msgid "In Steam, right-click Oxygen Not Included → Properties → Launch Options, and paste."
+msgstr "Dans Steam, faites un clic droit sur Oxygen Not Included → Propriétés → Options de lancement, et collez."
+
+msgctxt "STRINGS.MOONO.LOADER.STEP_RESTART"
+msgid "Quit the game and press Play."
+msgstr "Quittez le jeu et cliquez sur Jouer."
+
+msgctxt "STRINGS.MOONO.LOADER.DISABLE_HINT"
+msgid "To stop seeing this, disable the Moono mod."
+msgstr "Pour ne plus voir ce message, désactivez le mod Moono."
+
+msgctxt "STRINGS.MOONO.LOADER.NOT_NOW"
+msgid "Not now"
+msgstr "Pas maintenant"
+
+msgctxt "STRINGS.MOONO.LOADER.COPY"
+msgid "Install & copy launch option"
+msgstr "Installer et copier l'option de lancement"
+
+msgctxt "STRINGS.MOONO.LOADER.INSTALLING"
+msgid "Installing…"
+msgstr "Installation…"
+
+msgctxt "STRINGS.MOONO.LOADER.COPIED"
+msgid "Copied ✓"
+msgstr "Copié ✓"
+
+msgctxt "STRINGS.MOONO.LOADER.INSTALLED"
+msgid "Moono installed. Launch option copied."
+msgstr "Moono installé. Option de lancement copiée."
+
+msgctxt "STRINGS.MOONO.LOADER.FAILED"
+msgid "Moono could not be installed: {0}"
+msgstr "Impossible d'installer Moono : {0}"
+
+msgctxt "STRINGS.MOONO.LOADER.COPY_LINE"
+msgid "Copy"
+msgstr "Copier"
+
+msgctxt "STRINGS.MOONO.LOADER.CLOSE_GAME"
+msgid "Close game"
+msgstr "Fermer le jeu"
+
+msgctxt "STRINGS.MOONO.LOADER.MODS_BUTTON"
+msgid "Play with Moono"
+msgstr "Jouer avec Moono"
+
+msgctxt "STRINGS.MOONO.LOADER.MODS_TIP"
+msgid "Install Moono and copy the launch option for Steam"
+msgstr "Installer Moono et copier l'option de lancement pour Steam"
+
+msgctxt "STRINGS.MOONO.START.GAME_IS_OTHER"
+msgid "Your game is the {1} update of Oxygen Not Included, and this Moono build is for {2}, the current update.\n\nTo use this build, switch the game to {2}: in Steam, right-click Oxygen Not Included → Properties → Betas, and choose None.\n\nOr get Moono for {1}:\n{0}\n\nTo play now without Moono, clear the game's launch options in Steam."
+msgstr "Votre jeu est la mise à jour {1} d'Oxygen Not Included, et cette version de Moono est pour {2}, la mise à jour actuelle.\n\nPour utiliser cette version, passez le jeu sur {2} : dans Steam, faites un clic droit sur Oxygen Not Included → Propriétés → Bêtas, et choisissez Aucune.\n\nOu téléchargez Moono pour {1} :\n{0}\n\nPour jouer tout de suite sans Moono, effacez les options de lancement du jeu dans Steam."
+
+msgctxt "STRINGS.MOONO.START.GAME_UNKNOWN"
+msgid "This Moono build doesn't support your version of Oxygen Not Included, and no Moono build supports it yet. New builds appear at:\n{0}\n\nTo play now without Moono, clear the game's launch options in Steam."
+msgstr "Cette version de Moono ne prend pas en charge votre version d'Oxygen Not Included, et aucune version de Moono ne la prend encore en charge. Les nouvelles versions sont publiées ici :\n{0}\n\nPour jouer tout de suite sans Moono, effacez les options de lancement du jeu dans Steam."
+
+msgctxt "STRINGS.MOONO.START.NOT_FOUND"
+msgid "Oxygen Not Included wasn't found in any Steam library. Install it in Steam, or start Moono from Steam's launch options."
+msgstr "Oxygen Not Included est introuvable dans les bibliothèques Steam. Installez-le dans Steam, ou lancez Moono depuis les options de lancement de Steam."
+
+msgctxt "STRINGS.MOONO.START.NONE_CHOSEN"
+msgid "Moono found several installs of Oxygen Not Included and none was chosen."
+msgstr "Moono a trouvé plusieurs installations d'Oxygen Not Included et aucune n'a été choisie."
+
+msgctxt "STRINGS.MOONO.START.STEAM_BUSY"
+msgid "Steam has to finish installing or updating Oxygen Not Included first. Steam opens on the game's page; start Moono again once it is done."
+msgstr "Steam doit d'abord finir d'installer ou de mettre à jour Oxygen Not Included. Steam s'ouvre sur la page du jeu ; relancez Moono une fois que c'est terminé."
+
+msgctxt "STRINGS.MOONO.START.NO_STEAM"
+msgid "Oxygen Not Included needs Steam, and Steam could not be started. Start Steam, then Moono again."
+msgstr "Oxygen Not Included a besoin de Steam, et Steam n'a pas pu être lancé. Lancez Steam, puis Moono à nouveau."
+
+msgctxt "STRINGS.MOONO.START.CHOOSE_BOX"
+msgid "Moono found {0} installs of Oxygen Not Included. Play the one at\n\n{1}\n\n(Yes: this one, kept for later starts. No: the next one.)"
+msgstr "Moono a trouvé des installations d'Oxygen Not Included : {0}. Jouer à celle-ci ?\n\n{1}\n\n(Oui : celle-ci, retenue pour les prochains lancements. Non : la suivante.)"
+
+msgctxt "STRINGS.MOONO.START.CHOOSE_DIALOG"
+msgid "Moono found {0} installs of Oxygen Not Included. Which one should it play (kept for later starts)?"
+msgstr "Moono a trouvé des installations d'Oxygen Not Included : {0}. Laquelle lancer (retenue pour les prochains lancements) ?"

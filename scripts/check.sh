@@ -49,7 +49,8 @@ grep -A12 -E '^(FAIL|ERROR): ' <<< "$scripts_log" | sed 's/^/  /' || true
 host_files() {
     local f facades
     for f in packages/UnityEngine.UI.dll packages/Unity.TextMeshPro.dll packages/Unity.Timeline.dll \
-             OniMoono.GameTweaks.dll engine/UnityEngine.CoreModule.dll Restarter NOTICE.txt translations/zh.po translations/ko.po translations/ru.po; do
+             OniMoono.GameTweaks.dll engine/UnityEngine.CoreModule.dll Restarter NOTICE.txt \
+             translations/{zh,ko,ru,de,pt,ja,fr,es}.po; do
         [ -f "$1/$f" ] || { echo "$1/$f missing"; return 1; }
     done
     facades=$(ls "$root/out/bin/OniMoono.Host/debug/engine" | wc -l)

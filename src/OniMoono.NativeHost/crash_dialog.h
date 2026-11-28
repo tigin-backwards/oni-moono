@@ -8,21 +8,30 @@ extern "C" {
 #endif
 
 /* crash_window.h's CW_ENGLISH, ... in the same order. */
-enum { CRASH_ENGLISH, CRASH_CHINESE, CRASH_KOREAN, CRASH_RUSSIAN };
+enum { CRASH_ENGLISH, CRASH_CHINESE, CRASH_KOREAN, CRASH_RUSSIAN, CRASH_GERMAN, CRASH_PORTUGUESE, CRASH_JAPANESE, CRASH_FRENCH, CRASH_SPANISH };
 
 /* The window's language from the game's language code ("zh", "ko", "ru", "en", ...), or, before
  * the game gave one (a crash or a blocked file before its main menu, #135), from Windows' display
  * language. */
 static inline int crash_language(const wchar_t *code)
 {
+    static const wchar_t codes[][3] = { L"en", L"zh", L"ko", L"ru", L"de", L"pt", L"ja", L"fr", L"es" };
     if (code && code[0])
-        return _wcsnicmp(code, L"zh", 2) == 0 ? CRASH_CHINESE : _wcsnicmp(code, L"ko", 2) == 0 ? CRASH_KOREAN
-             : _wcsnicmp(code, L"ru", 2) == 0 ? CRASH_RUSSIAN : CRASH_ENGLISH;
+    {
+        for (int i = CRASH_CHINESE; i < (int)(sizeof codes / sizeof codes[0]); i++)
+            if (_wcsnicmp(code, codes[i], 2) == 0) return i;
+        return CRASH_ENGLISH;
+    }
     switch (PRIMARYLANGID(GetUserDefaultUILanguage()))
     {
     case LANG_CHINESE: return CRASH_CHINESE;
     case LANG_KOREAN: return CRASH_KOREAN;
     case LANG_RUSSIAN: return CRASH_RUSSIAN;
+    case LANG_GERMAN: return CRASH_GERMAN;
+    case LANG_PORTUGUESE: return CRASH_PORTUGUESE;
+    case LANG_JAPANESE: return CRASH_JAPANESE;
+    case LANG_FRENCH: return CRASH_FRENCH;
+    case LANG_SPANISH: return CRASH_SPANISH;
     default: return CRASH_ENGLISH;
     }
 }
