@@ -3283,6 +3283,11 @@ class Player:
             workshop = os.path.join(mods_dir, 'Local', ONIMCP_WORKSHOP)
             entries = [e for e in entries if e['label']['id'] != ONIMCP_WORKSHOP]
             own = [('OniMcp', workshop)]
+        # Jlib, the PLib fork OniMcp loads beside it since 2026-10-26 (scripts/onimcp.py puts its
+        # mod in the build's Jlib folder), ahead of it so that it loads first.
+        jlib = os.path.join(self.env['E2E_ONIMCP'], 'Jlib')
+        if os.path.isdir(jlib):
+            own.insert(0, ('Jlib', jlib))
         if driver:
             own.append(('E2eDriver', self.env['E2E_DRIVER']))
         own.extend((name, os.path.join(ROOT, 'out', 'bin', name, 'release')) for name in self.test_mods)
@@ -3306,6 +3311,8 @@ class Player:
                     shutil.copy(os.path.join(source, name), dest)
             elif source == os.path.join(mods_dir, 'Local', ONIMCP_WORKSHOP):
                 shutil.move(source, dest)
+            elif folder == 'OniMcp':
+                shutil.copytree(source, dest, ignore=lambda at, names, top=source: ['Jlib'] if at == top else [])
             else:
                 shutil.copytree(source, dest)
             if folder == 'OniMcp' and self.kind == 'original':
@@ -3468,8 +3475,9 @@ class Player:
                 if 'previous' in self.update_check:
                     env['ONI_UPDATE_PREVIOUS'] = str(self.update_check['previous'])
             # OniMcp, in every spec, transpiles LoadScreen methods background-save patches: test
-            # infrastructure, left out of the Moono Tweaks screen's mod overlaps.
-            env['ONI_MOD_OVERLAPS_IGNORE'] = 'LIghtJUNction.OniMcp'
+            # infrastructure, left out of the Moono Tweaks screen's mod overlaps, with Jlib, the
+            # PLib fork it loads beside it.
+            env['ONI_MOD_OVERLAPS_IGNORE'] = 'LIghtJUNction.OniMcp,LIghtJUNction.Jlib'
             # A start-up failure goes to the log, never to a desktop dialog (DesktopDialog); a
             # crash writes its record and ends the run, with no crash window to wait on.
             env['ONI_HOST_NO_DIALOG'] = '1'

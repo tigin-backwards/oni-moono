@@ -387,8 +387,8 @@ so it checks nothing.
 Each run is checked against its log-signature budget, `ci/game-tests/budget/BUILD.txt`: a run
 fails on an error or exception the budget lacks. `E2E_NO_SHOTS=1` keeps specs from taking
 screenshots, and no spec compares pixels. OniMcp is built fresh for each run by
-`scripts/onimcp.py`, against the copy and from its author's repository, with its U60 change and
-`MOONO-CHANGES.txt` as in a local build.
+`scripts/onimcp.py`, against the copy and from its author's repository, with Jlib, the PLib fork
+it loads beside it, as in a local build.
 
 oni-moono is public, so the job:
 

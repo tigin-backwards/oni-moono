@@ -172,7 +172,7 @@ In the environment, or in `out/local-tools/qa.env`:
 | Setting | What it is |
 |---|---|
 | `QA_U57_GAME`, `QA_U57_STEAM` | The game folder with the DLC content and a Steam double owning it, as for `qa.sh`'s U57 stages. |
-| `E2E_ONIMCP` | A build of OniMcp's mod folder at the commit `scripts/onimcp.py` pins and builds (its licence does not allow vendoring it). |
+| `E2E_ONIMCP` | A build of OniMcp's mod folder at the commit `scripts/onimcp.py` pins and builds (its licence does not allow vendoring it), with its `Jlib` folder, the PLib fork e2e.py installs as a mod beside OniMcp. |
 | `E2E_DRIVER` | E2eDriver's mod folder (default `out/bin/E2eDriver/release`; `dotnet build tools/E2eDriver -c Release`), required for every spec but those at the main menu without driver steps. |
 | `E2E_ORIGINAL` | The original player's executable, with a DLC-owning Steam double in its Plugins, for `--player original` or `both`. |
 | `E2E_ORIGINAL_ENV` | `NAME=VALUE` settings for the original player only ([Run time](#run-time)). |
@@ -260,7 +260,7 @@ at that size, stretched over the whole display. Before each step the runner read
 display's size it scales the pointer's positions (the game's pixels, as `ui.find` gives them) to
 the display's, and a main-menu shot's crop and masks to its grab.
 
-Every spec gets OniMcp and, in both players, E2eDriver: `E2eDriver.dll` from its build
+Every spec gets OniMcp (with Jlib) and, in both players, E2eDriver: `E2eDriver.dll` from its build
 (`E2E_DRIVER`, default `out/bin/E2eDriver/release`) with `tools/E2eDriver/mod.yaml` and
 `mod_info.yaml`, stamped 1399985550 in `mods.json`. A run with a fixture, or with driver steps,
 does not start without a build of it: without it nothing closes the load's MOD DIFFERENCES
